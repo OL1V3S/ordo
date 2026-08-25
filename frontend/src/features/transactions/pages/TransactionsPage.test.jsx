@@ -11,6 +11,7 @@ vi.mock('../../importPreview/hooks/useImportPreview', () => ({ useImportPreview:
 const baseExpensesHook = {
   expenses: [],
   loading: false,
+  refresh: vi.fn(),
   addExpense: vi.fn(),
   updateExpense: vi.fn(),
   deleteExpense: vi.fn(),
@@ -22,11 +23,29 @@ const baseImportHook = {
   loading: false,
   processing: false,
   error: '',
+  confirming: false,
+  confirmation: null,
+  confirmationIssue: null,
+  selectedCount: 0,
   selectSource: vi.fn(),
   upload: vi.fn(),
   cancel: vi.fn(),
   updateRow: vi.fn(),
+  confirm: vi.fn(),
   clearForReupload: vi.fn(),
+}
+
+const selectedImportPreview = {
+  batchId: '11111111-1111-1111-1111-111111111111',
+  sourceType: 'sunflower_pdf',
+  expiresAt: '2026-08-26T12:00:00Z',
+  rows: [{
+    rowId: 'row-1', sourceRowOrdinal: 1, postedDate: '2026-08-12', amount: 8.5,
+    direction: 'debit', sourceDescription: 'SYNTHETIC CAFE', sourceSection: 'electronic_transactions',
+    classification: 'expense_candidate', isEligible: true, errors: [], warnings: [],
+    isPossibleDuplicate: false, editableExpenseDescription: 'Coffee', category: 'food',
+    selectedForImport: true,
+  }],
 }
 
 describe('existing expense workflows', () => {
@@ -173,7 +192,7 @@ describe('existing expense workflows', () => {
     await user.upload(screen.getByLabelText('Sunflower statement PDF'), file)
 
     expect(upload).toHaveBeenCalledWith(file)
-    expect(screen.getByText(/Preview only — no expenses have been created/)).toBeInTheDocument()
+    expect(screen.getByText(/Expenses are created only after confirmation/)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /confirm|import expenses/i })).not.toBeInTheDocument()
   })
 
@@ -204,6 +223,32 @@ describe('existing expense workflows', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('Statement processing timed out')
     await user.click(screen.getByRole('button', { name: 'Cancel' }))
     expect(cancel).toHaveBeenCalled()
+  })
+
+  it.each(['confirmed', 'already_confirmed'])('refreshes ordinary Expenses after %s import success', async (status) => {
+    const user = userEvent.setup()
+    const refresh = vi.fn().mockResolvedValue(undefined)
+    const result = {
+      batchId: selectedImportPreview.batchId,
+      status,
+      confirmedAt: '2026-08-25T21:00:00Z',
+      importedExpenseCount: 1,
+    }
+    const confirm = vi.fn().mockResolvedValue(result)
+    useExpenses.mockReturnValue({ ...baseExpensesHook, refresh })
+    useImportPreview.mockReturnValue({
+      ...baseImportHook,
+      preview: selectedImportPreview,
+      sourceType: 'sunflower_pdf',
+      selectedCount: 1,
+      confirm,
+    })
+    render(<TransactionsPage />)
+
+    await user.click(screen.getByRole('button', { name: 'Import 1 selected expense' }))
+
+    expect(confirm).toHaveBeenCalledOnce()
+    expect(refresh).toHaveBeenCalledOnce()
   })
 
   it('renders resumed rows with duplicate and ineligible affordances and persists eligible edits', async () => {
@@ -239,7 +284,7 @@ describe('existing expense workflows', () => {
     expect(within(table).getByText('Possible duplicate — review before selecting')).toBeInTheDocument()
     expect(within(table).getByText('Needs review')).toBeInTheDocument()
     expect(within(table).getByLabelText('Not selectable')).toBeDisabled()
-    await user.click(within(table).getByLabelText('Select for future import'))
+    await user.click(within(table).getByLabelText('Select for import'))
     expect(updateRow).toHaveBeenCalledWith('row-1', expect.objectContaining({ selectedForImport: true }))
 
     const description = within(table).getByLabelText('Expense description')
@@ -252,6 +297,6 @@ describe('existing expense workflows', () => {
       category: 'food',
       selectedForImport: false,
     })
-    expect(screen.queryByRole('button', { name: /confirm|import expenses/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Import selected expenses' })).toBeDisabled()
   })
 })

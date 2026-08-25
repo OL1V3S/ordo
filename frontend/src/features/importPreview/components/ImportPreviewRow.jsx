@@ -1,6 +1,5 @@
-import { useEffect, useState } from "react";
 import { DEFAULT_CATEGORIES } from "../../../shared/constants/categories";
-import { displayText, isDefaultCategory, normalizeText } from "../../../utils/text";
+import { displayText } from "../../../utils/text";
 
 const STATUS_LABELS = {
   expense_candidate: "Expense candidate",
@@ -9,41 +8,48 @@ const STATUS_LABELS = {
   invalid: "Invalid row",
 };
 
-function RowFields({ row, onUpdate }) {
-  const defaultCategory = isDefaultCategory(row.category, DEFAULT_CATEGORIES) || row.category === "uncategorized";
-  const [description, setDescription] = useState(row.editableExpenseDescription ?? "");
-  const [categoryChoice, setCategoryChoice] = useState(defaultCategory ? row.category : "other");
-  const [customCategory, setCustomCategory] = useState(defaultCategory ? "" : row.category ?? "");
-  const [saving, setSaving] = useState(false);
+const CONFIRMATION_CODE_MESSAGES = {
+  possible_duplicate: "New possible duplicate — review this row and explicitly select it again if it should be imported.",
+  row_not_selectable: "This row is not eligible to become an expense.",
+  date_required: "A transaction date is required.",
+  amount_must_be_positive: "The expense amount must be positive.",
+  amount_out_of_range: "The expense amount is outside the supported range.",
+  amount_precision_invalid: "The expense amount must use no more than two decimal places.",
+  description_required: "An expense description is required.",
+  description_too_long: "The expense description is too long.",
+  category_required: "An expense category is required.",
+  category_too_long: "The expense category is too long.",
+  category_reserved: "Choose a category other than Other.",
+};
 
-  useEffect(() => {
-    setDescription(row.editableExpenseDescription ?? "");
-    const isDefault = isDefaultCategory(row.category, DEFAULT_CATEGORIES) || row.category === "uncategorized";
-    setCategoryChoice(isDefault ? row.category : "other");
-    setCustomCategory(isDefault ? "" : row.category ?? "");
-  }, [row]);
-
+function RowFields({ row, draft, disabled, onDraftChange, onSave }) {
   if (!row.isEligible) return <span className="muted">Not editable</span>;
 
-  async function save() {
-    setSaving(true);
-    await onUpdate({
-      editableExpenseDescription: description.trim(),
-      category: categoryChoice === "other" ? normalizeText(customCategory) : categoryChoice,
-      selectedForImport: row.selectedForImport,
-    });
-    setSaving(false);
-  }
+  const saveStatus = draft.pending
+    ? "Saving…"
+    : draft.outcome === "error"
+      ? draft.dirty ? "Save failed. Changes remain unsaved." : "The row update failed. Try again."
+      : draft.dirty
+        ? "Unsaved changes"
+        : draft.outcome === "saved" ? "Saved" : "";
 
   return (
     <div className="import-row-fields">
       <label>
         <span>Expense description</span>
-        <input value={description} onChange={(event) => setDescription(event.target.value)} />
+        <input
+          value={draft.description}
+          disabled={disabled || draft.pending}
+          onChange={(event) => onDraftChange({ description: event.target.value })}
+        />
       </label>
       <label>
         <span>Category</span>
-        <select value={categoryChoice} onChange={(event) => setCategoryChoice(event.target.value)}>
+        <select
+          value={draft.categoryChoice}
+          disabled={disabled || draft.pending}
+          onChange={(event) => onDraftChange({ categoryChoice: event.target.value })}
+        >
           {DEFAULT_CATEGORIES.map((category) => (
             <option key={category} value={category.toLowerCase()}>{displayText(category)}</option>
           ))}
@@ -51,20 +57,38 @@ function RowFields({ row, onUpdate }) {
           <option value="other">Other</option>
         </select>
       </label>
-      {categoryChoice === "other" && (
+      {draft.categoryChoice === "other" && (
         <label>
           <span>Custom category</span>
-          <input value={customCategory} onChange={(event) => setCustomCategory(event.target.value)} />
+          <input
+            value={draft.customCategory}
+            disabled={disabled || draft.pending}
+            onChange={(event) => onDraftChange({ customCategory: event.target.value })}
+          />
         </label>
       )}
-      <button type="button" className="button-ghost" disabled={saving} onClick={save}>
-        {saving ? "Saving…" : "Save row"}
+      <button
+        type="button"
+        className="button-ghost"
+        disabled={disabled || draft.pending || !draft.dirty}
+        onClick={onSave}
+      >
+        {draft.pending ? "Saving…" : "Save row"}
       </button>
+      {saveStatus && (
+        <span
+          className={draft.outcome === "error" ? "import-save-status import-save-status--error" : "import-save-status"}
+          role={draft.outcome === "error" ? "alert" : "status"}
+          aria-live="polite"
+        >
+          {saveStatus}
+        </span>
+      )}
     </div>
   );
 }
 
-function RowStatus({ row }) {
+function RowStatus({ row, confirmationCodes }) {
   return (
     <div className="import-row-status">
       <span className={`import-status import-status--${row.classification}`}>
@@ -77,28 +101,37 @@ function RowStatus({ row }) {
       {row.warnings.filter((code) => code !== "possible_duplicate").map((code) => (
         <span className="import-warning" key={code}>Warning: {code.replaceAll("_", " ")}</span>
       ))}
+      {confirmationCodes.map((code) => (
+        <span
+          className={code === "possible_duplicate" ? "import-warning" : "import-error"}
+          key={`confirmation-${code}`}
+        >
+          {CONFIRMATION_CODE_MESSAGES[code]}
+        </span>
+      ))}
     </div>
   );
 }
 
-export default function ImportPreviewRow({ row, onUpdate, presentation = "table" }) {
-  async function updateSelection(selectedForImport) {
-    await onUpdate({
-      editableExpenseDescription: row.editableExpenseDescription,
-      category: row.category,
-      selectedForImport,
-    });
-  }
-
+export default function ImportPreviewRow({
+  row,
+  draft,
+  confirmationCodes = [],
+  disabled = false,
+  onDraftChange,
+  onSave,
+  onSelectionChange,
+  presentation = "table",
+}) {
   const selection = (
     <label className="import-selection">
       <input
         type="checkbox"
         checked={row.selectedForImport}
-        disabled={!row.isEligible}
-        onChange={(event) => updateSelection(event.target.checked)}
+        disabled={!row.isEligible || disabled || draft.pending}
+        onChange={(event) => onSelectionChange(event.target.checked)}
       />
-      <span>{row.isEligible ? "Select for future import" : "Not selectable"}</span>
+      <span>{row.isEligible ? "Select for import" : "Not selectable"}</span>
     </label>
   );
 
@@ -112,13 +145,23 @@ export default function ImportPreviewRow({ row, onUpdate, presentation = "table"
     </>
   );
 
+  const fields = (
+    <RowFields
+      row={row}
+      draft={draft}
+      disabled={disabled}
+      onDraftChange={onDraftChange}
+      onSave={onSave}
+    />
+  );
+
   if (presentation === "card") {
     return (
       <article className="import-preview-card" aria-label={`Statement row ${row.sourceRowOrdinal}`}>
         <div className="import-preview-card__details">{details}</div>
-        <RowStatus row={row} />
+        <RowStatus row={row} confirmationCodes={confirmationCodes} />
         {selection}
-        <RowFields row={row} onUpdate={onUpdate} />
+        {fields}
       </article>
     );
   }
@@ -127,9 +170,9 @@ export default function ImportPreviewRow({ row, onUpdate, presentation = "table"
     <tr>
       <td>{row.sourceRowOrdinal}</td>
       <td>{details}</td>
-      <td><RowStatus row={row} /></td>
+      <td><RowStatus row={row} confirmationCodes={confirmationCodes} /></td>
       <td>{selection}</td>
-      <td><RowFields row={row} onUpdate={onUpdate} /></td>
+      <td>{fields}</td>
     </tr>
   );
 }

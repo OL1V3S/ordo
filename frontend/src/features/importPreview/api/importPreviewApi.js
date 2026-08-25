@@ -19,4 +19,7 @@ export const importPreviewApi = {
   updateRow(batchId, rowId, payload) {
     return client.patch(`/api/import-previews/${batchId}/rows/${rowId}`, payload);
   },
+  confirm(batchId) {
+    return client.post(`/api/import-previews/${batchId}/confirm`);
+  },
 };

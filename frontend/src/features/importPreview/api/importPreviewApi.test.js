@@ -35,4 +35,10 @@ describe('importPreviewApi', () => {
       selectedForImport: true,
     })
   })
+
+  it('confirms the server-owned batch without a request body', () => {
+    importPreviewApi.confirm('batch-id')
+
+    expect(client.post).toHaveBeenCalledWith('/api/import-previews/batch-id/confirm')
+  })
 })

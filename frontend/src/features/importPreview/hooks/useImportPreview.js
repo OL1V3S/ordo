@@ -14,13 +14,73 @@ const SAFE_ERRORS = {
   processing_timed_out: "Statement processing timed out. Try the upload again.",
   processing_cancelled: "Statement processing was cancelled.",
   import_in_progress: "Another statement is already being processed.",
+  already_imported: "This statement was already imported. No duplicate expenses were created.",
   row_not_selectable: "That row cannot be selected for import.",
   row_validation_failed: "Check the description and category, then try again.",
 };
 
+const CONFIRMATION_MESSAGES = {
+  no_rows_selected: "Select at least one eligible row before importing expenses.",
+  duplicate_review_required: "New possible duplicates were found. Review the affected rows and explicitly select any row you still want to import.",
+  confirmation_validation_failed: "One or more selected rows need attention before expenses can be imported.",
+  confirmation_conflict: "The statement could not be confirmed because its import state changed. Review the preview and try again.",
+  confirmation_failed: "The statement could not be confirmed safely. Nothing is being reported as imported; you can try again.",
+  preview_expired: "This preview expired. Re-upload the statement to create a new review.",
+  preview_unavailable: "This import preview is unavailable. Choose the bank and upload the statement again.",
+};
+
+const SAFE_CONFIRMATION_ROW_CODES = new Set([
+  "possible_duplicate",
+  "row_not_selectable",
+  "date_required",
+  "amount_must_be_positive",
+  "amount_out_of_range",
+  "amount_precision_invalid",
+  "description_required",
+  "description_too_long",
+  "category_required",
+  "category_too_long",
+  "category_reserved",
+]);
+
 function safeError(error, fallback) {
   const code = error?.response?.data?.code;
   return SAFE_ERRORS[code] ?? fallback;
+}
+
+function safeConfirmationRows(rows) {
+  if (!Array.isArray(rows)) return [];
+  return rows.flatMap((row) => {
+    if (typeof row?.rowId !== "string" || !Array.isArray(row.codes)) return [];
+    const codes = row.codes.filter((code) => SAFE_CONFIRMATION_ROW_CODES.has(code));
+    return codes.length > 0 ? [{ rowId: row.rowId, codes }] : [];
+  });
+}
+
+function safeConfirmationIssue(error) {
+  const status = error?.response?.status;
+  const responseData = error?.response?.data;
+  const responseCode = typeof responseData?.code === "string" ? responseData.code : "";
+  const code = status === 404
+    ? "preview_unavailable"
+    : Object.hasOwn(CONFIRMATION_MESSAGES, responseCode)
+      ? responseCode
+      : "confirmation_failed";
+  return {
+    code,
+    message: CONFIRMATION_MESSAGES[code],
+    rows: safeConfirmationRows(responseData?.rows),
+    requiresPreviewRefresh: false,
+  };
+}
+
+function isConfirmationResponse(value, batchId) {
+  return value
+    && value.batchId === batchId
+    && (value.status === "confirmed" || value.status === "already_confirmed")
+    && typeof value.confirmedAt === "string"
+    && Number.isInteger(value.importedExpenseCount)
+    && value.importedExpenseCount >= 0;
 }
 
 function batchIdFromLocation() {
@@ -45,7 +105,11 @@ export function useImportPreview() {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState("");
+  const [confirming, setConfirming] = useState(false);
+  const [confirmation, setConfirmation] = useState(null);
+  const [confirmationIssue, setConfirmationIssue] = useState(null);
   const processingController = useRef(null);
+  const confirmationInFlight = useRef(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -61,7 +125,12 @@ export function useImportPreview() {
         }
       } catch (requestError) {
         if (!axios.isCancel(requestError)) {
-          setError(safeError(requestError, "The saved import preview could not be loaded."));
+          if (requestError?.response?.status === 404) {
+            forgetBatch();
+            setError(CONFIRMATION_MESSAGES.preview_unavailable);
+          } else {
+            setError(safeError(requestError, "The saved import preview could not be loaded."));
+          }
         }
       } finally {
         if (!controller.signal.aborted) setLoading(false);
@@ -79,6 +148,8 @@ export function useImportPreview() {
     setSourceType(nextSourceType);
     setPreview(null);
     setError("");
+    setConfirmation(null);
+    setConfirmationIssue(null);
     if (!nextSourceType) {
       setLoading(false);
       return null;
@@ -112,6 +183,8 @@ export function useImportPreview() {
     processingController.current = controller;
     setProcessing(true);
     setError("");
+    setConfirmation(null);
+    setConfirmationIssue(null);
     try {
       const response = await importPreviewApi.upload(sourceType, file, controller.signal);
       setPreview(response.data);
@@ -141,6 +214,15 @@ export function useImportPreview() {
         ...current,
         rows: current.rows.map((row) => row.rowId === rowId ? response.data : row),
       }));
+      setConfirmationIssue((current) => {
+        if (!current) return null;
+        if (current.code === "no_rows_selected" && payload.selectedForImport) return null;
+        if (!current.rows.some((row) => row.rowId === rowId)) return current;
+        return {
+          ...current,
+          rows: current.rows.filter((row) => row.rowId !== rowId),
+        };
+      });
       return response.data;
     } catch (requestError) {
       setError(safeError(requestError, "The preview row could not be updated."));
@@ -148,11 +230,61 @@ export function useImportPreview() {
     }
   }, [preview]);
 
+  const confirm = useCallback(async () => {
+    if (!preview || confirmationInFlight.current) return null;
+    const batchId = preview.batchId;
+    confirmationInFlight.current = true;
+    setConfirming(true);
+    setConfirmationIssue(null);
+    setError("");
+    try {
+      const response = await importPreviewApi.confirm(batchId);
+      if (!isConfirmationResponse(response.data, batchId)) {
+        setConfirmationIssue({
+          code: "confirmation_failed",
+          message: CONFIRMATION_MESSAGES.confirmation_failed,
+          rows: [],
+          requiresPreviewRefresh: false,
+        });
+        return null;
+      }
+
+      setConfirmation(response.data);
+      setPreview(null);
+      forgetBatch();
+      return response.data;
+    } catch (requestError) {
+      const issue = safeConfirmationIssue(requestError);
+      if (issue.code === "duplicate_review_required") {
+        try {
+          const refreshed = await importPreviewApi.getById(batchId);
+          if (!refreshed.data) throw new Error("Preview refresh returned no data.");
+          setPreview(refreshed.data);
+        } catch {
+          issue.requiresPreviewRefresh = true;
+          issue.message = "New duplicate warnings were saved, but the latest preview could not be loaded. Refresh this page before confirming.";
+        }
+      } else if (issue.code === "preview_unavailable" || issue.code === "preview_expired") {
+        setPreview(null);
+        forgetBatch();
+      }
+      setConfirmationIssue(issue);
+      return null;
+    } finally {
+      confirmationInFlight.current = false;
+      setConfirming(false);
+    }
+  }, [preview]);
+
   const clearForReupload = useCallback(() => {
     setPreview(null);
     setError("");
+    setConfirmation(null);
+    setConfirmationIssue(null);
     forgetBatch();
   }, []);
+
+  const selectedCount = preview?.rows.filter((row) => row.isEligible && row.selectedForImport).length ?? 0;
 
   return {
     preview,
@@ -160,10 +292,15 @@ export function useImportPreview() {
     loading,
     processing,
     error,
+    confirming,
+    confirmation,
+    confirmationIssue,
+    selectedCount,
     selectSource,
     upload,
     cancel,
     updateRow,
+    confirm,
     clearForReupload,
   };
 }
