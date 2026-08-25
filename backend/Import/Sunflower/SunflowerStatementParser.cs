@@ -5,8 +5,8 @@ namespace BudgetPlanner.Import.Sunflower;
 
 public sealed partial class SunflowerStatementParser : ISunflowerStatementParser
 {
-    public const string SourceType = "sunflower_pdf";
-    public const string RuleVersion = "sunflower-v2";
+    public const string SourceType = ImportStatementSources.SunflowerPdf;
+    public const string RuleVersion = "sunflower-v3";
     public const int MaximumCandidateRows = 1_000;
 
     private const string DepositsSection = "deposits";
@@ -24,12 +24,6 @@ public sealed partial class SunflowerStatementParser : ISunflowerStatementParser
             return SunflowerStatementParseResult.Failed(SunflowerStatementParseFailure.UnsupportedFormat);
         }
 
-        cancellationToken.ThrowIfCancellationRequested();
-        if (!HasSunflowerHeaderIdentity(extraction.Pages))
-        {
-            return SunflowerStatementParseResult.Failed(SunflowerStatementParseFailure.UnsupportedSource);
-        }
-
         var statementDates = extraction.Pages
             .Select(page =>
             {
@@ -43,9 +37,12 @@ public sealed partial class SunflowerStatementParser : ISunflowerStatementParser
             .Distinct()
             .ToList();
 
+        var headerFamilies = extraction.Pages.ToDictionary(page => page.PageNumber, ClassifyHeaderFamily);
         var hasDaysMarker = extraction.Pages.Any(page => DaysInStatementPeriodRegex().IsMatch(page.Text));
-        var hasTransactionHeading = extraction.Pages.SelectMany(SplitLines).Any(line => IsTransactionHeading(line.Trim()));
-        var hasColumnHeader = extraction.Pages.Any(page => PostedDescriptionAmountRegex().IsMatch(page.Text));
+        var hasTransactionHeading = extraction.Pages
+            .SelectMany(page => SplitLines(page, headerFamilies[page.PageNumber]))
+            .Any(line => IsTransactionHeading(line.Trim()));
+        var hasColumnHeader = headerFamilies.Values.Any(family => family != HeaderFamily.Unsupported);
         if (statementDates.Count != 1 || !hasDaysMarker || !hasTransactionHeading || !hasColumnHeader)
         {
             return SunflowerStatementParseResult.Failed(SunflowerStatementParseFailure.UnsupportedFormat);
@@ -76,7 +73,8 @@ public sealed partial class SunflowerStatementParser : ISunflowerStatementParser
                 pendingRow = null;
             }
 
-            foreach (var sourceLine in SplitLines(page).Select(line => new SourceLine(page.PageNumber, line)))
+            foreach (var sourceLine in SplitLines(page, headerFamilies[page.PageNumber])
+                         .Select(line => new SourceLine(page.PageNumber, line)))
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 var trimmed = sourceLine.Text.Trim();
@@ -611,18 +609,98 @@ public sealed partial class SunflowerStatementParser : ISunflowerStatementParser
         pages.Count > 0
         && pages.Select(page => page.PageNumber).SequenceEqual(Enumerable.Range(1, pages.Count));
 
-    private static bool HasSunflowerHeaderIdentity(IReadOnlyList<PdfExtractedPage> pages) =>
-        pages.Any(page =>
+    private static HeaderFamily ClassifyHeaderFamily(PdfExtractedPage page)
+    {
+        if (PostedDescriptionAmountRegex().IsMatch(page.Text))
         {
-            var statementDate = StatementDateRegex().Match(page.Text);
-            return statementDate.Success
-                   && SunflowerBrandRegex().Matches(page.Text)
-                       .Any(brand => brand.Index < statementDate.Index);
-        });
+            return HeaderFamily.Canonical;
+        }
 
-    private static IEnumerable<string> SplitLines(PdfExtractedPage page)
+        var compactMatches = CompactPostedDescriptionAmountRegex().Matches(page.Text);
+        return compactMatches.Count == 1 && HasExactCompactHeaderGeometry(page)
+            ? HeaderFamily.CompactGeometry
+            : HeaderFamily.Unsupported;
+    }
+
+    private static bool HasExactCompactHeaderGeometry(PdfExtractedPage page)
+    {
+        if (page.Words.Count == 0
+            || page.Words.Any(word => word.Orientation != PdfWordOrientation.Horizontal
+                || word.Ordinal <= 0
+                || string.IsNullOrEmpty(word.Text)
+                || !HasValidBox(word)))
+        {
+            return false;
+        }
+
+        var orderedWords = page.Words.OrderBy(word => word.Ordinal).ToList();
+        if (!orderedWords.Select(word => word.Ordinal).SequenceEqual(Enumerable.Range(1, orderedWords.Count)))
+        {
+            return false;
+        }
+
+        var medianHeight = Median(orderedWords.Select(word => word.Top - word.Bottom));
+        if (medianHeight <= 0)
+        {
+            return false;
+        }
+
+        var baselineTolerance = medianHeight * 0.45;
+        var lines = new List<PositionalLine>();
+        foreach (var word in orderedWords.OrderByDescending(word => word.Baseline).ThenBy(word => word.Left))
+        {
+            var line = lines
+                .Where(candidate => Math.Abs(candidate.Baseline - word.Baseline) <= baselineTolerance)
+                .OrderBy(candidate => Math.Abs(candidate.Baseline - word.Baseline))
+                .FirstOrDefault();
+            if (line is null)
+            {
+                lines.Add(new PositionalLine(word.Baseline, new List<PdfExtractedWord> { word }));
+            }
+            else
+            {
+                line.Words.Add(word);
+            }
+        }
+
+        lines = lines.OrderByDescending(line => line.Baseline).ToList();
+        foreach (var line in lines)
+        {
+            line.Words.Sort((left, right) => left.Left.CompareTo(right.Left));
+        }
+
+        var headingIndex = lines.FindIndex(line =>
+            line.Words.Count == 2
+            && line.Words[0].Text.Equals("Electronic", StringComparison.OrdinalIgnoreCase)
+            && line.Words[1].Text.Equals("Transactions", StringComparison.OrdinalIgnoreCase));
+        if (headingIndex < 0)
+        {
+            return false;
+        }
+
+        var candidates = lines
+            .Skip(headingIndex + 1)
+            .Where(line => line.Words.Count == 3
+                && line.Words[0].Text.Equals("Posted", StringComparison.OrdinalIgnoreCase)
+                && line.Words[1].Text.Equals("Description", StringComparison.OrdinalIgnoreCase)
+                && line.Words[2].Text.Equals("Amount", StringComparison.OrdinalIgnoreCase)
+                && line.Words[0].Right < line.Words[1].Left
+                && line.Words[1].Right < line.Words[2].Left
+                && line.Words.Max(word => word.Baseline) - line.Words.Min(word => word.Baseline)
+                    <= baselineTolerance)
+            .ToList();
+        return candidates.Count == 1;
+    }
+
+    private static IEnumerable<string> SplitLines(PdfExtractedPage page, HeaderFamily headerFamily)
     {
         var text = page.Text.Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n');
+        if (headerFamily == HeaderFamily.CompactGeometry)
+        {
+            text = CompactPostedDescriptionAmountRegex().Replace(
+                text,
+                match => $"{match.Groups["prefix"].Value}\n{match.Groups["header"].Value}\n");
+        }
         var fixedMarkers = new[]
         {
             "Important Account Information",
@@ -746,8 +824,8 @@ public sealed partial class SunflowerStatementParser : ISunflowerStatementParser
     [GeneratedRegex(@"(?<![A-Za-z])Posted\s*Description\s*Amount(?![A-Za-z])", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex PostedDescriptionAmountRegex();
 
-    [GeneratedRegex(@"\bSUNFLOWER(?:BANK)?\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-    private static partial Regex SunflowerBrandRegex();
+    [GeneratedRegex(@"(?<prefix>[A-Za-z])(?<header>Posted\s*Description\s*Amount)(?=\d{2}/\d{2}/\d{2})", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex CompactPostedDescriptionAmountRegex();
 
     [GeneratedRegex(@"^(?:---\s*)?No Checks Paid(?: Electronically)? in this statement cycle\.(?:\s*---)?$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex NoChecksMessageRegex();
@@ -757,6 +835,13 @@ public sealed partial class SunflowerStatementParser : ISunflowerStatementParser
 
     [GeneratedRegex(@"^(?:Posted\s*(?:/\s*)?Description\s*(?:/\s*)?Amount|Check Number\s*(?:/\s*)?Date\s*(?:/\s*)?Description\s*(?:/\s*)?Amount|Check Number\s+Date\s+Amount\s+Check Number\s+Date\s+Amount)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex CheckHeaderRegex();
+
+    private enum HeaderFamily
+    {
+        Unsupported,
+        Canonical,
+        CompactGeometry
+    }
 
     [GeneratedRegex(@"^(?<date>\d{2}/\d{2}/\d{2})\s+(?<description>.*?)\s+(?<amount>\S+?)(?<debit>-)?$", RegexOptions.CultureInvariant)]
     private static partial Regex TransactionRowRegex();

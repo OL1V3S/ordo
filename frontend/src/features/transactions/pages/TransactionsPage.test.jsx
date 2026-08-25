@@ -18,9 +18,11 @@ const baseExpensesHook = {
 
 const baseImportHook = {
   preview: null,
+  sourceType: '',
   loading: false,
   processing: false,
   error: '',
+  selectSource: vi.fn(),
   upload: vi.fn(),
   cancel: vi.fn(),
   updateRow: vi.fn(),
@@ -43,7 +45,8 @@ describe('existing expense workflows', () => {
     await user.type(screen.getByPlaceholderText('Description'), '  Dinner With Friends  ')
     await user.type(screen.getByPlaceholderText('Amount'), '12.50')
     fireEvent.change(document.querySelector('input[type="date"]'), { target: { value: '2026-08-14' } })
-    await user.selectOptions(screen.getAllByRole('combobox')[0], 'food')
+    const addEntry = screen.getByRole('heading', { name: 'Add Entry' }).closest('section')
+    await user.selectOptions(within(addEntry).getByRole('combobox'), 'food')
     await user.click(screen.getByRole('button', { name: 'Add' }))
 
     expect(addExpense).toHaveBeenCalledWith({
@@ -63,7 +66,8 @@ describe('existing expense workflows', () => {
     await user.type(screen.getByPlaceholderText('Description'), 'Prescription')
     await user.type(screen.getByPlaceholderText('Amount'), '8')
     fireEvent.change(document.querySelector('input[type="date"]'), { target: { value: '2026-08-14' } })
-    await user.selectOptions(screen.getAllByRole('combobox')[0], 'other')
+    const addEntry = screen.getByRole('heading', { name: 'Add Entry' }).closest('section')
+    await user.selectOptions(within(addEntry).getByRole('combobox'), 'other')
     await user.type(screen.getByPlaceholderText('Custom Category'), '  Medical Care  ')
     await user.click(screen.getByRole('button', { name: 'Add' }))
 
@@ -162,7 +166,7 @@ describe('existing expense workflows', () => {
   it('uploads a PDF through the normal Transactions experience', async () => {
     const user = userEvent.setup()
     const upload = vi.fn().mockResolvedValue(null)
-    useImportPreview.mockReturnValue({ ...baseImportHook, upload })
+    useImportPreview.mockReturnValue({ ...baseImportHook, sourceType: 'sunflower_pdf', upload })
     render(<TransactionsPage />)
     const file = new File(['synthetic'], 'statement.pdf', { type: 'application/pdf' })
 
@@ -171,6 +175,18 @@ describe('existing expense workflows', () => {
     expect(upload).toHaveBeenCalledWith(file)
     expect(screen.getByText(/Preview only — no expenses have been created/)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /confirm|import expenses/i })).not.toBeInTheDocument()
+  })
+
+  it('requires an explicit bank selection before enabling upload', async () => {
+    const user = userEvent.setup()
+    const selectSource = vi.fn()
+    useImportPreview.mockReturnValue({ ...baseImportHook, selectSource })
+    render(<TransactionsPage />)
+
+    expect(screen.getByRole('button', { name: 'Choose PDF' })).toBeDisabled()
+    expect(screen.getByLabelText('Sunflower statement PDF')).toBeDisabled()
+    await user.selectOptions(screen.getByLabelText('Bank'), 'sunflower_pdf')
+    expect(selectSource).toHaveBeenCalledWith('sunflower_pdf')
   })
 
   it('shows processing and safe retry errors without statement details', async () => {

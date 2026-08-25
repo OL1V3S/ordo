@@ -3,13 +3,13 @@ import Card from "../../../shared/ui/Card";
 import ImportPreviewRow from "./ImportPreviewRow";
 
 export default function ImportPreviewPanel({ importState }) {
-  const { preview, loading, processing, error, upload, cancel, updateRow, clearForReupload } = importState;
+  const { preview, sourceType, loading, processing, error, selectSource, upload, cancel, updateRow, clearForReupload } = importState;
   const [dragging, setDragging] = useState(false);
   const fileInput = useRef(null);
   const resultsHeading = useRef(null);
 
   async function submitFile(file) {
-    if (!file) return;
+    if (!file || !sourceType) return;
     const result = await upload(file);
     if (result) requestAnimationFrame(() => resultsHeading.current?.focus());
   }
@@ -17,6 +17,7 @@ export default function ImportPreviewPanel({ importState }) {
   function drop(event) {
     event.preventDefault();
     setDragging(false);
+    if (!sourceType) return;
     submitFile(event.dataTransfer.files?.[0]);
   }
 
@@ -25,14 +26,29 @@ export default function ImportPreviewPanel({ importState }) {
       <div className="section__header import-preview__header">
         <div>
           <p className="page-header__eyebrow">Preview only</p>
-          <h2 className="h2" id="import-preview-title">Import Sunflower statement</h2>
-          <p className="muted">Upload a text-extractable Sunflower PDF, up to 10 MiB. Scanned statements are not supported.</p>
+          <h2 className="h2" id="import-preview-title">Import bank statement</h2>
+          <p className="muted">Choose the bank, then upload a text-extractable PDF up to 10 MiB. Scanned statements are not supported.</p>
         </div>
         {preview && <button type="button" className="button-ghost" onClick={clearForReupload}>Choose another statement</button>}
       </div>
 
       <div className="status-message status-message--info">
         Preview only — no expenses have been created. Confirmation is not available yet.
+      </div>
+
+      <div className="import-source-control">
+        <label htmlFor="statement-source">Bank</label>
+        <select
+          id="statement-source"
+          required
+          value={sourceType}
+          disabled={processing || Boolean(preview)}
+          onChange={(event) => selectSource(event.target.value)}
+        >
+          <option value="">Choose a bank</option>
+          <option value="sunflower_pdf">Sunflower Bank</option>
+        </select>
+        {!sourceType && <p className="muted">Choose a bank to enable PDF upload.</p>}
       </div>
 
       {error && <div className="status-message status-message--danger" role="alert">{error}</div>}
@@ -58,10 +74,11 @@ export default function ImportPreviewPanel({ importState }) {
             id="sunflower-statement-file"
             type="file"
             accept=".pdf,application/pdf"
+            disabled={!sourceType}
             onChange={(event) => submitFile(event.target.files?.[0])}
           />
           <p><strong>Drop a statement PDF here</strong> or choose it from your device.</p>
-          <button type="button" onClick={() => fileInput.current?.click()}>Choose PDF</button>
+          <button type="button" disabled={!sourceType} onClick={() => fileInput.current?.click()}>Choose PDF</button>
         </div>
       )}
 
@@ -73,7 +90,7 @@ export default function ImportPreviewPanel({ importState }) {
           </div>
           <div className="table-wrapper import-preview-table" role="region" aria-label="Statement import preview" tabIndex="0">
             <table className="data-table">
-              <caption>Sunflower statement rows</caption>
+              <caption>Sunflower Bank statement rows</caption>
               <thead><tr><th>Row</th><th>Statement details</th><th>Status</th><th>Selection</th><th>Expense fields</th></tr></thead>
               <tbody>
                 {preview.rows.map((row) => (

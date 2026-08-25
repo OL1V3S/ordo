@@ -166,9 +166,10 @@ public sealed class PostgreSqlFinancialApiTests
         await using var app = new PostgreSqlImportPreviewTestApplication();
         using var owner = await app.CreateAuthenticatedUserAsync("postgres-preview@example.com");
         using var upload = new MultipartFormDataContent();
+        upload.Add(new StringContent(SunflowerStatementParser.SourceType), "sourceType");
         upload.Add(new ByteArrayContent(SunflowerFixtureCorpus.CreateRepresentativePdf()), "file", "synthetic.pdf");
 
-        var response = await owner.Client.PostAsync("/api/import-previews/sunflower", upload);
+        var response = await owner.Client.PostAsync("/api/import-previews", upload);
         var preview = await response.Content.ReadFromJsonAsync<JsonElement>();
 
         Assert.True(
@@ -211,7 +212,7 @@ public sealed class PostgreSqlFinancialApiTests
             using var scope = app.Services.CreateScope();
             var service = scope.ServiceProvider.GetRequiredService<IImportPreviewService>();
             await using var stream = new MemoryStream(pdf, writable: false);
-            return await service.CreateSunflowerAsync(owner.Id, stream, pdf.Length, CancellationToken.None);
+            return await service.CreateAsync(owner.Id, SunflowerStatementParser.SourceType, stream, pdf.Length, CancellationToken.None);
         }
 
         var firstTask = CreateAsync();
@@ -224,14 +225,14 @@ public sealed class PostgreSqlFinancialApiTests
         var firstPreview = results[0].Preview!;
         var secondPreview = results[1].Preview!;
         Assert.Equal(firstPreview.BatchId, secondPreview.BatchId);
-        Assert.Equal("sunflower-v2", firstPreview.ParserRuleVersion);
+        Assert.Equal("sunflower-v3", firstPreview.ParserRuleVersion);
 
         var batches = await app.FindImportPreviewBatchesAsync(owner.Id);
         Assert.Equal(2, batches.Count);
         var stale = Assert.Single(batches, value => value.Id == predecessor.Id);
         Assert.Equal(ImportPreviewLifecycle.Expired, stale.Lifecycle);
         Assert.Equal("sunflower-v1", stale.ParserRuleVersion);
-        var current = Assert.Single(batches, value => value.ParserRuleVersion == "sunflower-v2");
+        var current = Assert.Single(batches, value => value.ParserRuleVersion == "sunflower-v3");
         Assert.Equal(ImportPreviewLifecycle.Open, current.Lifecycle);
         Assert.Equal(firstPreview.BatchId, current.Id);
         Assert.Equal(2, app.Extractor.CallCount);
@@ -254,7 +255,7 @@ public sealed class PostgreSqlFinancialApiTests
                 CREATE FUNCTION reject_current_parser_preview() RETURNS trigger
                 LANGUAGE plpgsql AS $function$
                 BEGIN
-                    IF NEW."ParserRuleVersion" = 'sunflower-v2' THEN
+                    IF NEW."ParserRuleVersion" = 'sunflower-v3' THEN
                         RAISE EXCEPTION 'intentional disposable-test insert rejection';
                     END IF;
                     RETURN NEW;
@@ -272,7 +273,7 @@ public sealed class PostgreSqlFinancialApiTests
             var service = scope.ServiceProvider.GetRequiredService<IImportPreviewService>();
             await using var stream = new MemoryStream(pdf, writable: false);
             await Assert.ThrowsAsync<DbUpdateException>(() =>
-                service.CreateSunflowerAsync(owner.Id, stream, pdf.Length, CancellationToken.None));
+                service.CreateAsync(owner.Id, SunflowerStatementParser.SourceType, stream, pdf.Length, CancellationToken.None));
         }
 
         var batches = await app.FindImportPreviewBatchesAsync(owner.Id);

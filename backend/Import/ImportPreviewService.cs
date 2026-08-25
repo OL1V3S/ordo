@@ -20,7 +20,7 @@ public sealed record ImportPreviewOperation(
 
 public interface IImportPreviewService
 {
-    Task<ImportPreviewOperation> CreateSunflowerAsync(string userId, Stream file, long? declaredLength, CancellationToken cancellationToken);
+    Task<ImportPreviewOperation> CreateAsync(string userId, string? sourceType, Stream file, long? declaredLength, CancellationToken cancellationToken);
     Task<ImportPreviewResponse?> GetOpenAsync(string userId, string sourceType, CancellationToken cancellationToken);
     Task<ImportPreviewResponse?> GetAsync(string userId, Guid batchId, CancellationToken cancellationToken);
     Task<ImportPreviewOperation> UpdateRowAsync(string userId, Guid batchId, Guid rowId, UpdateImportPreviewRowRequest request, CancellationToken cancellationToken);
@@ -43,9 +43,17 @@ public sealed class ImportPreviewService(
     private const string OpenDigestIndexName =
         "IX_ImportPreviewBatches_OwnerId_SourceType_DocumentDigest";
 
-    public async Task<ImportPreviewOperation> CreateSunflowerAsync(
-        string userId, Stream file, long? declaredLength, CancellationToken cancellationToken)
+    public async Task<ImportPreviewOperation> CreateAsync(
+        string userId,
+        string? sourceType,
+        Stream file,
+        long? declaredLength,
+        CancellationToken cancellationToken)
     {
+        if (string.IsNullOrWhiteSpace(sourceType))
+            return Failed("source_required", "Choose a supported bank before uploading.");
+        if (!ImportStatementSources.IsSupported(sourceType))
+            return Failed("unsupported_statement_source", "The selected statement source is not supported.");
         if (declaredLength > MaximumUploadBytes)
             return Failed("upload_too_large", "The PDF exceeds the 10 MiB limit.");
 
@@ -84,7 +92,7 @@ public sealed class ImportPreviewService(
 
             var existing = await FindCompatibleOpenByDigestAsync(
                 userId,
-                SunflowerStatementParser.SourceType,
+                sourceType,
                 SunflowerStatementParser.RuleVersion,
                 digest,
                 processingToken);
@@ -133,7 +141,7 @@ public sealed class ImportPreviewService(
         {
             Id = Guid.NewGuid(),
             OwnerId = userId,
-            SourceType = SunflowerStatementParser.SourceType,
+            SourceType = sourceType,
             ParserRuleVersion = SunflowerStatementParser.RuleVersion,
             DocumentDigest = digest,
             CreatedAt = now,
@@ -203,7 +211,7 @@ public sealed class ImportPreviewService(
 
     public async Task<ImportPreviewResponse?> GetOpenAsync(string userId, string sourceType, CancellationToken cancellationToken)
     {
-        if (sourceType != SunflowerStatementParser.SourceType) return null;
+        if (!ImportStatementSources.IsSupported(sourceType)) return null;
         await ExpireOwnedAsync(userId, cancellationToken);
         var batch = await OwnedCompatibleOpenQuery(userId).Where(value => value.SourceType == sourceType)
             .OrderByDescending(value => value.CreatedAt).FirstOrDefaultAsync(cancellationToken);
