@@ -2,6 +2,21 @@ namespace BudgetPlanner.Contracts.ImportPreviews;
 
 public sealed record ImportPreviewError(string Code, string Message);
 
+public sealed record ImportConfirmationRowError(
+    Guid RowId,
+    IReadOnlyList<string> Codes);
+
+public sealed record ImportConfirmationError(
+    string Code,
+    string Message,
+    IReadOnlyList<ImportConfirmationRowError> Rows);
+
+public sealed record ImportConfirmationResponse(
+    Guid BatchId,
+    string Status,
+    DateTime ConfirmedAt,
+    int ImportedExpenseCount);
+
 public sealed record ImportPreviewResponse(
     Guid BatchId,
     string SourceType,

@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.DependencyInjection;
+using Npgsql;
 using Xunit;
 using BudgetPlanner.Tests.Import.Fixtures.Sunflower;
 using BudgetPlanner.Import;
@@ -48,6 +49,105 @@ public sealed class PostgreSqlFinancialApiTests
               AND column_name = 'Date';
             """;
         Assert.Equal("date", await command.ExecuteScalarAsync());
+
+        var expenseAmountType = await context.Database.SqlQueryRaw<string>(
+            """
+            SELECT data_type || ':' || numeric_precision || ':' || numeric_scale AS "Value"
+            FROM information_schema.columns
+            WHERE table_schema = 'public'
+              AND table_name = 'Expenses'
+              AND column_name = 'Amount'
+            """).SingleAsync();
+        Assert.Equal("numeric:18:2", expenseAmountType);
+
+        var confirmedAtType = await context.Database.SqlQueryRaw<string>(
+            """
+            SELECT data_type || ':' || is_nullable AS "Value"
+            FROM information_schema.columns
+            WHERE table_schema = 'public'
+              AND table_name = 'ImportPreviewBatches'
+              AND column_name = 'ConfirmedAt'
+            """).SingleAsync();
+        Assert.Equal("timestamp with time zone:YES", confirmedAtType);
+
+        var provenanceColumns = await context.Database.SqlQueryRaw<string>(
+            """
+            SELECT column_name || ':' || data_type || ':' || is_nullable AS "Value"
+            FROM information_schema.columns
+            WHERE table_schema = 'public'
+              AND table_name = 'ImportExpenseProvenances'
+            ORDER BY ordinal_position
+            """).ToListAsync();
+        Assert.Equal(
+            [
+                "BatchId:uuid:NO",
+                "SourceRowOrdinal:integer:NO",
+                "ExpenseId:integer:YES"
+            ],
+            provenanceColumns);
+
+        var batchConfirmationCheck = await ReadConstraintDefinitionAsync(
+            context,
+            "CK_ImportPreviewBatch_ConfirmedAt");
+        Assert.StartsWith("CHECK", batchConfirmationCheck);
+        Assert.Contains("\"Lifecycle\"", batchConfirmationCheck);
+        Assert.Contains("'Confirmed'", batchConfirmationCheck);
+        Assert.Contains("\"ConfirmedAt\" IS NOT NULL", batchConfirmationCheck);
+        Assert.Contains("\"ConfirmedAt\" IS NULL", batchConfirmationCheck);
+
+        var positiveOrdinalCheck = await ReadConstraintDefinitionAsync(
+            context,
+            "CK_ImportExpenseProvenance_PositiveSourceRowOrdinal");
+        Assert.Contains("\"SourceRowOrdinal\" > 0", positiveOrdinalCheck);
+
+        var provenancePrimaryKey = await ReadConstraintDefinitionAsync(
+            context,
+            "PK_ImportExpenseProvenances");
+        Assert.Equal("PRIMARY KEY (\"BatchId\", \"SourceRowOrdinal\")", provenancePrimaryKey);
+
+        var batchForeignKey = await ReadConstraintDefinitionAsync(
+            context,
+            "FK_ImportExpenseProvenances_ImportPreviewBatches_BatchId");
+        Assert.Contains("FOREIGN KEY (\"BatchId\")", batchForeignKey);
+        Assert.Contains("REFERENCES \"ImportPreviewBatches\"(\"Id\")", batchForeignKey);
+        Assert.EndsWith("ON DELETE CASCADE", batchForeignKey);
+
+        var expenseForeignKey = await ReadConstraintDefinitionAsync(
+            context,
+            "FK_ImportExpenseProvenances_Expenses_ExpenseId");
+        Assert.Contains("FOREIGN KEY (\"ExpenseId\")", expenseForeignKey);
+        Assert.Contains("REFERENCES \"Expenses\"(\"Id\")", expenseForeignKey);
+        Assert.EndsWith("ON DELETE SET NULL", expenseForeignKey);
+
+        var confirmedDocumentIndex = await ReadIndexDefinitionAsync(
+            context,
+            "IX_ImportPreviewBatches_ConfirmedDocument");
+        Assert.Contains("CREATE UNIQUE INDEX", confirmedDocumentIndex);
+        Assert.Contains(
+            "(\"OwnerId\", \"SourceType\", \"ParserRuleVersion\", \"DocumentDigest\")",
+            confirmedDocumentIndex);
+        Assert.Contains("WHERE", confirmedDocumentIndex);
+        Assert.Contains("\"Lifecycle\"", confirmedDocumentIndex);
+        Assert.Contains("'Confirmed'", confirmedDocumentIndex);
+
+        var activeDocumentIndex = await ReadIndexDefinitionAsync(
+            context,
+            "IX_ImportPreviewBatches_ActiveDocument");
+        Assert.Contains("CREATE UNIQUE INDEX", activeDocumentIndex);
+        Assert.Contains(
+            "(\"OwnerId\", \"SourceType\", \"ParserRuleVersion\", \"DocumentDigest\")",
+            activeDocumentIndex);
+        Assert.Contains("WHERE", activeDocumentIndex);
+        Assert.Contains("\"Lifecycle\"", activeDocumentIndex);
+        Assert.Contains("'Open'", activeDocumentIndex);
+        Assert.Contains("'Confirmed'", activeDocumentIndex);
+
+        var provenanceExpenseIndex = await ReadIndexDefinitionAsync(
+            context,
+            "IX_ImportExpenseProvenances_ExpenseId");
+        Assert.Contains("CREATE UNIQUE INDEX", provenanceExpenseIndex);
+        Assert.Contains("(\"ExpenseId\")", provenanceExpenseIndex);
+        Assert.Contains("WHERE (\"ExpenseId\" IS NOT NULL)", provenanceExpenseIndex);
     }
 
     [PostgreSqlFact]
@@ -285,6 +385,516 @@ public sealed class PostgreSqlFinancialApiTests
     }
 
     [PostgreSqlFact]
+    public async Task Confirmation_persists_selected_expenses_and_minimum_provenance()
+    {
+        await using var app = new PostgreSqlImportPreviewTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("postgres-confirm@example.com");
+        var pdf = SunflowerFixtureCorpus.CreateRepresentativePdf();
+        var preview = await CreatePreviewAsync(owner.Client, pdf);
+        var batchId = preview.GetProperty("batchId").GetGuid();
+
+        using var response = await owner.Client.PostAsync(
+            $"/api/import-previews/{batchId}/confirm",
+            content: null);
+        var confirmation = await response.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(batchId, confirmation.GetProperty("batchId").GetGuid());
+        Assert.Equal("confirmed", confirmation.GetProperty("status").GetString());
+        Assert.Equal(10, confirmation.GetProperty("importedExpenseCount").GetInt32());
+        var responseConfirmedAt = confirmation.GetProperty("confirmedAt").GetDateTime();
+
+        using var scope = app.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<BudgetContext>();
+        var batch = await context.ImportPreviewBatches.AsNoTracking()
+            .Include(value => value.Rows)
+            .Include(value => value.Provenance)
+            .SingleAsync(value => value.Id == batchId);
+        var expenses = await context.Expenses.AsNoTracking()
+            .Where(value => value.UserId == owner.Id)
+            .OrderBy(value => value.Date)
+            .ThenBy(value => value.Id)
+            .ToListAsync();
+
+        Assert.Equal(ImportPreviewLifecycle.Confirmed, batch.Lifecycle);
+        Assert.Equal(owner.Id, batch.OwnerId);
+        Assert.Equal(SunflowerStatementParser.SourceType, batch.SourceType);
+        Assert.Equal(SunflowerStatementParser.RuleVersion, batch.ParserRuleVersion);
+        Assert.Equal(32, batch.DocumentDigest.Length);
+        Assert.NotNull(batch.ConfirmedAt);
+        Assert.InRange(
+            (responseConfirmedAt - batch.ConfirmedAt.Value).Duration(),
+            TimeSpan.Zero,
+            TimeSpan.FromMilliseconds(1));
+        Assert.Empty(batch.Rows);
+        Assert.Equal(Enumerable.Range(3, 10),
+            batch.Provenance.OrderBy(value => value.SourceRowOrdinal)
+                .Select(value => value.SourceRowOrdinal));
+        Assert.All(batch.Provenance, value => Assert.NotNull(value.ExpenseId));
+        Assert.Equal(10, batch.Provenance.Select(value => value.ExpenseId).Distinct().Count());
+        Assert.Equal(10, expenses.Count);
+        Assert.All(expenses, value => Assert.Equal(owner.Id, value.UserId));
+
+        var market = Assert.Single(expenses, value => value.Description == "NORTH STAR MARKET");
+        Assert.Equal(new DateOnly(2026, 2, 5), market.Date);
+        Assert.Equal(42.16m, market.Amount);
+        Assert.Equal("uncategorized", market.Category);
+        Assert.Contains(batch.Provenance, value =>
+            value.SourceRowOrdinal == 4 && value.ExpenseId == market.Id);
+    }
+
+    [PostgreSqlFact]
+    public async Task Confirmation_database_failure_rolls_back_all_import_writes_and_preview_changes()
+    {
+        await using var app = new PostgreSqlImportPreviewTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("postgres-confirm-rollback@example.com");
+        var preview = await CreatePreviewAsync(
+            owner.Client,
+            SunflowerFixtureCorpus.CreateRepresentativePdf());
+        var batchId = preview.GetProperty("batchId").GetGuid();
+
+        using (var setupScope = app.Services.CreateScope())
+        {
+            var setupContext = setupScope.ServiceProvider.GetRequiredService<BudgetContext>();
+            await setupContext.Database.ExecuteSqlRawAsync(
+                """
+                CREATE FUNCTION reject_one_import_provenance() RETURNS trigger
+                LANGUAGE plpgsql AS $function$
+                BEGIN
+                    IF NEW."SourceRowOrdinal" = 4 THEN
+                        RAISE EXCEPTION 'intentional disposable-test confirmation rejection';
+                    END IF;
+                    RETURN NEW;
+                END;
+                $function$;
+
+                CREATE TRIGGER reject_one_import_provenance_insert
+                BEFORE INSERT ON "ImportExpenseProvenances"
+                FOR EACH ROW EXECUTE FUNCTION reject_one_import_provenance();
+                """);
+        }
+
+        using var response = await owner.Client.PostAsync(
+            $"/api/import-previews/{batchId}/confirm",
+            content: null);
+        var error = await response.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+        Assert.Equal("confirmation_failed", error.GetProperty("code").GetString());
+
+        using var scope = app.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<BudgetContext>();
+        var batch = await context.ImportPreviewBatches.AsNoTracking()
+            .Include(value => value.Rows)
+            .Include(value => value.Provenance)
+            .SingleAsync(value => value.Id == batchId);
+        Assert.Equal(ImportPreviewLifecycle.Open, batch.Lifecycle);
+        Assert.Null(batch.ConfirmedAt);
+        Assert.Equal(13, batch.Rows.Count);
+        Assert.Equal(10, batch.Rows.Count(value => value.SelectedForImport));
+        Assert.Empty(batch.Provenance);
+        Assert.False(await context.Expenses.AnyAsync());
+    }
+
+    [PostgreSqlFact]
+    public async Task Concurrent_confirmations_serialize_to_confirmed_and_already_confirmed()
+    {
+        await using var app = new PostgreSqlImportPreviewTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("postgres-confirm-race@example.com");
+        var preview = await CreatePreviewAsync(
+            owner.Client,
+            SunflowerFixtureCorpus.CreateRepresentativePdf());
+        var batchId = preview.GetProperty("batchId").GetGuid();
+
+        using var lockScope = app.Services.CreateScope();
+        var lockContext = lockScope.ServiceProvider.GetRequiredService<BudgetContext>();
+        await using var lockTransaction = await lockContext.Database.BeginTransactionAsync();
+        await lockContext.Database.ExecuteSqlInterpolatedAsync(
+            $"SELECT 1 FROM \"ImportPreviewBatches\" WHERE \"Id\" = {batchId} FOR UPDATE");
+
+        var firstTask = owner.Client.PostAsync($"/api/import-previews/{batchId}/confirm", null);
+        var secondTask = owner.Client.PostAsync($"/api/import-previews/{batchId}/confirm", null);
+        var bothWaitingForBatchLock = await app.WaitForBlockedBatchMutationsAsync(2);
+        await lockTransaction.CommitAsync();
+
+        using var first = await firstTask;
+        using var second = await secondTask;
+        var firstBody = await first.Content.ReadFromJsonAsync<JsonElement>();
+        var secondBody = await second.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.True(bothWaitingForBatchLock,
+            "Both confirmations must reach the PostgreSQL batch mutation lock before it is released.");
+        Assert.Equal(HttpStatusCode.OK, first.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, second.StatusCode);
+        Assert.Equal(
+            ["already_confirmed", "confirmed"],
+            new[]
+            {
+                firstBody.GetProperty("status").GetString(),
+                secondBody.GetProperty("status").GetString()
+            }.Order());
+        Assert.Equal(10, firstBody.GetProperty("importedExpenseCount").GetInt32());
+        Assert.Equal(10, secondBody.GetProperty("importedExpenseCount").GetInt32());
+        Assert.Equal(
+            firstBody.GetProperty("confirmedAt").GetDateTime(),
+            secondBody.GetProperty("confirmedAt").GetDateTime());
+
+        using var assertScope = app.Services.CreateScope();
+        var context = assertScope.ServiceProvider.GetRequiredService<BudgetContext>();
+        Assert.Equal(10, await context.Expenses.CountAsync(value => value.UserId == owner.Id));
+        Assert.Equal(10, await context.ImportExpenseProvenances.CountAsync(
+            value => value.BatchId == batchId));
+        Assert.Equal(10, await context.ImportExpenseProvenances
+            .Where(value => value.BatchId == batchId)
+            .Select(value => value.ExpenseId)
+            .Distinct()
+            .CountAsync());
+    }
+
+    [PostgreSqlFact]
+    public async Task Row_update_queued_before_confirmation_cannot_bypass_new_duplicate_review()
+    {
+        await using var app = new PostgreSqlImportPreviewTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("postgres-row-confirm-order@example.com");
+        var preview = await CreatePreviewAsync(
+            owner.Client,
+            SunflowerFixtureCorpus.CreateRepresentativePdf());
+        var batchId = preview.GetProperty("batchId").GetGuid();
+        var target = preview.GetProperty("rows").EnumerateArray().Single(value =>
+            value.GetProperty("sourceDescription").GetString() == "NORTH STAR MARKET");
+        var targetRowId = target.GetProperty("rowId").GetGuid();
+
+        using (var selectionScope = app.Services.CreateScope())
+        {
+            var context = selectionScope.ServiceProvider.GetRequiredService<BudgetContext>();
+            await context.ImportPreviewRows.Where(value => value.BatchId == batchId)
+                .ExecuteUpdateAsync(setters => setters.SetProperty(
+                    value => value.SelectedForImport,
+                    false));
+        }
+        var existing = await app.SeedExpenseAsync(
+            owner.Id,
+            "NORTH STAR MARKET",
+            42.16m,
+            new DateOnly(2026, 2, 5));
+
+        using var lockScope = app.Services.CreateScope();
+        var lockContext = lockScope.ServiceProvider.GetRequiredService<BudgetContext>();
+        await using var lockTransaction = await lockContext.Database.BeginTransactionAsync();
+        await lockContext.Database.ExecuteSqlInterpolatedAsync(
+            $"SELECT 1 FROM \"ImportPreviewBatches\" WHERE \"Id\" = {batchId} FOR UPDATE");
+
+        var updateTask = owner.Client.PatchAsJsonAsync(
+            $"/api/import-previews/{batchId}/rows/{targetRowId}",
+            new
+            {
+                editableExpenseDescription = target.GetProperty("editableExpenseDescription").GetString(),
+                category = target.GetProperty("category").GetString(),
+                selectedForImport = true
+            });
+        var updateWaitingForBatchLock = await app.WaitForBlockedBatchMutationsAsync(1);
+        var confirmationTask = owner.Client.PostAsync(
+            $"/api/import-previews/{batchId}/confirm",
+            content: null);
+        var bothWaitingForBatchLock = await app.WaitForBlockedBatchMutationsAsync(2);
+        await lockTransaction.CommitAsync();
+
+        using var update = await updateTask;
+        using var confirmation = await confirmationTask;
+        var confirmationBody = await confirmation.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.True(updateWaitingForBatchLock,
+            "The row update must reach the PostgreSQL batch mutation lock before confirmation is queued.");
+        Assert.True(bothWaitingForBatchLock,
+            "The row update and confirmation must both wait on the same PostgreSQL batch mutation lock.");
+        Assert.Equal(HttpStatusCode.OK, update.StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, confirmation.StatusCode);
+        Assert.Equal("duplicate_review_required", confirmationBody.GetProperty("code").GetString());
+        var errorRow = Assert.Single(confirmationBody.GetProperty("rows").EnumerateArray());
+        Assert.Equal(targetRowId, errorRow.GetProperty("rowId").GetGuid());
+        Assert.Equal(
+            ["possible_duplicate"],
+            errorRow.GetProperty("codes").EnumerateArray().Select(value => value.GetString()));
+
+        using var assertScope = app.Services.CreateScope();
+        var assertContext = assertScope.ServiceProvider.GetRequiredService<BudgetContext>();
+        var batch = await assertContext.ImportPreviewBatches.AsNoTracking()
+            .Include(value => value.Rows)
+            .Include(value => value.Provenance)
+            .SingleAsync(value => value.Id == batchId);
+        var refreshed = batch.Rows.Single(value => value.Id == targetRowId);
+        Assert.Equal(ImportPreviewLifecycle.Open, batch.Lifecycle);
+        Assert.Empty(batch.Provenance);
+        Assert.True(refreshed.IsPossibleDuplicate);
+        Assert.False(refreshed.SelectedForImport);
+        Assert.Equal(
+            [existing.Id],
+            JsonSerializer.Deserialize<int[]>(refreshed.DuplicateExpenseIds)!);
+        Assert.Equal(1, await assertContext.Expenses.CountAsync(value => value.UserId == owner.Id));
+    }
+
+    [PostgreSqlFact]
+    public async Task Existing_duplicate_warning_can_be_explicitly_selected_and_confirmed()
+    {
+        await using var app = new PostgreSqlImportPreviewTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("postgres-warned-confirm@example.com");
+        var existing = await app.SeedExpenseAsync(
+            owner.Id,
+            "NORTH STAR MARKET",
+            42.16m,
+            new DateOnly(2026, 2, 5));
+        var preview = await CreatePreviewAsync(
+            owner.Client,
+            SunflowerFixtureCorpus.CreateRepresentativePdf());
+        var batchId = preview.GetProperty("batchId").GetGuid();
+        var target = preview.GetProperty("rows").EnumerateArray().Single(value =>
+            value.GetProperty("sourceDescription").GetString() == "NORTH STAR MARKET");
+        var targetRowId = target.GetProperty("rowId").GetGuid();
+
+        Assert.True(target.GetProperty("isPossibleDuplicate").GetBoolean());
+        Assert.False(target.GetProperty("selectedForImport").GetBoolean());
+        Assert.Equal(
+            [existing.Id],
+            target.GetProperty("duplicateExpenseIds").EnumerateArray()
+                .Select(value => value.GetInt32()));
+
+        using var selection = await owner.Client.PatchAsJsonAsync(
+            $"/api/import-previews/{batchId}/rows/{targetRowId}",
+            new
+            {
+                editableExpenseDescription = target.GetProperty("editableExpenseDescription").GetString(),
+                category = target.GetProperty("category").GetString(),
+                selectedForImport = true
+            });
+        Assert.Equal(HttpStatusCode.OK, selection.StatusCode);
+
+        using var confirmation = await owner.Client.PostAsync(
+            $"/api/import-previews/{batchId}/confirm",
+            content: null);
+        var confirmationBody = await confirmation.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, confirmation.StatusCode);
+        Assert.Equal("confirmed", confirmationBody.GetProperty("status").GetString());
+        Assert.Equal(10, confirmationBody.GetProperty("importedExpenseCount").GetInt32());
+
+        using var scope = app.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<BudgetContext>();
+        Assert.Equal(11, await context.Expenses.CountAsync(value => value.UserId == owner.Id));
+        Assert.Equal(10, await context.ImportExpenseProvenances.CountAsync(
+            value => value.BatchId == batchId));
+        Assert.DoesNotContain(
+            await context.ImportExpenseProvenances
+                .Where(value => value.BatchId == batchId)
+                .Select(value => value.ExpenseId)
+                .ToListAsync(),
+            value => value == existing.Id);
+    }
+
+    [PostgreSqlFact]
+    public async Task Duplicate_refresh_queued_before_row_update_requires_later_confirmation()
+    {
+        await using var app = new PostgreSqlImportPreviewTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("postgres-duplicate-refresh@example.com");
+        var preview = await CreatePreviewAsync(
+            owner.Client,
+            SunflowerFixtureCorpus.CreateRepresentativePdf());
+        var batchId = preview.GetProperty("batchId").GetGuid();
+        var previewRows = preview.GetProperty("rows").EnumerateArray().ToList();
+        var target = previewRows.Single(value =>
+            value.GetProperty("sourceDescription").GetString() == "NORTH STAR MARKET");
+        var targetRowId = target.GetProperty("rowId").GetGuid();
+        Assert.False(target.GetProperty("isPossibleDuplicate").GetBoolean());
+        Assert.True(target.GetProperty("selectedForImport").GetBoolean());
+
+        var existing = await app.SeedExpenseAsync(
+            owner.Id,
+            "NORTH STAR MARKET",
+            42.16m,
+            new DateOnly(2026, 2, 5));
+
+        using var lockScope = app.Services.CreateScope();
+        var lockContext = lockScope.ServiceProvider.GetRequiredService<BudgetContext>();
+        await using var lockTransaction = await lockContext.Database.BeginTransactionAsync();
+        await lockContext.Database.ExecuteSqlInterpolatedAsync(
+            $"SELECT 1 FROM \"ImportPreviewBatches\" WHERE \"Id\" = {batchId} FOR UPDATE");
+
+        var refreshTask = owner.Client.PostAsync(
+            $"/api/import-previews/{batchId}/confirm",
+            content: null);
+        var refreshWaitingForBatchLock = await app.WaitForBlockedBatchMutationsAsync(1);
+        var reselectionTask = owner.Client.PatchAsJsonAsync(
+            $"/api/import-previews/{batchId}/rows/{targetRowId}",
+            new
+            {
+                editableExpenseDescription = target.GetProperty("editableExpenseDescription").GetString(),
+                category = target.GetProperty("category").GetString(),
+                selectedForImport = true
+            });
+        var bothWaitingForBatchLock = await app.WaitForBlockedBatchMutationsAsync(2);
+        await lockTransaction.CommitAsync();
+
+        using var refresh = await refreshTask;
+        using var reselection = await reselectionTask;
+        var refreshBody = await refresh.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.True(refreshWaitingForBatchLock,
+            "Confirmation must reach the PostgreSQL batch mutation lock before reselection is queued.");
+        Assert.True(bothWaitingForBatchLock,
+            "Confirmation and reselection must both wait on the same PostgreSQL batch mutation lock.");
+        Assert.Equal(HttpStatusCode.Conflict, refresh.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, reselection.StatusCode);
+        Assert.Equal("duplicate_review_required", refreshBody.GetProperty("code").GetString());
+        var refreshRow = Assert.Single(refreshBody.GetProperty("rows").EnumerateArray());
+        Assert.Equal(targetRowId, refreshRow.GetProperty("rowId").GetGuid());
+        Assert.Equal(
+            ["possible_duplicate"],
+            refreshRow.GetProperty("codes").EnumerateArray().Select(value => value.GetString()));
+
+        using (var refreshScope = app.Services.CreateScope())
+        {
+            var context = refreshScope.ServiceProvider.GetRequiredService<BudgetContext>();
+            var batch = await context.ImportPreviewBatches.AsNoTracking()
+                .Include(value => value.Rows)
+                .Include(value => value.Provenance)
+                .SingleAsync(value => value.Id == batchId);
+            var refreshed = batch.Rows.Single(value => value.Id == targetRowId);
+            Assert.Equal(ImportPreviewLifecycle.Open, batch.Lifecycle);
+            Assert.Null(batch.ConfirmedAt);
+            Assert.Empty(batch.Provenance);
+            Assert.True(refreshed.IsPossibleDuplicate);
+            Assert.True(refreshed.SelectedForImport);
+            Assert.Contains("possible_duplicate",
+                JsonSerializer.Deserialize<string[]>(refreshed.WarningCodes)!);
+            Assert.Equal(
+                [existing.Id],
+                JsonSerializer.Deserialize<int[]>(refreshed.DuplicateExpenseIds)!);
+            Assert.Equal(1, await context.Expenses.CountAsync());
+        }
+
+        using var confirmation = await owner.Client.PostAsync(
+            $"/api/import-previews/{batchId}/confirm",
+            content: null);
+        var confirmationBody = await confirmation.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, confirmation.StatusCode);
+        Assert.Equal("confirmed", confirmationBody.GetProperty("status").GetString());
+        Assert.Equal(10, confirmationBody.GetProperty("importedExpenseCount").GetInt32());
+
+        using var assertScope = app.Services.CreateScope();
+        var assertContext = assertScope.ServiceProvider.GetRequiredService<BudgetContext>();
+        Assert.Equal(11, await assertContext.Expenses.CountAsync());
+        Assert.Equal(10, await assertContext.ImportExpenseProvenances.CountAsync(
+            value => value.BatchId == batchId));
+        Assert.DoesNotContain(
+            await assertContext.ImportExpenseProvenances
+                .Where(value => value.BatchId == batchId)
+                .Select(value => value.ExpenseId)
+                .ToListAsync(),
+            value => value == existing.Id);
+    }
+
+    [PostgreSqlFact]
+    public async Task Confirmed_exact_reupload_is_already_imported_without_extraction_or_new_writes()
+    {
+        await using var app = new PostgreSqlImportPreviewTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("postgres-confirm-reupload@example.com");
+        var pdf = SunflowerFixtureCorpus.CreateRepresentativePdf();
+        var preview = await CreatePreviewAsync(owner.Client, pdf);
+        var batchId = preview.GetProperty("batchId").GetGuid();
+        using var confirmation = await owner.Client.PostAsync(
+            $"/api/import-previews/{batchId}/confirm",
+            content: null);
+        Assert.Equal(HttpStatusCode.OK, confirmation.StatusCode);
+        Assert.Equal(1, app.Extractor.CallCount);
+
+        using (var constraintScope = app.Services.CreateScope())
+        {
+            var constraintContext = constraintScope.ServiceProvider.GetRequiredService<BudgetContext>();
+            var confirmed = await constraintContext.ImportPreviewBatches.AsNoTracking()
+                .SingleAsync(value => value.Id == batchId);
+            constraintContext.ImportPreviewBatches.Add(new ImportPreviewBatch
+            {
+                Id = Guid.NewGuid(),
+                OwnerId = confirmed.OwnerId,
+                SourceType = confirmed.SourceType,
+                ParserRuleVersion = confirmed.ParserRuleVersion,
+                DocumentDigest = confirmed.DocumentDigest.ToArray(),
+                CreatedAt = confirmed.CreatedAt.AddMinutes(1),
+                ExpiresAt = confirmed.ExpiresAt.AddMinutes(1),
+                Lifecycle = ImportPreviewLifecycle.Open
+            });
+            var exception = await Assert.ThrowsAsync<DbUpdateException>(() =>
+                constraintContext.SaveChangesAsync());
+            var postgres = Assert.IsType<PostgresException>(exception.InnerException);
+            Assert.Equal(PostgresErrorCodes.UniqueViolation, postgres.SqlState);
+            Assert.Equal("IX_ImportPreviewBatches_ActiveDocument", postgres.ConstraintName);
+        }
+
+        using var upload = CreatePdfUpload(pdf);
+        using var reupload = await owner.Client.PostAsync("/api/import-previews", upload);
+        var error = await reupload.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.Equal(HttpStatusCode.Conflict, reupload.StatusCode);
+        Assert.Equal("already_imported", error.GetProperty("code").GetString());
+        Assert.Equal(1, app.Extractor.CallCount);
+
+        using var scope = app.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<BudgetContext>();
+        Assert.Equal(10, await context.Expenses.CountAsync(value => value.UserId == owner.Id));
+        Assert.Equal(10, await context.ImportExpenseProvenances.CountAsync(
+            value => value.BatchId == batchId));
+        Assert.Equal(1, await context.ImportPreviewBatches.CountAsync(
+            value => value.OwnerId == owner.Id));
+    }
+
+    [PostgreSqlFact]
+    public async Task Expense_delete_sets_provenance_link_to_null_without_reopening_import_identity()
+    {
+        await using var app = new PostgreSqlImportPreviewTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("postgres-provenance-delete@example.com");
+        var pdf = SunflowerFixtureCorpus.CreateRepresentativePdf();
+        var preview = await CreatePreviewAsync(owner.Client, pdf);
+        var batchId = preview.GetProperty("batchId").GetGuid();
+        using var confirmation = await owner.Client.PostAsync(
+            $"/api/import-previews/{batchId}/confirm",
+            content: null);
+        Assert.Equal(HttpStatusCode.OK, confirmation.StatusCode);
+
+        int expenseId;
+        int sourceRowOrdinal;
+        using (var readScope = app.Services.CreateScope())
+        {
+            var context = readScope.ServiceProvider.GetRequiredService<BudgetContext>();
+            var provenance = await context.ImportExpenseProvenances.AsNoTracking()
+                .Where(value => value.BatchId == batchId)
+                .OrderBy(value => value.SourceRowOrdinal)
+                .FirstAsync();
+            expenseId = Assert.IsType<int>(provenance.ExpenseId);
+            sourceRowOrdinal = provenance.SourceRowOrdinal;
+        }
+
+        using var delete = await owner.Client.DeleteAsync($"/api/expenses/{expenseId}");
+        Assert.Equal(HttpStatusCode.NoContent, delete.StatusCode);
+
+        using (var assertScope = app.Services.CreateScope())
+        {
+            var context = assertScope.ServiceProvider.GetRequiredService<BudgetContext>();
+            var provenance = await context.ImportExpenseProvenances.AsNoTracking()
+                .SingleAsync(value => value.BatchId == batchId
+                    && value.SourceRowOrdinal == sourceRowOrdinal);
+            Assert.Null(provenance.ExpenseId);
+            var batch = await context.ImportPreviewBatches.AsNoTracking()
+                .SingleAsync(value => value.Id == batchId);
+            Assert.Equal(ImportPreviewLifecycle.Confirmed, batch.Lifecycle);
+            Assert.NotNull(batch.ConfirmedAt);
+        }
+
+        using var upload = CreatePdfUpload(pdf);
+        using var reupload = await owner.Client.PostAsync("/api/import-previews", upload);
+        var error = await reupload.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.Conflict, reupload.StatusCode);
+        Assert.Equal("already_imported", error.GetProperty("code").GetString());
+    }
+
+    [PostgreSqlFact]
     public async Task Budget_create_read_upsert_and_delete_use_relational_month_query()
     {
         await using var app = new PostgreSqlFinancialApiTestApplication();
@@ -330,10 +940,82 @@ public sealed class PostgreSqlFinancialApiTests
         Assert.Empty(await app.FindBudgetLimitsAsync(owner.Id, "food"));
         Assert.Single(await app.FindBudgetLimitsAsync(other.Id, "hidden"));
     }
+
+    private static async Task<JsonElement> CreatePreviewAsync(HttpClient client, byte[] pdf)
+    {
+        using var upload = CreatePdfUpload(pdf);
+        using var response = await client.PostAsync("/api/import-previews", upload);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(
+            response.StatusCode == HttpStatusCode.Created,
+            $"Expected preview creation, received {(int)response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
+        return body;
+    }
+
+    private static MultipartFormDataContent CreatePdfUpload(byte[] pdf)
+    {
+        var upload = new MultipartFormDataContent();
+        upload.Add(new StringContent(SunflowerStatementParser.SourceType), "sourceType");
+        upload.Add(new ByteArrayContent(pdf), "file", "synthetic.pdf");
+        return upload;
+    }
+
+    private static Task<string> ReadConstraintDefinitionAsync(
+        BudgetContext context,
+        string constraintName) => context.Database.SqlQueryRaw<string>(
+            """
+            SELECT pg_get_constraintdef(oid) AS "Value"
+            FROM pg_constraint
+            WHERE conname = {0}
+            """,
+            constraintName).SingleAsync();
+
+    private static Task<string> ReadIndexDefinitionAsync(
+        BudgetContext context,
+        string indexName) => context.Database.SqlQueryRaw<string>(
+            """
+            SELECT indexdef AS "Value"
+            FROM pg_indexes
+            WHERE schemaname = 'public'
+              AND indexname = {0}
+            """,
+            indexName).SingleAsync();
 }
 
 internal sealed class PostgreSqlImportPreviewTestApplication : PostgreSqlFinancialApiTestApplication
 {
+    public BudgetPlanner.Tests.Import.ImmediateSyntheticExtractor Extractor =>
+        (BudgetPlanner.Tests.Import.ImmediateSyntheticExtractor)
+        Services.GetRequiredService<IPdfTextExtractor>();
+
+    public async Task<bool> WaitForBlockedBatchMutationsAsync(int expectedCount)
+    {
+        var deadline = DateTime.UtcNow.AddSeconds(5);
+        while (DateTime.UtcNow < deadline)
+        {
+            using var scope = Services.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<BudgetContext>();
+            var count = await context.Database.SqlQueryRaw<int>(
+                """
+                SELECT COUNT(*)::integer AS "Value"
+                FROM pg_stat_activity
+                WHERE datname = current_database()
+                  AND pid <> pg_backend_pid()
+                  AND wait_event_type = 'Lock'
+                  AND query ILIKE '%ImportPreviewBatches%'
+                  AND query ILIKE '%FOR UPDATE%'
+                """).SingleAsync();
+            if (count >= expectedCount)
+            {
+                return true;
+            }
+
+            await Task.Delay(25);
+        }
+
+        return false;
+    }
+
     protected override void ConfigureAdditionalServices(IServiceCollection services)
     {
         services.RemoveAll<IPdfTextExtractor>();

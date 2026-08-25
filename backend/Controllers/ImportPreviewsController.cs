@@ -66,6 +66,17 @@ public sealed class ImportPreviewsController(
         return preview is null ? NotFound() : Ok(preview);
     }
 
+    [HttpPost("{batchId:guid}/confirm")]
+    public async Task<IActionResult> Confirm(Guid batchId, CancellationToken cancellationToken)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userId is null) return Unauthorized();
+        var result = await previews.ConfirmAsync(userId, batchId, cancellationToken);
+        return result.IsSuccess
+            ? Ok(result.Confirmation)
+            : ConfirmationErrorResult(result.Error!);
+    }
+
     [HttpPatch("{batchId:guid}/rows/{rowId:guid}")]
     public async Task<IActionResult> UpdateRow(Guid batchId, Guid rowId, UpdateImportPreviewRowRequest request, CancellationToken cancellationToken)
     {
@@ -83,10 +94,27 @@ public sealed class ImportPreviewsController(
         "preview_not_found" => NotFound(),
         "processing_cancelled" => StatusCode(499, error),
         "processing_timed_out" => StatusCode(StatusCodes.Status408RequestTimeout, error),
-        "import_in_progress" => Conflict(error),
+        "import_in_progress" or "already_imported" => Conflict(error),
         "row_not_selectable" or "row_validation_failed" or "file_required"
             or "source_required" or "unsupported_statement_source" => BadRequest(error),
         _ => UnprocessableEntity(error)
     };
+
+    private IActionResult ConfirmationErrorResult(ImportConfirmationError error) => error.Code switch
+    {
+        "preview_not_found" => EmptyNotFound(),
+        "preview_expired" => StatusCode(StatusCodes.Status410Gone, error),
+        "no_rows_selected" => BadRequest(error),
+        "duplicate_review_required" or "confirmation_conflict" => Conflict(error),
+        "confirmation_validation_failed" => UnprocessableEntity(error),
+        "confirmation_failed" => StatusCode(StatusCodes.Status500InternalServerError, error),
+        _ => UnprocessableEntity(error)
+    };
+
+    private IActionResult EmptyNotFound()
+    {
+        Response.StatusCode = StatusCodes.Status404NotFound;
+        return new EmptyResult();
+    }
 
 }
