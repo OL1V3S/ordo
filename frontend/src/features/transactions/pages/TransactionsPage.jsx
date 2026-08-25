@@ -17,6 +17,7 @@ export default function TransactionsPage() {
   const {
     expenses,
     loading: expensesLoading,
+    refresh: refreshExpenses,
     addExpense,
     updateExpense,
     deleteExpense,
@@ -141,7 +142,7 @@ export default function TransactionsPage() {
         </div>
       </header>
 
-      <ImportPreviewPanel importState={importState} />
+      <ImportPreviewPanel importState={importState} onImportConfirmed={refreshExpenses} />
   
       <ExpenseForm
         loading={expensesLoading}
