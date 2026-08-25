@@ -111,6 +111,9 @@ input:focus, select:focus, textarea:focus { border-color: var(--color-focus); bo
 .import-preview { display: grid; gap: var(--space-4); }
 .import-preview__header { align-items: start; margin-bottom: 0; }
 .import-preview__header .muted { max-width: 720px; margin-bottom: 0; }
+.import-source-control { display: grid; gap: var(--space-2); max-width: 420px; }
+.import-source-control label { font-weight: 700; }
+.import-source-control .muted { margin: 0; }
 .import-processing { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface-subtle); }
 .import-dropzone { display: grid; justify-items: center; gap: var(--space-3); padding: var(--space-7) var(--space-4); border: 2px dashed var(--color-border); border-radius: var(--radius-lg); text-align: center; background: var(--color-surface-subtle); transition: border-color var(--duration-fast) var(--ease-standard), background var(--duration-fast) var(--ease-standard); }
 .import-dropzone--active { border-color: var(--color-primary); background: color-mix(in srgb, var(--color-primary) 8%, var(--color-surface)); }

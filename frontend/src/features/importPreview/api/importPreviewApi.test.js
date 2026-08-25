@@ -13,16 +13,17 @@ describe('importPreviewApi', () => {
     const file = new File(['pdf'], 'private-name.pdf', { type: 'application/pdf' })
     const signal = new AbortController().signal
 
-    importPreviewApi.uploadSunflower(file, signal)
+    importPreviewApi.upload('sunflower_pdf', file, signal)
 
-    expect(client.post).toHaveBeenCalledWith('/api/import-previews/sunflower', expect.any(FormData), { signal })
+    expect(client.post).toHaveBeenCalledWith('/api/import-previews', expect.any(FormData), { signal })
     const form = client.post.mock.calls[0][1]
+    expect(form.get('sourceType')).toBe('sunflower_pdf')
     expect(form.get('file')).toBe(file)
   })
 
   it('uses server-authoritative resume and row mutation routes', () => {
     const signal = new AbortController().signal
-    importPreviewApi.getOpen(signal)
+    importPreviewApi.getOpen('sunflower_pdf', signal)
     importPreviewApi.getById('batch-id', signal)
     importPreviewApi.updateRow('batch-id', 'row-id', { selectedForImport: true })
 

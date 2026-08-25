@@ -22,11 +22,36 @@ public sealed class ImportPreviewApiTests
         using var client = app.CreateTestClient();
         using var content = PdfUpload(SunflowerFixtureCorpus.CreateRepresentativePdf());
 
-        var create = await client.PostAsync("/api/import-previews/sunflower", content);
+        var create = await client.PostAsync("/api/import-previews", content);
         var read = await client.GetAsync("/api/import-previews/open?sourceType=sunflower_pdf");
 
         Assert.Equal(HttpStatusCode.Unauthorized, create.StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, read.StatusCode);
+    }
+
+    [Fact]
+    public async Task Upload_requires_a_closed_supported_source_before_extraction()
+    {
+        await using var app = new SyntheticExtractionFinancialApiTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("preview-source@example.com");
+        using var missing = PdfUpload(SunflowerFixtureCorpus.CreateRepresentativePdf(), sourceType: null);
+        using var unknown = PdfUpload(SunflowerFixtureCorpus.CreateRepresentativePdf(), "prairie_pdf");
+
+        var missingResponse = await owner.Client.PostAsync("/api/import-previews", missing);
+        var unknownResponse = await owner.Client.PostAsync("/api/import-previews", unknown);
+        var missingOpenResponse = await owner.Client.GetAsync("/api/import-previews/open");
+        var unknownOpenResponse = await owner.Client.GetAsync("/api/import-previews/open?sourceType=prairie_pdf");
+
+        Assert.Equal(HttpStatusCode.BadRequest, missingResponse.StatusCode);
+        Assert.Equal("source_required", (await missingResponse.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("code").GetString());
+        Assert.Equal(HttpStatusCode.BadRequest, unknownResponse.StatusCode);
+        Assert.Equal("unsupported_statement_source", (await unknownResponse.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("code").GetString());
+        Assert.Equal(HttpStatusCode.BadRequest, missingOpenResponse.StatusCode);
+        Assert.Equal("source_required", (await missingOpenResponse.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("code").GetString());
+        Assert.Equal(HttpStatusCode.BadRequest, unknownOpenResponse.StatusCode);
+        Assert.Equal("unsupported_statement_source", (await unknownOpenResponse.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("code").GetString());
+        Assert.Equal(0, await app.CountImportPreviewBatchesAsync(owner.Id));
+        Assert.Equal(0, await app.CountExpensesAsync());
     }
 
     [Fact]
@@ -39,7 +64,7 @@ public sealed class ImportPreviewApiTests
         await app.SeedExpenseAsync(other.Id, "STREAMCO SUBSCRIPTION", 7.99m, new DateOnly(2026, 2, 4));
         using var content = PdfUpload(SunflowerFixtureCorpus.CreateRepresentativePdf());
 
-        var response = await owner.Client.PostAsync("/api/import-previews/sunflower", content);
+        var response = await owner.Client.PostAsync("/api/import-previews", content);
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
@@ -69,16 +94,16 @@ public sealed class ImportPreviewApiTests
         using var firstContent = PdfUpload(pdf);
         using var secondContent = PdfUpload(pdf);
 
-        var first = await owner.Client.PostAsync("/api/import-previews/sunflower", firstContent);
+        var first = await owner.Client.PostAsync("/api/import-previews", firstContent);
         var firstBody = await first.Content.ReadFromJsonAsync<JsonElement>();
-        var second = await owner.Client.PostAsync("/api/import-previews/sunflower", secondContent);
+        var second = await owner.Client.PostAsync("/api/import-previews", secondContent);
         var secondBody = await second.Content.ReadFromJsonAsync<JsonElement>();
         var resumed = await owner.Client.GetFromJsonAsync<JsonElement>("/api/import-previews/open?sourceType=sunflower_pdf");
 
         Assert.Equal(HttpStatusCode.Created, first.StatusCode);
         Assert.Equal(HttpStatusCode.OK, second.StatusCode);
-        Assert.Equal("sunflower-v2", firstBody.GetProperty("parserRuleVersion").GetString());
-        Assert.Equal("sunflower-v2", secondBody.GetProperty("parserRuleVersion").GetString());
+        Assert.Equal("sunflower-v3", firstBody.GetProperty("parserRuleVersion").GetString());
+        Assert.Equal("sunflower-v3", secondBody.GetProperty("parserRuleVersion").GetString());
         Assert.Equal(firstBody.GetProperty("batchId").GetGuid(), secondBody.GetProperty("batchId").GetGuid());
         Assert.Equal(firstBody.GetProperty("batchId").GetGuid(), resumed.GetProperty("batchId").GetGuid());
         Assert.Equal(1, await app.CountImportPreviewBatchesAsync(owner.Id));
@@ -104,7 +129,7 @@ public sealed class ImportPreviewApiTests
         var crossUserRead = await other.Client.GetAsync($"/api/import-previews/{stale.Id}");
         using var content = PdfUpload(pdf);
 
-        var response = await owner.Client.PostAsync("/api/import-previews/sunflower", content);
+        var response = await owner.Client.PostAsync("/api/import-previews", content);
         var replacement = await response.Content.ReadFromJsonAsync<JsonElement>();
         var resumed = await owner.Client.GetFromJsonAsync<JsonElement>(
             "/api/import-previews/open?sourceType=sunflower_pdf");
@@ -115,7 +140,7 @@ public sealed class ImportPreviewApiTests
         Assert.Equal(HttpStatusCode.NotFound, crossUserRead.StatusCode);
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         Assert.NotEqual(stale.Id, replacement.GetProperty("batchId").GetGuid());
-        Assert.Equal("sunflower-v2", replacement.GetProperty("parserRuleVersion").GetString());
+        Assert.Equal("sunflower-v3", replacement.GetProperty("parserRuleVersion").GetString());
         Assert.Equal(13, replacement.GetProperty("rows").GetArrayLength());
         Assert.DoesNotContain(
             replacement.GetProperty("rows").EnumerateArray(),
@@ -134,7 +159,7 @@ public sealed class ImportPreviewApiTests
             current =>
             {
                 Assert.Equal(ImportPreviewLifecycle.Open, current.Lifecycle);
-                Assert.Equal("sunflower-v2", current.ParserRuleVersion);
+                Assert.Equal("sunflower-v3", current.ParserRuleVersion);
             });
         var preservedOther = Assert.Single(await app.FindImportPreviewBatchesAsync(other.Id));
         Assert.Equal(otherStale.Id, preservedOther.Id);
@@ -151,7 +176,7 @@ public sealed class ImportPreviewApiTests
         var stale = await app.SeedImportPreviewBatchAsync(owner.Id, pdf, "sunflower-v1");
         using var content = PdfUpload(pdf);
 
-        var response = await owner.Client.PostAsync("/api/import-previews/sunflower", content);
+        var response = await owner.Client.PostAsync("/api/import-previews", content);
         var error = await response.Content.ReadFromJsonAsync<JsonElement>();
 
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
@@ -172,7 +197,7 @@ public sealed class ImportPreviewApiTests
         var stale = await app.SeedImportPreviewBatchAsync(owner.Id, pdf, "sunflower-v1");
         using var content = PdfUpload(pdf);
 
-        var response = await owner.Client.PostAsync("/api/import-previews/sunflower", content);
+        var response = await owner.Client.PostAsync("/api/import-previews", content);
         var error = await response.Content.ReadFromJsonAsync<JsonElement>();
 
         Assert.Equal(HttpStatusCode.RequestTimeout, response.StatusCode);
@@ -190,7 +215,7 @@ public sealed class ImportPreviewApiTests
         await using var app = new SyntheticExtractionFinancialApiTestApplication();
         using var owner = await app.CreateAuthenticatedUserAsync("preview-edit@example.com");
         using var content = PdfUpload(SunflowerFixtureCorpus.CreateRepresentativePdf());
-        var create = await owner.Client.PostAsync("/api/import-previews/sunflower", content);
+        var create = await owner.Client.PostAsync("/api/import-previews", content);
         var preview = await create.Content.ReadFromJsonAsync<JsonElement>();
         var batchId = preview.GetProperty("batchId").GetGuid();
         var rows = preview.GetProperty("rows").EnumerateArray().ToList();
@@ -219,7 +244,7 @@ public sealed class ImportPreviewApiTests
         using var owner = await app.CreateAuthenticatedUserAsync("preview-size@example.com");
         using var content = PdfUpload(new byte[(10 * 1024 * 1024) + 1]);
 
-        var response = await owner.Client.PostAsync("/api/import-previews/sunflower", content);
+        var response = await owner.Client.PostAsync("/api/import-previews", content);
         var error = await response.Content.ReadFromJsonAsync<JsonElement>();
 
         Assert.Equal(HttpStatusCode.RequestEntityTooLarge, response.StatusCode);
@@ -238,7 +263,7 @@ public sealed class ImportPreviewApiTests
         Array.Fill(padded, (byte)' ', fixture.Length, padded.Length - fixture.Length);
         using var content = PdfUpload(padded);
 
-        var response = await owner.Client.PostAsync("/api/import-previews/sunflower", content);
+        var response = await owner.Client.PostAsync("/api/import-previews", content);
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
     }
@@ -250,7 +275,7 @@ public sealed class ImportPreviewApiTests
         await using var app = new ClockedFinancialApiTestApplication(clock);
         using var owner = await app.CreateAuthenticatedUserAsync("preview-expiry@example.com");
         using var content = PdfUpload(SunflowerFixtureCorpus.CreateRepresentativePdf());
-        var create = await owner.Client.PostAsync("/api/import-previews/sunflower", content);
+        var create = await owner.Client.PostAsync("/api/import-previews", content);
         var preview = await create.Content.ReadFromJsonAsync<JsonElement>();
         var batchId = preview.GetProperty("batchId").GetGuid();
 
@@ -287,7 +312,7 @@ public sealed class ImportPreviewApiTests
         using var lease = admission.TryAcquire(owner.Id);
         using var content = PdfUpload(SunflowerFixtureCorpus.CreateRepresentativePdf());
 
-        var response = await owner.Client.PostAsync("/api/import-previews/sunflower", content);
+        var response = await owner.Client.PostAsync("/api/import-previews", content);
         var error = await response.Content.ReadFromJsonAsync<JsonElement>();
 
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
@@ -302,7 +327,7 @@ public sealed class ImportPreviewApiTests
         using var owner = await app.CreateAuthenticatedUserAsync("preview-real-path@example.com");
         using var content = PdfUpload(SunflowerFixtureCorpus.CreateRepresentativePdf());
 
-        var response = await owner.Client.PostAsync("/api/import-previews/sunflower", content);
+        var response = await owner.Client.PostAsync("/api/import-previews", content);
         var preview = await response.Content.ReadFromJsonAsync<JsonElement>();
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
@@ -326,7 +351,7 @@ public sealed class ImportPreviewApiTests
         };
         using var content = PdfUpload(SyntheticPdfBuilder.Build(new IReadOnlyList<string>[] { lines }));
 
-        var response = await owner.Client.PostAsync("/api/import-previews/sunflower", content);
+        var response = await owner.Client.PostAsync("/api/import-previews", content);
         var preview = await response.Content.ReadFromJsonAsync<JsonElement>();
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
@@ -356,7 +381,7 @@ public sealed class ImportPreviewApiTests
         };
         using var content = PdfUpload(SyntheticPdfBuilder.Build(pages));
 
-        var response = await owner.Client.PostAsync("/api/import-previews/sunflower", content);
+        var response = await owner.Client.PostAsync("/api/import-previews", content);
         var preview = await response.Content.ReadFromJsonAsync<JsonElement>();
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
@@ -396,7 +421,7 @@ public sealed class ImportPreviewApiTests
         Assert.True(parsed.IsSuccess, parsed.Failure?.Code);
         using var content = PdfUpload(pdf);
 
-        var response = await owner.Client.PostAsync("/api/import-previews/sunflower", content);
+        var response = await owner.Client.PostAsync("/api/import-previews", content);
         var preview = await response.Content.ReadFromJsonAsync<JsonElement>();
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
@@ -425,7 +450,7 @@ public sealed class ImportPreviewApiTests
         };
         using var content = PdfUpload(pdf);
 
-        var response = await owner.Client.PostAsync("/api/import-previews/sunflower", content);
+        var response = await owner.Client.PostAsync("/api/import-previews", content);
         var error = await response.Content.ReadFromJsonAsync<JsonElement>();
 
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
@@ -436,23 +461,23 @@ public sealed class ImportPreviewApiTests
     }
 
     [Theory]
-    [InlineData("unsupported_source", "unsupported_statement_source")]
-    [InlineData("unsupported_format", "unsupported_statement_format")]
-    public async Task Unsupported_statement_failures_have_stable_safe_api_errors(string kind, string expectedCode)
+    [InlineData("lookalike")]
+    [InlineData("unsupported_format")]
+    public async Task Routed_but_structurally_incompatible_statements_fail_safely(string kind)
     {
         await using var app = new FinancialApiTestApplication();
         using var owner = await app.CreateAuthenticatedUserAsync($"preview-{kind}@example.com");
-        var header = kind == "unsupported_source" ? "PRAIRIE BANK" : "SUNFLOWER BANKFIRST NATIONAL 1870";
-        var lines = kind == "unsupported_source"
+        var header = kind == "lookalike" ? "PRAIRIE BANK" : "SUNFLOWER BANKFIRST NATIONAL 1870";
+        var lines = kind == "lookalike"
             ? new[] { header, "STATEMENT DATE: 02/28/26", "Days in Statement Period: 28", "Electronic Transactions", "Posted Description Amount" }
             : new[] { header, "STATEMENT DATE: 02/28/26", "Electronic Transactions", "Posted Description Amount" };
         using var content = PdfUpload(SyntheticPdfBuilder.Build(new IReadOnlyList<string>[] { lines }));
 
-        var response = await owner.Client.PostAsync("/api/import-previews/sunflower", content);
+        var response = await owner.Client.PostAsync("/api/import-previews", content);
         var error = await response.Content.ReadFromJsonAsync<JsonElement>();
 
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
-        Assert.Equal(expectedCode, error.GetProperty("code").GetString());
+        Assert.Equal("unsupported_statement_format", error.GetProperty("code").GetString());
         Assert.Equal(0, await app.CountImportPreviewBatchesAsync(owner.Id));
     }
 
@@ -463,7 +488,7 @@ public sealed class ImportPreviewApiTests
         using var owner = await app.CreateAuthenticatedUserAsync("preview-timeout@example.com");
         using var content = PdfUpload(SunflowerFixtureCorpus.CreateRepresentativePdf());
 
-        var response = await owner.Client.PostAsync("/api/import-previews/sunflower", content);
+        var response = await owner.Client.PostAsync("/api/import-previews", content);
         var error = await response.Content.ReadFromJsonAsync<JsonElement>();
         var admission = app.Services.GetRequiredService<IImportPreviewAdmission>();
         using var releasedLease = admission.TryAcquire(owner.Id);
@@ -484,7 +509,7 @@ public sealed class ImportPreviewApiTests
         using var cancellation = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            owner.Client.PostAsync("/api/import-previews/sunflower", content, cancellation.Token));
+            owner.Client.PostAsync("/api/import-previews", content, cancellation.Token));
         var admission = app.Services.GetRequiredService<IImportPreviewAdmission>();
         using var releasedLease = admission.TryAcquire(owner.Id);
 
@@ -493,9 +518,11 @@ public sealed class ImportPreviewApiTests
         Assert.Equal(0, await app.CountExpensesAsync());
     }
 
-    private static MultipartFormDataContent PdfUpload(byte[] bytes)
+    private static MultipartFormDataContent PdfUpload(byte[] bytes, string? sourceType = SunflowerStatementParser.SourceType)
     {
         var content = new MultipartFormDataContent();
+        if (sourceType is not null)
+            content.Add(new StringContent(sourceType), "sourceType");
         var file = new ByteArrayContent(bytes);
         file.Headers.ContentType = new("text/plain");
         content.Add(file, "file", "advisory-name.bin");

@@ -1,14 +1,15 @@
 import client from "../../../shared/api/client";
 
 export const importPreviewApi = {
-  uploadSunflower(file, signal) {
+  upload(sourceType, file, signal) {
     const body = new FormData();
+    body.append("sourceType", sourceType);
     body.append("file", file);
-    return client.post("/api/import-previews/sunflower", body, { signal });
+    return client.post("/api/import-previews", body, { signal });
   },
-  getOpen(signal) {
+  getOpen(sourceType, signal) {
     return client.get("/api/import-previews/open", {
-      params: { sourceType: "sunflower_pdf" },
+      params: { sourceType },
       signal,
     });
   },

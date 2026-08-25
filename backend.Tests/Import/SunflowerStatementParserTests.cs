@@ -47,71 +47,48 @@ public sealed class SunflowerStatementParserTests
     }
 
     [Fact]
-    public void Statement_recognition_requires_source_metadata_and_transaction_structure()
+    public void Routed_parser_requires_transaction_structure_but_not_textual_bank_identity()
     {
         var parser = new SunflowerStatementParser();
-        Assert.Equal(
-            "unsupported_statement_source",
-            parser.Parse(Result("PRAIRIE BANK\nSTATEMENT DATE: 02/28/26\nDays in Statement Period: 28\nElectronic Transactions\nPosted Description Amount"))
-                .Failure?.Code);
+        var withoutTextIdentity = parser.Parse(Result(
+            "SYNTHETIC HEADER\nSTATEMENT DATE: 02/28/26\nDays in Statement Period: 28\n" +
+            "Electronic Transactions\nPosted Description Amount\n02/01/26 PURCHASE 1.00-"));
+        Assert.True(withoutTextIdentity.IsSuccess);
+        Assert.Single(withoutTextIdentity.Rows);
+
         Assert.Equal(
             "unsupported_statement_format",
             parser.Parse(Result("SUNFLOWER BANK\nSTATEMENT DATE: 02/28/26\nDays in Statement Period 28\nElectronic Transactions\nPosted Description Amount"))
                 .Failure?.Code);
-        Assert.Equal(
-            "unsupported_statement_source",
-            parser.Parse(Result("GENERIC HEADER\nSTATEMENT DATE: 02/28/26\nDays in Statement Period: 28\nElectronic Transactions\nPosted Description Amount\nA GENERIC SUNFLOWER REFERENCE"))
-                .Failure?.Code);
-        Assert.Equal(
-            "unsupported_statement_source",
-            parser.Parse(Result("GENERIC HEADER\nSTATEMENT DATE: 02/28/26\nDays in Statement Period: 28\nElectronic Transactions\nPosted Description Amount\nA LATE SunflowerBank REFERENCE"))
-                .Failure?.Code);
-
-        foreach (var nearMiss in new[] { "SunflowerBanking", "SunflowerAnything" })
-        {
-            Assert.Equal(
-                "unsupported_statement_source",
-                parser.Parse(Result($"{nearMiss}\nSTATEMENT DATE: 02/28/26\nDays in Statement Period: 28\nElectronic Transactions\nPosted Description Amount"))
-                    .Failure?.Code);
-        }
-
-        var preamble = parser.Parse(Result(
-            "SYNTHETIC PREAMBLE\nHEADER CODE 123\nSUNFLOWER BANK ADJACENT HEADER\n" +
-            "STATEMENT DATE: 02/28/26\nDays in Statement Period: 28\nElectronic Transactions\n" +
-            "Posted Description Amount\n02/01/26 PURCHASE 1.00-"));
-        Assert.True(preamble.IsSuccess);
-        Assert.Single(preamble.Rows);
-
-        var concatenatedBrand = parser.Parse(Result(
-            "SYNTHETIC PREAMBLE\nSunflowerBank FIRST NATIONAL 1870\n" +
-            "STATEMENT DATE: 02/28/26\nDays in Statement Period: 28\nElectronic Transactions\n" +
-            "Posted Description Amount\n02/01/26 PURCHASE 1.00-"));
-        Assert.True(concatenatedBrand.IsSuccess);
-        Assert.Single(concatenatedBrand.Rows);
     }
 
     [Fact]
-    public void Page_local_source_identity_accepts_only_brand_before_strong_same_page_metadata()
+    public void Compact_header_requires_exact_geometry_and_uses_the_common_row_grammar()
+    {
+        var parsed = new SunflowerStatementParser().Parse(CompactHeaderResult());
+
+        Assert.True(parsed.IsSuccess, parsed.Failure?.Code);
+        var row = Assert.Single(parsed.Rows);
+        Assert.Equal("SYNTHETIC PURCHASE", row.SourceDescription);
+        Assert.Equal(10.00m, row.Amount);
+        Assert.Equal(ImportedRowClassification.ExpenseCandidate, row.Classification);
+        Assert.Equal("sunflower-v3", row.Provenance.ParserRuleVersion);
+    }
+
+    [Fact]
+    public void Compact_header_near_misses_fail_closed()
     {
         var parser = new SunflowerStatementParser();
-        var derivedLayout = parser.Parse(MultiPageResult(
-            "Deposits\nElectronic Transactions",
-            "Deposits\nSunflowerBank SYNTHETIC HEADER\nSTATEMENTDATE:02/28/26\n" +
-            "DaysinStatementPeriod:28Deposits\nElectronic Transactions\n" +
-            "PostedDescriptionAmount\n02/01/26 SYNTHETIC PURCHASE 1.00-"));
+        var withoutGeometry = CompactHeaderResult(words: Array.Empty<PdfExtractedWord>());
+        var multipleTextMatches = CompactHeaderResult(
+            textSuffix: "YPostedDescriptionAmount02/02/26 SECOND 11.00-");
+        var rotatedWords = CompactHeaderWords();
+        rotatedWords[0] = rotatedWords[0] with { Orientation = PdfWordOrientation.Rotate90 };
+        var rotated = CompactHeaderResult(words: rotatedWords);
 
-        Assert.True(derivedLayout.IsSuccess, derivedLayout.Failure?.Code);
-        Assert.Single(derivedLayout.Rows);
-
-        var lateBrand = parser.Parse(Result(
-            "STATEMENTDATE:02/28/26\nSunflowerBank SYNTHETIC DISCLOSURE\n" +
-            "DaysinStatementPeriod:28\nElectronic Transactions\nPostedDescriptionAmount"));
-        Assert.Equal("unsupported_statement_source", lateBrand.Failure?.Code);
-
-        var disclosureOnly = parser.Parse(MultiPageResult(
-            "STATEMENTDATE:02/28/26\nDaysinStatementPeriod:28\nElectronic Transactions\nPostedDescriptionAmount",
-            "SunflowerBank SYNTHETIC DISCLOSURE"));
-        Assert.Equal("unsupported_statement_source", disclosureOnly.Failure?.Code);
+        Assert.Equal("unsupported_statement_format", parser.Parse(withoutGeometry).Failure?.Code);
+        Assert.Equal("unsupported_statement_format", parser.Parse(multipleTextMatches).Failure?.Code);
+        Assert.Equal("unsupported_statement_format", parser.Parse(rotated).Failure?.Code);
     }
 
     [Fact]
@@ -404,6 +381,33 @@ public sealed class SunflowerStatementParserTests
             text.Length,
             new[] { new PdfExtractedPage(1, text, words) });
     }
+
+    private static PdfTextExtractionResult CompactHeaderResult(
+        string textSuffix = "",
+        PdfExtractedWord[]? words = null)
+    {
+        var text = "SYNTHETIC HEADER\nSTATEMENT DATE: 02/28/26\nDays in Statement Period: 28\n" +
+                   "Electronic Transactions\nXPostedDescriptionAmount02/01/26 SYNTHETIC PURCHASE 10.00-" +
+                   textSuffix;
+        return new PdfTextExtractionResult(
+            0,
+            1,
+            text.Length,
+            new[] { new PdfExtractedPage(1, text, words ?? CompactHeaderWords()) });
+    }
+
+    private static PdfExtractedWord[] CompactHeaderWords() =>
+    [
+        PositionalWord(1, "Electronic", .08, .18, .85),
+        PositionalWord(2, "Transactions", .19, .32, .85),
+        PositionalWord(3, "Posted", .08, .16, .75),
+        PositionalWord(4, "Description", .25, .40, .75),
+        PositionalWord(5, "Amount", .85, .93, .75),
+        PositionalWord(6, "02/01/26", .08, .16, .65),
+        PositionalWord(7, "SYNTHETIC", .25, .36, .65),
+        PositionalWord(8, "PURCHASE", .37, .49, .65),
+        PositionalWord(9, "10.00-", .86, .93, .65)
+    ];
 
     private static PdfExtractedWord PositionalWord(
         int ordinal,
