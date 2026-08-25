@@ -276,6 +276,7 @@ public sealed class ImportPreviewApiTests
         Assert.Equal(batchId, firstBody.GetProperty("batchId").GetGuid());
         Assert.Equal("confirmed", firstBody.GetProperty("status").GetString());
         Assert.Equal(1, firstBody.GetProperty("importedExpenseCount").GetInt32());
+        Assert.Equal(0, confirmedAt.Ticks % TimeSpan.TicksPerMicrosecond);
         var expenses = await owner.Client.GetFromJsonAsync<JsonElement>("/api/expenses");
         var expense = Assert.Single(expenses.EnumerateArray());
         Assert.Equal("Server-edited description", expense.GetProperty("description").GetString());

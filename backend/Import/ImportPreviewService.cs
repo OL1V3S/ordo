@@ -394,7 +394,7 @@ public sealed class ImportPreviewService(
             }
 
             batch.Lifecycle = ImportPreviewLifecycle.Confirmed;
-            batch.ConfirmedAt = now;
+            batch.ConfirmedAt = TruncateToPostgreSqlTimestampPrecision(now);
             context.ImportPreviewRows.RemoveRange(batch.Rows);
             await context.SaveChangesAsync(cancellationToken);
             await CommitAsync(transaction, cancellationToken);
@@ -574,6 +574,9 @@ public sealed class ImportPreviewService(
     {
         if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
     }
+
+    private static DateTime TruncateToPostgreSqlTimestampPrecision(DateTime value) =>
+        new(value.Ticks - (value.Ticks % TimeSpan.TicksPerMicrosecond), value.Kind);
 
     private async Task<ImportPreviewOperation> PersistOrReuseAsync(
         ImportPreviewBatch batch,
