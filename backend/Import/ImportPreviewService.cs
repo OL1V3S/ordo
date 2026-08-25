@@ -18,11 +18,19 @@ public sealed record ImportPreviewOperation(
     public bool IsSuccess => Preview is not null;
 }
 
+public sealed record ImportConfirmationOperation(
+    ImportConfirmationResponse? Confirmation,
+    ImportConfirmationError? Error)
+{
+    public bool IsSuccess => Confirmation is not null;
+}
+
 public interface IImportPreviewService
 {
     Task<ImportPreviewOperation> CreateAsync(string userId, string? sourceType, Stream file, long? declaredLength, CancellationToken cancellationToken);
     Task<ImportPreviewResponse?> GetOpenAsync(string userId, string sourceType, CancellationToken cancellationToken);
     Task<ImportPreviewResponse?> GetAsync(string userId, Guid batchId, CancellationToken cancellationToken);
+    Task<ImportConfirmationOperation> ConfirmAsync(string userId, Guid batchId, CancellationToken cancellationToken);
     Task<ImportPreviewOperation> UpdateRowAsync(string userId, Guid batchId, Guid rowId, UpdateImportPreviewRowRequest request, CancellationToken cancellationToken);
 }
 
@@ -42,6 +50,8 @@ public sealed class ImportPreviewService(
     private static readonly TimeSpan PreviewLifetime = TimeSpan.FromHours(24);
     private const string OpenDigestIndexName =
         "IX_ImportPreviewBatches_OwnerId_SourceType_DocumentDigest";
+    private const string ActiveDocumentIndexName = "IX_ImportPreviewBatches_ActiveDocument";
+    private const string ConfirmedDigestIndexName = "IX_ImportPreviewBatches_ConfirmedDocument";
 
     public async Task<ImportPreviewOperation> CreateAsync(
         string userId,
@@ -89,6 +99,15 @@ public sealed class ImportPreviewService(
             using var processingCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             processingCts.CancelAfter(processingOptions.Timeout);
             var processingToken = processingCts.Token;
+
+            var confirmed = await FindConfirmedByDigestAsync(
+                userId,
+                sourceType,
+                SunflowerStatementParser.RuleVersion,
+                digest,
+                processingToken);
+            if (confirmed is not null)
+                return Failed("already_imported", "This statement was already imported.");
 
             var existing = await FindCompatibleOpenByDigestAsync(
                 userId,
@@ -226,37 +245,245 @@ public sealed class ImportPreviewService(
         return batch is null ? null : ToResponse(batch);
     }
 
+    public async Task<ImportConfirmationOperation> ConfirmAsync(
+        string userId,
+        Guid batchId,
+        CancellationToken cancellationToken)
+    {
+        IDbContextTransaction? transaction = null;
+        try
+        {
+            transaction = await BeginMutationTransactionAsync(cancellationToken);
+            await LockOwnedBatchAsync(userId, batchId, cancellationToken);
+
+            var batch = await context.ImportPreviewBatches
+                .Include(value => value.Rows)
+                .Include(value => value.Provenance)
+                .SingleOrDefaultAsync(
+                    value => value.OwnerId == userId && value.Id == batchId,
+                    cancellationToken);
+            if (batch is null)
+                return ConfirmationFailed("preview_not_found", "The preview is unavailable.");
+
+            if (batch.Lifecycle == ImportPreviewLifecycle.Confirmed)
+            {
+                return ConfirmationSucceeded(batch, "already_confirmed", batch.Provenance.Count);
+            }
+
+            if (batch.SourceType != SunflowerStatementParser.SourceType
+                || batch.ParserRuleVersion != SunflowerStatementParser.RuleVersion)
+            {
+                return ConfirmationFailed("preview_not_found", "The preview is unavailable.");
+            }
+
+            var now = clock.GetUtcNow().UtcDateTime;
+            if (batch.Lifecycle == ImportPreviewLifecycle.Expired
+                || (batch.Lifecycle == ImportPreviewLifecycle.Open && batch.ExpiresAt <= now))
+            {
+                if (batch.Lifecycle == ImportPreviewLifecycle.Open)
+                {
+                    batch.Lifecycle = ImportPreviewLifecycle.Expired;
+                    await context.SaveChangesAsync(cancellationToken);
+                    await CommitAsync(transaction, cancellationToken);
+                }
+                return ConfirmationFailed("preview_expired", "The preview has expired. Re-upload the statement.");
+            }
+
+            if (batch.Lifecycle != ImportPreviewLifecycle.Open)
+            {
+                return ConfirmationFailed("preview_not_found", "The preview is unavailable.");
+            }
+
+            if (batch.Provenance.Count > 0)
+            {
+                return ConfirmationFailed("confirmation_conflict", "The preview cannot be confirmed safely.");
+            }
+
+            var selectedRows = batch.Rows.Where(value => value.SelectedForImport)
+                .OrderBy(value => value.SourceRowOrdinal)
+                .ToList();
+            if (selectedRows.Count == 0)
+            {
+                return ConfirmationFailed("no_rows_selected", "Select at least one eligible row before confirming.");
+            }
+
+            var selectedDates = selectedRows.Where(value => value.PostedDate.HasValue)
+                .Select(value => value.PostedDate!.Value)
+                .Distinct()
+                .ToList();
+            var currentExpenses = await context.Expenses.AsNoTracking()
+                .Where(value => value.UserId == userId && selectedDates.Contains(value.Date))
+                .ToListAsync(cancellationToken);
+
+            var newlyWarnedRows = new List<ImportConfirmationRowError>();
+            foreach (var row in selectedRows)
+            {
+                var duplicateIds = FindPossibleDuplicateExpenseIds(row, currentExpenses);
+                if (row.IsPossibleDuplicate || duplicateIds.Count == 0) continue;
+
+                row.IsPossibleDuplicate = true;
+                row.DuplicateExpenseIds = JsonSerializer.Serialize(duplicateIds);
+                var warnings = DeserializeCodes(row.WarningCodes).ToList();
+                if (!warnings.Contains("possible_duplicate")) warnings.Add("possible_duplicate");
+                row.WarningCodes = JsonSerializer.Serialize(warnings.Distinct());
+                row.SelectedForImport = false;
+                newlyWarnedRows.Add(new(row.Id, ["possible_duplicate"]));
+            }
+
+            if (newlyWarnedRows.Count > 0)
+            {
+                await context.SaveChangesAsync(cancellationToken);
+                await CommitAsync(transaction, cancellationToken);
+                return ConfirmationFailed(
+                    "duplicate_review_required",
+                    "One or more selected rows now require duplicate review.",
+                    newlyWarnedRows);
+            }
+
+            var validationErrors = new List<ImportConfirmationRowError>();
+            var normalizedRows = new List<(ImportPreviewRow Row, string Description, string Category)>();
+            foreach (var row in selectedRows)
+            {
+                var description = ExpenseInputRules.NormalizeDescription(row.EditableExpenseDescription);
+                var category = ExpenseInputRules.NormalizeCategory(row.Category);
+                var errors = new List<string>();
+                if (!row.IsEligible
+                    || row.Classification != ImportedRowClassification.ExpenseCandidate
+                    || row.Direction != ImportedTransactionDirection.Debit)
+                {
+                    errors.Add("row_not_selectable");
+                }
+                errors.AddRange(ExpenseInputRules.Validate(row.Amount, row.PostedDate, description, category));
+
+                var distinctErrors = errors.Distinct().ToList();
+                if (distinctErrors.Count > 0)
+                {
+                    validationErrors.Add(new(row.Id, distinctErrors));
+                }
+                else
+                {
+                    normalizedRows.Add((row, description, category));
+                }
+            }
+
+            if (validationErrors.Count > 0)
+            {
+                return ConfirmationFailed(
+                    "confirmation_validation_failed",
+                    "One or more selected rows are no longer valid.",
+                    validationErrors);
+            }
+
+            foreach (var normalized in normalizedRows)
+            {
+                var expense = new Expense
+                {
+                    UserId = userId,
+                    Description = normalized.Description,
+                    Amount = normalized.Row.Amount!.Value,
+                    Date = normalized.Row.PostedDate!.Value,
+                    Category = normalized.Category
+                };
+                context.Expenses.Add(expense);
+                batch.Provenance.Add(new ImportExpenseProvenance
+                {
+                    BatchId = batch.Id,
+                    SourceRowOrdinal = normalized.Row.SourceRowOrdinal,
+                    Expense = expense
+                });
+            }
+
+            batch.Lifecycle = ImportPreviewLifecycle.Confirmed;
+            batch.ConfirmedAt = TruncateToPostgreSqlTimestampPrecision(now);
+            context.ImportPreviewRows.RemoveRange(batch.Rows);
+            await context.SaveChangesAsync(cancellationToken);
+            await CommitAsync(transaction, cancellationToken);
+            return ConfirmationSucceeded(batch, "confirmed", normalizedRows.Count);
+        }
+        catch (OperationCanceledException)
+        {
+            await RollbackAsync(transaction);
+            context.ChangeTracker.Clear();
+            return ConfirmationFailed("confirmation_failed", "The preview could not be confirmed safely.");
+        }
+        catch (DbUpdateException exception)
+        {
+            await RollbackAsync(transaction);
+            context.ChangeTracker.Clear();
+            return IsConfirmedDigestUniqueViolation(exception)
+                ? ConfirmationFailed("confirmation_conflict", "The statement was already confirmed.")
+                : ConfirmationFailed("confirmation_failed", "The preview could not be confirmed safely.");
+        }
+        catch (NpgsqlException)
+        {
+            await RollbackAsync(transaction);
+            context.ChangeTracker.Clear();
+            return ConfirmationFailed("confirmation_failed", "The preview could not be confirmed safely.");
+        }
+        finally
+        {
+            if (transaction is not null) await transaction.DisposeAsync();
+        }
+    }
+
     public async Task<ImportPreviewOperation> UpdateRowAsync(string userId, Guid batchId, Guid rowId, UpdateImportPreviewRowRequest request, CancellationToken cancellationToken)
     {
-        await ExpireOwnedAsync(userId, cancellationToken);
-        var batch = await context.ImportPreviewBatches.Include(value => value.Rows)
-            .Where(value => value.OwnerId == userId
-                && value.Id == batchId
-                && value.SourceType == SunflowerStatementParser.SourceType
-                && value.ParserRuleVersion == SunflowerStatementParser.RuleVersion
-                && value.Lifecycle == ImportPreviewLifecycle.Open)
-            .SingleOrDefaultAsync(cancellationToken);
-        var row = batch?.Rows.SingleOrDefault(value => value.Id == rowId);
-        if (batch is null || row is null) return Failed("preview_not_found", "The preview is unavailable.");
-        if (!row.IsEligible && request.SelectedForImport)
-            return Failed("row_not_selectable", "This row cannot be selected for import.");
+        IDbContextTransaction? transaction = null;
+        try
+        {
+            transaction = await BeginMutationTransactionAsync(cancellationToken);
+            await LockOwnedBatchAsync(userId, batchId, cancellationToken);
 
-        if (row.IsEligible)
-        {
-            var description = ExpenseInputRules.NormalizeDescription(request.EditableExpenseDescription);
-            var category = ExpenseInputRules.NormalizeCategory(request.Category);
-            var errors = ExpenseInputRules.Validate(row.Amount, row.PostedDate, description, category);
-            if (errors.Count > 0) return Failed("row_validation_failed", "The row changes are invalid.");
-            row.EditableExpenseDescription = description;
-            row.Category = category;
-            row.SelectedForImport = request.SelectedForImport;
+            var batch = await context.ImportPreviewBatches.Include(value => value.Rows)
+                .SingleOrDefaultAsync(
+                    value => value.OwnerId == userId && value.Id == batchId,
+                    cancellationToken);
+            if (batch is null)
+                return Failed("preview_not_found", "The preview is unavailable.");
+
+            if (batch.Lifecycle == ImportPreviewLifecycle.Open
+                && batch.ExpiresAt <= clock.GetUtcNow().UtcDateTime)
+            {
+                batch.Lifecycle = ImportPreviewLifecycle.Expired;
+                await context.SaveChangesAsync(cancellationToken);
+                await CommitAsync(transaction, cancellationToken);
+                return Failed("preview_not_found", "The preview is unavailable.");
+            }
+
+            if (batch.Lifecycle != ImportPreviewLifecycle.Open
+                || batch.SourceType != SunflowerStatementParser.SourceType
+                || batch.ParserRuleVersion != SunflowerStatementParser.RuleVersion)
+            {
+                return Failed("preview_not_found", "The preview is unavailable.");
+            }
+
+            var row = batch.Rows.SingleOrDefault(value => value.Id == rowId);
+            if (row is null) return Failed("preview_not_found", "The preview is unavailable.");
+            if (!row.IsEligible && request.SelectedForImport)
+                return Failed("row_not_selectable", "This row cannot be selected for import.");
+
+            if (row.IsEligible)
+            {
+                var description = ExpenseInputRules.NormalizeDescription(request.EditableExpenseDescription);
+                var category = ExpenseInputRules.NormalizeCategory(request.Category);
+                var errors = ExpenseInputRules.Validate(row.Amount, row.PostedDate, description, category);
+                if (errors.Count > 0) return Failed("row_validation_failed", "The row changes are invalid.");
+                row.EditableExpenseDescription = description;
+                row.Category = category;
+                row.SelectedForImport = request.SelectedForImport;
+            }
+            else
+            {
+                row.SelectedForImport = false;
+            }
+            await context.SaveChangesAsync(cancellationToken);
+            await CommitAsync(transaction, cancellationToken);
+            return new(ToResponse(batch), null);
         }
-        else
+        finally
         {
-            row.SelectedForImport = false;
+            if (transaction is not null) await transaction.DisposeAsync();
         }
-        await context.SaveChangesAsync(cancellationToken);
-        return new(ToResponse(batch), null);
     }
 
     private IQueryable<ImportPreviewBatch> OwnedOpenQuery(string userId) => context.ImportPreviewBatches
@@ -283,6 +510,74 @@ public sealed class ImportPreviewService(
         return candidates.SingleOrDefault(value => CryptographicOperations.FixedTimeEquals(value.DocumentDigest, digest));
     }
 
+    private async Task<ImportPreviewBatch?> FindConfirmedByDigestAsync(
+        string userId,
+        string sourceType,
+        string parserRuleVersion,
+        byte[] digest,
+        CancellationToken cancellationToken)
+    {
+        var candidates = await context.ImportPreviewBatches.AsNoTracking()
+            .Where(value => value.OwnerId == userId
+                && value.SourceType == sourceType
+                && value.ParserRuleVersion == parserRuleVersion
+                && value.Lifecycle == ImportPreviewLifecycle.Confirmed)
+            .ToListAsync(cancellationToken);
+        return candidates.SingleOrDefault(value =>
+            CryptographicOperations.FixedTimeEquals(value.DocumentDigest, digest));
+    }
+
+    private async Task<IDbContextTransaction?> BeginMutationTransactionAsync(CancellationToken cancellationToken) =>
+        context.Database.IsRelational()
+            ? await context.Database.BeginTransactionAsync(cancellationToken)
+            : null;
+
+    private async Task LockOwnedBatchAsync(
+        string userId,
+        Guid batchId,
+        CancellationToken cancellationToken)
+    {
+        if (!context.Database.IsRelational()) return;
+        await context.Database.ExecuteSqlInterpolatedAsync(
+            $@"SELECT 1 FROM ""ImportPreviewBatches""
+               WHERE ""Id"" = {batchId} AND ""OwnerId"" = {userId}
+               FOR UPDATE",
+            cancellationToken);
+    }
+
+    private static List<int> FindPossibleDuplicateExpenseIds(
+        ImportPreviewRow row,
+        IReadOnlyList<Expense> expenses)
+    {
+        if (!row.PostedDate.HasValue || !row.Amount.HasValue) return [];
+        var description = ExpenseInputRules.NormalizeDescriptionForComparison(row.EditableExpenseDescription);
+        return expenses.Where(expense => expense.Date == row.PostedDate.Value
+                && expense.Amount == row.Amount.Value
+                && ExpenseInputRules.NormalizeDescriptionForComparison(expense.Description) == description)
+            .Select(expense => expense.Id)
+            .Distinct()
+            .OrderBy(value => value)
+            .ToList();
+    }
+
+    private static IReadOnlyList<string> DeserializeCodes(string value) =>
+        JsonSerializer.Deserialize<string[]>(value) ?? [];
+
+    private static async Task CommitAsync(
+        IDbContextTransaction? transaction,
+        CancellationToken cancellationToken)
+    {
+        if (transaction is not null) await transaction.CommitAsync(cancellationToken);
+    }
+
+    private static async Task RollbackAsync(IDbContextTransaction? transaction)
+    {
+        if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
+    }
+
+    private static DateTime TruncateToPostgreSqlTimestampPrecision(DateTime value) =>
+        new(value.Ticks - (value.Ticks % TimeSpan.TicksPerMicrosecond), value.Kind);
+
     private async Task<ImportPreviewOperation> PersistOrReuseAsync(
         ImportPreviewBatch batch,
         CancellationToken cancellationToken)
@@ -293,6 +588,17 @@ public sealed class ImportPreviewService(
             if (context.Database.IsRelational())
             {
                 transaction = await context.Database.BeginTransactionAsync(cancellationToken);
+            }
+
+            var confirmed = await FindConfirmedByDigestAsync(
+                batch.OwnerId,
+                batch.SourceType,
+                batch.ParserRuleVersion,
+                batch.DocumentDigest,
+                cancellationToken);
+            if (confirmed is not null)
+            {
+                return Failed("already_imported", "This statement was already imported.");
             }
 
             var winner = await FindCompatibleOpenByDigestAsync(
@@ -328,7 +634,8 @@ public sealed class ImportPreviewService(
             }
             return new(ToResponse(batch), null);
         }
-        catch (DbUpdateException exception) when (IsOpenDigestUniqueViolation(exception))
+        catch (DbUpdateException exception) when (
+            IsOpenDigestUniqueViolation(exception) || IsActiveDocumentUniqueViolation(exception))
         {
             if (transaction is not null)
             {
@@ -343,11 +650,21 @@ public sealed class ImportPreviewService(
                 batch.ParserRuleVersion,
                 batch.DocumentDigest,
                 cancellationToken);
-            if (winner is null)
+            if (winner is not null)
+            {
+                return new(ToResponse(winner), null, true);
+            }
+            var confirmed = await FindConfirmedByDigestAsync(
+                batch.OwnerId,
+                batch.SourceType,
+                batch.ParserRuleVersion,
+                batch.DocumentDigest,
+                cancellationToken);
+            if (confirmed is null)
             {
                 throw;
             }
-            return new(ToResponse(winner), null, true);
+            return Failed("already_imported", "This statement was already imported.");
         }
         finally
         {
@@ -380,11 +697,36 @@ public sealed class ImportPreviewService(
             ConstraintName: OpenDigestIndexName
         };
 
+    private static bool IsActiveDocumentUniqueViolation(DbUpdateException exception) =>
+        exception.InnerException is PostgresException
+        {
+            SqlState: PostgresErrorCodes.UniqueViolation,
+            ConstraintName: ActiveDocumentIndexName
+        };
+
+    private static bool IsConfirmedDigestUniqueViolation(DbUpdateException exception) =>
+        exception.InnerException is PostgresException
+        {
+            SqlState: PostgresErrorCodes.UniqueViolation,
+            ConstraintName: ConfirmedDigestIndexName
+        };
+
     private async Task ExpireOwnedAsync(string userId, CancellationToken cancellationToken)
     {
         var now = clock.GetUtcNow().UtcDateTime;
-        var expired = await context.ImportPreviewBatches
-            .Where(value => value.OwnerId == userId && value.Lifecycle == ImportPreviewLifecycle.Open && value.ExpiresAt <= now)
+        var query = context.ImportPreviewBatches
+            .Where(value => value.OwnerId == userId
+                && value.Lifecycle == ImportPreviewLifecycle.Open
+                && value.ExpiresAt <= now);
+        if (context.Database.IsRelational())
+        {
+            await query.ExecuteUpdateAsync(
+                setters => setters.SetProperty(value => value.Lifecycle, ImportPreviewLifecycle.Expired),
+                cancellationToken);
+            return;
+        }
+
+        var expired = await query
             .ToListAsync(cancellationToken);
         if (expired.Count == 0) return;
         foreach (var value in expired) value.Lifecycle = ImportPreviewLifecycle.Expired;
@@ -414,6 +756,23 @@ public sealed class ImportPreviewService(
     };
 
     private static ImportPreviewOperation Failed(string code, string message) => new(null, new(code, message));
+
+    private static ImportConfirmationOperation ConfirmationSucceeded(
+        ImportPreviewBatch batch,
+        string status,
+        int importedExpenseCount) => new(
+            new(
+                batch.Id,
+                status,
+                batch.ConfirmedAt ?? throw new InvalidOperationException("A confirmed batch requires a confirmation time."),
+                importedExpenseCount),
+            null);
+
+    private static ImportConfirmationOperation ConfirmationFailed(
+        string code,
+        string message,
+        IReadOnlyList<ImportConfirmationRowError>? rows = null) =>
+        new(null, new(code, message, rows ?? []));
 
     private static ImportPreviewOperation ProcessingInterrupted(CancellationToken requestToken) =>
         requestToken.IsCancellationRequested

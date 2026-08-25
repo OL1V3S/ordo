@@ -3,7 +3,8 @@ namespace BudgetPlanner.Models;
 public enum ImportPreviewLifecycle
 {
     Open,
-    Expired
+    Expired,
+    Confirmed
 }
 
 public class ImportPreviewBatch
@@ -17,5 +18,7 @@ public class ImportPreviewBatch
     public DateTime CreatedAt { get; set; }
     public DateTime ExpiresAt { get; set; }
     public ImportPreviewLifecycle Lifecycle { get; set; }
+    public DateTime? ConfirmedAt { get; set; }
     public List<ImportPreviewRow> Rows { get; set; } = [];
+    public List<ImportExpenseProvenance> Provenance { get; set; } = [];
 }
