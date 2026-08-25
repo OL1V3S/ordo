@@ -45,7 +45,8 @@ describe('existing expense workflows', () => {
     await user.type(screen.getByPlaceholderText('Description'), '  Dinner With Friends  ')
     await user.type(screen.getByPlaceholderText('Amount'), '12.50')
     fireEvent.change(document.querySelector('input[type="date"]'), { target: { value: '2026-08-14' } })
-    await user.selectOptions(screen.getByLabelText('Category'), 'food')
+    const addEntry = screen.getByRole('heading', { name: 'Add Entry' }).closest('section')
+    await user.selectOptions(within(addEntry).getByRole('combobox'), 'food')
     await user.click(screen.getByRole('button', { name: 'Add' }))
 
     expect(addExpense).toHaveBeenCalledWith({
@@ -65,7 +66,8 @@ describe('existing expense workflows', () => {
     await user.type(screen.getByPlaceholderText('Description'), 'Prescription')
     await user.type(screen.getByPlaceholderText('Amount'), '8')
     fireEvent.change(document.querySelector('input[type="date"]'), { target: { value: '2026-08-14' } })
-    await user.selectOptions(screen.getByLabelText('Category'), 'other')
+    const addEntry = screen.getByRole('heading', { name: 'Add Entry' }).closest('section')
+    await user.selectOptions(within(addEntry).getByRole('combobox'), 'other')
     await user.type(screen.getByPlaceholderText('Custom Category'), '  Medical Care  ')
     await user.click(screen.getByRole('button', { name: 'Add' }))
 
