@@ -20,12 +20,22 @@ description:
 2. collapse each internal whitespace run to one space; and
 3. compare case-insensitively.
 
-The evidence lookback is 36 months. A group is eligible for a cadence only when
-it meets the corresponding minimum evidence count:
+The detector evaluates at most the latest 36 calendar months, ordered by
+calendar date and then Expense ID. V1 applies these exact cadence gates:
 
-- weekly: 6 expenses;
-- monthly: 3 expenses; or
-- yearly: 2 expenses.
+- monthly: at least 3 occurrences in 3 consecutive calendar months, exactly
+  one occurrence per month, with normal days of month in a 7-day inclusive
+  span; when every occurrence is in its month's last 4 days, use a month-end
+  anchor and require the offsets from month end to fit within 3 days;
+- weekly: at least 4 occurrences spanning at least 21 days, exactly one per
+  calendar week, with every consecutive gap between 6 and 8 days; or
+- yearly: at least 3 occurrences in 3 consecutive calendar years, all in the
+  same calendar month, with observed days in a 7-day inclusive span or
+  consistently month-end anchored.
+
+Groups with more than one occurrence in a hypothesized cadence period are
+ambiguous and withheld. Biweekly, quarterly, semimonthly, and arbitrary
+intervals are not V1 cadences.
 
 The detector must use an explicit algorithm version. Candidate evidence is an
 ordered sequence of `(ExpenseId, CommitmentEvidenceRevision)` pairs. Its
@@ -50,9 +60,10 @@ Supported cadences are weekly, monthly, and yearly. Their timing shapes are:
 - monthly: day of month or month end; and
 - yearly: month and day.
 
-Commitments also persist nonnegative before/after timing windows. Detection
-thresholds, timing derivation, and fingerprint serialization must be defined by
-the versioned detector implementation before candidate APIs are exposed.
+Commitments also persist nonnegative before/after timing windows. Month-end
+anchors resolve to the last valid calendar day, including leap-year behavior.
+Fingerprint serialization must be defined by the versioned detector
+implementation before candidate APIs are exposed.
 
 ## Durable state
 

@@ -153,8 +153,8 @@ public class BudgetContext : IdentityDbContext<ApplicationUser>, IDataProtection
                     "\"WindowBeforeDays\" >= 0 AND \"WindowAfterDays\" >= 0");
                 table.HasCheckConstraint(
                     "CK_Commitment_Amount",
-                    "(\"AmountMode\" = 'Fixed' AND \"ExpectedAmount\" > 0 AND \"ExpectedMinimumAmount\" IS NULL AND \"ExpectedMaximumAmount\" IS NULL) OR " +
-                    "(\"AmountMode\" = 'Range' AND \"ExpectedMinimumAmount\" > 0 AND \"ExpectedAmount\" BETWEEN \"ExpectedMinimumAmount\" AND \"ExpectedMaximumAmount\")");
+                    "(\"AmountMode\" = 'Fixed' AND \"ExpectedAmount\" IS NOT NULL AND \"ExpectedAmount\" > 0 AND \"ExpectedMinimumAmount\" IS NULL AND \"ExpectedMaximumAmount\" IS NULL) OR " +
+                    "(\"AmountMode\" = 'Range' AND \"ExpectedAmount\" IS NULL AND \"ExpectedMinimumAmount\" IS NOT NULL AND \"ExpectedMinimumAmount\" > 0 AND \"ExpectedMaximumAmount\" IS NOT NULL AND \"ExpectedMaximumAmount\" >= \"ExpectedMinimumAmount\")");
                 table.HasCheckConstraint(
                     "CK_Commitment_Origin",
                     "(\"OriginAlgorithmVersion\" IS NULL AND \"OriginEvidenceFingerprint\" IS NULL) OR " +

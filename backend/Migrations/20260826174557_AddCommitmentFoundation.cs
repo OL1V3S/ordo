@@ -71,7 +71,7 @@ namespace backend.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Commitments", x => x.Id);
-                    table.CheckConstraint("CK_Commitment_Amount", "(\"AmountMode\" = 'Fixed' AND \"ExpectedAmount\" > 0 AND \"ExpectedMinimumAmount\" IS NULL AND \"ExpectedMaximumAmount\" IS NULL) OR (\"AmountMode\" = 'Range' AND \"ExpectedMinimumAmount\" > 0 AND \"ExpectedAmount\" BETWEEN \"ExpectedMinimumAmount\" AND \"ExpectedMaximumAmount\")");
+                    table.CheckConstraint("CK_Commitment_Amount", "(\"AmountMode\" = 'Fixed' AND \"ExpectedAmount\" IS NOT NULL AND \"ExpectedAmount\" > 0 AND \"ExpectedMinimumAmount\" IS NULL AND \"ExpectedMaximumAmount\" IS NULL) OR (\"AmountMode\" = 'Range' AND \"ExpectedAmount\" IS NULL AND \"ExpectedMinimumAmount\" IS NOT NULL AND \"ExpectedMinimumAmount\" > 0 AND \"ExpectedMaximumAmount\" IS NOT NULL AND \"ExpectedMaximumAmount\" >= \"ExpectedMinimumAmount\")");
                     table.CheckConstraint("CK_Commitment_Enums", "\"Lifecycle\" IN ('Active', 'Paused', 'Ended') AND \"Cadence\" IN ('Weekly', 'Monthly', 'Yearly') AND \"TimingKind\" IN ('Weekday', 'DayOfMonth', 'MonthEnd', 'MonthAndDay') AND \"AmountMode\" IN ('Fixed', 'Range')");
                     table.CheckConstraint("CK_Commitment_Origin", "(\"OriginAlgorithmVersion\" IS NULL AND \"OriginEvidenceFingerprint\" IS NULL) OR (length(btrim(\"OriginAlgorithmVersion\")) > 0 AND octet_length(\"OriginEvidenceFingerprint\") = 32)");
                     table.CheckConstraint("CK_Commitment_Text", "length(btrim(\"Name\")) > 0 AND length(btrim(\"Category\")) > 0");

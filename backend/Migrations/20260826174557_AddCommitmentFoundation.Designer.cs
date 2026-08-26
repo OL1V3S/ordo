@@ -206,7 +206,7 @@ namespace backend.Migrations
 
                     b.ToTable("Commitments", t =>
                         {
-                            t.HasCheckConstraint("CK_Commitment_Amount", "(\"AmountMode\" = 'Fixed' AND \"ExpectedAmount\" > 0 AND \"ExpectedMinimumAmount\" IS NULL AND \"ExpectedMaximumAmount\" IS NULL) OR (\"AmountMode\" = 'Range' AND \"ExpectedMinimumAmount\" > 0 AND \"ExpectedAmount\" BETWEEN \"ExpectedMinimumAmount\" AND \"ExpectedMaximumAmount\")");
+                            t.HasCheckConstraint("CK_Commitment_Amount", "(\"AmountMode\" = 'Fixed' AND \"ExpectedAmount\" IS NOT NULL AND \"ExpectedAmount\" > 0 AND \"ExpectedMinimumAmount\" IS NULL AND \"ExpectedMaximumAmount\" IS NULL) OR (\"AmountMode\" = 'Range' AND \"ExpectedAmount\" IS NULL AND \"ExpectedMinimumAmount\" IS NOT NULL AND \"ExpectedMinimumAmount\" > 0 AND \"ExpectedMaximumAmount\" IS NOT NULL AND \"ExpectedMaximumAmount\" >= \"ExpectedMinimumAmount\")");
 
                             t.HasCheckConstraint("CK_Commitment_Enums", "\"Lifecycle\" IN ('Active', 'Paused', 'Ended') AND \"Cadence\" IN ('Weekly', 'Monthly', 'Yearly') AND \"TimingKind\" IN ('Weekday', 'DayOfMonth', 'MonthEnd', 'MonthAndDay') AND \"AmountMode\" IN ('Fixed', 'Range')");
 

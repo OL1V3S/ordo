@@ -259,6 +259,52 @@ public sealed class PostgreSqlFinancialApiTests
     }
 
     [PostgreSqlFact]
+    public async Task Commitment_amount_constraint_accepts_valid_shapes_and_rejects_malformed_shapes()
+    {
+        await using var app = new PostgreSqlFinancialApiTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("commitment-amount@example.com");
+        using var scope = app.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<BudgetContext>();
+        var now = DateTime.UtcNow;
+
+        Task InsertAsync(string mode, decimal? expected, decimal? minimum, decimal? maximum) =>
+            context.Database.ExecuteSqlInterpolatedAsync(
+                $"""
+                INSERT INTO "Commitments"
+                    ("Id", "OwnerId", "Name", "Category", "Lifecycle", "Cadence", "TimingKind",
+                     "ExpectedDay", "WindowBeforeDays", "WindowAfterDays", "AmountMode",
+                     "ExpectedAmount", "ExpectedMinimumAmount", "ExpectedMaximumAmount", "CreatedAt", "UpdatedAt")
+                VALUES
+                    ({Guid.NewGuid()}, {owner.Id}, 'Amount constraint', 'bills', 'Active', 'Monthly', 'DayOfMonth',
+                     1, 0, 0, {mode}, {expected}, {minimum}, {maximum}, {now}, {now})
+                """);
+
+        await InsertAsync("Fixed", 10m, null, null);
+        await InsertAsync("Range", null, 5m, 15m);
+
+        var malformedShapes = new (string Mode, decimal? Expected, decimal? Minimum, decimal? Maximum)[]
+        {
+            ("Fixed", null, null, null),
+            ("Fixed", 10m, 5m, null),
+            ("Range", 10m, 5m, 15m),
+            ("Range", null, null, 15m),
+            ("Range", null, 5m, null),
+            ("Range", null, 0m, 15m),
+            ("Range", null, 15m, 5m)
+        };
+
+        foreach (var shape in malformedShapes)
+        {
+            var exception = await Assert.ThrowsAsync<PostgresException>(() =>
+                InsertAsync(shape.Mode, shape.Expected, shape.Minimum, shape.Maximum));
+            Assert.Equal(PostgresErrorCodes.CheckViolation, exception.SqlState);
+            Assert.Equal("CK_Commitment_Amount", exception.ConstraintName);
+        }
+
+        Assert.Equal(2, await context.Commitments.CountAsync());
+    }
+
+    [PostgreSqlFact]
     public async Task Commitment_foundation_rollback_rejects_dropping_durable_decisions()
     {
         await using var app = new PostgreSqlFinancialApiTestApplication();
