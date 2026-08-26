@@ -25,6 +25,30 @@ describe('expense refresh behavior', () => {
     expect(result.current.expenses).toEqual([])
   })
 
+  it('exposes a safe refresh error and clears stale expenses', async () => {
+    const requestError = new Error('unavailable')
+    expensesApi.getAll.mockRejectedValue(requestError)
+    const { result } = renderHook(() => useExpenses())
+
+    await waitFor(() => expect(result.current.error).toBe(requestError))
+    expect(result.current.expenses).toEqual([])
+    expect(result.current.loading).toBe(false)
+  })
+
+  it('keeps refresh rejection observable to post-confirmation callers', async () => {
+    const requestError = new Error('offline')
+    const { result } = renderHook(() => useExpenses())
+    await waitFor(() => expect(expensesApi.getAll).toHaveBeenCalledOnce())
+    expensesApi.getAll.mockRejectedValueOnce(requestError)
+
+    await act(async () => {
+      await expect(result.current.refresh()).rejects.toBe(requestError)
+    })
+
+    expect(result.current.error).toBe(requestError)
+    expect(result.current.expenses).toEqual([])
+  })
+
   it('creates through the existing API and refreshes expenses', async () => {
     const payload = { description: 'coffee', amount: 4, date: '2026-08-14', category: 'food' }
     expensesApi.getAll
