@@ -128,15 +128,27 @@ public sealed class CommitmentDetector : ICommitmentDetector
         var monthEndOffsets = dates.Select(date => DateTime.DaysInMonth(date.Year, date.Month) - date.Day).ToArray();
         if (monthEndOffsets.All(offset => offset <= 3) && monthEndOffsets.Max() - monthEndOffsets.Min() <= 2)
         {
+            if (yearly)
+            {
+                var yearlyDays = dates.Select(date => date.Day).Order().ToArray();
+                var yearlyExpectedDay = yearlyDays[(yearlyDays.Length - 1) / 2];
+                timing = new CandidateTiming(
+                    CommitmentTimingKind.MonthAndDay,
+                    null,
+                    yearlyExpectedDay,
+                    dates[0].Month,
+                    yearlyExpectedDay - yearlyDays[0],
+                    yearlyDays[^1] - yearlyExpectedDay);
+                return true;
+            }
+
             timing = new CandidateTiming(
                 CommitmentTimingKind.MonthEnd,
                 null,
                 null,
-                yearly ? dates[0].Month : null,
+                null,
                 monthEndOffsets.Max(),
                 0);
-            if (yearly)
-                timing = timing with { Kind = CommitmentTimingKind.MonthAndDay, Day = dates.Max(date => date.Day) };
             return true;
         }
 

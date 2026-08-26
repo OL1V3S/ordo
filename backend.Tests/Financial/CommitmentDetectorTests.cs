@@ -82,6 +82,62 @@ public sealed class CommitmentDetectorTests
     }
 
     [Fact]
+    public void Yearly_candidate_represents_february_month_end_across_leap_and_non_leap_years()
+    {
+        var candidate = Assert.Single(_detector.Detect(
+        [
+            Expense(1, new DateOnly(2024, 2, 29), 100m),
+            Expense(2, new DateOnly(2025, 2, 28), 100m),
+            Expense(3, new DateOnly(2026, 2, 28), 100m)
+        ], Today));
+
+        Assert.Equal(CommitmentCadence.Yearly, candidate.Cadence);
+        Assert.Equal(CommitmentTimingKind.MonthAndDay, candidate.TimingKind);
+        Assert.Equal(2, candidate.ExpectedMonth);
+        Assert.Equal(28, candidate.ExpectedDay);
+        Assert.Equal(0, candidate.WindowBeforeDays);
+        Assert.Equal(1, candidate.WindowAfterDays);
+    }
+
+    [Fact]
+    public void Yearly_candidate_timing_window_contains_every_supporting_evidence_date()
+    {
+        var candidate = Assert.Single(_detector.Detect(
+        [
+            Expense(1, new DateOnly(2024, 3, 28), 100m),
+            Expense(2, new DateOnly(2025, 3, 30), 100m),
+            Expense(3, new DateOnly(2026, 3, 29), 100m)
+        ], Today));
+
+        Assert.Equal(29, candidate.ExpectedDay);
+        Assert.Equal(1, candidate.WindowBeforeDays);
+        Assert.Equal(1, candidate.WindowAfterDays);
+        Assert.All(candidate.Evidence, expense =>
+        {
+            var anchor = new DateOnly(expense.Date.Year, candidate.ExpectedMonth!.Value, candidate.ExpectedDay!.Value);
+            var offset = expense.Date.DayNumber - anchor.DayNumber;
+            Assert.InRange(offset, -candidate.WindowBeforeDays, candidate.WindowAfterDays);
+        });
+    }
+
+    [Fact]
+    public void Weekly_candidate_handles_an_iso_week_calendar_year_boundary()
+    {
+        var candidate = Assert.Single(_detector.Detect(
+        [
+            Expense(1, new DateOnly(2025, 12, 22), 10m),
+            Expense(2, new DateOnly(2025, 12, 29), 10m),
+            Expense(3, new DateOnly(2026, 1, 5), 10m),
+            Expense(4, new DateOnly(2026, 1, 12), 10m)
+        ], Today));
+
+        Assert.Equal(CommitmentCadence.Weekly, candidate.Cadence);
+        Assert.Equal(DayOfWeek.Monday, candidate.ExpectedDayOfWeek);
+        Assert.Equal(0, candidate.WindowBeforeDays);
+        Assert.Equal(0, candidate.WindowAfterDays);
+    }
+
+    [Fact]
     public void Ambiguous_or_gapped_groups_are_withheld()
     {
         var expenses = new[]
