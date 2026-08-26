@@ -17,6 +17,10 @@ vi.mock('../features/analytics/pages/AnalyticsPage', () => ({
   default: () => <h1>Analytics workspace</h1>,
 }))
 
+vi.mock('../features/commitments/pages/CommitmentsPage', () => ({
+  default: () => <h1>Commitments workspace</h1>,
+}))
+
 vi.mock('./pages/OverviewPage', () => ({
   default: () => <h1>Welcome back</h1>,
 }))
@@ -86,6 +90,7 @@ describe('application routes and shell', () => {
     ['/transactions', 'Transactions workspace'],
     ['/budgets', 'Budgets workspace'],
     ['/analytics', 'Analytics workspace'],
+    ['/commitments', 'Commitments workspace'],
     ['/investing', 'Investing'],
     ['/settings', 'Settings'],
   ])('supports direct authenticated navigation to %s', async (path, heading) => {
@@ -112,12 +117,12 @@ describe('application routes and shell', () => {
     expect(document.getElementById('main-content')).toHaveAttribute('id', 'main-content')
   })
 
-  it('exposes five primary destinations in mobile navigation and keeps Settings directly reachable', () => {
+  it('exposes six primary destinations in mobile navigation and keeps Settings directly reachable', () => {
     localStorage.setItem('token', 'jwt-value')
     renderAt('/overview')
     const navigation = screen.getByRole('navigation', { name: 'Mobile navigation' })
     expect(navigation).toBeInTheDocument()
-    expect(navigation.querySelectorAll('a')).toHaveLength(5)
+    expect(navigation.querySelectorAll('a')).toHaveLength(6)
     expect(screen.getAllByRole('link', { name: /Settings/ })).toHaveLength(2)
   })
 

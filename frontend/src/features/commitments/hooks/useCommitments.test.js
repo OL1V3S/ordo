@@ -1,0 +1,69 @@
+import { act, renderHook, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { commitmentsApi } from "../api/commitmentsApi";
+import { getCommitmentErrorMessage, useCommitments } from "./useCommitments";
+
+vi.mock("../api/commitmentsApi", () => ({
+  commitmentsApi: {
+    getCandidates: vi.fn(),
+    dismissCandidate: vi.fn(),
+    reconsiderCandidate: vi.fn(),
+    confirmCandidate: vi.fn(),
+    getCommitments: vi.fn(),
+    updateCommitment: vi.fn(),
+    updateLifecycle: vi.fn(),
+  },
+}));
+
+describe("commitment state", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    commitmentsApi.getCandidates.mockResolvedValue({
+      data: { candidates: [{ fingerprint: "candidate-1" }], dismissedCandidates: [{ fingerprint: "dismissed-1" }] },
+    });
+    commitmentsApi.getCommitments.mockResolvedValue({ data: [{ id: "commitment-1" }] });
+    commitmentsApi.confirmCandidate.mockResolvedValue({ data: { alreadyConfirmed: false } });
+    commitmentsApi.dismissCandidate.mockResolvedValue({ data: null });
+  });
+
+  it("loads active proposals, dismissed proposals, and confirmed commitments together", async () => {
+    const { result } = renderHook(() => useCommitments());
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.candidates).toEqual([{ fingerprint: "candidate-1" }]);
+    expect(result.current.dismissedCandidates).toEqual([{ fingerprint: "dismissed-1" }]);
+    expect(result.current.commitments).toEqual([{ id: "commitment-1" }]);
+  });
+
+  it("confirms through the server and refreshes both collections", async () => {
+    const payload = { fingerprint: "candidate-1", name: "Rent" };
+    const { result } = renderHook(() => useCommitments());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    let response;
+    await act(async () => { response = await result.current.confirmCandidate(payload); });
+
+    expect(commitmentsApi.confirmCandidate).toHaveBeenCalledWith(payload);
+    expect(commitmentsApi.getCandidates).toHaveBeenCalledTimes(2);
+    expect(commitmentsApi.getCommitments).toHaveBeenCalledTimes(2);
+    expect(response).toEqual({ alreadyConfirmed: false });
+    expect(result.current.notice).toBe("Commitment confirmed.");
+  });
+
+  it("maps stable problem codes without exposing arbitrary server details", async () => {
+    commitmentsApi.dismissCandidate.mockRejectedValue({
+      response: { data: { code: "candidate_changed", detail: "sensitive server detail" } },
+    });
+    const { result } = renderHook(() => useCommitments());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(() => result.current.dismissCandidate("candidate-1"));
+
+    expect(result.current.actionError).toContain("proposal changed");
+    expect(result.current.actionError).not.toContain("sensitive");
+    expect(commitmentsApi.getCandidates).toHaveBeenCalledTimes(2);
+    expect(commitmentsApi.getCommitments).toHaveBeenCalledTimes(2);
+    expect(getCommitmentErrorMessage({ response: { data: { code: "unknown", detail: "private" } } }))
+      .toBe("Something went wrong. Try again.");
+  });
+});
