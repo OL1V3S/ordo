@@ -100,6 +100,32 @@ describe("Commitments workspace", () => {
     expect(screen.queryByText(/revision/i)).not.toBeInTheDocument();
   });
 
+  it("displays both saved timing windows for month-end proposals and commitments", () => {
+    const monthEndCandidate = {
+      ...candidate,
+      timingKind: "monthend",
+      expectedDay: null,
+      windowBeforeDays: 2,
+      windowAfterDays: 1,
+    };
+    const monthEndCommitment = {
+      ...commitment,
+      timingKind: "monthend",
+      expectedDay: null,
+      windowBeforeDays: 2,
+      windowAfterDays: 1,
+    };
+    useCommitments.mockReturnValue(state({
+      candidates: [monthEndCandidate],
+      commitments: [monthEndCommitment],
+      dismissedCandidates: [],
+    }));
+
+    render(<CommitmentsPage />);
+
+    expect(screen.getAllByText("Month end, with a 2-day before / 1-day after window")).toHaveLength(2);
+  });
+
   it("prefills an editable review form and confirms only the reviewed fingerprint", async () => {
     const user = userEvent.setup();
     const current = state();

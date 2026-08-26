@@ -23,7 +23,7 @@ function title(value) {
 
 function timingSummary(model) {
   if (model.cadence === "weekly") return `${title(model.expectedDayOfWeek)} with a ${model.windowBeforeDays}-day before / ${model.windowAfterDays}-day after window`;
-  if (model.cadence === "monthly" && model.timingKind === "monthend") return `Month end, up to ${model.windowBeforeDays} day(s) before`;
+  if (model.cadence === "monthly" && model.timingKind === "monthend") return `Month end, with a ${model.windowBeforeDays}-day before / ${model.windowAfterDays}-day after window`;
   if (model.cadence === "yearly") return `Month ${model.expectedMonth}, day ${model.expectedDay}, with a ${model.windowBeforeDays}-day before / ${model.windowAfterDays}-day after window`;
   return `Day ${model.expectedDay}, with a ${model.windowBeforeDays}-day before / ${model.windowAfterDays}-day after window`;
 }
