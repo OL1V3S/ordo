@@ -10,6 +10,9 @@ semantics. Changing these semantics requires explicit human approval.
 The target representations below describe approved future behavior. They do
 not imply that the current API, schema, or stored data already conforms.
 
+Approved recurring-commitment semantics and V1 boundaries are defined in
+[`commitment-intelligence.md`](commitment-intelligence.md).
+
 ## Expense invariant
 
 For the current product scope, an expense is an authenticated user's debit or

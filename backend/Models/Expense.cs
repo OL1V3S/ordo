@@ -9,6 +9,7 @@ public class Expense
     public decimal Amount { get; set; }
     public DateOnly Date { get; set; }
     public string Category { get; set; } = "";
+    public Guid CommitmentEvidenceRevision { get; set; } = Guid.NewGuid();
 
     public string UserId { get; set; } = "";
     public ApplicationUser? User { get; set; }
