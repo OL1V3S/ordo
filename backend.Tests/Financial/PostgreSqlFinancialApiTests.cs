@@ -305,6 +305,101 @@ public sealed class PostgreSqlFinancialApiTests
     }
 
     [PostgreSqlFact]
+    public async Task Commitment_timing_and_origin_constraints_reject_partial_nullable_shapes()
+    {
+        await using var app = new PostgreSqlFinancialApiTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("commitment-shapes@example.com");
+        using var scope = app.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<BudgetContext>();
+
+        Commitment ValidCommitment() => new()
+        {
+            Id = Guid.NewGuid(),
+            OwnerId = owner.Id,
+            Name = "Constraint shape",
+            Category = "bills",
+            Lifecycle = CommitmentLifecycle.Active,
+            Cadence = CommitmentCadence.Monthly,
+            TimingKind = CommitmentTimingKind.DayOfMonth,
+            ExpectedDay = 15,
+            WindowBeforeDays = 0,
+            WindowAfterDays = 0,
+            AmountMode = CommitmentAmountMode.Fixed,
+            ExpectedAmount = 10m,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        var weekly = ValidCommitment();
+        weekly.Cadence = CommitmentCadence.Weekly;
+        weekly.TimingKind = CommitmentTimingKind.Weekday;
+        weekly.ExpectedDay = null;
+        weekly.ExpectedDayOfWeek = DayOfWeek.Monday;
+        var monthEnd = ValidCommitment();
+        monthEnd.TimingKind = CommitmentTimingKind.MonthEnd;
+        monthEnd.ExpectedDay = null;
+        var yearly = ValidCommitment();
+        yearly.Cadence = CommitmentCadence.Yearly;
+        yearly.TimingKind = CommitmentTimingKind.MonthAndDay;
+        yearly.ExpectedMonth = 2;
+        yearly.ExpectedDay = 29;
+        var withOrigin = ValidCommitment();
+        withOrigin.OriginAlgorithmVersion = "commitment-v1";
+        withOrigin.OriginEvidenceFingerprint = Enumerable.Repeat((byte)1, 32).ToArray();
+
+        context.Commitments.AddRange(ValidCommitment(), weekly, monthEnd, yearly, withOrigin);
+        await context.SaveChangesAsync();
+        context.ChangeTracker.Clear();
+
+        var malformedTiming = new[]
+        {
+            (CommitmentCadence.Weekly, CommitmentTimingKind.Weekday, (DayOfWeek?)null, (int?)null, (int?)null),
+            (CommitmentCadence.Monthly, CommitmentTimingKind.DayOfMonth, (DayOfWeek?)null, (int?)null, (int?)null),
+            (CommitmentCadence.Yearly, CommitmentTimingKind.MonthAndDay, (DayOfWeek?)null, (int?)1, (int?)null),
+            (CommitmentCadence.Yearly, CommitmentTimingKind.MonthAndDay, (DayOfWeek?)null, (int?)null, (int?)1)
+        };
+
+        foreach (var shape in malformedTiming)
+        {
+            var commitment = ValidCommitment();
+            commitment.Cadence = shape.Item1;
+            commitment.TimingKind = shape.Item2;
+            commitment.ExpectedDayOfWeek = shape.Item3;
+            commitment.ExpectedDay = shape.Item4;
+            commitment.ExpectedMonth = shape.Item5;
+            context.Commitments.Add(commitment);
+            var exception = await Assert.ThrowsAsync<DbUpdateException>(() => context.SaveChangesAsync());
+            var postgres = Assert.IsType<PostgresException>(exception.InnerException);
+            Assert.Equal(PostgresErrorCodes.CheckViolation, postgres.SqlState);
+            Assert.Equal("CK_Commitment_Timing", postgres.ConstraintName);
+            context.ChangeTracker.Clear();
+        }
+
+        var malformedOrigins = new (string? Version, byte[]? Fingerprint)[]
+        {
+            ("commitment-v1", null),
+            (null, new byte[32]),
+            (" ", new byte[32]),
+            ("commitment-v1", new byte[31])
+        };
+
+        foreach (var origin in malformedOrigins)
+        {
+            var commitment = ValidCommitment();
+            commitment.OriginAlgorithmVersion = origin.Version;
+            commitment.OriginEvidenceFingerprint = origin.Fingerprint;
+            context.Commitments.Add(commitment);
+            var exception = await Assert.ThrowsAsync<DbUpdateException>(() => context.SaveChangesAsync());
+            var postgres = Assert.IsType<PostgresException>(exception.InnerException);
+            Assert.Equal(PostgresErrorCodes.CheckViolation, postgres.SqlState);
+            Assert.Equal("CK_Commitment_Origin", postgres.ConstraintName);
+            context.ChangeTracker.Clear();
+        }
+
+        Assert.Equal(5, await context.Commitments.CountAsync());
+    }
+
+    [PostgreSqlFact]
     public async Task Commitment_foundation_rollback_rejects_dropping_durable_decisions()
     {
         await using var app = new PostgreSqlFinancialApiTestApplication();

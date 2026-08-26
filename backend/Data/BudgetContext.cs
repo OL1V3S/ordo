@@ -143,10 +143,10 @@ public class BudgetContext : IdentityDbContext<ApplicationUser>, IDataProtection
                     "\"AmountMode\" IN ('Fixed', 'Range')");
                 table.HasCheckConstraint(
                     "CK_Commitment_Timing",
-                    "(\"Cadence\" = 'Weekly' AND \"TimingKind\" = 'Weekday' AND \"ExpectedDayOfWeek\" IN ('Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday') AND \"ExpectedDay\" IS NULL AND \"ExpectedMonth\" IS NULL) OR " +
-                    "(\"Cadence\" = 'Monthly' AND \"TimingKind\" = 'DayOfMonth' AND \"ExpectedDayOfWeek\" IS NULL AND \"ExpectedDay\" BETWEEN 1 AND 31 AND \"ExpectedMonth\" IS NULL) OR " +
+                    "(\"Cadence\" = 'Weekly' AND \"TimingKind\" = 'Weekday' AND \"ExpectedDayOfWeek\" IS NOT NULL AND \"ExpectedDayOfWeek\" IN ('Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday') AND \"ExpectedDay\" IS NULL AND \"ExpectedMonth\" IS NULL) OR " +
+                    "(\"Cadence\" = 'Monthly' AND \"TimingKind\" = 'DayOfMonth' AND \"ExpectedDayOfWeek\" IS NULL AND \"ExpectedDay\" IS NOT NULL AND \"ExpectedDay\" BETWEEN 1 AND 31 AND \"ExpectedMonth\" IS NULL) OR " +
                     "(\"Cadence\" = 'Monthly' AND \"TimingKind\" = 'MonthEnd' AND \"ExpectedDayOfWeek\" IS NULL AND \"ExpectedDay\" IS NULL AND \"ExpectedMonth\" IS NULL) OR " +
-                    "(\"Cadence\" = 'Yearly' AND \"TimingKind\" = 'MonthAndDay' AND \"ExpectedDayOfWeek\" IS NULL AND \"ExpectedMonth\" BETWEEN 1 AND 12 AND \"ExpectedDay\" BETWEEN 1 AND " +
+                    "(\"Cadence\" = 'Yearly' AND \"TimingKind\" = 'MonthAndDay' AND \"ExpectedDayOfWeek\" IS NULL AND \"ExpectedMonth\" IS NOT NULL AND \"ExpectedMonth\" BETWEEN 1 AND 12 AND \"ExpectedDay\" IS NOT NULL AND \"ExpectedDay\" BETWEEN 1 AND " +
                     "CASE WHEN \"ExpectedMonth\" = 2 THEN 29 WHEN \"ExpectedMonth\" IN (4, 6, 9, 11) THEN 30 ELSE 31 END)");
                 table.HasCheckConstraint(
                     "CK_Commitment_Windows",
@@ -158,7 +158,7 @@ public class BudgetContext : IdentityDbContext<ApplicationUser>, IDataProtection
                 table.HasCheckConstraint(
                     "CK_Commitment_Origin",
                     "(\"OriginAlgorithmVersion\" IS NULL AND \"OriginEvidenceFingerprint\" IS NULL) OR " +
-                    "(length(btrim(\"OriginAlgorithmVersion\")) > 0 AND octet_length(\"OriginEvidenceFingerprint\") = 32)");
+                    "(\"OriginAlgorithmVersion\" IS NOT NULL AND length(btrim(\"OriginAlgorithmVersion\")) > 0 AND \"OriginEvidenceFingerprint\" IS NOT NULL AND octet_length(\"OriginEvidenceFingerprint\") = 32)");
                 table.HasCheckConstraint(
                     "CK_Commitment_Timestamps",
                     "\"UpdatedAt\" >= \"CreatedAt\"");
