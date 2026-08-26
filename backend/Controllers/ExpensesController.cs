@@ -114,10 +114,21 @@ public class ExpensesController : ControllerBase
             return ValidationProblem(ModelState);
         }
 
+        var commitmentEvidenceChanged =
+            existingExpense.Date != request.Date
+            || existingExpense.Amount != request.Amount
+            || ExpenseInputRules.NormalizeDescriptionForComparison(existingExpense.Description)
+                != ExpenseInputRules.NormalizeDescriptionForComparison(description)
+            || existingExpense.Category != category;
+
         existingExpense.Description = description;
         existingExpense.Amount = request.Amount;
         existingExpense.Date = request.Date;
         existingExpense.Category = category;
+        if (commitmentEvidenceChanged)
+        {
+            existingExpense.CommitmentEvidenceRevision = Guid.NewGuid();
+        }
 
         await _context.SaveChangesAsync();
 

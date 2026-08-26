@@ -60,6 +60,16 @@ public sealed class PostgreSqlFinancialApiTests
             """).SingleAsync();
         Assert.Equal("numeric:18:2", expenseAmountType);
 
+        var commitmentEvidenceRevision = await context.Database.SqlQueryRaw<string>(
+            """
+            SELECT data_type || ':' || is_nullable || ':' || (column_default LIKE '%gen_random_uuid%') AS "Value"
+            FROM information_schema.columns
+            WHERE table_schema = 'public'
+              AND table_name = 'Expenses'
+              AND column_name = 'CommitmentEvidenceRevision'
+            """).SingleAsync();
+        Assert.Equal("uuid:NO:true", commitmentEvidenceRevision);
+
         var confirmedAtType = await context.Database.SqlQueryRaw<string>(
             """
             SELECT data_type || ':' || is_nullable AS "Value"
@@ -148,6 +158,280 @@ public sealed class PostgreSqlFinancialApiTests
         Assert.Contains("CREATE UNIQUE INDEX", provenanceExpenseIndex);
         Assert.Contains("(\"ExpenseId\")", provenanceExpenseIndex);
         Assert.Contains("WHERE (\"ExpenseId\" IS NOT NULL)", provenanceExpenseIndex);
+
+        Assert.Contains("CHECK", await ReadConstraintDefinitionAsync(context, "CK_Commitment_Timing"));
+        Assert.Contains("CHECK", await ReadConstraintDefinitionAsync(context, "CK_Commitment_Amount"));
+        Assert.Contains("ON DELETE CASCADE", await ReadConstraintDefinitionAsync(
+            context,
+            "FK_CommitmentOccurrences_Expenses_ExpenseId"));
+        Assert.Contains("CREATE UNIQUE INDEX", await ReadIndexDefinitionAsync(
+            context,
+            "UX_Commitments_Owner_OriginFingerprint"));
+        Assert.Contains("CREATE UNIQUE INDEX", await ReadIndexDefinitionAsync(
+            context,
+            "UX_CandidateDismissals_Owner_Origin"));
+    }
+
+    [PostgreSqlFact]
+    public async Task Commitment_foundation_migration_backfills_distinct_expense_revisions()
+    {
+        await using var app = new PostgreSqlFinancialApiTestApplication();
+        using var client = app.CreateTestClient();
+        using var scope = app.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<BudgetContext>();
+        var migrator = context.GetService<IMigrator>();
+
+        await context.Database.EnsureDeletedAsync();
+        await migrator.MigrateAsync("20260825155557_AddImportConfirmation");
+        await context.Database.ExecuteSqlRawAsync(
+            """
+            INSERT INTO "AspNetUsers"
+                ("Id", "EmailConfirmed", "PhoneNumberConfirmed", "TwoFactorEnabled", "LockoutEnabled", "AccessFailedCount")
+            VALUES
+                ('commitment-migration-user', false, false, false, false, 0);
+
+            INSERT INTO "Expenses" ("Description", "Amount", "Date", "Category", "UserId")
+            VALUES
+                ('first', 10.00, DATE '2026-01-01', 'food', 'commitment-migration-user'),
+                ('second', 20.00, DATE '2026-02-01', 'food', 'commitment-migration-user');
+            """);
+
+        await migrator.MigrateAsync();
+
+        var revisionSummary = await context.Database.SqlQueryRaw<string>(
+            """
+            SELECT count(*) || ':' || count(DISTINCT "CommitmentEvidenceRevision") AS "Value"
+            FROM "Expenses"
+            WHERE "UserId" = 'commitment-migration-user'
+            """).SingleAsync();
+        Assert.Equal("2:2", revisionSummary);
+    }
+
+    [PostgreSqlFact]
+    public async Task Deleting_confirmation_expense_removes_link_but_preserves_commitment()
+    {
+        await using var app = new PostgreSqlFinancialApiTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("commitment-link@example.com");
+        var expense = await app.SeedExpenseAsync(owner.Id, "membership", 25m, category: "bills");
+        var commitmentId = Guid.NewGuid();
+
+        using (var setupScope = app.Services.CreateScope())
+        {
+            var setupContext = setupScope.ServiceProvider.GetRequiredService<BudgetContext>();
+            var now = DateTime.UtcNow;
+            setupContext.Commitments.Add(new Commitment
+            {
+                Id = commitmentId,
+                OwnerId = owner.Id,
+                Name = "Membership",
+                Category = "bills",
+                Lifecycle = CommitmentLifecycle.Active,
+                Cadence = CommitmentCadence.Monthly,
+                TimingKind = CommitmentTimingKind.DayOfMonth,
+                ExpectedDay = 12,
+                WindowBeforeDays = 2,
+                WindowAfterDays = 2,
+                AmountMode = CommitmentAmountMode.Fixed,
+                ExpectedAmount = 25m,
+                CreatedAt = now,
+                UpdatedAt = now,
+                Occurrences =
+                [
+                    new CommitmentOccurrence
+                    {
+                        ExpenseId = expense.Id,
+                        Kind = CommitmentOccurrenceKind.ConfirmationEvidence,
+                        LinkedAt = now
+                    }
+                ]
+            });
+            await setupContext.SaveChangesAsync();
+        }
+
+        using var response = await owner.Client.DeleteAsync($"/api/expenses/{expense.Id}");
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        using var assertionScope = app.Services.CreateScope();
+        var assertionContext = assertionScope.ServiceProvider.GetRequiredService<BudgetContext>();
+        Assert.True(await assertionContext.Commitments.AnyAsync(value => value.Id == commitmentId));
+        Assert.False(await assertionContext.CommitmentOccurrences.AnyAsync(
+            value => value.CommitmentId == commitmentId));
+    }
+
+    [PostgreSqlFact]
+    public async Task Commitment_amount_constraint_accepts_valid_shapes_and_rejects_malformed_shapes()
+    {
+        await using var app = new PostgreSqlFinancialApiTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("commitment-amount@example.com");
+        using var scope = app.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<BudgetContext>();
+        var now = DateTime.UtcNow;
+
+        Task InsertAsync(string mode, decimal? expected, decimal? minimum, decimal? maximum) =>
+            context.Database.ExecuteSqlInterpolatedAsync(
+                $"""
+                INSERT INTO "Commitments"
+                    ("Id", "OwnerId", "Name", "Category", "Lifecycle", "Cadence", "TimingKind",
+                     "ExpectedDay", "WindowBeforeDays", "WindowAfterDays", "AmountMode",
+                     "ExpectedAmount", "ExpectedMinimumAmount", "ExpectedMaximumAmount", "CreatedAt", "UpdatedAt")
+                VALUES
+                    ({Guid.NewGuid()}, {owner.Id}, 'Amount constraint', 'bills', 'Active', 'Monthly', 'DayOfMonth',
+                     1, 0, 0, {mode}, {expected}, {minimum}, {maximum}, {now}, {now})
+                """);
+
+        await InsertAsync("Fixed", 10m, null, null);
+        await InsertAsync("Range", null, 5m, 15m);
+
+        var malformedShapes = new (string Mode, decimal? Expected, decimal? Minimum, decimal? Maximum)[]
+        {
+            ("Fixed", null, null, null),
+            ("Fixed", 10m, 5m, null),
+            ("Range", 10m, 5m, 15m),
+            ("Range", null, null, 15m),
+            ("Range", null, 5m, null),
+            ("Range", null, 0m, 15m),
+            ("Range", null, 15m, 5m)
+        };
+
+        foreach (var shape in malformedShapes)
+        {
+            var exception = await Assert.ThrowsAsync<PostgresException>(() =>
+                InsertAsync(shape.Mode, shape.Expected, shape.Minimum, shape.Maximum));
+            Assert.Equal(PostgresErrorCodes.CheckViolation, exception.SqlState);
+            Assert.Equal("CK_Commitment_Amount", exception.ConstraintName);
+        }
+
+        Assert.Equal(2, await context.Commitments.CountAsync());
+    }
+
+    [PostgreSqlFact]
+    public async Task Commitment_timing_and_origin_constraints_reject_partial_nullable_shapes()
+    {
+        await using var app = new PostgreSqlFinancialApiTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("commitment-shapes@example.com");
+        using var scope = app.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<BudgetContext>();
+
+        Commitment ValidCommitment() => new()
+        {
+            Id = Guid.NewGuid(),
+            OwnerId = owner.Id,
+            Name = "Constraint shape",
+            Category = "bills",
+            Lifecycle = CommitmentLifecycle.Active,
+            Cadence = CommitmentCadence.Monthly,
+            TimingKind = CommitmentTimingKind.DayOfMonth,
+            ExpectedDay = 15,
+            WindowBeforeDays = 0,
+            WindowAfterDays = 0,
+            AmountMode = CommitmentAmountMode.Fixed,
+            ExpectedAmount = 10m,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        var weekly = ValidCommitment();
+        weekly.Cadence = CommitmentCadence.Weekly;
+        weekly.TimingKind = CommitmentTimingKind.Weekday;
+        weekly.ExpectedDay = null;
+        weekly.ExpectedDayOfWeek = DayOfWeek.Monday;
+        var monthEnd = ValidCommitment();
+        monthEnd.TimingKind = CommitmentTimingKind.MonthEnd;
+        monthEnd.ExpectedDay = null;
+        var yearly = ValidCommitment();
+        yearly.Cadence = CommitmentCadence.Yearly;
+        yearly.TimingKind = CommitmentTimingKind.MonthAndDay;
+        yearly.ExpectedMonth = 2;
+        yearly.ExpectedDay = 29;
+        var withOrigin = ValidCommitment();
+        withOrigin.OriginAlgorithmVersion = "commitment-v1";
+        withOrigin.OriginEvidenceFingerprint = Enumerable.Repeat((byte)1, 32).ToArray();
+
+        context.Commitments.AddRange(ValidCommitment(), weekly, monthEnd, yearly, withOrigin);
+        await context.SaveChangesAsync();
+        context.ChangeTracker.Clear();
+
+        var malformedTiming = new[]
+        {
+            (CommitmentCadence.Weekly, CommitmentTimingKind.Weekday, (DayOfWeek?)null, (int?)null, (int?)null),
+            (CommitmentCadence.Monthly, CommitmentTimingKind.DayOfMonth, (DayOfWeek?)null, (int?)null, (int?)null),
+            (CommitmentCadence.Yearly, CommitmentTimingKind.MonthAndDay, (DayOfWeek?)null, (int?)1, (int?)null),
+            (CommitmentCadence.Yearly, CommitmentTimingKind.MonthAndDay, (DayOfWeek?)null, (int?)null, (int?)1)
+        };
+
+        foreach (var shape in malformedTiming)
+        {
+            var commitment = ValidCommitment();
+            commitment.Cadence = shape.Item1;
+            commitment.TimingKind = shape.Item2;
+            commitment.ExpectedDayOfWeek = shape.Item3;
+            commitment.ExpectedDay = shape.Item4;
+            commitment.ExpectedMonth = shape.Item5;
+            context.Commitments.Add(commitment);
+            var exception = await Assert.ThrowsAsync<DbUpdateException>(() => context.SaveChangesAsync());
+            var postgres = Assert.IsType<PostgresException>(exception.InnerException);
+            Assert.Equal(PostgresErrorCodes.CheckViolation, postgres.SqlState);
+            Assert.Equal("CK_Commitment_Timing", postgres.ConstraintName);
+            context.ChangeTracker.Clear();
+        }
+
+        var malformedOrigins = new (string? Version, byte[]? Fingerprint)[]
+        {
+            ("commitment-v1", null),
+            (null, new byte[32]),
+            (" ", new byte[32]),
+            ("commitment-v1", new byte[31])
+        };
+
+        foreach (var origin in malformedOrigins)
+        {
+            var commitment = ValidCommitment();
+            commitment.OriginAlgorithmVersion = origin.Version;
+            commitment.OriginEvidenceFingerprint = origin.Fingerprint;
+            context.Commitments.Add(commitment);
+            var exception = await Assert.ThrowsAsync<DbUpdateException>(() => context.SaveChangesAsync());
+            var postgres = Assert.IsType<PostgresException>(exception.InnerException);
+            Assert.Equal(PostgresErrorCodes.CheckViolation, postgres.SqlState);
+            Assert.Equal("CK_Commitment_Origin", postgres.ConstraintName);
+            context.ChangeTracker.Clear();
+        }
+
+        Assert.Equal(5, await context.Commitments.CountAsync());
+    }
+
+    [PostgreSqlFact]
+    public async Task Commitment_foundation_rollback_rejects_dropping_durable_decisions()
+    {
+        await using var app = new PostgreSqlFinancialApiTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("commitment-rollback@example.com");
+        using var scope = app.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<BudgetContext>();
+        var now = DateTime.UtcNow;
+        context.Commitments.Add(new Commitment
+        {
+            Id = Guid.NewGuid(),
+            OwnerId = owner.Id,
+            Name = "Rent",
+            Category = "housing",
+            Lifecycle = CommitmentLifecycle.Active,
+            Cadence = CommitmentCadence.Monthly,
+            TimingKind = CommitmentTimingKind.DayOfMonth,
+            ExpectedDay = 1,
+            WindowBeforeDays = 0,
+            WindowAfterDays = 3,
+            AmountMode = CommitmentAmountMode.Fixed,
+            ExpectedAmount = 1500m,
+            CreatedAt = now,
+            UpdatedAt = now
+        });
+        await context.SaveChangesAsync();
+
+        var migrator = context.GetService<IMigrator>();
+        var exception = await Assert.ThrowsAsync<PostgresException>(() =>
+            migrator.MigrateAsync("20260825155557_AddImportConfirmation"));
+
+        Assert.Contains("Cannot roll back commitment foundation", exception.MessageText);
+        Assert.True(await context.Commitments.AnyAsync());
     }
 
     [PostgreSqlFact]
@@ -434,6 +718,8 @@ public sealed class PostgreSqlFinancialApiTests
         Assert.Equal(10, batch.Provenance.Select(value => value.ExpenseId).Distinct().Count());
         Assert.Equal(10, expenses.Count);
         Assert.All(expenses, value => Assert.Equal(owner.Id, value.UserId));
+        Assert.All(expenses, value => Assert.NotEqual(Guid.Empty, value.CommitmentEvidenceRevision));
+        Assert.Equal(expenses.Count, expenses.Select(value => value.CommitmentEvidenceRevision).Distinct().Count());
 
         var market = Assert.Single(expenses, value => value.Description == "NORTH STAR MARKET");
         Assert.Equal(new DateOnly(2026, 2, 5), market.Date);

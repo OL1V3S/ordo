@@ -304,6 +304,53 @@ public sealed class ExpensesApiTests
     }
 
     [Fact]
+    public async Task Put_rotates_commitment_evidence_revision_for_material_evidence_changes()
+    {
+        await using var app = new FinancialApiTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("owner@example.com");
+        var expense = await app.SeedExpenseAsync(owner.Id, "original", 4.50m, category: "food");
+        var originalRevision = expense.CommitmentEvidenceRevision;
+
+        var response = await owner.Client.PutAsJsonAsync($"/api/expenses/{expense.Id}", new
+        {
+            id = expense.Id,
+            description = "changed",
+            amount = expense.Amount,
+            date = expense.Date.ToString("yyyy-MM-dd"),
+            category = expense.Category
+        });
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        var persisted = await app.FindExpenseAsync(expense.Id);
+        Assert.NotNull(persisted);
+        Assert.NotEqual(Guid.Empty, persisted.CommitmentEvidenceRevision);
+        Assert.NotEqual(originalRevision, persisted.CommitmentEvidenceRevision);
+    }
+
+    [Fact]
+    public async Task Put_preserves_commitment_evidence_revision_for_equivalent_description_formatting()
+    {
+        await using var app = new FinancialApiTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("owner@example.com");
+        var expense = await app.SeedExpenseAsync(owner.Id, "Weekly   Shop", 4.50m, category: "food");
+        var originalRevision = expense.CommitmentEvidenceRevision;
+
+        var response = await owner.Client.PutAsJsonAsync($"/api/expenses/{expense.Id}", new
+        {
+            id = expense.Id,
+            description = "  weekly shop  ",
+            amount = expense.Amount,
+            date = expense.Date.ToString("yyyy-MM-dd"),
+            category = " FOOD "
+        });
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        var persisted = await app.FindExpenseAsync(expense.Id);
+        Assert.NotNull(persisted);
+        Assert.Equal(originalRevision, persisted.CommitmentEvidenceRevision);
+    }
+
+    [Fact]
     public async Task Put_of_another_users_expense_returns_not_found_before_write_validation()
     {
         await using var app = new FinancialApiTestApplication();
