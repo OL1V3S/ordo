@@ -61,6 +61,13 @@ admission, fixed limits, stable errors, timeout/cancellation, process kill/reap,
 and environment scrubbing. This is a narrow containment boundary for untrusted
 PDF parsing, not general subprocess infrastructure.
 
+`backend/Commitments/` contains the pure, versioned recurring-commitment
+detector and the owner-scoped application service for candidate review and
+durable commitment operations. Candidate inference is derived from Expenses;
+only confirmed commitments, occurrence links, and dismissals are persisted.
+The approved V1 semantics and explicit non-goals are defined in
+[`docs/commitment-intelligence.md`](docs/commitment-intelligence.md).
+
 ### Authentication and ownership boundaries
 
 ASP.NET Core Identity manages users, JWT bearer authentication establishes the
@@ -77,10 +84,10 @@ not implemented yet.
 ### Persistence and migrations
 
 PostgreSQL is the application persistence provider. The database stores
-Identity data, expenses, budget limits, and the ASP.NET Core Data Protection key
-ring. Normal application startup does not apply migrations. Production
-migrations remain a separate, deliberate, human-authorized operation described
-in [`README.md`](README.md).
+Identity data, expenses, budget limits, commitment decisions and links, and the
+ASP.NET Core Data Protection key ring. Normal application startup does not
+apply migrations. Production migrations remain a separate, deliberate,
+human-authorized operation described in [`README.md`](README.md).
 
 ### Deployment topology
 

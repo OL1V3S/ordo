@@ -13,6 +13,7 @@ using BudgetPlanner.Configuration;
 using Microsoft.Extensions.Options;
 using BudgetPlanner.Import;
 using BudgetPlanner.Import.Sunflower;
+using BudgetPlanner.Commitments;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -38,6 +39,8 @@ builder.Services.AddScoped<ImportPreviewAdmissionFilter>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton(new ImportPreviewProcessingOptions());
 builder.Services.AddScoped<IImportPreviewService, ImportPreviewService>();
+builder.Services.AddSingleton<ICommitmentDetector, CommitmentDetector>();
+builder.Services.AddScoped<ICommitmentService, CommitmentService>();
 
 builder.Services
     .AddOptions<EmailSettingsOptions>()
