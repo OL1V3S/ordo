@@ -35,6 +35,8 @@ public sealed class AccountConfirmationFlowTests
         Assert.NotNull(await app.FindUserByEmailAsync("new@example.com"));
         var sent = Assert.Single(app.EmailSender.Messages);
         Assert.Equal("new@example.com", sent.ToEmail);
+        Assert.Equal("Confirm your Ordo account", sent.Subject);
+        Assert.Contains(">Ordo</h2>", sent.HtmlBody);
         Assert.Contains("https://frontend.test/confirm-email?", sent.HtmlBody);
     }
 
@@ -541,12 +543,12 @@ public sealed class AccountConfirmationConfigurationTests
         var empty = validator.Validate(null, new EmailSettingsOptions());
         var malformed = validator.Validate(null, new EmailSettingsOptions
         {
-            FromName = "Budget Planner",
+            FromName = "Ordo",
             FromEmail = "not-an-email"
         });
         var valid = validator.Validate(null, new EmailSettingsOptions
         {
-            FromName = "Budget Planner",
+            FromName = "Ordo",
             FromEmail = "sender@example.com"
         });
 

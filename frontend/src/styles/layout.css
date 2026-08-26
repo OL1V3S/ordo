@@ -18,7 +18,7 @@
 .skip-link:focus { transform: translateY(0); }
 .app-sidebar { display: none; }
 .app-shell__main { min-width: 0; }
-.app-wordmark { color: var(--color-text); font-size: var(--text-sm); font-weight: 900; letter-spacing: .1em; text-transform: uppercase; white-space: nowrap; }
+.app-wordmark { color: var(--color-text); font-size: var(--text-sm); font-weight: 900; letter-spacing: .1em; white-space: nowrap; }
 .app-pagebar { position: sticky; top: 0; z-index: 15; display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); min-height: 60px; padding: var(--space-2) var(--space-4); border-bottom: 1px solid var(--color-border); background: var(--color-surface); box-shadow: var(--shadow-sm); }
 .app-pagebar__desktop-title { display: none; color: var(--color-text); font-size: var(--text-lg); font-weight: 800; }
 .app-pagebar__actions { display: flex; align-items: center; gap: var(--space-2); }

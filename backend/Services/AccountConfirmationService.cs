@@ -38,7 +38,7 @@ public sealed class AccountConfirmationService(
         {
             await emailService.SendEmailAsync(
                 user.Email ?? throw new InvalidOperationException("User email is missing."),
-                "Confirm your Budget Planner account",
+                "Confirm your Ordo account",
                 BuildEmailBody(WebUtility.HtmlEncode(confirmationUrl)),
                 cancellationToken);
 
@@ -62,7 +62,7 @@ public sealed class AccountConfirmationService(
         $"""
         <div style="background:#0f172a; padding:40px 20px; font-family:Arial, sans-serif;">
           <div style="max-width:500px; margin:auto; background:#020617; border-radius:14px; padding:24px; border:1px solid #1f2933;">
-            <h2 style="color:#e5e7eb; margin:0 0 10px;">Budget Planner</h2>
+            <h2 style="color:#e5e7eb; margin:0 0 10px;">Ordo</h2>
             <p style="color:rgba(255,255,255,0.7); margin:0 0 20px;">
               Confirm your email to finish creating your account.
             </p>

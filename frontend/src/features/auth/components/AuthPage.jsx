@@ -106,7 +106,7 @@ export default function AuthPage({ onLogin }) {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <h1>Budget Planner</h1>
+        <h1>ordo</h1>
         {mode === "check-email" ? (
           <>
             <h2 className="h2">Check your email</h2>

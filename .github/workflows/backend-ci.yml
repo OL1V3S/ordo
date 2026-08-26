@@ -50,16 +50,16 @@ jobs:
           test "$(wc -c <"$RUNNER_TEMP/worker-smoke.bin")" -eq 6
 
       - name: Build production backend image
-        run: docker build --file backend/Dockerfile --tag budget-planner-backend:ci .
+        run: docker build --file backend/Dockerfile --tag ordo-backend:ci .
 
       - name: Verify production backend image
         shell: bash
         run: |
-          docker image inspect budget-planner-backend:ci \
+          docker image inspect ordo-backend:ci \
             --format '{{json .Config.Entrypoint}}' \
             | grep -Fx '["dotnet","backend.dll"]'
 
-          docker run --rm --entrypoint sh budget-planner-backend:ci -c '
+          docker run --rm --entrypoint sh ordo-backend:ci -c '
             test -f /app/backend.dll
             test -x /app/PdfWorker/backend.PdfWorker
             test -f /app/PdfWorker/backend.PdfWorker.deps.json
@@ -72,7 +72,7 @@ jobs:
           container_id=$(docker run --detach --publish 127.0.0.1::8080 \
             --env 'ConnectionStrings__DefaultConnection=Host=127.0.0.1;Database=unused;Username=unused;Password=unused;Timeout=1' \
             --env 'Jwt__Key=ci-only-jwt-key-with-at-least-thirty-two-bytes' \
-            --env 'EmailSettings__FromName=Budget Planner CI' \
+            --env 'EmailSettings__FromName=Ordo CI' \
             --env 'EmailSettings__FromEmail=ci@example.invalid' \
             --env 'GoogleEmail__ClientId=ci-only' \
             --env 'GoogleEmail__ClientSecret=ci-only' \
@@ -80,7 +80,7 @@ jobs:
             --env 'Frontend__BaseUrl=https://example.invalid' \
             --env 'Logging__LogLevel__Microsoft.EntityFrameworkCore=Critical' \
             --env 'Logging__LogLevel__Microsoft.AspNetCore.DataProtection=Critical' \
-            budget-planner-backend:ci)
+            ordo-backend:ci)
 
           cleanup() {
             docker logs "$container_id"

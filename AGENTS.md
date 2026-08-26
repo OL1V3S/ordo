@@ -1,4 +1,4 @@
-# Budget Planner Agent Instructions
+# Ordo Agent Instructions
 
 ## Purpose
 
@@ -43,7 +43,7 @@ Conversation memory, project summaries, and prior-chat context may provide
 useful hints, but they are not authoritative for current execution state. Live
 GitHub and repository state override them when they conflict.
 
-When asked to **“Continue Budget Planner”** or **“Where are we?”**, reconstruct
+When asked to **“Continue Ordo”** or **“Where are we?”**, reconstruct
 current state before declaring current work, in this order:
 
 1. current `main` and the latest merged repository state;
@@ -371,7 +371,7 @@ Do not silently expand into adjacent roadmap work.
 
 ## ChatGPT command center and local Codex execution
 
-The normal Budget Planner engineering workflow uses **local Codex in the
+The normal Ordo engineering workflow uses **local Codex in the
 ChatGPT desktop app**, authenticated with the repository owner's ChatGPT
 account, as the repository execution agent. GitHub remains the durable source
 of truth for task scope, pull requests, CI evidence, and merge state.
@@ -414,7 +414,7 @@ For an already-authorized task, the normal Codex handoff should be no more than
 an issue reference, for example:
 
 ```text
-Work on Budget Planner issue #57. Follow AGENTS.md and the issue exactly.
+Work on Ordo issue #57. Follow AGENTS.md and the issue exactly.
 ```
 
 For MEDIUM/HIGH work that has not yet passed its approval gate, use the same
@@ -423,7 +423,7 @@ the plan and ChatGPT records that approval durably on the governing issue, the
 implementation handoff may be similarly short, for example:
 
 ```text
-Implement the approved plan for Budget Planner issue #57. Follow AGENTS.md and the issue exactly.
+Implement the approved plan for Ordo issue #57. Follow AGENTS.md and the issue exactly.
 ```
 
 If Codex cannot retrieve the governing issue or required authority document,
@@ -454,7 +454,7 @@ specific additional path/symbol needed rather than silently broadening scope.
 A lightweight structural map can be generated locally with:
 
 ```bash
-python3 .github/scripts/build_repo_map.py --root . --output /tmp/budget-planner-repo-map.txt
+python3 .github/scripts/build_repo_map.py --root . --output /tmp/ordo-repo-map.txt
 ```
 
 The map is navigation context only; canonical repository files and executable

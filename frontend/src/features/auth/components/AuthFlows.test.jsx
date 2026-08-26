@@ -32,6 +32,7 @@ describe('existing authentication flows', () => {
     authApi.login.mockResolvedValue({ data: { token: 'jwt-value', email: 'person@example.com' } })
     renderAt(<AuthPage onLogin={onLogin} />)
 
+    expect(screen.getByRole('heading', { name: 'ordo', level: 1 })).toBeInTheDocument()
     expect(screen.getByLabelText('Email')).toBe(screen.getByPlaceholderText('Email'))
     expect(screen.getByLabelText('Password')).toBe(screen.getByPlaceholderText('Password'))
     await user.type(screen.getByPlaceholderText('Email'), 'person@example.com')
@@ -73,6 +74,7 @@ describe('existing authentication flows', () => {
     authApi.confirmEmail.mockResolvedValue({ data: { message: 'ok' } })
     renderAt(<ConfirmEmailPage />, '/confirm-email?userId=user-123&token=a%2Bb_c')
 
+    expect(screen.getByRole('heading', { name: 'ordo', level: 1 })).toBeInTheDocument()
     await waitFor(() => expect(authApi.confirmEmail).toHaveBeenCalledWith({
       userId: 'user-123',
       token: 'a+b_c',
@@ -91,6 +93,7 @@ describe('existing authentication flows', () => {
     authApi.resetPassword.mockResolvedValue({ data: { message: 'ok' } })
     renderAt(<ResetPasswordPage />, '/reset-password?email=person%40example.com&token=reset%2Btoken')
 
+    expect(screen.getByRole('heading', { name: 'ordo', level: 1 })).toBeInTheDocument()
     expect(screen.getByLabelText('New password')).toBe(screen.getByPlaceholderText('New password'))
     await user.type(screen.getByPlaceholderText('New password'), 'NewSecret1!')
     await user.click(screen.getByRole('button', { name: 'Reset Password' }))
@@ -109,6 +112,7 @@ describe('existing authentication flows', () => {
     })
     renderAt(<ForgotPasswordPage />, '/forgot-password')
 
+    expect(screen.getByRole('heading', { name: 'ordo', level: 1 })).toBeInTheDocument()
     expect(screen.getByLabelText('Email')).toBe(screen.getByPlaceholderText('Email'))
     await user.type(screen.getByPlaceholderText('Email'), 'unknown@example.com')
     await user.click(screen.getByRole('button', { name: 'Send Reset Link' }))

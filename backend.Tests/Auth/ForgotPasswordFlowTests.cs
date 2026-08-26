@@ -27,7 +27,8 @@ public sealed class ForgotPasswordFlowTests
         await AssertNeutralSuccessAsync(response);
         var sent = Assert.Single(app.EmailSender.Messages);
         Assert.Equal(ExistingEmail, sent.ToEmail);
-        Assert.Equal("Reset your Budget Planner password", sent.Subject);
+        Assert.Equal("Reset your Ordo password", sent.Subject);
+        Assert.Contains(">Ordo</h2>", sent.HtmlBody);
 
         var href = Regex.Match(sent.HtmlBody, "href=\"([^\"]+)\"").Groups[1].Value;
         var resetUri = new Uri(WebUtility.HtmlDecode(href));

@@ -67,7 +67,7 @@ internal abstract class FinancialApiTestApplicationBase : WebApplicationFactory<
             {
                 ["ConnectionStrings:DefaultConnection"] = "Host=unused-by-tests",
                 ["Jwt:Key"] = TestJwtKey,
-                ["EmailSettings:FromName"] = "Budget Planner Tests",
+                ["EmailSettings:FromName"] = "Ordo Tests",
                 ["EmailSettings:FromEmail"] = "sender@example.com",
                 ["GoogleEmail:ClientId"] = "test-client-id",
                 ["GoogleEmail:ClientSecret"] = "test-client-secret",

@@ -34,7 +34,7 @@ export default function ResetPasswordPage() {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <h1>Budget Planner</h1>
+        <h1>ordo</h1>
         <h2 className="h2">Reset Password</h2>
 
         <form onSubmit={handleSubmit} className="auth-form">

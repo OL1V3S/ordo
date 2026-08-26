@@ -59,7 +59,7 @@ export default function AppShell({ email, onLogout }) {
     <div className="app-shell">
       <a className="skip-link" href="#main-content">Skip to main content</a>
       <aside className="app-sidebar">
-        <span className="app-wordmark">Budget Planner</span>
+        <span className="app-wordmark">ordo</span>
         <nav className="app-nav" aria-label="Primary navigation">
           {primaryDestinations.map((destination) => (
             <NavigationLink key={destination.to} destination={destination} />
@@ -80,7 +80,7 @@ export default function AppShell({ email, onLogout }) {
       <div className="app-shell__main">
         <header className="app-pagebar">
           <span className="app-pagebar__desktop-title">{currentPage}</span>
-          <span className="app-wordmark app-wordmark--mobile">Budget Planner</span>
+          <span className="app-wordmark app-wordmark--mobile">ordo</span>
           <div className="app-pagebar__actions">
             <ThemeControl />
             <div className="app-pagebar__settings">

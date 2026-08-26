@@ -1,7 +1,7 @@
-# Budget Planner Engineering Roadmap
+# Ordo Engineering Roadmap
 
-This document is the engineering capability and maturity roadmap for Budget
-Planner. It is not the product backlog. Product features belong here only when
+This document is the engineering capability and maturity roadmap for Ordo. It
+is not the product backlog. Product features belong here only when
 they create an engineering dependency or materially change how the system must
 be built, verified, secured, or operated.
 
@@ -12,7 +12,7 @@ path.
 
 ## Engineering North Star
 
-Budget Planner should remain an understandable, testable, secure, and
+Ordo should remain an understandable, testable, secure, and
 production-conscious application that humans and coding agents can modify
 safely. Engineering controls should protect financial behavior and make
 failures diagnosable while keeping the architecture appropriately simple for a
@@ -20,7 +20,7 @@ small full-stack product.
 
 ## Current State
 
-Budget Planner is an appropriately scoped modular monolith with a React/Vite
+Ordo is an appropriately scoped modular monolith with a React/Vite
 frontend, an ASP.NET Core API, and PostgreSQL. The repository already has:
 
 - meaningful frontend component and characterization tests;

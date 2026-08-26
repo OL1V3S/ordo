@@ -143,7 +143,7 @@ never be recorded as a pass.
 
 ## Local Codex execution evidence
 
-Budget Planner's normal AI implementation agent is local Codex in the ChatGPT
+Ordo's normal AI implementation agent is local Codex in the ChatGPT
 desktop app, operating on a local Git checkout under the authority described in
 `AGENTS.md` and the governing GitHub Issue.
 
@@ -173,7 +173,7 @@ Local Codex has access to a full checkout, but repository inspection remains
 When useful, Codex may generate the lightweight structural map with:
 
 ```bash
-python3 .github/scripts/build_repo_map.py --root . --output /tmp/budget-planner-repo-map.txt
+python3 .github/scripts/build_repo_map.py --root . --output /tmp/ordo-repo-map.txt
 ```
 
 The expected inspection sequence is:

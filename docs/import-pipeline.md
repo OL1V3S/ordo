@@ -2,7 +2,7 @@
 
 ## Status and authority
 
-This document records the approved V1 financial-processing pipeline for importing supported Sunflower Bank PDF statements into Budget Planner.
+This document records the approved V1 financial-processing pipeline for importing supported Sunflower Bank PDF statements into Ordo.
 
 The approved flow is:
 
@@ -117,7 +117,7 @@ V1 does not auto-categorize merchants. Eligible expenses default to `uncategoriz
 
 Each successful parse receives a server-generated UUID batch ID.
 
-Batch ownership comes exclusively from the authenticated Budget Planner user. Clients do not supply or choose authoritative ownership, and cross-user batch or preview access must be impossible.
+Batch ownership comes exclusively from the authenticated Ordo user. Clients do not supply or choose authoritative ownership, and cross-user batch or preview access must be impossible.
 
 The original PDF is discarded according to the F1 threat model. If preview state is persisted, it may contain only the normalized rows and metadata required for the review lifecycle, never the original PDF bytes.
 

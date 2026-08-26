@@ -24,7 +24,7 @@ public sealed class MigrationStartupTests
                 ["ASPNETCORE_ENVIRONMENT"] = "Production",
                 ["ConnectionStrings__DefaultConnection"] = "Host=unused-by-tests",
                 ["Jwt__Key"] = "test-only-signing-key-that-is-at-least-thirty-two-bytes-long",
-                ["EmailSettings__FromName"] = "Budget Planner Tests",
+                ["EmailSettings__FromName"] = "Ordo Tests",
                 ["EmailSettings__FromEmail"] = "sender@example.com",
                 ["GoogleEmail__ClientId"] = "test-client-id",
                 ["GoogleEmail__ClientSecret"] = "test-client-secret",

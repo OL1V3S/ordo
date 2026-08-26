@@ -1,4 +1,4 @@
-# Budget Planner Architecture
+# Ordo Architecture
 
 ## Purpose
 
@@ -10,7 +10,7 @@ governs approved financial semantics.
 
 ## Current architecture
 
-Budget Planner is a modular monolith with three deployable persistence/runtime
+Ordo is a modular monolith with three deployable persistence/runtime
 parts:
 
 - a React 19 and Vite frontend;

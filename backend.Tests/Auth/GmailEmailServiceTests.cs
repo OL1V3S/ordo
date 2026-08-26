@@ -10,7 +10,7 @@ public sealed class GmailEmailServiceTests
 {
     private static readonly EmailSettingsOptions SenderSettings = new()
     {
-        FromName = "Budget Planner",
+        FromName = "Ordo",
         FromEmail = "budgetplanner26@gmail.com"
     };
 
@@ -36,7 +36,7 @@ public sealed class GmailEmailServiceTests
 
         using var decoded = new MemoryStream(DecodeBase64Url(client.RawMessage));
         var message = MimeMessage.Load(decoded);
-        Assert.Equal("Budget Planner", message.From.Mailboxes.Single().Name);
+        Assert.Equal("Ordo", message.From.Mailboxes.Single().Name);
         Assert.Equal("budgetplanner26@gmail.com", message.From.Mailboxes.Single().Address);
         Assert.Equal("recipient@example.com", message.To.Mailboxes.Single().Address);
         Assert.Equal("Confirm your account", message.Subject);

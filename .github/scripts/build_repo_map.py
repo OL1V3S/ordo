@@ -91,7 +91,7 @@ def main() -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
 
     with output.open("w", encoding="utf-8") as handle:
-        handle.write("# Budget Planner repository structural map\n")
+        handle.write("# Ordo repository structural map\n")
         handle.write("# Tracked paths plus concise source symbols; raw file contents are intentionally omitted.\n\n")
         for relative in files:
             handle.write(relative + "\n")
