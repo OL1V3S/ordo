@@ -146,7 +146,7 @@ internal sealed class TestApplication : WebApplicationFactory<Program>
             {
                 ["ConnectionStrings:DefaultConnection"] = "Host=unused-by-tests",
                 ["Jwt:Key"] = "test-only-signing-key-that-is-at-least-thirty-two-bytes-long",
-                ["EmailSettings:FromName"] = "Budget Planner Tests",
+                ["EmailSettings:FromName"] = "Ordo Tests",
                 ["EmailSettings:FromEmail"] = "sender@example.com",
                 ["GoogleEmail:ClientId"] = "test-client-id",
                 ["GoogleEmail:ClientSecret"] = "test-client-secret",

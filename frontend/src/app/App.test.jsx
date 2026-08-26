@@ -72,6 +72,7 @@ describe('application routes and shell', () => {
     renderAt('/')
     expect(await screen.findByRole('heading', { name: 'Welcome back' })).toBeInTheDocument()
     expect(screen.getByTestId('location')).toHaveTextContent('/overview')
+    expect(screen.getAllByText('ordo')).toHaveLength(2)
   })
 
   it('redirects a protected route to authentication without a token', async () => {

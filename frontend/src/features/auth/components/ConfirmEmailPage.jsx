@@ -31,7 +31,7 @@ export default function ConfirmEmailPage() {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <h1>Budget Planner</h1>
+        <h1>ordo</h1>
 
         {status === "loading" && (
           <>

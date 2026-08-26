@@ -1,4 +1,4 @@
-# Budget Planner
+# Ordo
 
 A full-stack personal finance application for tracking expenses, setting monthly category budgets, and visualizing spending.
 
@@ -114,7 +114,7 @@ The backend expects the following configuration values:
     "Key": "YOUR_JWT_SIGNING_KEY"
   },
   "EmailSettings": {
-    "FromName": "Budget Planner",
+    "FromName": "Ordo",
     "FromEmail": "YOUR_GMAIL_ADDRESS"
   },
   "GoogleEmail": {
@@ -177,7 +177,7 @@ operator's local session.
      --context BudgetContext \
      --configuration Release \
      --no-build \
-     --output /tmp/budget-planner-migration.sql
+     --output /tmp/ordo-migration.sql
    ```
 
 5. Inspect the entire generated script, confirm the target database and expected

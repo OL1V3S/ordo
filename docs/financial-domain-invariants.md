@@ -2,7 +2,7 @@
 
 ## Purpose and authority
 
-This document records the approved meaning of Budget Planner's core financial
+This document records the approved meaning of Ordo's core financial
 concepts. `AGENTS.md` governs workflow and agent authority, while `ROADMAP.md`
 governs engineering sequencing. This document governs financial-domain
 semantics. Changing these semantics requires explicit human approval.
@@ -30,7 +30,7 @@ Deposits, refunds, credits, income, and other movements that increase the
 tracked checking account balance are not negative expenses and must not be
 persisted as expenses merely by changing their sign.
 
-If Budget Planner later tracks multiple accounts, this invariant must be
+If Ordo later tracks multiple accounts, this invariant must be
 revisited before cross-account transfers are represented so the product does
 not accidentally double-count the same movement across tracked accounts.
 

@@ -2,9 +2,9 @@
 
 ## Status and authority
 
-This document records the approved security and privacy boundary for the first Budget Planner bank-statement import capability. It governs future work that accepts or parses user-provided Sunflower Bank PDF statements.
+This document records the approved security and privacy boundary for the first Ordo bank-statement import capability. It governs future work that accepts or parses user-provided Sunflower Bank PDF statements.
 
-The initial import scope is intentionally narrow: authenticated Budget Planner users may submit **Sunflower Bank text-extractable PDF statements** for bounded text extraction and later review. This document does not make statement import current executable behavior and does not authorize a production operation.
+The initial import scope is intentionally narrow: authenticated Ordo users may submit **Sunflower Bank text-extractable PDF statements** for bounded text extraction and later review. This document does not make statement import current executable behavior and does not authorize a production operation.
 
 Changes that broaden supported document types, retention, rendering, OCR, active-content handling, resource limits, or sensitive-data exposure require a new explicit human review and approval.
 
@@ -13,7 +13,7 @@ Changes that broaden supported document types, retention, rendering, OCR, active
 The import boundary must:
 
 - treat every uploaded PDF as untrusted input;
-- keep statement data scoped to the authenticated Budget Planner user;
+- keep statement data scoped to the authenticated Ordo user;
 - prevent document content from executing code or initiating external actions;
 - bound CPU, memory, time, pages, text, rows, and concurrency;
 - avoid retaining the original financial document;
@@ -27,7 +27,7 @@ V1 supports only Sunflower Bank statements that contain extractable text.
 
 The import implementation must:
 
-1. require an authenticated Budget Planner user;
+1. require an authenticated Ordo user;
 2. accept only PDF input within the approved resource limits;
 3. reject scanned or image-only PDFs rather than introducing OCR;
 4. reject encrypted or password-protected PDFs;

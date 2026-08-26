@@ -34,7 +34,7 @@ public sealed class GmailApiClient : IGmailApiClient, IDisposable
         _gmailService = new GmailService(new BaseClientService.Initializer
         {
             HttpClientInitializer = credential,
-            ApplicationName = "Budget Planner"
+            ApplicationName = "Ordo"
         });
     }
 

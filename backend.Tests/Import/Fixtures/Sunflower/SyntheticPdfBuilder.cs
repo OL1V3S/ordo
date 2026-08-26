@@ -55,7 +55,7 @@ internal static class SyntheticPdfBuilder
             byteOffset += Encoding.ASCII.GetByteCount(value);
         }
 
-        Append("%PDF-1.4\n% Budget Planner synthetic test fixture\n");
+        Append("%PDF-1.4\n% Ordo synthetic test fixture\n");
 
         foreach (var entry in objects)
         {
@@ -160,7 +160,7 @@ internal static class SyntheticPdfBuilder
             byteOffset += Encoding.ASCII.GetByteCount(value);
         }
 
-        Append("%PDF-1.4\n% Budget Planner synthetic positioned fixture\n");
+        Append("%PDF-1.4\n% Ordo synthetic positioned fixture\n");
         foreach (var entry in objects)
         {
             offsets[entry.Key] = byteOffset;

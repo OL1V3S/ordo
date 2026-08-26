@@ -44,7 +44,7 @@ export default function ForgotPasswordPage() {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <h1>Budget Planner</h1>
+        <h1>ordo</h1>
         <h2 className="h2">Forgot Password</h2>
 
         <p className="auth-help">
