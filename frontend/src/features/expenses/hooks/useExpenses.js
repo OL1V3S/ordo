@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { expensesApi } from "../api/expensesApi";
 
 //fetch/state
@@ -6,33 +6,39 @@ import { expensesApi } from "../api/expensesApi";
 export function useExpenses() {
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  async function refresh() {
+  const refresh = useCallback(async function refresh({ rethrow = false } = {}) {
     setLoading(true);
+    setError(null);
     try {
       const res = await expensesApi.getAll();
       setExpenses(res.data ?? []);
+    } catch (requestError) {
+      setExpenses([]);
+      setError(requestError);
+      if (rethrow) throw requestError;
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
-  useEffect(() => { refresh(); }, []);
+  useEffect(() => { refresh(); }, [refresh]);
 
   async function addExpense(payload) {
     await expensesApi.create(payload);
-    await refresh();
+    await refresh({ rethrow: true });
   }
 
   async function updateExpense(id, payload) {
     await expensesApi.update(id, payload);
-    await refresh();
+    await refresh({ rethrow: true });
   }
 
   async function deleteExpense(id) {
     await expensesApi.remove(id);
-    await refresh();
+    await refresh({ rethrow: true });
   }
 
-  return { expenses, loading, refresh, addExpense, updateExpense, deleteExpense };
+  return { expenses, loading, error, refresh, addExpense, updateExpense, deleteExpense };
 }
