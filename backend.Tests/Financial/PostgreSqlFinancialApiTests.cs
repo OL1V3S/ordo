@@ -435,6 +435,77 @@ public sealed class PostgreSqlFinancialApiTests
     }
 
     [PostgreSqlFact]
+    public async Task Commitment_candidate_and_confirmation_flow_executes_relational_queries()
+    {
+        await using var app = new PostgreSqlFinancialApiTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("postgres-commitment@example.com");
+        foreach (var date in RecentCommitmentDates())
+            await app.SeedExpenseAsync(owner.Id, "membership", 10m, date, "bills");
+        var fingerprint = await ReadCandidateFingerprintAsync(owner.Client);
+
+        using var response = await owner.Client.PostAsJsonAsync(
+            "/api/commitment-candidates/confirm",
+            FixedCommitmentConfirmation(fingerprint));
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        Assert.False(body.GetProperty("alreadyConfirmed").GetBoolean());
+        Assert.Equal(3, body.GetProperty("commitment").GetProperty("evidence").GetArrayLength());
+        using var scope = app.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<BudgetContext>();
+        Assert.Single(await context.Commitments.Where(value => value.OwnerId == owner.Id).ToListAsync());
+        Assert.Equal(3, await context.CommitmentOccurrences.CountAsync());
+    }
+
+    [PostgreSqlFact]
+    public async Task Concurrent_candidate_confirmations_create_one_commitment_and_return_one_retry()
+    {
+        await using var app = new PostgreSqlFinancialApiTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("postgres-commitment-race@example.com");
+        foreach (var date in RecentCommitmentDates())
+            await app.SeedExpenseAsync(owner.Id, "membership", 10m, date, "bills");
+        var fingerprint = await ReadCandidateFingerprintAsync(owner.Client);
+        var request = FixedCommitmentConfirmation(fingerprint);
+
+        var responses = await Task.WhenAll(
+            owner.Client.PostAsJsonAsync("/api/commitment-candidates/confirm", request),
+            owner.Client.PostAsJsonAsync("/api/commitment-candidates/confirm", request));
+        var bodies = await Task.WhenAll(responses.Select(response =>
+            response.Content.ReadFromJsonAsync<JsonElement>()));
+
+        Assert.All(responses, response => Assert.Contains(response.StatusCode,
+            new[] { HttpStatusCode.Created, HttpStatusCode.OK }));
+        Assert.Single(bodies, body => !body.GetProperty("alreadyConfirmed").GetBoolean());
+        Assert.Single(bodies, body => body.GetProperty("alreadyConfirmed").GetBoolean());
+        Assert.Single(bodies.Select(body =>
+            body.GetProperty("commitment").GetProperty("id").GetGuid()).Distinct());
+        using var scope = app.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<BudgetContext>();
+        Assert.Equal(1, await context.Commitments.CountAsync(value => value.OwnerId == owner.Id));
+        Assert.Equal(3, await context.CommitmentOccurrences.CountAsync());
+    }
+
+    [PostgreSqlFact]
+    public async Task Concurrent_candidate_dismissals_are_idempotent()
+    {
+        await using var app = new PostgreSqlFinancialApiTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("postgres-dismiss-race@example.com");
+        foreach (var date in RecentCommitmentDates())
+            await app.SeedExpenseAsync(owner.Id, "membership", 10m, date, "bills");
+        var fingerprint = await ReadCandidateFingerprintAsync(owner.Client);
+
+        var responses = await Task.WhenAll(
+            owner.Client.PostAsJsonAsync("/api/commitment-candidates/dismiss", new { fingerprint }),
+            owner.Client.PostAsJsonAsync("/api/commitment-candidates/dismiss", new { fingerprint }));
+
+        Assert.All(responses, response => Assert.Equal(HttpStatusCode.NoContent, response.StatusCode));
+        using var scope = app.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<BudgetContext>();
+        Assert.Equal(1, await context.CommitmentCandidateDismissals.CountAsync(
+            value => value.OwnerId == owner.Id));
+    }
+
+    [PostgreSqlFact]
     public async Task Expense_date_migration_preserves_the_utc_calendar_component()
     {
         await using var app = new PostgreSqlFinancialApiTestApplication();
@@ -1237,6 +1308,38 @@ public sealed class PostgreSqlFinancialApiTests
             $"Expected preview creation, received {(int)response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
         return body;
     }
+
+    private static DateOnly[] RecentCommitmentDates()
+    {
+        var now = DateTime.UtcNow;
+        var current = new DateOnly(now.Year, now.Month, 10);
+        return [current.AddMonths(-2), current.AddMonths(-1), current];
+    }
+
+    private static async Task<string> ReadCandidateFingerprintAsync(HttpClient client)
+    {
+        var response = await client.GetFromJsonAsync<JsonElement>("/api/commitment-candidates");
+        return Assert.Single(response.GetProperty("candidates").EnumerateArray())
+            .GetProperty("fingerprint").GetString()!;
+    }
+
+    private static object FixedCommitmentConfirmation(string fingerprint) => new
+    {
+        fingerprint,
+        name = "Membership",
+        category = "bills",
+        cadence = "monthly",
+        timingKind = "dayOfMonth",
+        expectedDayOfWeek = (string?)null,
+        expectedDay = 10,
+        expectedMonth = (int?)null,
+        windowBeforeDays = 0,
+        windowAfterDays = 0,
+        amountMode = "fixed",
+        expectedAmount = 10m,
+        expectedMinimumAmount = (decimal?)null,
+        expectedMaximumAmount = (decimal?)null
+    };
 
     private static MultipartFormDataContent CreatePdfUpload(byte[] pdf)
     {
