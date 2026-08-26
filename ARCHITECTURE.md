@@ -26,7 +26,11 @@ frontend does not connect directly to the database.
 `frontend/src/app/` owns routing, the authenticated application shell, and
 top-level pages. Product behavior is organized under `frontend/src/features/`
 by capability, including authentication, expenses, budget limits, analytics,
-and transactions. Shared HTTP, constants, theme, UI, and utilities live under
+transactions, and commitment review. The protected Commitments experience
+consumes the owner-scoped candidate and commitment APIs and keeps evidence
+review, confirmation, dismissal/reconsideration, expectation edits, and
+lifecycle controls inside `frontend/src/features/commitments/`. Shared HTTP,
+constants, theme, UI, and utilities live under
 `frontend/src/shared/`; chart-specific presentation lives under
 `frontend/src/charts/`.
 
