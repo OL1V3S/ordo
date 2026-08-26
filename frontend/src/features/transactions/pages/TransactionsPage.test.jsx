@@ -251,6 +251,33 @@ describe('existing expense workflows', () => {
     expect(refresh).toHaveBeenCalledOnce()
   })
 
+  it('surfaces the established warning when post-confirmation Expense refresh fails', async () => {
+    const user = userEvent.setup()
+    const refresh = vi.fn().mockRejectedValue(new Error('offline'))
+    const confirm = vi.fn().mockResolvedValue({
+      batchId: selectedImportPreview.batchId,
+      status: 'confirmed',
+      confirmedAt: '2026-08-25T21:00:00Z',
+      importedExpenseCount: 1,
+    })
+    useExpenses.mockReturnValue({ ...baseExpensesHook, refresh })
+    useImportPreview.mockReturnValue({
+      ...baseImportHook,
+      preview: selectedImportPreview,
+      sourceType: 'sunflower_pdf',
+      selectedCount: 1,
+      confirm,
+    })
+    render(<TransactionsPage />)
+
+    await user.click(screen.getByRole('button', { name: 'Import 1 selected expense' }))
+
+    expect(refresh).toHaveBeenCalledOnce()
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Expenses were imported, but Transactions could not be refreshed'
+    )
+  })
+
   it('renders resumed rows with duplicate and ineligible affordances and persists eligible edits', async () => {
     const user = userEvent.setup()
     const updateRow = vi.fn().mockResolvedValue(undefined)

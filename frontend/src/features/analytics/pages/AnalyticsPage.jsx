@@ -42,6 +42,14 @@ export default function AnalyticsPage() {
     [budgetLimits, insights.totalsByCategory]
   );
 
+  async function retryExpenses() {
+    try {
+      await refreshExpenses();
+    } catch {
+      // The hook owns the user-facing error state.
+    }
+  }
+
   return (
     <div className="container analytics-page">
       <header className="page-header analytics-page__header">
@@ -65,7 +73,7 @@ export default function AnalyticsPage() {
       {!expensesLoading && expensesError ? (
         <Card as="section" className="section">
           <StatusMessage tone="danger">We couldn’t load recorded expenses.</StatusMessage>
-          <button type="button" onClick={refreshExpenses}>Try again</button>
+          <button type="button" onClick={retryExpenses}>Try again</button>
         </Card>
       ) : null}
 

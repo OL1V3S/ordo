@@ -8,7 +8,7 @@ export function useExpenses() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const refresh = useCallback(async function refresh({ rethrow = false } = {}) {
+  const refresh = useCallback(async function refresh() {
     setLoading(true);
     setError(null);
     try {
@@ -17,27 +17,27 @@ export function useExpenses() {
     } catch (requestError) {
       setExpenses([]);
       setError(requestError);
-      if (rethrow) throw requestError;
+      throw requestError;
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => { refresh().catch(() => {}); }, [refresh]);
 
   async function addExpense(payload) {
     await expensesApi.create(payload);
-    await refresh({ rethrow: true });
+    await refresh();
   }
 
   async function updateExpense(id, payload) {
     await expensesApi.update(id, payload);
-    await refresh({ rethrow: true });
+    await refresh();
   }
 
   async function deleteExpense(id) {
     await expensesApi.remove(id);
-    await refresh({ rethrow: true });
+    await refresh();
   }
 
   return { expenses, loading, error, refresh, addExpense, updateExpense, deleteExpense };
