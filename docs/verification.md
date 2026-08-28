@@ -17,17 +17,42 @@ Record verification using these exact evidence states:
 Focused checks support iteration. They do not replace the full applicable
 verification required before a pull request is review-ready.
 
-## Frontend verification
+## Root verification entry point
 
-The canonical frontend entry point is:
+From the repository root, the canonical entry point is:
 
 ```bash
-cd frontend
-npm ci
-npm run verify
+./scripts/verify.sh
 ```
 
-`npm run verify` runs the Vitest suite, ESLint, and the Vite production build.
+The default runs the frontend and non-PostgreSQL backend lanes. The script
+supports Bash on macOS, Linux, and Windows through WSL or Git Bash. It exposes
+these explicit lanes without hiding their underlying commands:
+
+```bash
+./scripts/verify.sh frontend
+./scripts/verify.sh backend
+./scripts/verify.sh postgresql
+./scripts/verify.sh container
+./scripts/verify.sh all
+```
+
+`container` requires Docker. `postgresql` requires
+`BUDGETPLANNER_POSTGRESQL_TEST_CONNECTION` to target an approved disposable
+local PostgreSQL database. `all` runs every lane and fails when either required
+capability is unavailable. Use `./scripts/verify.sh --dry-run all` to inspect
+the lane composition without executing it.
+
+## Frontend verification
+
+The canonical frontend lane is:
+
+```bash
+./scripts/verify.sh frontend
+```
+
+The lane runs `npm ci`, then `npm run verify` from `frontend/`. The npm script
+runs the Vitest suite, ESLint, and the Vite production build.
 After dependencies are already installed and unchanged, `npm ci` need not be
 repeated for every iteration.
 
@@ -47,9 +72,7 @@ evidence.
 Run the same non-PostgreSQL verification represented by Backend CI:
 
 ```bash
-dotnet restore backend.Tests/backend.Tests.csproj
-dotnet build backend/backend.csproj --configuration Release --no-restore
-dotnet test backend.Tests/backend.Tests.csproj --configuration Release --no-restore --filter "Category!=PostgreSQL"
+./scripts/verify.sh backend
 ```
 
 Focused `dotnet test` filters may be used while iterating. Before review-ready
@@ -69,16 +92,35 @@ beginning with `budget_planner_test_`. The tests deliberately delete and
 recreate that database.
 
 ```bash
-dotnet restore backend.Tests/backend.Tests.csproj
-dotnet build backend.Tests/backend.Tests.csproj --configuration Release --no-restore
-dotnet test backend.Tests/backend.Tests.csproj --configuration Release --no-build --filter "Category=PostgreSQL&FullyQualifiedName~Migration_chain"
-dotnet test backend.Tests/backend.Tests.csproj --configuration Release --no-build --filter "Category=PostgreSQL&FullyQualifiedName!~Migration_chain"
+./scripts/verify.sh postgresql
 ```
 
 The test harness mechanically rejects remote hosts and database names not
 explicitly designated as disposable. Never substitute Neon, Render,
 production, or another hosted database when local PostgreSQL is unavailable.
 Use successful **PostgreSQL financial integration** CI evidence instead.
+This job runs on every pull request and is required repository evidence; do not
+add path filters that could silently skip persistence-relevant changes.
+
+## Container verification
+
+The production backend publish, contained PDF worker, and Docker artifact checks
+are available through:
+
+```bash
+./scripts/verify.sh container
+```
+
+Docker verification is intentionally excluded from the default local lane due
+to its capability and runtime cost. **Backend build and tests** CI runs it on
+every pull request.
+
+## Debugging and smoke checks
+
+Smoke checks are small, changed-boundary behavior checks. They help diagnose a
+change but never replace the applicable root verification lanes, CI, review, or
+approval gates. Follow [`debugging.md`](debugging.md) for the canonical
+privacy-safe diagnostic sequence and local/preview/production smoke boundaries.
 
 ## Documentation-only changes
 
@@ -223,10 +265,12 @@ feature/PR branch and create the draft PR. If not, use the existing
 **publication handoff required** fallback with GitHub Desktop/web. Neither path
 allows a direct push to `main` or automatic merge.
 
-The resulting draft PR requires the same applicable **Frontend test, lint, and
-build**, **Backend build and tests**, **PostgreSQL financial integration**, and
-Vercel evidence as any other change. Local Codex test results support iteration
-but never replace those independent checks.
+The resulting draft PR requires **Frontend test, lint, and build**, **Backend
+build and tests**, and **PostgreSQL financial integration** to succeed. Vercel
+and Vercel Preview Comments are non-blocking preview/deployment evidence; record
+them when relevant to frontend or deployment review, but do not treat them as
+canonical test gates. Local Codex results support iteration but never replace
+independent checks.
 
 After CI succeeds, ChatGPT should inspect the actual PR diff, review discussion,
 and current CI state. A Codex-generated summary is not sufficient proof of the
