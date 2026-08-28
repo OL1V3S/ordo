@@ -11,6 +11,7 @@ vi.mock('../../importPreview/hooks/useImportPreview', () => ({ useImportPreview:
 const baseExpensesHook = {
   expenses: [],
   loading: false,
+  error: null,
   refresh: vi.fn(),
   addExpense: vi.fn(),
   updateExpense: vi.fn(),
@@ -180,6 +181,40 @@ describe('existing expense workflows', () => {
     expect(screen.getByPlaceholderText('Description')).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Spending vs Budget Limits' })).not.toBeInTheDocument()
     expect(screen.queryByLabelText('Chart month')).not.toBeInTheDocument()
+  })
+
+  it('shows loading instead of a false empty state while expenses are pending', () => {
+    useExpenses.mockReturnValue({ ...baseExpensesHook, loading: true })
+
+    render(<TransactionsPage />)
+
+    expect(screen.getByRole('status')).toHaveTextContent('Loading expenses')
+    expect(screen.queryByText('No expenses found.')).not.toBeInTheDocument()
+  })
+
+  it('shows a retryable error instead of an empty state when expense loading fails', async () => {
+    const user = userEvent.setup()
+    const refresh = vi.fn().mockRejectedValue(new Error('offline'))
+    useExpenses.mockReturnValue({
+      ...baseExpensesHook,
+      error: new Error('offline'),
+      refresh,
+    })
+
+    render(<TransactionsPage />)
+
+    expect(screen.getByRole('alert')).toHaveTextContent('We couldn’t load your expenses')
+    expect(screen.queryByText('No expenses found.')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Try again' }))
+    expect(refresh).toHaveBeenCalledOnce()
+  })
+
+  it('shows the empty state only after a successful zero-row response', () => {
+    render(<TransactionsPage />)
+
+    expect(screen.getByText('No expenses found.')).toBeInTheDocument()
+    expect(screen.queryByText('Loading expenses...')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
   })
 
   it('uploads a PDF through the normal Transactions experience', async () => {
