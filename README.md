@@ -23,6 +23,13 @@ A full-stack personal finance application for tracking expenses, setting monthly
 - Track description, amount, date, and category
 - User-specific data isolation
 - Search and filter expenses by date range and category
+- Preview and confirm text-extractable Sunflower Bank PDF statement imports
+
+### Commitment Intelligence
+
+- Detect recurring-expense candidates from existing expense evidence
+- Review, confirm, dismiss, and manage recurring commitments
+- Keep commitment decisions isolated to the authenticated owner
 
 ### Budget Management
 
@@ -35,6 +42,7 @@ A full-stack personal finance application for tracking expenses, setting monthly
 
 - Spending summaries by category
 - Charts comparing spending with budget limits
+- Monthly spending trends and comparisons
 - Interactive frontend visualizations built with Chart.js/Recharts
 
 ## Tech Stack
@@ -60,14 +68,17 @@ A full-stack personal finance application for tracking expenses, setting monthly
 ### Database
 
 - PostgreSQL in production with Neon
-- SQL Server provider available for local development
+- PostgreSQL for supported local persistence and integration testing
 
 ### Testing
 
 - xUnit
 - `WebApplicationFactory<Program>` integration testing
 - EF Core InMemory for isolated test data
-- Authentication, email-delivery, configuration, validation, rate-limit, and concurrency coverage
+- Disposable local PostgreSQL and an always-running PostgreSQL CI lane
+- Frontend Vitest, ESLint, and production-build verification
+- Authentication, financial persistence, statement import, commitment,
+  email-delivery, validation, rate-limit, and concurrency coverage
 
 ### Deployment
 
@@ -79,10 +90,12 @@ A full-stack personal finance application for tracking expenses, setting monthly
 ## Project Structure
 
 ```text
-budget_planner/
+ordo/
 ├── frontend/        # React/Vite client
 ├── backend/         # ASP.NET Core Web API
-└── backend.Tests/   # xUnit integration and service tests
+├── backend.Tests/   # xUnit integration and service tests
+├── docs/            # Canonical architecture, verification, and debugging guidance
+└── scripts/         # Root verification entry point and helpers
 ```
 
 ## Local Development
@@ -91,14 +104,16 @@ budget_planner/
 
 - Node.js
 - .NET 9 SDK
-- PostgreSQL or SQL Server
+- Bash (macOS, Linux, WSL, or Git Bash)
+- PostgreSQL for local persistence/integration work
+- Docker for optional local production-container verification
 - Gmail API OAuth credentials if testing email delivery
 
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/OL1V3S/budget_planner.git
-cd budget_planner
+git clone https://github.com/OL1V3S/ordo.git
+cd ordo
 ```
 
 ### 2. Configure the backend
@@ -248,7 +263,7 @@ In a separate terminal:
 
 ```bash
 cd frontend
-npm install
+npm ci
 ```
 
 Create `frontend/.env.local`:
@@ -265,19 +280,36 @@ npm run dev
 
 ### 4. Run verification
 
-Backend tests:
+From the repository root, run the canonical local frontend and backend checks:
 
 ```bash
-dotnet test backend.Tests/backend.Tests.csproj
+./scripts/verify.sh
 ```
 
-Frontend lint and production build:
+Run a specific lane when needed:
 
 ```bash
-cd frontend
-npm run lint
-npm run build
+./scripts/verify.sh frontend
+./scripts/verify.sh backend
+./scripts/verify.sh postgresql
+./scripts/verify.sh container
+./scripts/verify.sh all
 ```
+
+The PostgreSQL lane accepts only the repository-approved disposable local test
+targets described in [`docs/verification.md`](docs/verification.md). Never use
+Neon, Render, production, or another hosted database as a local-test fallback.
+The container lane requires Docker and is intentionally outside the default
+local command.
+
+See [`docs/verification.md`](docs/verification.md) for required evidence and CI
+semantics. For privacy-safe diagnosis and focused smoke checks, see
+[`docs/debugging.md`](docs/debugging.md).
+
+Some durable technical identifiers still use `BudgetPlanner`, including .NET
+namespaces, environment-variable prefixes, disposable database names, and the
+Data Protection application name. They are compatibility identifiers rather
+than product branding and should not be renamed casually.
 
 ## Engineering Highlights
 

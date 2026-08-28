@@ -32,6 +32,8 @@ sources relevant to the task:
   decisions that require explicit human approval to change;
 - [`docs/verification.md`](docs/verification.md) — canonical commands, required evidence, environment
   fallbacks, and review-ready criteria;
+- [`docs/debugging.md`](docs/debugging.md) — privacy-safe diagnostic sequence and supplemental
+  smoke-check guidance;
 - the applicable GitHub Issue — task-specific scope and acceptance criteria.
 
 Do not treat planned roadmap behavior as current architecture or executable
@@ -246,18 +248,16 @@ If existing behavior appears incorrect but is outside task scope, report it inst
 
 ## Frontend verification
 
-From `frontend/`, run:
+From the repository root, run the canonical frontend lane:
 
 ```bash
-npm test
-npm run lint
-npm run build
+./scripts/verify.sh frontend
 ```
 
-Or, when available:
+For the normal repository-wide local checks, run:
 
 ```bash
-npm run verify
+./scripts/verify.sh
 ```
 
 Any new or changed behavior should have appropriate tests.
@@ -266,7 +266,8 @@ A refactor intended to preserve behavior should keep existing assertions unless 
 
 ## Backend verification
 
-For backend-affecting changes, run the relevant restore/build/test commands.
+For backend-affecting changes, run `./scripts/verify.sh backend` and any
+additional applicable lane documented in `docs/verification.md`.
 
 At minimum, before a backend-affecting PR is review-ready, confirm the full
 applicable backend test suite passes locally or through required CI evidence.

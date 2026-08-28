@@ -32,7 +32,15 @@ References #
 
 ### Required/proven by CI
 
-<!-- List applicable CI jobs and their current results. Do not call pending evidence passed. -->
+<!-- Record Frontend test, lint, and build; Backend build and tests; and PostgreSQL financial integration. Do not call pending evidence passed. -->
+
+### Smoke checks (supplemental)
+
+<!-- Record focused smoke evidence separately from full verification, or explain why it was not applicable/available. -->
+
+### Preview evidence (non-blocking)
+
+<!-- Record Vercel/Vercel Preview Comments when relevant. These are not canonical required test gates. -->
 
 ### Remaining verification gaps
 
