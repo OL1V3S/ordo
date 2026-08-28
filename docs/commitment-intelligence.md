@@ -88,3 +88,57 @@ commitment detection, upcoming projections, or automatic transaction matching.
 These are separate product decisions. Schema and backend foundations must not
 be treated as authorization to expose an incomplete user workflow, run a
 production migration, deploy, or perform production data operations.
+
+## Commitment change detection V1
+
+The approved first change-detection slice is a pure, explicitly versioned
+`commitment-change-v1` detector. It does not expose an API or UI and does not
+persist derived matches or proposals.
+
+Only active, owner-scoped commitments participate. Observation identity comes
+from at least two surviving confirmation-linked Expenses that all share one
+normalized description and canonical category. Name and display-category edits
+do not redefine that identity. If confirmation evidence is insufficient or
+inconsistent, matching is unavailable. If multiple active commitments derive
+the same identity, matching fails closed for the entire identity group; paused
+and ended commitments neither participate nor create ambiguity.
+
+An identity-matching Expense dated after the latest confirmation evidence is
+qualified to a cadence slot only inside a bounded plausibility envelope. Weekly
+anchors use `max(the accepted window, 3 days)` on each corresponding side;
+monthly and yearly anchors use `max(the accepted window, 6 days)`. These bounds
+come from the existing weekday and seven-day candidate timing semantics. In
+overlapping envelopes the uniquely nearest anchor wins; equal-distance ties,
+or multiple qualified Expenses in one slot, are ambiguous. Ambiguous evidence
+is never treated as missing. Day-of-month and yearly anchors clamp to the last
+valid calendar day, including February 29 resolving to February 28 in a
+non-leap year; month-end anchors use the actual last day.
+
+For amounts, exact fixed equality or inclusion in the accepted range is normal.
+One, two, or at least three consecutive outside observations mean isolated
+outlier, possible change, or proposed change. A proposal uses at most the six
+latest deviations and proposes a fixed amount when all are equal, otherwise
+their observed minimum/maximum range with the lower median as evidence. A
+normal, missing, or ambiguous closed slot breaks the run.
+
+For timing, accepted before/after windows are inclusive. One, two, or at least
+three consecutive outside observations on the same side mean isolated outlier,
+possible change, or proposed change. An in-window observation, a closed gap,
+ambiguity, or a direction reversal breaks the run. Proposed timing uses at most
+the six latest deviations and the existing weekday, day/month-end, and yearly
+calendar shapes. Amount and timing assessments are independent.
+
+A slot is missed only after its accepted after-window closes. Weekly and
+monthly commitments become `not_seen_recently` after two consecutive missed
+slots and `possibly_ended` after three. Yearly commitments use one and two
+missed slots respectively. No state changes automatically, and evaluation is
+on demand from an injected current date; there is no scheduler.
+
+Non-normal assessments use a SHA-256 fingerprint with an explicit domain and
+algorithm version. It serializes exact semantic baseline fields (not broad
+`UpdatedAt`, name, or display category), derived identity, ordered confirmation
+and qualified Expense IDs with evidence revisions, relevant closed slots, and
+the exact assessment result. A future action boundary must recompute this
+authoritatively and reject stale decisions. A user-visible workflow remains
+blocked until accept/end, durable keep/dismiss, reconsider, and stale-conflict
+handling can ship coherently under separate approval.
