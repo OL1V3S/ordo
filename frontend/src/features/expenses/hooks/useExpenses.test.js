@@ -25,6 +25,20 @@ describe('expense refresh behavior', () => {
     expect(result.current.expenses).toEqual([])
   })
 
+  it('keeps loading true while the initial expense request is pending', async () => {
+    let resolveRequest
+    expensesApi.getAll.mockReturnValue(new Promise((resolve) => { resolveRequest = resolve }))
+    const { result } = renderHook(() => useExpenses())
+
+    await waitFor(() => expect(result.current.loading).toBe(true))
+    expect(result.current.error).toBeNull()
+
+    await act(async () => {
+      resolveRequest({ data: [] })
+    })
+    await waitFor(() => expect(result.current.loading).toBe(false))
+  })
+
   it('exposes a safe refresh error and clears stale expenses', async () => {
     const requestError = new Error('unavailable')
     expensesApi.getAll.mockRejectedValue(requestError)

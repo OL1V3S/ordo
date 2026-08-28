@@ -10,6 +10,7 @@ import ExpenseFilters from "../../expenses/components/ExpenseFilters";
 import ExpenseList from "../../expenses/components/ExpenseList";
 import ImportPreviewPanel from "../../importPreview/components/ImportPreviewPanel";
 import { useImportPreview } from "../../importPreview/hooks/useImportPreview";
+import StatusMessage from "../../../shared/ui/StatusMessage";
 const ENTRIES_PER_PAGE = 10;
 
 export default function TransactionsPage() {
@@ -17,6 +18,7 @@ export default function TransactionsPage() {
   const {
     expenses,
     loading: expensesLoading,
+    error: expensesError,
     refresh: refreshExpenses,
     addExpense,
     updateExpense,
@@ -172,20 +174,31 @@ export default function TransactionsPage() {
         setCategoryFilter={setCategoryFilter}
       />
   
-      <ExpenseList
-        expenses={expensesToShow}
-        filteredCount={filteredExpenses.length}
-        entriesPerPage={ENTRIES_PER_PAGE}
-        showAll={showAll}
-        onShowAll={() => setShowAll(true)}
-        editingExpenseId={editingExpenseId}
-        editingExpenseData={editingExpenseData}
-        setEditingExpenseData={setEditingExpenseData}
-        onStartEdit={startEditExpense}
-        onSave={saveExpenseEdit}
-        onCancel={cancelEditExpense}
-        onDelete={deleteExpense}
-      />
+      {expensesLoading && expenses.length === 0 ? (
+        <StatusMessage>Loading expenses...</StatusMessage>
+      ) : expensesError && expenses.length === 0 ? (
+        <div>
+          <StatusMessage tone="danger">We couldn’t load your expenses.</StatusMessage>
+          <button type="button" onClick={() => refreshExpenses().catch(() => {})}>
+            Try again
+          </button>
+        </div>
+      ) : (
+        <ExpenseList
+          expenses={expensesToShow}
+          filteredCount={filteredExpenses.length}
+          entriesPerPage={ENTRIES_PER_PAGE}
+          showAll={showAll}
+          onShowAll={() => setShowAll(true)}
+          editingExpenseId={editingExpenseId}
+          editingExpenseData={editingExpenseData}
+          setEditingExpenseData={setEditingExpenseData}
+          onStartEdit={startEditExpense}
+          onSave={saveExpenseEdit}
+          onCancel={cancelEditExpense}
+          onDelete={deleteExpense}
+        />
+      )}
     </div>
   );
 }
