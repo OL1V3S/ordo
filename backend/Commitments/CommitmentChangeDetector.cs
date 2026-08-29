@@ -194,7 +194,9 @@ public sealed class CommitmentChangeDetector : ICommitmentChangeDetector
     {
         return commitment.Cadence switch
         {
-            CommitmentCadence.Weekly => NextWeekday(after, commitment.ExpectedDayOfWeek!.Value),
+            CommitmentCadence.Weekly => WeekdayInNextCalendarWeek(
+                after,
+                commitment.ExpectedDayOfWeek!.Value),
             CommitmentCadence.Monthly => MonthlyAnchor(
                 after.Month == 12 ? after.Year + 1 : after.Year,
                 after.Month == 12 ? 1 : after.Month + 1,
@@ -204,10 +206,12 @@ public sealed class CommitmentChangeDetector : ICommitmentChangeDetector
         };
     }
 
-    private static DateOnly NextWeekday(DateOnly after, DayOfWeek weekday)
+    private static DateOnly WeekdayInNextCalendarWeek(DateOnly after, DayOfWeek weekday)
     {
-        var days = ((int)weekday - (int)after.DayOfWeek + 7) % 7;
-        return after.AddDays(days == 0 ? 7 : days);
+        var daysSinceMonday = ((int)after.DayOfWeek + 6) % 7;
+        var nextMonday = after.AddDays(7 - daysSinceMonday);
+        var daysAfterMonday = ((int)weekday + 6) % 7;
+        return nextMonday.AddDays(daysAfterMonday);
     }
 
     private static DateOnly MonthlyAnchor(int year, int month, Commitment commitment)

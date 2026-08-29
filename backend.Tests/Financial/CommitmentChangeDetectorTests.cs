@@ -107,6 +107,42 @@ public sealed class CommitmentChangeDetectorTests
     }
 
     [Fact]
+    public void Weekly_first_slot_uses_edited_weekday_in_next_week_when_confirmation_is_earlier()
+    {
+        var commitment = WeeklyWithLatestConfirmation(new DateOnly(2026, 3, 2));
+        commitment.ExpectedDayOfWeek = DayOfWeek.Friday;
+
+        var result = Detect(commitment,
+        [Expense(10, new DateOnly(2026, 3, 13), 10m)], new DateOnly(2026, 3, 14));
+
+        Assert.Equal(new DateOnly(2026, 3, 13), Assert.Single(result.Observations).SlotAnchor);
+    }
+
+    [Fact]
+    public void Weekly_first_slot_uses_edited_weekday_in_next_week_when_confirmation_is_later()
+    {
+        var commitment = WeeklyWithLatestConfirmation(new DateOnly(2026, 3, 6));
+        commitment.ExpectedDayOfWeek = DayOfWeek.Monday;
+
+        var result = Detect(commitment,
+        [Expense(10, new DateOnly(2026, 3, 9), 10m)], new DateOnly(2026, 3, 10));
+
+        Assert.Equal(new DateOnly(2026, 3, 9), Assert.Single(result.Observations).SlotAnchor);
+    }
+
+    [Fact]
+    public void Weekly_first_slot_preserves_next_iso_week_across_year_boundary()
+    {
+        var commitment = WeeklyWithLatestConfirmation(new DateOnly(2025, 12, 29));
+        commitment.ExpectedDayOfWeek = DayOfWeek.Friday;
+
+        var result = Detect(commitment,
+        [Expense(10, new DateOnly(2026, 1, 9), 10m)], new DateOnly(2026, 1, 10));
+
+        Assert.Equal(new DateOnly(2026, 1, 9), Assert.Single(result.Observations).SlotAnchor);
+    }
+
+    [Fact]
     public void Explicit_larger_window_expands_plausibility_and_nearest_anchor_wins_overlap()
     {
         var commitment = Monthly();
@@ -401,6 +437,17 @@ public sealed class CommitmentChangeDetectorTests
         commitment.TimingKind = CommitmentTimingKind.Weekday;
         commitment.ExpectedDayOfWeek = DayOfWeek.Monday;
         commitment.Occurrences = Confirmation(commitment, new DateOnly(2026, 2, 23));
+        return commitment;
+    }
+
+    private static Commitment WeeklyWithLatestConfirmation(DateOnly latest)
+    {
+        var commitment = Weekly();
+        commitment.Occurrences =
+        [
+            Link(Expense(1, latest.AddDays(-7), 10m)),
+            Link(Expense(2, latest, 10m))
+        ];
         return commitment;
     }
 
