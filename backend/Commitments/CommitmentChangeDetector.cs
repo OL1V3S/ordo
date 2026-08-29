@@ -88,10 +88,18 @@ public sealed class CommitmentChangeDetector : ICommitmentChangeDetector
         IEnumerable<Expense> expenses,
         DateOnly today)
     {
-        var ownedActive = commitments
-            .Where(value => value.OwnerId == ownerId && value.Lifecycle == CommitmentLifecycle.Active)
+        var ownedCommitments = commitments
+            .Where(value => value.OwnerId == ownerId)
+            .ToArray();
+        var ownedActive = ownedCommitments
+            .Where(value => value.Lifecycle == CommitmentLifecycle.Active)
             .OrderBy(value => value.Id)
             .ToArray();
+        var confirmationExpenseIds = ownedCommitments
+            .SelectMany(value => value.Occurrences)
+            .Where(value => value.Kind == CommitmentOccurrenceKind.ConfirmationEvidence)
+            .Select(value => value.ExpenseId)
+            .ToHashSet();
         var ownedExpenses = expenses
             .Where(value => value.UserId == ownerId && value.Date <= today)
             .ToArray();
@@ -110,7 +118,12 @@ public sealed class CommitmentChangeDetector : ICommitmentChangeDetector
                 return Unavailable(commitment, identityResult.Reason!.Value);
             if (shared.Contains(commitment.Id))
                 return Unavailable(commitment, CommitmentMatchingUnavailableReason.SharedActiveIdentity);
-            return DetectOne(commitment, identityResult.Identity, ownedExpenses, today);
+            return DetectOne(
+                commitment,
+                identityResult.Identity,
+                ownedExpenses,
+                confirmationExpenseIds,
+                today);
         }).ToArray();
     }
 
@@ -138,6 +151,7 @@ public sealed class CommitmentChangeDetector : ICommitmentChangeDetector
         Commitment commitment,
         ObservationIdentity identity,
         IReadOnlyList<Expense> ownedExpenses,
+        IReadOnlySet<int> confirmationExpenseIds,
         DateOnly today)
     {
         var confirmation = commitment.Occurrences
@@ -150,6 +164,7 @@ public sealed class CommitmentChangeDetector : ICommitmentChangeDetector
         var slots = BuildSlots(commitment, latestConfirmationDate, today).ToArray();
         var eligible = ownedExpenses
             .Where(value => value.Date > latestConfirmationDate)
+            .Where(value => !confirmationExpenseIds.Contains(value.Id))
             .Where(value => ExpenseInputRules.NormalizeDescriptionForComparison(value.Description) == identity.Description
                 && ExpenseInputRules.NormalizeCategory(value.Category) == identity.Category)
             .OrderBy(value => value.Date).ThenBy(value => value.Id)

@@ -103,7 +103,8 @@ inconsistent, matching is unavailable. If multiple active commitments derive
 the same identity, matching fails closed for the entire identity group; paused
 and ended commitments neither participate nor create ambiguity.
 
-An identity-matching Expense dated after the latest confirmation evidence is
+An identity-matching Expense dated after the latest confirmation evidence and
+not linked as confirmation evidence to any of the owner's commitments is
 qualified to a cadence slot only inside a bounded plausibility envelope. Weekly
 anchors use `max(the accepted window, 3 days)` on each corresponding side;
 monthly and yearly anchors use `max(the accepted window, 6 days)`. These bounds

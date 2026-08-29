@@ -67,6 +67,72 @@ public sealed class CommitmentChangeDetectorTests
     }
 
     [Fact]
+    public void Confirmation_evidence_for_another_active_commitment_is_never_reused()
+    {
+        var target = Monthly(Guid.Parse("00000000-0000-0000-0000-000000000001"));
+        var other = Monthly(Guid.Parse("00000000-0000-0000-0000-000000000002"));
+        var linkedFutureExpense = Expense(10, new DateOnly(2026, 3, 15), 10m);
+        other.Name = "Different commitment";
+        other.Category = "different category";
+        other.Occurrences = [Link(linkedFutureExpense)];
+
+        var results = _detector.Detect(
+            Owner,
+            [target, other],
+            [linkedFutureExpense],
+            new DateOnly(2026, 3, 20));
+
+        var targetResult = Assert.Single(results, value => value.CommitmentId == target.Id);
+        Assert.Empty(targetResult.Observations);
+        Assert.Equal(
+            CommitmentMatchingUnavailableReason.InsufficientConfirmationEvidence,
+            Assert.Single(results, value => value.CommitmentId == other.Id).UnavailableReason);
+    }
+
+    [Theory]
+    [InlineData(CommitmentLifecycle.Paused)]
+    [InlineData(CommitmentLifecycle.Ended)]
+    public void Paused_or_ended_same_identity_confirmation_evidence_is_never_reused(
+        CommitmentLifecycle lifecycle)
+    {
+        var target = Monthly(Guid.Parse("00000000-0000-0000-0000-000000000001"));
+        var inactive = Monthly(Guid.Parse("00000000-0000-0000-0000-000000000002"));
+        var march = Expense(10, new DateOnly(2026, 3, 15), 10m);
+        var april = Expense(11, new DateOnly(2026, 4, 15), 10m);
+        inactive.Lifecycle = lifecycle;
+        inactive.Occurrences = [Link(march), Link(april)];
+
+        var result = Assert.Single(_detector.Detect(
+            Owner,
+            [target, inactive],
+            [march, april],
+            new DateOnly(2026, 4, 20)));
+
+        Assert.True(result.IsMatchingAvailable);
+        Assert.Empty(result.Observations);
+    }
+
+    [Fact]
+    public void Identical_unlinked_expense_remains_eligible_when_linked_expenses_are_excluded()
+    {
+        var target = Monthly(Guid.Parse("00000000-0000-0000-0000-000000000001"));
+        var paused = Monthly(Guid.Parse("00000000-0000-0000-0000-000000000002"));
+        var linkedMarch = Expense(10, new DateOnly(2026, 3, 15), 10m);
+        var linkedApril = Expense(11, new DateOnly(2026, 4, 15), 10m);
+        var unlinkedMay = Expense(12, new DateOnly(2026, 5, 15), 10m);
+        paused.Lifecycle = CommitmentLifecycle.Paused;
+        paused.Occurrences = [Link(linkedMarch), Link(linkedApril)];
+
+        var result = Assert.Single(_detector.Detect(
+            Owner,
+            [target, paused],
+            [linkedMarch, linkedApril, unlinkedMay],
+            new DateOnly(2026, 5, 20)));
+
+        Assert.Equal(12, Assert.Single(result.Observations).Expense.Id);
+    }
+
+    [Fact]
     public void Monthly_plausibility_is_bounded_to_six_days_and_far_evidence_is_ignored()
     {
         var commitment = Monthly();
