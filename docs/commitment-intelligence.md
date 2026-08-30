@@ -156,3 +156,29 @@ claim, and commitments, Expenses, confirmation evidence, and import provenance
 are filtered to that owner before response mapping. Paused and ended
 commitments are not returned. Matching-unavailable cases are successful data,
 and a user with no active commitments receives a dated empty collection.
+
+### Change-review persistence staging
+
+The first change-review persistence slice adds only the additive
+`CommitmentChangeDismissal` schema foundation. A row records the owner,
+commitment, detector version, assessment dimension (`Amount`, `Timing`, or
+`Missing`), exact 32-byte assessment fingerprint, and UTC dismissal time. The
+database enforces owner and commitment cascade deletion, nonblank detector
+version, allowed dimensions, exact fingerprint length, and uniqueness of one
+decision per owner/commitment/version/dimension/fingerprint. A composite
+commitment/owner foreign key also requires every dismissal owner to match the
+referenced commitment owner; independent valid owner and commitment IDs are
+not sufficient.
+
+This schema slice does not query the new table from a runtime request path and
+does not add change-review actions. The currently deployed read-only change
+assessment behavior is therefore compatible both before and after the
+additive migration. Before a later dismissal-aware backend is deployed, the
+target database migration history must be verified at or beyond
+`20260830053939_AddCommitmentChangeDismissals`. A frontend flag is not a
+substitute for that backend/schema gate.
+
+Production rollback is not automatic. Application rollback does not remove
+the table, and removing an empty or inert table requires a separately reviewed
+corrective migration. Once durable dismissal rows can exist, they must not be
+deleted by deployment tooling or an unreviewed migration rollback.

@@ -18,6 +18,7 @@ public class BudgetContext : IdentityDbContext<ApplicationUser>, IDataProtection
     public DbSet<Commitment> Commitments { get; set; }
     public DbSet<CommitmentOccurrence> CommitmentOccurrences { get; set; }
     public DbSet<CommitmentCandidateDismissal> CommitmentCandidateDismissals { get; set; }
+    public DbSet<CommitmentChangeDismissal> CommitmentChangeDismissals { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -175,6 +176,8 @@ public class BudgetContext : IdentityDbContext<ApplicationUser>, IDataProtection
             commitment.Property(value => value.ExpectedMaximumAmount).HasColumnType("numeric(18,2)");
             commitment.Property(value => value.OriginAlgorithmVersion).HasMaxLength(100);
             commitment.Property(value => value.OriginEvidenceFingerprint).HasColumnType("bytea").HasMaxLength(32);
+            commitment.HasAlternateKey(value => new { value.Id, value.OwnerId })
+                .HasName("AK_Commitments_Id_OwnerId");
             commitment.HasOne(value => value.Owner).WithMany().HasForeignKey(value => value.OwnerId)
                 .OnDelete(DeleteBehavior.Cascade);
             commitment.HasIndex(value => new { value.OwnerId, value.OriginEvidenceFingerprint })
@@ -223,6 +226,41 @@ public class BudgetContext : IdentityDbContext<ApplicationUser>, IDataProtection
                 value.Cadence,
                 value.EvidenceFingerprint
             }).IsUnique().HasDatabaseName("UX_CandidateDismissals_Owner_Origin");
+        });
+
+        modelBuilder.Entity<CommitmentChangeDismissal>(dismissal =>
+        {
+            dismissal.ToTable(table =>
+            {
+                table.HasCheckConstraint(
+                    "CK_CommitmentChangeDismissal_FingerprintLength",
+                    "octet_length(\"EvidenceFingerprint\") = 32");
+                table.HasCheckConstraint(
+                    "CK_CommitmentChangeDismissal_Dimension",
+                    "\"Dimension\" IN ('Amount', 'Timing', 'Missing')");
+                table.HasCheckConstraint(
+                    "CK_CommitmentChangeDismissal_AlgorithmVersion",
+                    "length(btrim(\"AlgorithmVersion\")) > 0");
+            });
+            dismissal.Property(value => value.AlgorithmVersion).HasMaxLength(100);
+            dismissal.Property(value => value.Dimension).HasConversion<string>().HasMaxLength(20);
+            dismissal.Property(value => value.EvidenceFingerprint).HasColumnType("bytea").HasMaxLength(32);
+            dismissal.HasOne(value => value.Owner).WithMany().HasForeignKey(value => value.OwnerId)
+                .OnDelete(DeleteBehavior.Cascade);
+            dismissal.HasOne(value => value.Commitment).WithMany()
+                .HasForeignKey(value => new { value.CommitmentId, value.OwnerId })
+                .HasPrincipalKey(value => new { value.Id, value.OwnerId })
+                .OnDelete(DeleteBehavior.Cascade);
+            dismissal.HasIndex(value => new { value.OwnerId, value.CommitmentId })
+                .HasDatabaseName("IX_CommitmentChangeDismissals_Owner_Commitment");
+            dismissal.HasIndex(value => new
+            {
+                value.OwnerId,
+                value.CommitmentId,
+                value.AlgorithmVersion,
+                value.Dimension,
+                value.EvidenceFingerprint
+            }).IsUnique().HasDatabaseName("UX_CommitmentChangeDismissals_Owner_Assessment");
         });
 
         modelBuilder.Entity<BudgetLimit>()
