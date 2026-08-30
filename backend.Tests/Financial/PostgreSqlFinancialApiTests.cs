@@ -170,6 +170,33 @@ public sealed class PostgreSqlFinancialApiTests
         Assert.Contains("CREATE UNIQUE INDEX", await ReadIndexDefinitionAsync(
             context,
             "UX_CandidateDismissals_Owner_Origin"));
+        Assert.Contains("CHECK", await ReadConstraintDefinitionAsync(
+            context,
+            "CK_CommitmentChangeDismissal_AlgorithmVersion"));
+        Assert.Contains("CHECK", await ReadConstraintDefinitionAsync(
+            context,
+            "CK_CommitmentChangeDismissal_Dimension"));
+        Assert.Contains("CHECK", await ReadConstraintDefinitionAsync(
+            context,
+            "CK_CommitmentChangeDismissal_FingerprintLength"));
+        Assert.Contains("ON DELETE CASCADE", await ReadConstraintDefinitionAsync(
+            context,
+            "FK_CommitmentChangeDismissals_AspNetUsers_OwnerId"));
+        Assert.Contains("ON DELETE CASCADE", await ReadConstraintDefinitionAsync(
+            context,
+            "FK_CommitmentChangeDismissals_Commitments_CommitmentId"));
+        var changeDismissalLookupIndex = await ReadIndexDefinitionAsync(
+            context,
+            "IX_CommitmentChangeDismissals_Owner_Commitment");
+        Assert.Contains("CREATE INDEX", changeDismissalLookupIndex);
+        Assert.Contains("(\"OwnerId\", \"CommitmentId\")", changeDismissalLookupIndex);
+        var changeDismissalUniqueIndex = await ReadIndexDefinitionAsync(
+            context,
+            "UX_CommitmentChangeDismissals_Owner_Assessment");
+        Assert.Contains("CREATE UNIQUE INDEX", changeDismissalUniqueIndex);
+        Assert.Contains(
+            "(\"OwnerId\", \"CommitmentId\", \"AlgorithmVersion\", \"Dimension\", \"EvidenceFingerprint\")",
+            changeDismissalUniqueIndex);
     }
 
     [PostgreSqlFact]
@@ -205,6 +232,145 @@ public sealed class PostgreSqlFinancialApiTests
             WHERE "UserId" = 'commitment-migration-user'
             """).SingleAsync();
         Assert.Equal("2:2", revisionSummary);
+    }
+
+    [PostgreSqlFact]
+    public async Task Commitment_change_dismissal_migration_upgrades_stage_two_additively()
+    {
+        await using var app = new PostgreSqlFinancialApiTestApplication();
+        using var client = app.CreateTestClient();
+        using var scope = app.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<BudgetContext>();
+        var migrator = context.GetService<IMigrator>();
+
+        await context.Database.EnsureDeletedAsync();
+        await migrator.MigrateAsync("20260826174557_AddCommitmentFoundation");
+        var commitmentId = Guid.NewGuid();
+        var now = DateTime.UtcNow;
+        await context.Database.ExecuteSqlInterpolatedAsync(
+            $"""
+            INSERT INTO "AspNetUsers"
+                ("Id", "EmailConfirmed", "PhoneNumberConfirmed", "TwoFactorEnabled", "LockoutEnabled", "AccessFailedCount")
+            VALUES
+                ({"stage-two-owner"}, false, false, false, false, 0);
+
+            INSERT INTO "Commitments"
+                ("Id", "OwnerId", "Name", "Category", "Lifecycle", "Cadence", "TimingKind",
+                 "ExpectedDay", "WindowBeforeDays", "WindowAfterDays", "AmountMode",
+                 "ExpectedAmount", "CreatedAt", "UpdatedAt")
+            VALUES
+                ({commitmentId}, {"stage-two-owner"}, 'Stage two commitment', 'bills', 'Active', 'Monthly',
+                 'DayOfMonth', 1, 0, 2, 'Fixed', 25.00, {now}, {now});
+            """);
+
+        await migrator.MigrateAsync();
+
+        Assert.True(await context.Users.AnyAsync(value => value.Id == "stage-two-owner"));
+        Assert.True(await context.Commitments.AnyAsync(value => value.Id == commitmentId));
+        Assert.Empty(await context.CommitmentChangeDismissals.ToListAsync());
+        Assert.False((await context.Database.GetPendingMigrationsAsync()).Any());
+    }
+
+    [PostgreSqlFact]
+    public async Task Commitment_change_dismissals_enforce_constraints_uniqueness_and_cascades()
+    {
+        await using var app = new PostgreSqlFinancialApiTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("change-dismissal-owner@example.com");
+        using var other = await app.CreateAuthenticatedUserAsync("change-dismissal-other@example.com");
+        using var scope = app.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<BudgetContext>();
+        var now = DateTime.UtcNow;
+
+        Commitment NewCommitment(string ownerId, string name) => new()
+        {
+            Id = Guid.NewGuid(),
+            OwnerId = ownerId,
+            Name = name,
+            Category = "bills",
+            Lifecycle = CommitmentLifecycle.Active,
+            Cadence = CommitmentCadence.Monthly,
+            TimingKind = CommitmentTimingKind.DayOfMonth,
+            ExpectedDay = 1,
+            WindowBeforeDays = 0,
+            WindowAfterDays = 2,
+            AmountMode = CommitmentAmountMode.Fixed,
+            ExpectedAmount = 25m,
+            CreatedAt = now,
+            UpdatedAt = now
+        };
+
+        var first = NewCommitment(owner.Id, "First");
+        var second = NewCommitment(owner.Id, "Second");
+        var otherCommitment = NewCommitment(other.Id, "Other");
+        context.Commitments.AddRange(first, second, otherCommitment);
+        await context.SaveChangesAsync();
+
+        Task InsertAsync(
+            string ownerId,
+            Guid commitmentId,
+            string algorithmVersion,
+            string dimension,
+            byte[] fingerprint) => context.Database.ExecuteSqlInterpolatedAsync(
+                $"""
+                INSERT INTO "CommitmentChangeDismissals"
+                    ("Id", "OwnerId", "CommitmentId", "AlgorithmVersion", "Dimension",
+                     "EvidenceFingerprint", "DismissedAt")
+                VALUES
+                    ({Guid.NewGuid()}, {ownerId}, {commitmentId}, {algorithmVersion}, {dimension},
+                     {fingerprint}, {now})
+                """);
+
+        var fingerprint = Enumerable.Repeat((byte)1, 32).ToArray();
+        await InsertAsync(owner.Id, first.Id, "commitment-change-v1", "Amount", fingerprint);
+        await InsertAsync(owner.Id, first.Id, "commitment-change-v1", "Timing", fingerprint);
+        await InsertAsync(owner.Id, second.Id, "commitment-change-v1", "Missing", fingerprint);
+        await InsertAsync(other.Id, otherCommitment.Id, "commitment-change-v1", "Amount", fingerprint);
+
+        var malformedRows = new[]
+        {
+            (Algorithm: " ", Dimension: "Amount", Fingerprint: new byte[32], Constraint: "CK_CommitmentChangeDismissal_AlgorithmVersion"),
+            (Algorithm: "commitment-change-v1", Dimension: "Unknown", Fingerprint: new byte[32], Constraint: "CK_CommitmentChangeDismissal_Dimension"),
+            (Algorithm: "commitment-change-v1", Dimension: "Amount", Fingerprint: new byte[31], Constraint: "CK_CommitmentChangeDismissal_FingerprintLength")
+        };
+
+        foreach (var malformed in malformedRows)
+        {
+            var exception = await Assert.ThrowsAsync<PostgresException>(() => InsertAsync(
+                owner.Id,
+                first.Id,
+                malformed.Algorithm,
+                malformed.Dimension,
+                malformed.Fingerprint));
+            Assert.Equal(PostgresErrorCodes.CheckViolation, exception.SqlState);
+            Assert.Equal(malformed.Constraint, exception.ConstraintName);
+        }
+
+        var duplicate = await Assert.ThrowsAsync<PostgresException>(() => InsertAsync(
+            owner.Id,
+            first.Id,
+            "commitment-change-v1",
+            "Amount",
+            fingerprint));
+        Assert.Equal(PostgresErrorCodes.UniqueViolation, duplicate.SqlState);
+        Assert.Equal("UX_CommitmentChangeDismissals_Owner_Assessment", duplicate.ConstraintName);
+
+        var migrator = context.GetService<IMigrator>();
+        var rollback = await Assert.ThrowsAsync<PostgresException>(() =>
+            migrator.MigrateAsync("20260826174557_AddCommitmentFoundation"));
+        Assert.Contains("Cannot roll back commitment change dismissals", rollback.MessageText);
+        Assert.Equal(4, await context.CommitmentChangeDismissals.CountAsync());
+
+        context.Commitments.Remove(first);
+        await context.SaveChangesAsync();
+        Assert.False(await context.CommitmentChangeDismissals.AnyAsync(
+            value => value.CommitmentId == first.Id));
+        Assert.True(await context.CommitmentChangeDismissals.AnyAsync(
+            value => value.CommitmentId == second.Id));
+
+        context.Users.Remove(await context.Users.SingleAsync(value => value.Id == other.Id));
+        await context.SaveChangesAsync();
+        Assert.False(await context.Commitments.AnyAsync(value => value.Id == otherCommitment.Id));
+        Assert.False(await context.CommitmentChangeDismissals.AnyAsync(value => value.OwnerId == other.Id));
     }
 
     [PostgreSqlFact]
