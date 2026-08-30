@@ -11,6 +11,11 @@ namespace backend.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.AddUniqueConstraint(
+                name: "AK_Commitments_Id_OwnerId",
+                table: "Commitments",
+                columns: new[] { "Id", "OwnerId" });
+
             migrationBuilder.CreateTable(
                 name: "CommitmentChangeDismissals",
                 columns: table => new
@@ -36,17 +41,17 @@ namespace backend.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_CommitmentChangeDismissals_Commitments_CommitmentId",
-                        column: x => x.CommitmentId,
+                        name: "FK_CommitmentChangeDismissals_Commitments_CommitmentId_OwnerId",
+                        columns: x => new { x.CommitmentId, x.OwnerId },
                         principalTable: "Commitments",
-                        principalColumn: "Id",
+                        principalColumns: new[] { "Id", "OwnerId" },
                         onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_CommitmentChangeDismissals_CommitmentId",
+                name: "IX_CommitmentChangeDismissals_CommitmentId_OwnerId",
                 table: "CommitmentChangeDismissals",
-                column: "CommitmentId");
+                columns: new[] { "CommitmentId", "OwnerId" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_CommitmentChangeDismissals_Owner_Commitment",
@@ -75,6 +80,10 @@ namespace backend.Migrations
 
             migrationBuilder.DropTable(
                 name: "CommitmentChangeDismissals");
+
+            migrationBuilder.DropUniqueConstraint(
+                name: "AK_Commitments_Id_OwnerId",
+                table: "Commitments");
         }
     }
 }

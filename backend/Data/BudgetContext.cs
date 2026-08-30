@@ -176,6 +176,8 @@ public class BudgetContext : IdentityDbContext<ApplicationUser>, IDataProtection
             commitment.Property(value => value.ExpectedMaximumAmount).HasColumnType("numeric(18,2)");
             commitment.Property(value => value.OriginAlgorithmVersion).HasMaxLength(100);
             commitment.Property(value => value.OriginEvidenceFingerprint).HasColumnType("bytea").HasMaxLength(32);
+            commitment.HasAlternateKey(value => new { value.Id, value.OwnerId })
+                .HasName("AK_Commitments_Id_OwnerId");
             commitment.HasOne(value => value.Owner).WithMany().HasForeignKey(value => value.OwnerId)
                 .OnDelete(DeleteBehavior.Cascade);
             commitment.HasIndex(value => new { value.OwnerId, value.OriginEvidenceFingerprint })
@@ -245,7 +247,9 @@ public class BudgetContext : IdentityDbContext<ApplicationUser>, IDataProtection
             dismissal.Property(value => value.EvidenceFingerprint).HasColumnType("bytea").HasMaxLength(32);
             dismissal.HasOne(value => value.Owner).WithMany().HasForeignKey(value => value.OwnerId)
                 .OnDelete(DeleteBehavior.Cascade);
-            dismissal.HasOne(value => value.Commitment).WithMany().HasForeignKey(value => value.CommitmentId)
+            dismissal.HasOne(value => value.Commitment).WithMany()
+                .HasForeignKey(value => new { value.CommitmentId, value.OwnerId })
+                .HasPrincipalKey(value => new { value.Id, value.OwnerId })
                 .OnDelete(DeleteBehavior.Cascade);
             dismissal.HasIndex(value => new { value.OwnerId, value.CommitmentId })
                 .HasDatabaseName("IX_CommitmentChangeDismissals_Owner_Commitment");

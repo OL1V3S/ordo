@@ -165,14 +165,17 @@ commitment, detector version, assessment dimension (`Amount`, `Timing`, or
 `Missing`), exact 32-byte assessment fingerprint, and UTC dismissal time. The
 database enforces owner and commitment cascade deletion, nonblank detector
 version, allowed dimensions, exact fingerprint length, and uniqueness of one
-decision per owner/commitment/version/dimension/fingerprint.
+decision per owner/commitment/version/dimension/fingerprint. A composite
+commitment/owner foreign key also requires every dismissal owner to match the
+referenced commitment owner; independent valid owner and commitment IDs are
+not sufficient.
 
 This schema slice does not query the new table from a runtime request path and
 does not add change-review actions. The currently deployed read-only change
 assessment behavior is therefore compatible both before and after the
 additive migration. Before a later dismissal-aware backend is deployed, the
 target database migration history must be verified at or beyond
-`20260830045718_AddCommitmentChangeDismissals`. A frontend flag is not a
+`20260830053939_AddCommitmentChangeDismissals`. A frontend flag is not a
 substitute for that backend/schema gate.
 
 Production rollback is not automatic. Application rollback does not remove

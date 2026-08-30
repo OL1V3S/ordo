@@ -184,7 +184,10 @@ public sealed class PostgreSqlFinancialApiTests
             "FK_CommitmentChangeDismissals_AspNetUsers_OwnerId"));
         Assert.Contains("ON DELETE CASCADE", await ReadConstraintDefinitionAsync(
             context,
-            "FK_CommitmentChangeDismissals_Commitments_CommitmentId"));
+            "FK_CommitmentChangeDismissals_Commitments_CommitmentId_OwnerId"));
+        Assert.Equal("UNIQUE (\"Id\", \"OwnerId\")", await ReadConstraintDefinitionAsync(
+            context,
+            "AK_Commitments_Id_OwnerId"));
         var changeDismissalLookupIndex = await ReadIndexDefinitionAsync(
             context,
             "IX_CommitmentChangeDismissals_Owner_Commitment");
@@ -325,6 +328,17 @@ public sealed class PostgreSqlFinancialApiTests
         await InsertAsync(owner.Id, first.Id, "commitment-change-v1", "Timing", fingerprint);
         await InsertAsync(owner.Id, second.Id, "commitment-change-v1", "Missing", fingerprint);
         await InsertAsync(other.Id, otherCommitment.Id, "commitment-change-v1", "Amount", fingerprint);
+
+        var crossOwner = await Assert.ThrowsAsync<PostgresException>(() => InsertAsync(
+            owner.Id,
+            otherCommitment.Id,
+            "commitment-change-v1",
+            "Amount",
+            Enumerable.Repeat((byte)2, 32).ToArray()));
+        Assert.Equal(PostgresErrorCodes.ForeignKeyViolation, crossOwner.SqlState);
+        Assert.Equal(
+            "FK_CommitmentChangeDismissals_Commitments_CommitmentId_OwnerId",
+            crossOwner.ConstraintName);
 
         var malformedRows = new[]
         {

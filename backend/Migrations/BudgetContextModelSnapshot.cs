@@ -196,6 +196,9 @@ namespace backend.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasAlternateKey("Id", "OwnerId")
+                        .HasName("AK_Commitments_Id_OwnerId");
+
                     b.HasIndex("OwnerId", "OriginEvidenceFingerprint")
                         .IsUnique()
                         .HasDatabaseName("UX_Commitments_Owner_OriginFingerprint")
@@ -296,7 +299,7 @@ namespace backend.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CommitmentId");
+                    b.HasIndex("CommitmentId", "OwnerId");
 
                     b.HasIndex("OwnerId", "CommitmentId")
                         .HasDatabaseName("IX_CommitmentChangeDismissals_Owner_Commitment");
@@ -739,15 +742,16 @@ namespace backend.Migrations
 
             modelBuilder.Entity("BudgetPlanner.Models.CommitmentChangeDismissal", b =>
                 {
-                    b.HasOne("BudgetPlanner.Models.Commitment", "Commitment")
-                        .WithMany()
-                        .HasForeignKey("CommitmentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("BudgetPlanner.Models.ApplicationUser", "Owner")
                         .WithMany()
                         .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("BudgetPlanner.Models.Commitment", "Commitment")
+                        .WithMany()
+                        .HasForeignKey("CommitmentId", "OwnerId")
+                        .HasPrincipalKey("Id", "OwnerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
