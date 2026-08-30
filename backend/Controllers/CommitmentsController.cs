@@ -65,6 +65,15 @@ public sealed class CommitmentsController(ICommitmentService commitments) : Cont
             : Ok(await commitments.GetCommitmentsAsync(ownerId, cancellationToken));
     }
 
+    [HttpGet("commitment-changes")]
+    public async Task<IActionResult> GetChanges(CancellationToken cancellationToken)
+    {
+        var ownerId = OwnerId();
+        return ownerId is null
+            ? Unauthorized()
+            : Ok(await commitments.GetChangesAsync(ownerId, cancellationToken));
+    }
+
     [HttpPut("commitments/{id:guid}")]
     public async Task<IActionResult> Update(
         Guid id,

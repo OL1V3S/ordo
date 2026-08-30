@@ -40,6 +40,7 @@ builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton(new ImportPreviewProcessingOptions());
 builder.Services.AddScoped<IImportPreviewService, ImportPreviewService>();
 builder.Services.AddSingleton<ICommitmentDetector, CommitmentDetector>();
+builder.Services.AddSingleton<ICommitmentChangeDetector, CommitmentChangeDetector>();
 builder.Services.AddScoped<ICommitmentService, CommitmentService>();
 
 builder.Services

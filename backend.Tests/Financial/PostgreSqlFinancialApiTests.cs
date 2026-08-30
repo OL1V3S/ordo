@@ -458,6 +458,88 @@ public sealed class PostgreSqlFinancialApiTests
     }
 
     [PostgreSqlFact]
+    public async Task Commitment_change_read_executes_owner_scoped_relational_query_and_provenance_mapping()
+    {
+        await using var app = new PostgreSqlFinancialApiTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("postgres-commitment-change@example.com");
+        using var other = await app.CreateAuthenticatedUserAsync("postgres-commitment-change-other@example.com");
+        var utcToday = DateTime.UtcNow;
+        var currentAnchor = new DateOnly(utcToday.Year, utcToday.Month, 1);
+        foreach (var date in new[]
+                 {
+                     currentAnchor.AddMonths(-3),
+                     currentAnchor.AddMonths(-2),
+                     currentAnchor.AddMonths(-1)
+                 })
+            await app.SeedExpenseAsync(owner.Id, "membership", 10m, date, "bills");
+        var fingerprint = await ReadCandidateFingerprintAsync(owner.Client);
+        using var confirmation = await owner.Client.PostAsJsonAsync(
+            "/api/commitment-candidates/confirm",
+            new
+            {
+                fingerprint,
+                name = "Membership display",
+                category = "custom display",
+                cadence = "monthly",
+                timingKind = "dayOfMonth",
+                expectedDayOfWeek = (string?)null,
+                expectedDay = 1,
+                expectedMonth = (int?)null,
+                windowBeforeDays = 0,
+                windowAfterDays = 0,
+                amountMode = "fixed",
+                expectedAmount = 10m,
+                expectedMinimumAmount = (decimal?)null,
+                expectedMaximumAmount = (decimal?)null
+            });
+        Assert.Equal(HttpStatusCode.Created, confirmation.StatusCode);
+        var observed = await app.SeedExpenseAsync(owner.Id, "membership", 12m, currentAnchor, "bills");
+        await app.SeedExpenseAsync(other.Id, "RELATIONAL SECRET", 999m, currentAnchor, "private");
+
+        using (var setupScope = app.Services.CreateScope())
+        {
+            var context = setupScope.ServiceProvider.GetRequiredService<BudgetContext>();
+            var now = DateTime.UtcNow;
+            var digest = new byte[32];
+            BitConverter.GetBytes(observed.Id).CopyTo(digest, 0);
+            context.ImportPreviewBatches.Add(new ImportPreviewBatch
+            {
+                Id = Guid.NewGuid(),
+                OwnerId = owner.Id,
+                SourceType = "sunflower_pdf",
+                ParserRuleVersion = "commitment-change-postgresql-v1",
+                DocumentDigest = digest,
+                CreatedAt = now.AddHours(-1),
+                ExpiresAt = now.AddHours(1),
+                Lifecycle = ImportPreviewLifecycle.Confirmed,
+                ConfirmedAt = now,
+                Provenance =
+                [
+                    new ImportExpenseProvenance
+                    {
+                        SourceRowOrdinal = 1,
+                        ExpenseId = observed.Id
+                    }
+                ]
+            });
+            await context.SaveChangesAsync();
+        }
+
+        var body = await owner.Client.GetFromJsonAsync<JsonElement>("/api/commitment-changes");
+        var change = Assert.Single(body.GetProperty("changes").EnumerateArray());
+        var observation = Assert.Single(change.GetProperty("observations").EnumerateArray());
+
+        Assert.Equal("Membership display", change.GetProperty("commitment").GetProperty("name").GetString());
+        Assert.Equal("custom display", change.GetProperty("commitment").GetProperty("category").GetString());
+        Assert.Equal("membership", change.GetProperty("normalizedDescription").GetString());
+        Assert.Equal("bills", change.GetProperty("canonicalCategory").GetString());
+        Assert.Equal(observed.Id, observation.GetProperty("expenseId").GetInt32());
+        Assert.Equal("sunflower_pdf", observation.GetProperty("source").GetString());
+        Assert.Equal("isolated_outlier", change.GetProperty("amount").GetProperty("state").GetString());
+        Assert.DoesNotContain("RELATIONAL SECRET", body.ToString(), StringComparison.Ordinal);
+    }
+
+    [PostgreSqlFact]
     public async Task Concurrent_candidate_confirmations_create_one_commitment_and_return_one_retry()
     {
         await using var app = new PostgreSqlFinancialApiTestApplication();
