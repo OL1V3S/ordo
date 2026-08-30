@@ -25,6 +25,7 @@ public interface ICommitmentService
     Task<CommitmentOperation<bool>> ReconsiderAsync(string ownerId, CandidateDecisionRequest request, CancellationToken cancellationToken);
     Task<CommitmentOperation<ConfirmCommitmentResponse>> ConfirmAsync(string ownerId, ConfirmCommitmentRequest request, CancellationToken cancellationToken);
     Task<IReadOnlyList<CommitmentResponse>> GetCommitmentsAsync(string ownerId, CancellationToken cancellationToken);
+    Task<CommitmentChangesResponse> GetChangesAsync(string ownerId, CancellationToken cancellationToken);
     Task<CommitmentOperation<CommitmentResponse>> UpdateAsync(string ownerId, Guid id, UpdateCommitmentRequest request, CancellationToken cancellationToken);
     Task<CommitmentOperation<CommitmentResponse>> UpdateLifecycleAsync(string ownerId, Guid id, UpdateCommitmentLifecycleRequest request, CancellationToken cancellationToken);
 }
@@ -32,6 +33,7 @@ public interface ICommitmentService
 public sealed class CommitmentService(
     BudgetContext context,
     ICommitmentDetector detector,
+    ICommitmentChangeDetector changeDetector,
     TimeProvider clock) : ICommitmentService
 {
     public async Task<CommitmentCandidatesResponse> GetCandidatesAsync(
@@ -250,6 +252,34 @@ public sealed class CommitmentService(
         return commitments.Select(value => ToCommitmentResponse(value, importedIds)).ToArray();
     }
 
+    public async Task<CommitmentChangesResponse> GetChangesAsync(
+        string ownerId,
+        CancellationToken cancellationToken)
+    {
+        var evaluatedOn = DateOnly.FromDateTime(clock.GetUtcNow().UtcDateTime);
+        var commitments = await context.Commitments.AsNoTracking()
+            .Where(value => value.OwnerId == ownerId)
+            .Include(value => value.Occurrences)
+            .OrderBy(value => value.Id)
+            .ToListAsync(cancellationToken);
+        var expenses = await context.Expenses.AsNoTracking()
+            .Where(value => value.UserId == ownerId && value.Date <= evaluatedOn)
+            .ToListAsync(cancellationToken);
+        var expensesById = expenses.ToDictionary(value => value.Id);
+        foreach (var occurrence in commitments.SelectMany(value => value.Occurrences))
+            occurrence.Expense = expensesById.GetValueOrDefault(occurrence.ExpenseId);
+
+        var detections = changeDetector.Detect(ownerId, commitments, expenses, evaluatedOn);
+        var commitmentsById = commitments.ToDictionary(value => value.Id);
+        var importedIds = await LoadImportedExpenseIdsAsync(ownerId, cancellationToken);
+        return new CommitmentChangesResponse(
+            evaluatedOn,
+            detections.Select(detection => ToChangeResponse(
+                detection,
+                commitmentsById[detection.CommitmentId],
+                importedIds)).ToArray());
+    }
+
     public async Task<CommitmentOperation<CommitmentResponse>> UpdateAsync(
         string ownerId,
         Guid id,
@@ -314,7 +344,9 @@ public sealed class CommitmentService(
 
     private async Task<HashSet<int>> LoadImportedExpenseIdsAsync(string ownerId, CancellationToken cancellationToken) =>
         await context.ImportExpenseProvenances.AsNoTracking()
-            .Where(value => value.ExpenseId != null && value.Expense!.UserId == ownerId)
+            .Where(value => value.ExpenseId != null
+                && value.Batch!.OwnerId == ownerId
+                && value.Expense!.UserId == ownerId)
             .Select(value => value.ExpenseId!.Value)
             .ToHashSetAsync(cancellationToken);
 
@@ -401,6 +433,92 @@ public sealed class CommitmentService(
             .Where(value => value.Expense is not null)
             .OrderBy(value => value.Expense!.Date).ThenBy(value => value.ExpenseId)
             .Select(value => ToEvidenceResponse(value.Expense!, importedExpenseIds)).ToArray());
+
+    private static CommitmentChangeResponse ToChangeResponse(
+        CommitmentChangeDetection detection,
+        Commitment commitment,
+        IReadOnlySet<int> importedExpenseIds) => new(
+        new CommitmentChangeSnapshotResponse(
+            commitment.Id,
+            commitment.Name,
+            commitment.Category,
+            EnumName(commitment.Lifecycle),
+            EnumName(commitment.Cadence),
+            EnumName(commitment.TimingKind),
+            commitment.ExpectedDayOfWeek is null ? null : EnumName(commitment.ExpectedDayOfWeek.Value),
+            commitment.ExpectedDay,
+            commitment.ExpectedMonth,
+            commitment.WindowBeforeDays,
+            commitment.WindowAfterDays,
+            EnumName(commitment.AmountMode),
+            commitment.ExpectedAmount,
+            commitment.ExpectedMinimumAmount,
+            commitment.ExpectedMaximumAmount),
+        detection.AlgorithmVersion,
+        detection.IsMatchingAvailable,
+        detection.UnavailableReason is null ? null : MatchingUnavailableReasonName(detection.UnavailableReason.Value),
+        detection.NormalizedDescription,
+        detection.CanonicalCategory,
+        detection.Observations.Select(value => ToChangeObservationResponse(value, importedExpenseIds)).ToArray(),
+        new CommitmentAmountChangeResponse(
+            ChangeStateName(detection.Amount.State),
+            detection.Amount.Fingerprint,
+            detection.Amount.ProposedMode is null ? null : EnumName(detection.Amount.ProposedMode.Value),
+            detection.Amount.ProposedAmount,
+            detection.Amount.ProposedMinimumAmount,
+            detection.Amount.ProposedMaximumAmount,
+            detection.Amount.ObservedMedianAmount,
+            detection.Amount.Evidence.Select(value => value.Expense.Id).ToArray()),
+        new CommitmentTimingChangeResponse(
+            ChangeStateName(detection.Timing.State),
+            detection.Timing.Fingerprint,
+            detection.Timing.ProposedTimingKind is null ? null : EnumName(detection.Timing.ProposedTimingKind.Value),
+            detection.Timing.ProposedDayOfWeek is null ? null : EnumName(detection.Timing.ProposedDayOfWeek.Value),
+            detection.Timing.ProposedDay,
+            detection.Timing.ProposedMonth,
+            detection.Timing.ProposedWindowBeforeDays,
+            detection.Timing.ProposedWindowAfterDays,
+            detection.Timing.Evidence.Select(value => value.Expense.Id).ToArray()),
+        new CommitmentMissingResponse(
+            ChangeStateName(detection.Missing.State),
+            detection.Missing.Fingerprint,
+            detection.Missing.MissedSlotAnchors));
+
+    private static CommitmentChangeObservationResponse ToChangeObservationResponse(
+        CommitmentChangeObservation observation,
+        IReadOnlySet<int> importedExpenseIds) => new(
+        observation.Expense.Id,
+        observation.Expense.Date,
+        observation.Expense.Amount,
+        observation.Expense.Description,
+        observation.Expense.Category,
+        importedExpenseIds.Contains(observation.Expense.Id) ? "sunflower_pdf" : "manual",
+        observation.SlotAnchor,
+        observation.TimingOffsetDays,
+        observation.IsWithinTimingWindow);
+
+    private static string EnumName<T>(T value) where T : struct, Enum =>
+        value.ToString().ToLowerInvariant();
+
+    private static string ChangeStateName(CommitmentChangeState value) => value switch
+    {
+        CommitmentChangeState.WithinExpectation => "within_expectation",
+        CommitmentChangeState.IsolatedOutlier => "isolated_outlier",
+        CommitmentChangeState.PossibleChange => "possible_change",
+        CommitmentChangeState.ProposedChange => "proposed_change",
+        CommitmentChangeState.NotSeenRecently => "not_seen_recently",
+        CommitmentChangeState.PossiblyEnded => "possibly_ended",
+        CommitmentChangeState.MatchingUnavailable => "matching_unavailable",
+        _ => throw new InvalidOperationException($"Unsupported commitment change value '{value}'.")
+    };
+
+    private static string MatchingUnavailableReasonName(CommitmentMatchingUnavailableReason value) => value switch
+    {
+        CommitmentMatchingUnavailableReason.InsufficientConfirmationEvidence => "insufficient_confirmation_evidence",
+        CommitmentMatchingUnavailableReason.InconsistentConfirmationIdentity => "inconsistent_confirmation_identity",
+        CommitmentMatchingUnavailableReason.SharedActiveIdentity => "shared_active_identity",
+        _ => throw new InvalidOperationException($"Unsupported matching-unavailable reason '{value}'.")
+    };
 
     private static CommitmentEvidenceResponse ToEvidenceResponse(Expense expense, IReadOnlySet<int> importedExpenseIds) =>
         new(expense.Id, expense.Date, expense.Amount, expense.Description, expense.Category,

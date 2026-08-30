@@ -92,8 +92,10 @@ production migration, deploy, or perform production data operations.
 ## Commitment change detection V1
 
 The approved first change-detection slice is a pure, explicitly versioned
-`commitment-change-v1` detector. It does not expose an API or UI and does not
-persist derived matches or proposals.
+`commitment-change-v1` detector. The authenticated read-only
+`GET /api/commitment-changes` endpoint evaluates it on demand for the current
+owner and returns explicit response DTOs; it does not expose a UI or persist
+derived matches or proposals.
 
 Only active, owner-scoped commitments participate. Observation identity comes
 from at least two surviving confirmation-linked Expenses that all share one
@@ -143,3 +145,14 @@ the exact assessment result. A future action boundary must recompute this
 authoritatively and reject stale decisions. A user-visible workflow remains
 blocked until accept/end, durable keep/dismiss, reconsider, and stale-conflict
 handling can ship coherently under separate approval.
+
+Each read captures one UTC calendar date and returns it as `evaluatedOn`. Every
+active-commitment result contains the exact commitment snapshot supplied to the
+detector in that invocation: display name/category, lifecycle, cadence,
+timing/window fields, and amount fields. Display name and editable category are
+presentation-only and remain distinct from the evidence-derived normalized
+description/category identity. Owner identity comes only from the authenticated
+claim, and commitments, Expenses, confirmation evidence, and import provenance
+are filtered to that owner before response mapping. Paused and ended
+commitments are not returned. Matching-unavailable cases are successful data,
+and a user with no active commitments receives a dated empty collection.
