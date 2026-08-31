@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Card from "../../../shared/ui/Card";
 import CommitmentEvidence from "./CommitmentEvidence";
 import { formatDate, formatMoney } from "../utils/formatCommitments";
@@ -87,8 +87,20 @@ function Comparison({ change, dimension, assessment }) {
 
 function ChangeActions({ change, dimension, assessment, state, kept }) {
   const [confirmingEnd, setConfirmingEnd] = useState(false);
+  const endTriggerRef = useRef(null);
+  const confirmEndRef = useRef(null);
+  const restoreEndFocus = useRef(false);
   const disabled = Boolean(state.busyKey);
   const name = change.commitment.name;
+
+  useEffect(() => {
+    if (confirmingEnd) {
+      confirmEndRef.current?.focus();
+    } else if (restoreEndFocus.current) {
+      restoreEndFocus.current = false;
+      endTriggerRef.current?.focus();
+    }
+  }, [confirmingEnd]);
 
   async function run(operation, focusId) {
     await operation();
@@ -122,6 +134,7 @@ function ChangeActions({ change, dimension, assessment, state, kept }) {
         </p>
         <div className="inline-actions">
           <button
+            ref={confirmEndRef}
             type="button"
             className="button-danger"
             disabled={disabled}
@@ -138,7 +151,10 @@ function ChangeActions({ change, dimension, assessment, state, kept }) {
             className="button-ghost"
             disabled={disabled}
             aria-label={`Cancel marking ${name} ended`}
-            onClick={() => setConfirmingEnd(false)}
+            onClick={() => {
+              restoreEndFocus.current = true;
+              setConfirmingEnd(false);
+            }}
           >
             Cancel
           </button>
@@ -191,6 +207,7 @@ function ChangeActions({ change, dimension, assessment, state, kept }) {
       </button>
       {dimension === "missing" && assessment.state === "possibly_ended" && (
         <button
+          ref={endTriggerRef}
           type="button"
           className="button-danger"
           disabled={disabled}

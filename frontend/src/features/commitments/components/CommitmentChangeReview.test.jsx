@@ -171,9 +171,17 @@ describe("commitment change review", () => {
 
     await user.click(screen.getByRole("button", { name: "Mark Insurance ended" }));
     const confirmation = screen.getByRole("group", { name: /Mark Insurance ended/ });
+    const confirmButton = within(confirmation).getByRole("button", { name: "Confirm mark Insurance ended" });
     expect(confirmation).toHaveTextContent("you can change it again");
+    expect(confirmButton).toHaveFocus();
     expect(state.markEndedFromChange).not.toHaveBeenCalled();
-    await user.click(within(confirmation).getByRole("button", { name: "Confirm mark Insurance ended" }));
+
+    await user.click(within(confirmation).getByRole("button", { name: "Cancel marking Insurance ended" }));
+    const markEndedButton = screen.getByRole("button", { name: "Mark Insurance ended" });
+    expect(markEndedButton).toHaveFocus();
+
+    await user.click(markEndedButton);
+    await user.click(screen.getByRole("button", { name: "Confirm mark Insurance ended" }));
 
     expect(state.markEndedFromChange).toHaveBeenCalledWith("commitment-2", "missing-fingerprint");
     expect(screen.getByRole("heading", { name: "Changes to review" })).toHaveFocus();
