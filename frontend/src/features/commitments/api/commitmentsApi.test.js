@@ -42,4 +42,40 @@ describe("commitment API contract", () => {
     expect(client.put).toHaveBeenCalledWith("/api/commitments/commitment-1", payload);
     expect(client.patch).toHaveBeenCalledWith("/api/commitments/commitment-1/lifecycle", { lifecycle: "paused" });
   });
+
+  it("uses exact-fingerprint commitment change endpoints without client-authored proposals", async () => {
+    await commitmentsApi.getChanges();
+    await commitmentsApi.acceptAmountChange("commitment-1", "amount-fingerprint");
+    await commitmentsApi.acceptTimingChange("commitment-1", "timing-fingerprint");
+    await commitmentsApi.markEndedFromChange("commitment-1", "missing-fingerprint");
+    await commitmentsApi.keepChange("commitment-1", "amount", "amount-fingerprint");
+    await commitmentsApi.reconsiderChange("commitment-1", "missing", "missing-fingerprint");
+
+    expect(client.get).toHaveBeenCalledWith("/api/commitment-changes");
+    expect(client.post).toHaveBeenNthCalledWith(
+      1,
+      "/api/commitment-changes/commitment-1/amount/accept",
+      { fingerprint: "amount-fingerprint" }
+    );
+    expect(client.post).toHaveBeenNthCalledWith(
+      2,
+      "/api/commitment-changes/commitment-1/timing/accept",
+      { fingerprint: "timing-fingerprint" }
+    );
+    expect(client.post).toHaveBeenNthCalledWith(
+      3,
+      "/api/commitment-changes/commitment-1/missing/mark-ended",
+      { fingerprint: "missing-fingerprint" }
+    );
+    expect(client.post).toHaveBeenNthCalledWith(
+      4,
+      "/api/commitment-changes/commitment-1/amount/keep",
+      { fingerprint: "amount-fingerprint" }
+    );
+    expect(client.post).toHaveBeenNthCalledWith(
+      5,
+      "/api/commitment-changes/commitment-1/missing/reconsider",
+      { fingerprint: "missing-fingerprint" }
+    );
+  });
 });

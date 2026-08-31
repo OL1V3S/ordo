@@ -2,6 +2,7 @@ import { useState } from "react";
 import Card from "../../../shared/ui/Card";
 import StatusMessage from "../../../shared/ui/StatusMessage";
 import CommitmentEvidence from "../components/CommitmentEvidence";
+import CommitmentChangeReview from "../components/CommitmentChangeReview";
 import CommitmentForm from "../components/CommitmentForm";
 import { useCommitments } from "../hooks/useCommitments";
 import { formatDate, formatMoney } from "../utils/formatCommitments";
@@ -170,6 +171,8 @@ export default function CommitmentsPage() {
         <button type="button" onClick={() => state.refresh()}>Try again</button>
       ) : (
         <>
+          <CommitmentChangeReview state={state} />
+
           <section className="commitment-section" aria-labelledby="candidate-heading">
             <div className="commitment-section__header">
               <div>

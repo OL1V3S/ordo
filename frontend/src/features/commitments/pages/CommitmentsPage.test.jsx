@@ -66,6 +66,9 @@ function state(overrides = {}) {
     candidates: [candidate],
     dismissedCandidates: [dismissedCandidate],
     commitments: [commitment],
+    commitmentChanges: [],
+    changeEvaluatedOn: null,
+    changeReviewEnabled: false,
     loading: false,
     loadError: null,
     actionError: null,
@@ -98,6 +101,16 @@ describe("Commitments workspace", () => {
     expect(screen.getByRole("heading", { name: "Rent" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Streaming service" })).toBeInTheDocument();
     expect(screen.queryByText(/revision/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Changes to review" })).not.toBeInTheDocument();
+  });
+
+  it("places the enabled change workflow before confirmed commitments", () => {
+    useCommitments.mockReturnValue(state({ changeReviewEnabled: true }));
+    render(<CommitmentsPage />);
+
+    const changes = screen.getByRole("heading", { name: "Changes to review" });
+    const confirmed = screen.getByRole("heading", { name: "Confirmed commitments" });
+    expect(changes.compareDocumentPosition(confirmed) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it("displays both saved timing windows for month-end proposals and commitments", () => {

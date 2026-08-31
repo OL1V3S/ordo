@@ -1,5 +1,16 @@
 # React + Vite
 
+## Commitment change review flag
+
+The complete commitment-change review workflow is guarded by
+`VITE_COMMITMENT_CHANGE_REVIEW_ENABLED`. It defaults to disabled when unset;
+the repository example value is `false`. While disabled, the frontend neither
+requests `/api/commitment-changes` nor renders the workflow.
+
+Enabling this flag in production requires the separately approved schema-first
+migration, backend deployment, and verification sequence documented in
+[`../docs/commitment-intelligence.md`](../docs/commitment-intelligence.md).
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:
