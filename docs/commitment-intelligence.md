@@ -141,10 +141,8 @@ Non-normal assessments use a SHA-256 fingerprint with an explicit domain and
 algorithm version. It serializes exact semantic baseline fields (not broad
 `UpdatedAt`, name, or display category), derived identity, ordered confirmation
 and qualified Expense IDs with evidence revisions, relevant closed slots, and
-the exact assessment result. A future action boundary must recompute this
-authoritatively and reject stale decisions. A user-visible workflow remains
-blocked until accept/end, durable keep/dismiss, reconsider, and stale-conflict
-handling can ship coherently under separate approval.
+the exact assessment result. The action boundary recomputes this
+authoritatively and rejects stale decisions.
 
 Each read captures one UTC calendar date and returns it as `evaluatedOn`. Every
 active-commitment result contains the exact commitment snapshot supplied to the
@@ -182,3 +180,36 @@ Production rollback is not automatic. Application rollback does not remove
 the table, and removing an empty or inert table requires a separately reviewed
 corrective migration. Once durable dismissal rows can exist, they must not be
 deleted by deployment tooling or an unreviewed migration rollback.
+
+### Authoritative change decisions
+
+The backend change-review slice makes the read response dismissal-aware. Each
+actionable amount, timing, or missing assessment reports `decisionState` as
+`pending` or `kept`; non-actionable assessments report no decision state. A
+row is current only when owner, commitment, detector version, dimension, and
+fingerprint all match the recomputed assessment. Old rows remain inert and are
+not pruned by reads.
+
+Authenticated action requests contain only the exact assessment fingerprint.
+The service captures one UTC time, opens a serializable relational transaction,
+reloads the same owner-scoped commitments, links, Expenses, provenance, and
+dismissals used by the read path, and invokes the detector once. It returns
+`404 commitment_not_found` for a missing or foreign commitment and
+`409 change_proposal_changed` for a missing, stale, ineligible, or concurrently
+changed assessment. Invalid fingerprints or dimensions return `400`.
+
+Amount and timing accepts require a current `proposed_change` and copy only the
+detector-proposed fields for that dimension. Timing acceptance never changes
+cadence. Mark-ended requires current `possibly_ended` missing evidence and
+changes only lifecycle. These mutations update `UpdatedAt`; an exact retry is
+stale. Keep is valid for amount/timing proposals and `not_seen_recently` or
+`possibly_ended` missing assessments, persists only the exact dismissal tuple,
+and is sequentially idempotent. Reconsider requires and deletes that same
+current exact tuple. Accept and mark-ended never create dismissals.
+
+This backend capability does not itself authorize deployment or UI exposure.
+Its artifact must not be deployed until the target database is verified at or
+beyond `20260830053939_AddCommitmentChangeDismissals`. The complete frontend
+workflow remains a separately scoped, default-off implementation slice, and
+production migration, deployment, and flag enablement require separate owner
+authorization.

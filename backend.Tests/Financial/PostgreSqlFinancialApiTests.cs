@@ -720,6 +720,52 @@ public sealed class PostgreSqlFinancialApiTests
     }
 
     [PostgreSqlFact]
+    public async Task Concurrent_change_accepts_commit_once_and_maps_the_stale_write_to_conflict()
+    {
+        await using var app = new PostgreSqlFinancialApiTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("postgres-change-accept-race@example.com");
+        var utcToday = DateTime.UtcNow;
+        var currentAnchor = new DateOnly(utcToday.Year, utcToday.Month, 1);
+        var evidence = new List<Expense>();
+        foreach (var date in new[]
+                 {
+                     currentAnchor.AddMonths(-5),
+                     currentAnchor.AddMonths(-4),
+                     currentAnchor.AddMonths(-3)
+                 })
+            evidence.Add(await app.SeedExpenseAsync(owner.Id, "membership", 10m, date, "bills"));
+        var commitmentId = await SeedChangeCommitmentAsync(app, owner.Id, evidence, expectedDay: 1);
+        foreach (var date in new[]
+                 {
+                     currentAnchor.AddMonths(-2),
+                     currentAnchor.AddMonths(-1),
+                     currentAnchor
+                 })
+            await app.SeedExpenseAsync(owner.Id, "membership", 12m, date, "bills");
+        var changes = await owner.Client.GetFromJsonAsync<JsonElement>("/api/commitment-changes");
+        var change = Assert.Single(changes.GetProperty("changes").EnumerateArray());
+        var fingerprint = change.GetProperty("amount").GetProperty("fingerprint").GetString()!;
+
+        var responses = await Task.WhenAll(
+            owner.Client.PostAsJsonAsync(
+                $"/api/commitment-changes/{commitmentId}/amount/accept", new { fingerprint }),
+            owner.Client.PostAsJsonAsync(
+                $"/api/commitment-changes/{commitmentId}/amount/accept", new { fingerprint }));
+
+        Assert.Single(responses, response => response.StatusCode == HttpStatusCode.NoContent);
+        var conflict = Assert.Single(responses, response => response.StatusCode == HttpStatusCode.Conflict);
+        Assert.Equal("change_proposal_changed",
+            (await conflict.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("code").GetString());
+        using var scope = app.Services.CreateScope();
+        var persisted = await scope.ServiceProvider.GetRequiredService<BudgetContext>()
+            .Commitments.SingleAsync(value => value.Id == commitmentId);
+        Assert.Equal(CommitmentAmountMode.Fixed, persisted.AmountMode);
+        Assert.Equal(12m, persisted.ExpectedAmount);
+        Assert.Equal(CommitmentCadence.Monthly, persisted.Cadence);
+        Assert.Equal(1, persisted.ExpectedDay);
+    }
+
+    [PostgreSqlFact]
     public async Task Concurrent_candidate_confirmations_create_one_commitment_and_return_one_retry()
     {
         await using var app = new PostgreSqlFinancialApiTestApplication();
@@ -1576,6 +1622,41 @@ public sealed class PostgreSqlFinancialApiTests
         var now = DateTime.UtcNow;
         var current = new DateOnly(now.Year, now.Month, 10);
         return [current.AddMonths(-2), current.AddMonths(-1), current];
+    }
+
+    private static async Task<Guid> SeedChangeCommitmentAsync(
+        FinancialApiTestApplicationBase app,
+        string ownerId,
+        IEnumerable<Expense> evidence,
+        int expectedDay)
+    {
+        using var scope = app.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<BudgetContext>();
+        var now = DateTime.UtcNow.AddYears(-1);
+        var commitment = new Commitment
+        {
+            Id = Guid.NewGuid(),
+            OwnerId = ownerId,
+            Name = "Membership",
+            Category = "bills",
+            Lifecycle = CommitmentLifecycle.Active,
+            Cadence = CommitmentCadence.Monthly,
+            TimingKind = CommitmentTimingKind.DayOfMonth,
+            ExpectedDay = expectedDay,
+            AmountMode = CommitmentAmountMode.Fixed,
+            ExpectedAmount = 10m,
+            CreatedAt = now,
+            UpdatedAt = now,
+            Occurrences = evidence.Select(expense => new CommitmentOccurrence
+            {
+                ExpenseId = expense.Id,
+                Kind = CommitmentOccurrenceKind.ConfirmationEvidence,
+                LinkedAt = now
+            }).ToList()
+        };
+        context.Commitments.Add(commitment);
+        await context.SaveChangesAsync();
+        return commitment.Id;
     }
 
     private static async Task<string> ReadCandidateFingerprintAsync(HttpClient client)

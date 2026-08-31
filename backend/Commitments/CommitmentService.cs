@@ -26,6 +26,18 @@ public interface ICommitmentService
     Task<CommitmentOperation<ConfirmCommitmentResponse>> ConfirmAsync(string ownerId, ConfirmCommitmentRequest request, CancellationToken cancellationToken);
     Task<IReadOnlyList<CommitmentResponse>> GetCommitmentsAsync(string ownerId, CancellationToken cancellationToken);
     Task<CommitmentChangesResponse> GetChangesAsync(string ownerId, CancellationToken cancellationToken);
+    Task<CommitmentOperation<bool>> AcceptAmountChangeAsync(
+        string ownerId, Guid commitmentId, CommitmentChangeDecisionRequest request, CancellationToken cancellationToken);
+    Task<CommitmentOperation<bool>> AcceptTimingChangeAsync(
+        string ownerId, Guid commitmentId, CommitmentChangeDecisionRequest request, CancellationToken cancellationToken);
+    Task<CommitmentOperation<bool>> MarkEndedFromChangeAsync(
+        string ownerId, Guid commitmentId, CommitmentChangeDecisionRequest request, CancellationToken cancellationToken);
+    Task<CommitmentOperation<bool>> KeepChangeAsync(
+        string ownerId, Guid commitmentId, string? dimension,
+        CommitmentChangeDecisionRequest request, CancellationToken cancellationToken);
+    Task<CommitmentOperation<bool>> ReconsiderChangeAsync(
+        string ownerId, Guid commitmentId, string? dimension,
+        CommitmentChangeDecisionRequest request, CancellationToken cancellationToken);
     Task<CommitmentOperation<CommitmentResponse>> UpdateAsync(string ownerId, Guid id, UpdateCommitmentRequest request, CancellationToken cancellationToken);
     Task<CommitmentOperation<CommitmentResponse>> UpdateLifecycleAsync(string ownerId, Guid id, UpdateCommitmentLifecycleRequest request, CancellationToken cancellationToken);
 }
@@ -257,27 +269,144 @@ public sealed class CommitmentService(
         CancellationToken cancellationToken)
     {
         var evaluatedOn = DateOnly.FromDateTime(clock.GetUtcNow().UtcDateTime);
-        var commitments = await context.Commitments.AsNoTracking()
-            .Where(value => value.OwnerId == ownerId)
-            .Include(value => value.Occurrences)
-            .OrderBy(value => value.Id)
-            .ToListAsync(cancellationToken);
-        var expenses = await context.Expenses.AsNoTracking()
-            .Where(value => value.UserId == ownerId && value.Date <= evaluatedOn)
-            .ToListAsync(cancellationToken);
-        var expensesById = expenses.ToDictionary(value => value.Id);
-        foreach (var occurrence in commitments.SelectMany(value => value.Occurrences))
-            occurrence.Expense = expensesById.GetValueOrDefault(occurrence.ExpenseId);
-
-        var detections = changeDetector.Detect(ownerId, commitments, expenses, evaluatedOn);
-        var commitmentsById = commitments.ToDictionary(value => value.Id);
-        var importedIds = await LoadImportedExpenseIdsAsync(ownerId, cancellationToken);
+        var state = await LoadChangeStateAsync(ownerId, evaluatedOn, cancellationToken);
+        var commitmentsById = state.Commitments.ToDictionary(value => value.Id);
         return new CommitmentChangesResponse(
             evaluatedOn,
-            detections.Select(detection => ToChangeResponse(
+            state.Detections.Select(detection => ToChangeResponse(
                 detection,
                 commitmentsById[detection.CommitmentId],
-                importedIds)).ToArray());
+                state.ImportedExpenseIds,
+                state.Dismissals)).ToArray());
+    }
+
+    public Task<CommitmentOperation<bool>> AcceptAmountChangeAsync(
+        string ownerId,
+        Guid commitmentId,
+        CommitmentChangeDecisionRequest request,
+        CancellationToken cancellationToken) =>
+        ApplyChangeDecisionAsync(ownerId, commitmentId, CommitmentChangeDimension.Amount,
+            ChangeDecisionAction.Accept, request, cancellationToken);
+
+    public Task<CommitmentOperation<bool>> AcceptTimingChangeAsync(
+        string ownerId,
+        Guid commitmentId,
+        CommitmentChangeDecisionRequest request,
+        CancellationToken cancellationToken) =>
+        ApplyChangeDecisionAsync(ownerId, commitmentId, CommitmentChangeDimension.Timing,
+            ChangeDecisionAction.Accept, request, cancellationToken);
+
+    public Task<CommitmentOperation<bool>> MarkEndedFromChangeAsync(
+        string ownerId,
+        Guid commitmentId,
+        CommitmentChangeDecisionRequest request,
+        CancellationToken cancellationToken) =>
+        ApplyChangeDecisionAsync(ownerId, commitmentId, CommitmentChangeDimension.Missing,
+            ChangeDecisionAction.MarkEnded, request, cancellationToken);
+
+    public Task<CommitmentOperation<bool>> KeepChangeAsync(
+        string ownerId,
+        Guid commitmentId,
+        string? dimension,
+        CommitmentChangeDecisionRequest request,
+        CancellationToken cancellationToken) =>
+        TryParseChangeDimension(dimension, out var parsed)
+            ? ApplyChangeDecisionAsync(ownerId, commitmentId, parsed, ChangeDecisionAction.Keep, request, cancellationToken)
+            : Task.FromResult(InvalidChangeDimension());
+
+    public Task<CommitmentOperation<bool>> ReconsiderChangeAsync(
+        string ownerId,
+        Guid commitmentId,
+        string? dimension,
+        CommitmentChangeDecisionRequest request,
+        CancellationToken cancellationToken) =>
+        TryParseChangeDimension(dimension, out var parsed)
+            ? ApplyChangeDecisionAsync(ownerId, commitmentId, parsed, ChangeDecisionAction.Reconsider, request, cancellationToken)
+            : Task.FromResult(InvalidChangeDimension());
+
+    private async Task<CommitmentOperation<bool>> ApplyChangeDecisionAsync(
+        string ownerId,
+        Guid commitmentId,
+        CommitmentChangeDimension dimension,
+        ChangeDecisionAction action,
+        CommitmentChangeDecisionRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!TryParseFingerprint(request.Fingerprint, out var fingerprint))
+            return InvalidChangeFingerprint();
+
+        await using var transaction = await BeginSerializableTransactionAsync(cancellationToken);
+        try
+        {
+            var now = clock.GetUtcNow().UtcDateTime;
+            var evaluatedOn = DateOnly.FromDateTime(now);
+            var state = await LoadChangeStateAsync(ownerId, evaluatedOn, cancellationToken);
+            if (state.Commitments.All(value => value.Id != commitmentId))
+            {
+                await RollbackAsync(transaction);
+                return NotFound<bool>();
+            }
+
+            var detection = state.Detections.SingleOrDefault(value => value.CommitmentId == commitmentId);
+            if (detection is null
+                || !IsEligible(detection, dimension, action)
+                || !CurrentFingerprintMatches(detection, dimension, fingerprint))
+            {
+                await RollbackAsync(transaction);
+                return ChangeProposalChanged();
+            }
+
+            var dismissal = state.Dismissals.SingleOrDefault(value =>
+                value.CommitmentId == commitmentId
+                && value.AlgorithmVersion == detection.AlgorithmVersion
+                && value.Dimension == dimension
+                && FingerprintsEqual(value.EvidenceFingerprint, fingerprint));
+
+            if (action == ChangeDecisionAction.Keep)
+            {
+                if (dismissal is null)
+                {
+                    context.CommitmentChangeDismissals.Add(new CommitmentChangeDismissal
+                    {
+                        Id = Guid.NewGuid(),
+                        OwnerId = ownerId,
+                        CommitmentId = commitmentId,
+                        AlgorithmVersion = detection.AlgorithmVersion,
+                        Dimension = dimension,
+                        EvidenceFingerprint = fingerprint,
+                        DismissedAt = now
+                    });
+                    await context.SaveChangesAsync(cancellationToken);
+                }
+            }
+            else if (action == ChangeDecisionAction.Reconsider)
+            {
+                if (dismissal is null)
+                {
+                    await RollbackAsync(transaction);
+                    return ChangeProposalChanged();
+                }
+                context.CommitmentChangeDismissals.Remove(dismissal);
+                await context.SaveChangesAsync(cancellationToken);
+            }
+            else
+            {
+                var commitment = await context.Commitments.SingleAsync(value =>
+                    value.Id == commitmentId && value.OwnerId == ownerId, cancellationToken);
+                ApplyAcceptedChange(commitment, detection, dimension, action);
+                commitment.UpdatedAt = now;
+                await context.SaveChangesAsync(cancellationToken);
+            }
+
+            await CommitAsync(transaction, cancellationToken);
+            return CommitmentOperation<bool>.Success(true);
+        }
+        catch (Exception exception) when (IsConcurrencyConflict(exception))
+        {
+            await RollbackAsync(transaction);
+            context.ChangeTracker.Clear();
+            return ChangeProposalChanged();
+        }
     }
 
     public async Task<CommitmentOperation<CommitmentResponse>> UpdateAsync(
@@ -339,6 +468,32 @@ public sealed class CommitmentService(
             detected,
             linked,
             dismissals,
+            await LoadImportedExpenseIdsAsync(ownerId, cancellationToken));
+    }
+
+    private async Task<ChangeState> LoadChangeStateAsync(
+        string ownerId,
+        DateOnly evaluatedOn,
+        CancellationToken cancellationToken)
+    {
+        var commitments = await context.Commitments.AsNoTracking()
+            .Where(value => value.OwnerId == ownerId)
+            .Include(value => value.Occurrences)
+            .OrderBy(value => value.Id)
+            .ToListAsync(cancellationToken);
+        var expenses = await context.Expenses.AsNoTracking()
+            .Where(value => value.UserId == ownerId && value.Date <= evaluatedOn)
+            .ToListAsync(cancellationToken);
+        var expensesById = expenses.ToDictionary(value => value.Id);
+        foreach (var occurrence in commitments.SelectMany(value => value.Occurrences))
+            occurrence.Expense = expensesById.GetValueOrDefault(occurrence.ExpenseId);
+
+        return new ChangeState(
+            commitments,
+            changeDetector.Detect(ownerId, commitments, expenses, evaluatedOn),
+            await context.CommitmentChangeDismissals.AsNoTracking()
+                .Where(value => value.OwnerId == ownerId)
+                .ToListAsync(cancellationToken),
             await LoadImportedExpenseIdsAsync(ownerId, cancellationToken));
     }
 
@@ -437,7 +592,8 @@ public sealed class CommitmentService(
     private static CommitmentChangeResponse ToChangeResponse(
         CommitmentChangeDetection detection,
         Commitment commitment,
-        IReadOnlySet<int> importedExpenseIds) => new(
+        IReadOnlySet<int> importedExpenseIds,
+        IReadOnlyList<CommitmentChangeDismissal> dismissals) => new(
         new CommitmentChangeSnapshotResponse(
             commitment.Id,
             commitment.Name,
@@ -463,6 +619,7 @@ public sealed class CommitmentService(
         new CommitmentAmountChangeResponse(
             ChangeStateName(detection.Amount.State),
             detection.Amount.Fingerprint,
+            DecisionState(detection, CommitmentChangeDimension.Amount, detection.Amount.Fingerprint, dismissals),
             detection.Amount.ProposedMode is null ? null : EnumName(detection.Amount.ProposedMode.Value),
             detection.Amount.ProposedAmount,
             detection.Amount.ProposedMinimumAmount,
@@ -472,6 +629,7 @@ public sealed class CommitmentService(
         new CommitmentTimingChangeResponse(
             ChangeStateName(detection.Timing.State),
             detection.Timing.Fingerprint,
+            DecisionState(detection, CommitmentChangeDimension.Timing, detection.Timing.Fingerprint, dismissals),
             detection.Timing.ProposedTimingKind is null ? null : EnumName(detection.Timing.ProposedTimingKind.Value),
             detection.Timing.ProposedDayOfWeek is null ? null : EnumName(detection.Timing.ProposedDayOfWeek.Value),
             detection.Timing.ProposedDay,
@@ -482,7 +640,106 @@ public sealed class CommitmentService(
         new CommitmentMissingResponse(
             ChangeStateName(detection.Missing.State),
             detection.Missing.Fingerprint,
+            DecisionState(detection, CommitmentChangeDimension.Missing, detection.Missing.Fingerprint, dismissals),
             detection.Missing.MissedSlotAnchors));
+
+    private static string? DecisionState(
+        CommitmentChangeDetection detection,
+        CommitmentChangeDimension dimension,
+        string? fingerprintText,
+        IReadOnlyList<CommitmentChangeDismissal> dismissals)
+    {
+        if (!IsEligible(detection, dimension, ChangeDecisionAction.Keep)
+            || !TryParseFingerprint(fingerprintText, out var fingerprint))
+            return null;
+
+        return dismissals.Any(value =>
+            value.CommitmentId == detection.CommitmentId
+            && value.AlgorithmVersion == detection.AlgorithmVersion
+            && value.Dimension == dimension
+            && FingerprintsEqual(value.EvidenceFingerprint, fingerprint))
+            ? "kept"
+            : "pending";
+    }
+
+    private static bool IsEligible(
+        CommitmentChangeDetection detection,
+        CommitmentChangeDimension dimension,
+        ChangeDecisionAction action) => dimension switch
+        {
+            CommitmentChangeDimension.Amount =>
+                action != ChangeDecisionAction.MarkEnded
+                && detection.Amount.State == CommitmentChangeState.ProposedChange,
+            CommitmentChangeDimension.Timing =>
+                action != ChangeDecisionAction.MarkEnded
+                && detection.Timing.State == CommitmentChangeState.ProposedChange,
+            CommitmentChangeDimension.Missing when action == ChangeDecisionAction.MarkEnded =>
+                detection.Missing.State == CommitmentChangeState.PossiblyEnded,
+            CommitmentChangeDimension.Missing when action is ChangeDecisionAction.Keep or ChangeDecisionAction.Reconsider =>
+                detection.Missing.State is CommitmentChangeState.NotSeenRecently or CommitmentChangeState.PossiblyEnded,
+            _ => false
+        };
+
+    private static bool CurrentFingerprintMatches(
+        CommitmentChangeDetection detection,
+        CommitmentChangeDimension dimension,
+        byte[] fingerprint)
+    {
+        var current = dimension switch
+        {
+            CommitmentChangeDimension.Amount => detection.Amount.Fingerprint,
+            CommitmentChangeDimension.Timing => detection.Timing.Fingerprint,
+            CommitmentChangeDimension.Missing => detection.Missing.Fingerprint,
+            _ => null
+        };
+        return TryParseFingerprint(current, out var currentFingerprint)
+            && FingerprintsEqual(currentFingerprint, fingerprint);
+    }
+
+    private static void ApplyAcceptedChange(
+        Commitment commitment,
+        CommitmentChangeDetection detection,
+        CommitmentChangeDimension dimension,
+        ChangeDecisionAction action)
+    {
+        if (action == ChangeDecisionAction.MarkEnded)
+        {
+            commitment.Lifecycle = CommitmentLifecycle.Ended;
+            return;
+        }
+
+        if (dimension == CommitmentChangeDimension.Amount)
+        {
+            commitment.AmountMode = detection.Amount.ProposedMode
+                ?? throw new InvalidOperationException("An eligible amount proposal must have an amount mode.");
+            commitment.ExpectedAmount = detection.Amount.ProposedAmount;
+            commitment.ExpectedMinimumAmount = detection.Amount.ProposedMinimumAmount;
+            commitment.ExpectedMaximumAmount = detection.Amount.ProposedMaximumAmount;
+            return;
+        }
+
+        if (dimension == CommitmentChangeDimension.Timing)
+        {
+            commitment.TimingKind = detection.Timing.ProposedTimingKind
+                ?? throw new InvalidOperationException("An eligible timing proposal must have a timing kind.");
+            commitment.ExpectedDayOfWeek = detection.Timing.ProposedDayOfWeek;
+            commitment.ExpectedDay = detection.Timing.ProposedDay;
+            commitment.ExpectedMonth = detection.Timing.ProposedMonth;
+            commitment.WindowBeforeDays = detection.Timing.ProposedWindowBeforeDays
+                ?? throw new InvalidOperationException("An eligible timing proposal must have a before window.");
+            commitment.WindowAfterDays = detection.Timing.ProposedWindowAfterDays
+                ?? throw new InvalidOperationException("An eligible timing proposal must have an after window.");
+        }
+    }
+
+    private static bool TryParseChangeDimension(string? value, out CommitmentChangeDimension dimension)
+    {
+        dimension = default;
+        return value is not null
+            && Enum.GetNames<CommitmentChangeDimension>()
+                .Any(name => name.Equals(value, StringComparison.OrdinalIgnoreCase))
+            && Enum.TryParse(value, true, out dimension);
+    }
 
     private static CommitmentChangeObservationResponse ToChangeObservationResponse(
         CommitmentChangeObservation observation,
@@ -671,7 +928,8 @@ public sealed class CommitmentService(
     private static bool FingerprintsEqual(byte[] left, byte[] right) =>
         left.Length == right.Length && CryptographicOperations.FixedTimeEquals(left, right);
     private static bool IsConcurrencyConflict(Exception exception) =>
-        FindPostgresException(exception)?.SqlState is
+        exception is DbUpdateConcurrencyException
+        || FindPostgresException(exception)?.SqlState is
             PostgresErrorCodes.UniqueViolation or PostgresErrorCodes.SerializationFailure;
 
     private static PostgresException? FindPostgresException(Exception? exception)
@@ -690,6 +948,14 @@ public sealed class CommitmentService(
         CommitmentOperation<T>.Failure("candidate_changed", "The candidate changed or is no longer available.");
     private static CommitmentOperation<T> NotFound<T>() =>
         CommitmentOperation<T>.Failure("commitment_not_found", "Commitment was not found.");
+    private static CommitmentOperation<bool> InvalidChangeFingerprint() =>
+        CommitmentOperation<bool>.Failure("fingerprint_invalid", "Change proposal fingerprint is invalid.");
+    private static CommitmentOperation<bool> InvalidChangeDimension() =>
+        CommitmentOperation<bool>.Failure("dimension_invalid", "Dimension must be amount, timing, or missing.");
+    private static CommitmentOperation<bool> ChangeProposalChanged() =>
+        CommitmentOperation<bool>.Failure(
+            "change_proposal_changed",
+            "The change proposal changed or is no longer available.");
     private static CommitmentOperation<Expectation> InvalidExpectation(string code, string message) =>
         CommitmentOperation<Expectation>.Failure(code, message);
 
@@ -698,6 +964,20 @@ public sealed class CommitmentService(
         HashSet<int> LinkedExpenseIds,
         IReadOnlyList<CommitmentCandidateDismissal> Dismissals,
         HashSet<int> ImportedExpenseIds);
+
+    private sealed record ChangeState(
+        IReadOnlyList<Commitment> Commitments,
+        IReadOnlyList<CommitmentChangeDetection> Detections,
+        IReadOnlyList<CommitmentChangeDismissal> Dismissals,
+        HashSet<int> ImportedExpenseIds);
+
+    private enum ChangeDecisionAction
+    {
+        Accept,
+        MarkEnded,
+        Keep,
+        Reconsider
+    }
 
     private sealed record Expectation(
         string Name,
