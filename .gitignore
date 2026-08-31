@@ -39,6 +39,7 @@ frontend/.env
 frontend/.env.local
 frontend/.env.*.local
 frontend/.env.*
+!frontend/.env.example
 
 # npm logs
 frontend/npm-debug.log*
