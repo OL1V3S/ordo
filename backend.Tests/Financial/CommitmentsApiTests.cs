@@ -24,6 +24,16 @@ public sealed class CommitmentsApiTests
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/commitment-changes")).StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized,
             (await client.PostAsJsonAsync("/api/commitment-candidates/dismiss", new { fingerprint = new string('0', 64) })).StatusCode);
+        foreach (var path in new[]
+        {
+            $"/api/commitment-changes/{Guid.NewGuid()}/amount/accept",
+            $"/api/commitment-changes/{Guid.NewGuid()}/timing/accept",
+            $"/api/commitment-changes/{Guid.NewGuid()}/missing/mark-ended",
+            $"/api/commitment-changes/{Guid.NewGuid()}/amount/keep",
+            $"/api/commitment-changes/{Guid.NewGuid()}/amount/reconsider"
+        })
+            Assert.Equal(HttpStatusCode.Unauthorized,
+                (await client.PostAsJsonAsync(path, new { fingerprint = new string('0', 64) })).StatusCode);
     }
 
     [Fact]
@@ -110,6 +120,7 @@ public sealed class CommitmentsApiTests
         Assert.All(emitted.Skip(1), value => Assert.Equal("manual", value.GetProperty("source").GetString()));
         var amount = changed.GetProperty("amount");
         Assert.Equal("proposed_change", amount.GetProperty("state").GetString());
+        Assert.Equal("pending", amount.GetProperty("decisionState").GetString());
         Assert.Equal("fixed", amount.GetProperty("proposedMode").GetString());
         Assert.Equal(12m, amount.GetProperty("proposedAmount").GetDecimal());
         Assert.Equal(JsonValueKind.Null, amount.GetProperty("proposedMinimumAmount").ValueKind);
@@ -120,6 +131,7 @@ public sealed class CommitmentsApiTests
             amount.GetProperty("evidenceExpenseIds").EnumerateArray().Select(value => value.GetInt32()));
         var timing = changed.GetProperty("timing");
         Assert.Equal("proposed_change", timing.GetProperty("state").GetString());
+        Assert.Equal("pending", timing.GetProperty("decisionState").GetString());
         Assert.Equal("dayofmonth", timing.GetProperty("proposedTimingKind").GetString());
         Assert.Equal(12, timing.GetProperty("proposedDay").GetInt32());
         Assert.Equal(0, timing.GetProperty("proposedWindowBeforeDays").GetInt32());
@@ -130,6 +142,7 @@ public sealed class CommitmentsApiTests
 
         var missing = changes[missingId].GetProperty("missing");
         Assert.Equal("possibly_ended", missing.GetProperty("state").GetString());
+        Assert.Equal("pending", missing.GetProperty("decisionState").GetString());
         Assert.Equal(3, missing.GetProperty("missedSlotAnchors").GetArrayLength());
         Assert.Equal(
             new[] { "2026-08-20", "2026-09-20", "2026-10-20" },
@@ -285,6 +298,404 @@ public sealed class CommitmentsApiTests
 
         Assert.Equal("2026-08-29", body.GetProperty("evaluatedOn").GetString());
         Assert.Empty(body.GetProperty("changes").EnumerateArray());
+    }
+
+    [Fact]
+    public async Task Keep_and_reconsider_are_exact_idempotent_owner_scoped_decisions()
+    {
+        var clock = new FixedCommitmentTimeProvider(new DateTimeOffset(2026, 10, 29, 18, 0, 0, TimeSpan.Zero));
+        await using var app = new ClockedCommitmentFinancialApiTestApplication(clock);
+        using var owner = await app.CreateAuthenticatedUserAsync("keep-change-owner@example.com");
+        using var other = await app.CreateAuthenticatedUserAsync("keep-change-other@example.com");
+        var evidence = new[]
+        {
+            await app.SeedExpenseAsync(owner.Id, "membership", 10m, new DateOnly(2026, 5, 10), "bills"),
+            await app.SeedExpenseAsync(owner.Id, "membership", 10m, new DateOnly(2026, 6, 10), "bills"),
+            await app.SeedExpenseAsync(owner.Id, "membership", 10m, new DateOnly(2026, 7, 10), "bills")
+        };
+        var commitmentId = await SeedCommitmentAsync(app, owner.Id, evidence);
+        foreach (var date in new[] { new DateOnly(2026, 8, 10), new DateOnly(2026, 9, 10), new DateOnly(2026, 10, 10) })
+            await app.SeedExpenseAsync(owner.Id, "membership", 12m, date, "bills");
+        var amount = ChangeFor(await GetChangesAsync(owner.Client), commitmentId).GetProperty("amount");
+        var fingerprint = amount.GetProperty("fingerprint").GetString()!;
+
+        foreach (var path in new[]
+        {
+            $"/api/commitment-changes/{commitmentId}/amount/accept",
+            $"/api/commitment-changes/{commitmentId}/timing/accept",
+            $"/api/commitment-changes/{commitmentId}/missing/mark-ended",
+            $"/api/commitment-changes/{commitmentId}/amount/keep",
+            $"/api/commitment-changes/{commitmentId}/amount/reconsider"
+        })
+            Assert.Equal(HttpStatusCode.NotFound,
+                (await other.Client.PostAsJsonAsync(path, new { fingerprint })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest,
+            (await owner.Client.PostAsJsonAsync(
+                $"/api/commitment-changes/{commitmentId}/unknown/keep", new { fingerprint })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest,
+            (await owner.Client.PostAsJsonAsync(
+                $"/api/commitment-changes/{commitmentId}/amount/keep", new { fingerprint = "invalid" })).StatusCode);
+
+        Assert.Equal(HttpStatusCode.NoContent,
+            (await owner.Client.PostAsJsonAsync(
+                $"/api/commitment-changes/{commitmentId}/amount/keep", new { fingerprint })).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent,
+            (await owner.Client.PostAsJsonAsync(
+                $"/api/commitment-changes/{commitmentId}/amount/keep", new { fingerprint })).StatusCode);
+        var kept = ChangeFor(await GetChangesAsync(owner.Client), commitmentId);
+        Assert.Equal("kept", kept.GetProperty("amount").GetProperty("decisionState").GetString());
+        Assert.Equal(JsonValueKind.Null, kept.GetProperty("timing").GetProperty("decisionState").ValueKind);
+
+        Assert.Equal(HttpStatusCode.Conflict,
+            (await owner.Client.PostAsJsonAsync(
+                $"/api/commitment-changes/{commitmentId}/amount/reconsider",
+                new { fingerprint = new string('f', 64) })).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent,
+            (await owner.Client.PostAsJsonAsync(
+                $"/api/commitment-changes/{commitmentId}/amount/reconsider", new { fingerprint })).StatusCode);
+        Assert.Equal("pending", ChangeFor(await GetChangesAsync(owner.Client), commitmentId)
+            .GetProperty("amount").GetProperty("decisionState").GetString());
+        Assert.Equal(HttpStatusCode.Conflict,
+            (await owner.Client.PostAsJsonAsync(
+                $"/api/commitment-changes/{commitmentId}/amount/reconsider", new { fingerprint })).StatusCode);
+
+        using var scope = app.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<BudgetContext>();
+        Assert.Empty(await context.CommitmentChangeDismissals.ToListAsync());
+    }
+
+    [Fact]
+    public async Task Changed_evidence_resurfaces_a_kept_assessment_and_leaves_the_old_record_inert()
+    {
+        var clock = new FixedCommitmentTimeProvider(new DateTimeOffset(2026, 10, 29, 18, 0, 0, TimeSpan.Zero));
+        await using var app = new ClockedCommitmentFinancialApiTestApplication(clock);
+        using var owner = await app.CreateAuthenticatedUserAsync("resurface-change@example.com");
+        var evidence = new[]
+        {
+            await app.SeedExpenseAsync(owner.Id, "membership", 10m, new DateOnly(2026, 5, 10), "bills"),
+            await app.SeedExpenseAsync(owner.Id, "membership", 10m, new DateOnly(2026, 6, 10), "bills"),
+            await app.SeedExpenseAsync(owner.Id, "membership", 10m, new DateOnly(2026, 7, 10), "bills")
+        };
+        var commitmentId = await SeedCommitmentAsync(app, owner.Id, evidence);
+        var observations = new List<Expense>();
+        foreach (var date in new[] { new DateOnly(2026, 8, 10), new DateOnly(2026, 9, 10), new DateOnly(2026, 10, 10) })
+            observations.Add(await app.SeedExpenseAsync(owner.Id, "membership", 12m, date, "bills"));
+        var originalFingerprint = ChangeFor(await GetChangesAsync(owner.Client), commitmentId)
+            .GetProperty("amount").GetProperty("fingerprint").GetString()!;
+        Assert.Equal(HttpStatusCode.NoContent,
+            (await owner.Client.PostAsJsonAsync(
+                $"/api/commitment-changes/{commitmentId}/amount/keep",
+                new { fingerprint = originalFingerprint })).StatusCode);
+
+        using (var update = await owner.Client.PutAsJsonAsync($"/api/expenses/{observations[^1].Id}", new
+        {
+            id = observations[^1].Id,
+            description = observations[^1].Description,
+            amount = 13m,
+            date = observations[^1].Date.ToString("yyyy-MM-dd"),
+            category = observations[^1].Category
+        }))
+            update.EnsureSuccessStatusCode();
+        var current = ChangeFor(await GetChangesAsync(owner.Client), commitmentId).GetProperty("amount");
+
+        Assert.NotEqual(originalFingerprint, current.GetProperty("fingerprint").GetString());
+        Assert.Equal("pending", current.GetProperty("decisionState").GetString());
+        Assert.Equal(HttpStatusCode.Conflict,
+            (await owner.Client.PostAsJsonAsync(
+                $"/api/commitment-changes/{commitmentId}/amount/reconsider",
+                new { fingerprint = originalFingerprint })).StatusCode);
+        using var scope = app.Services.CreateScope();
+        var dismissal = Assert.Single(await scope.ServiceProvider.GetRequiredService<BudgetContext>()
+            .CommitmentChangeDismissals.AsNoTracking().ToListAsync());
+        Assert.Equal(Convert.FromHexString(originalFingerprint), dismissal.EvidenceFingerprint);
+    }
+
+    [Fact]
+    public async Task Accept_amount_and_timing_recompute_and_mutate_only_the_selected_baseline()
+    {
+        var clock = new FixedCommitmentTimeProvider(new DateTimeOffset(2026, 10, 29, 18, 0, 0, TimeSpan.Zero));
+        await using var app = new ClockedCommitmentFinancialApiTestApplication(clock);
+        using var owner = await app.CreateAuthenticatedUserAsync("accept-change@example.com");
+        var evidence = new[]
+        {
+            await app.SeedExpenseAsync(owner.Id, "membership", 10m, new DateOnly(2026, 5, 10), "bills"),
+            await app.SeedExpenseAsync(owner.Id, "membership", 10m, new DateOnly(2026, 6, 10), "bills"),
+            await app.SeedExpenseAsync(owner.Id, "membership", 10m, new DateOnly(2026, 7, 10), "bills")
+        };
+        var commitmentId = await SeedCommitmentAsync(
+            app, owner.Id, evidence, name: "Custom name", category: "custom category");
+        foreach (var date in new[] { new DateOnly(2026, 8, 12), new DateOnly(2026, 9, 12), new DateOnly(2026, 10, 12) })
+            await app.SeedExpenseAsync(owner.Id, "membership", 12m, date, "bills");
+        var initial = ChangeFor(await GetChangesAsync(owner.Client), commitmentId);
+        var amountFingerprint = initial.GetProperty("amount").GetProperty("fingerprint").GetString()!;
+        var initialTimingFingerprint = initial.GetProperty("timing").GetProperty("fingerprint").GetString()!;
+
+        Assert.Equal(HttpStatusCode.NoContent,
+            (await owner.Client.PostAsJsonAsync(
+                $"/api/commitment-changes/{commitmentId}/amount/accept",
+                new { fingerprint = amountFingerprint })).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict,
+            (await owner.Client.PostAsJsonAsync(
+                $"/api/commitment-changes/{commitmentId}/amount/accept",
+                new { fingerprint = amountFingerprint })).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict,
+            (await owner.Client.PostAsJsonAsync(
+                $"/api/commitment-changes/{commitmentId}/timing/accept",
+                new { fingerprint = initialTimingFingerprint })).StatusCode);
+
+        var afterAmount = ChangeFor(await GetChangesAsync(owner.Client), commitmentId);
+        var timingFingerprint = afterAmount.GetProperty("timing").GetProperty("fingerprint").GetString()!;
+        Assert.NotEqual(initialTimingFingerprint, timingFingerprint);
+        Assert.Equal(HttpStatusCode.NoContent,
+            (await owner.Client.PostAsJsonAsync(
+                $"/api/commitment-changes/{commitmentId}/timing/accept",
+                new { fingerprint = timingFingerprint })).StatusCode);
+
+        using var scope = app.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<BudgetContext>();
+        var persisted = await context.Commitments.SingleAsync(value => value.Id == commitmentId);
+        Assert.Equal("Custom name", persisted.Name);
+        Assert.Equal("custom category", persisted.Category);
+        Assert.Equal(CommitmentLifecycle.Active, persisted.Lifecycle);
+        Assert.Equal(CommitmentCadence.Monthly, persisted.Cadence);
+        Assert.Equal(CommitmentAmountMode.Fixed, persisted.AmountMode);
+        Assert.Equal(12m, persisted.ExpectedAmount);
+        Assert.Null(persisted.ExpectedMinimumAmount);
+        Assert.Null(persisted.ExpectedMaximumAmount);
+        Assert.Equal(CommitmentTimingKind.DayOfMonth, persisted.TimingKind);
+        Assert.Equal(12, persisted.ExpectedDay);
+        Assert.Equal(0, persisted.WindowBeforeDays);
+        Assert.Equal(0, persisted.WindowAfterDays);
+        Assert.True(persisted.UpdatedAt > new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+    }
+
+    [Fact]
+    public async Task Accept_amount_copies_a_proposed_range_and_clears_the_fixed_value()
+    {
+        var clock = new FixedCommitmentTimeProvider(new DateTimeOffset(2026, 10, 29, 18, 0, 0, TimeSpan.Zero));
+        await using var app = new ClockedCommitmentFinancialApiTestApplication(clock);
+        using var owner = await app.CreateAuthenticatedUserAsync("accept-range-change@example.com");
+        var evidence = new[]
+        {
+            await app.SeedExpenseAsync(owner.Id, "membership", 10m, new DateOnly(2026, 5, 10), "bills"),
+            await app.SeedExpenseAsync(owner.Id, "membership", 10m, new DateOnly(2026, 6, 10), "bills"),
+            await app.SeedExpenseAsync(owner.Id, "membership", 10m, new DateOnly(2026, 7, 10), "bills")
+        };
+        var commitmentId = await SeedCommitmentAsync(app, owner.Id, evidence);
+        foreach (var observation in new[]
+                 {
+                     (Date: new DateOnly(2026, 8, 10), Amount: 12m),
+                     (Date: new DateOnly(2026, 9, 10), Amount: 15m),
+                     (Date: new DateOnly(2026, 10, 10), Amount: 13m)
+                 })
+            await app.SeedExpenseAsync(owner.Id, "membership", observation.Amount, observation.Date, "bills");
+        var amount = ChangeFor(await GetChangesAsync(owner.Client), commitmentId).GetProperty("amount");
+        Assert.Equal("range", amount.GetProperty("proposedMode").GetString());
+        var fingerprint = amount.GetProperty("fingerprint").GetString()!;
+
+        Assert.Equal(HttpStatusCode.NoContent,
+            (await owner.Client.PostAsJsonAsync(
+                $"/api/commitment-changes/{commitmentId}/amount/accept", new { fingerprint })).StatusCode);
+
+        using var scope = app.Services.CreateScope();
+        var persisted = await scope.ServiceProvider.GetRequiredService<BudgetContext>()
+            .Commitments.SingleAsync(value => value.Id == commitmentId);
+        Assert.Equal(CommitmentAmountMode.Range, persisted.AmountMode);
+        Assert.Null(persisted.ExpectedAmount);
+        Assert.Equal(12m, persisted.ExpectedMinimumAmount);
+        Assert.Equal(15m, persisted.ExpectedMaximumAmount);
+        Assert.Equal(10, persisted.ExpectedDay);
+        Assert.Equal(CommitmentLifecycle.Active, persisted.Lifecycle);
+    }
+
+    [Theory]
+    [InlineData("weekly")]
+    [InlineData("month_end")]
+    [InlineData("yearly")]
+    public async Task Accept_timing_copies_each_supported_proposal_shape_without_changing_cadence_or_amount(
+        string scenario)
+    {
+        var now = scenario == "weekly"
+            ? new DateTimeOffset(2026, 10, 22, 18, 0, 0, TimeSpan.Zero)
+            : scenario == "yearly"
+                ? new DateTimeOffset(2026, 3, 10, 18, 0, 0, TimeSpan.Zero)
+                : new DateTimeOffset(2026, 10, 29, 18, 0, 0, TimeSpan.Zero);
+        var cadence = scenario switch
+        {
+            "weekly" => CommitmentCadence.Weekly,
+            "yearly" => CommitmentCadence.Yearly,
+            _ => CommitmentCadence.Monthly
+        };
+        var timingKind = scenario switch
+        {
+            "weekly" => CommitmentTimingKind.Weekday,
+            "yearly" => CommitmentTimingKind.MonthAndDay,
+            _ => CommitmentTimingKind.MonthEnd
+        };
+        var evidenceDates = scenario switch
+        {
+            "weekly" => new[] { new DateOnly(2026, 9, 21), new DateOnly(2026, 9, 28) },
+            "yearly" => new[] { new DateOnly(2022, 2, 28), new DateOnly(2023, 2, 28) },
+            _ => new[] { new DateOnly(2026, 6, 30), new DateOnly(2026, 7, 31) }
+        };
+        var observationDates = scenario switch
+        {
+            "weekly" => new[] { new DateOnly(2026, 10, 7), new DateOnly(2026, 10, 14), new DateOnly(2026, 10, 21) },
+            "yearly" => new[] { new DateOnly(2024, 3, 2), new DateOnly(2025, 3, 2), new DateOnly(2026, 3, 2) },
+            _ => new[] { new DateOnly(2026, 8, 28), new DateOnly(2026, 9, 27), new DateOnly(2026, 10, 28) }
+        };
+        await using var app = new ClockedCommitmentFinancialApiTestApplication(new FixedCommitmentTimeProvider(now));
+        using var owner = await app.CreateAuthenticatedUserAsync($"accept-{scenario}-change@example.com");
+        var evidence = new List<Expense>();
+        foreach (var date in evidenceDates)
+            evidence.Add(await app.SeedExpenseAsync(owner.Id, scenario, 10m, date, "bills"));
+        var commitmentId = await SeedCommitmentAsync(
+            app,
+            owner.Id,
+            evidence,
+            name: $"{scenario} display",
+            expectedDay: scenario == "yearly" ? 28 : 10,
+            cadence: cadence,
+            timingKind: timingKind,
+            expectedDayOfWeek: scenario == "weekly" ? DayOfWeek.Monday : null,
+            expectedMonth: scenario == "yearly" ? 2 : null);
+        foreach (var date in observationDates)
+            await app.SeedExpenseAsync(owner.Id, scenario, 10m, date, "bills");
+        var timing = ChangeFor(await GetChangesAsync(owner.Client), commitmentId).GetProperty("timing");
+        Assert.Equal("proposed_change", timing.GetProperty("state").GetString());
+        var fingerprint = timing.GetProperty("fingerprint").GetString()!;
+
+        Assert.Equal(HttpStatusCode.NoContent,
+            (await owner.Client.PostAsJsonAsync(
+                $"/api/commitment-changes/{commitmentId}/timing/accept", new { fingerprint })).StatusCode);
+
+        using var scope = app.Services.CreateScope();
+        var persisted = await scope.ServiceProvider.GetRequiredService<BudgetContext>()
+            .Commitments.SingleAsync(value => value.Id == commitmentId);
+        Assert.Equal(timing.GetProperty("proposedTimingKind").GetString(),
+            persisted.TimingKind.ToString().ToLowerInvariant());
+        Assert.Equal(NullableEnumName(persisted.ExpectedDayOfWeek),
+            NullableString(timing.GetProperty("proposedDayOfWeek")));
+        Assert.Equal(persisted.ExpectedDay, NullableInt(timing.GetProperty("proposedDay")));
+        Assert.Equal(persisted.ExpectedMonth, NullableInt(timing.GetProperty("proposedMonth")));
+        Assert.Equal(timing.GetProperty("proposedWindowBeforeDays").GetInt32(), persisted.WindowBeforeDays);
+        Assert.Equal(timing.GetProperty("proposedWindowAfterDays").GetInt32(), persisted.WindowAfterDays);
+        Assert.Equal(cadence, persisted.Cadence);
+        Assert.Equal(CommitmentAmountMode.Fixed, persisted.AmountMode);
+        Assert.Equal(10m, persisted.ExpectedAmount);
+        Assert.Equal(CommitmentLifecycle.Active, persisted.Lifecycle);
+        Assert.Equal($"{scenario} display", persisted.Name);
+    }
+
+    [Fact]
+    public async Task Stale_accept_is_rejected_after_evidence_changes_without_mutating_commitment()
+    {
+        var clock = new FixedCommitmentTimeProvider(new DateTimeOffset(2026, 10, 29, 18, 0, 0, TimeSpan.Zero));
+        await using var app = new ClockedCommitmentFinancialApiTestApplication(clock);
+        using var owner = await app.CreateAuthenticatedUserAsync("stale-change@example.com");
+        var evidence = new[]
+        {
+            await app.SeedExpenseAsync(owner.Id, "membership", 10m, new DateOnly(2026, 5, 10), "bills"),
+            await app.SeedExpenseAsync(owner.Id, "membership", 10m, new DateOnly(2026, 6, 10), "bills"),
+            await app.SeedExpenseAsync(owner.Id, "membership", 10m, new DateOnly(2026, 7, 10), "bills")
+        };
+        var commitmentId = await SeedCommitmentAsync(app, owner.Id, evidence);
+        var observations = new List<Expense>();
+        foreach (var date in new[] { new DateOnly(2026, 8, 10), new DateOnly(2026, 9, 10), new DateOnly(2026, 10, 10) })
+            observations.Add(await app.SeedExpenseAsync(owner.Id, "membership", 12m, date, "bills"));
+        var fingerprint = ChangeFor(await GetChangesAsync(owner.Client), commitmentId)
+            .GetProperty("amount").GetProperty("fingerprint").GetString()!;
+
+        using (var update = await owner.Client.PutAsJsonAsync($"/api/expenses/{observations[^1].Id}", new
+        {
+            id = observations[^1].Id,
+            description = observations[^1].Description,
+            amount = 13m,
+            date = observations[^1].Date.ToString("yyyy-MM-dd"),
+            category = observations[^1].Category
+        }))
+            update.EnsureSuccessStatusCode();
+        var response = await owner.Client.PostAsJsonAsync(
+            $"/api/commitment-changes/{commitmentId}/amount/accept", new { fingerprint });
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        Assert.Equal("change_proposal_changed",
+            (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("code").GetString());
+        using var scope = app.Services.CreateScope();
+        var persisted = await scope.ServiceProvider.GetRequiredService<BudgetContext>()
+            .Commitments.SingleAsync(value => value.Id == commitmentId);
+        Assert.Equal(10m, persisted.ExpectedAmount);
+    }
+
+    [Fact]
+    public async Task Mark_ended_requires_the_exact_current_possibly_ended_assessment()
+    {
+        var clock = new FixedCommitmentTimeProvider(new DateTimeOffset(2026, 10, 29, 18, 0, 0, TimeSpan.Zero));
+        await using var app = new ClockedCommitmentFinancialApiTestApplication(clock);
+        using var owner = await app.CreateAuthenticatedUserAsync("end-change@example.com");
+        var evidence = new[]
+        {
+            await app.SeedExpenseAsync(owner.Id, "insurance", 25m, new DateOnly(2026, 5, 20), "bills"),
+            await app.SeedExpenseAsync(owner.Id, "insurance", 25m, new DateOnly(2026, 6, 20), "bills"),
+            await app.SeedExpenseAsync(owner.Id, "insurance", 25m, new DateOnly(2026, 7, 20), "bills")
+        };
+        var commitmentId = await SeedCommitmentAsync(
+            app, owner.Id, evidence, name: "Insurance", expectedDay: 20, expectedAmount: 25m);
+        var fingerprint = ChangeFor(await GetChangesAsync(owner.Client), commitmentId)
+            .GetProperty("missing").GetProperty("fingerprint").GetString()!;
+
+        Assert.Equal(HttpStatusCode.NoContent,
+            (await owner.Client.PostAsJsonAsync(
+                $"/api/commitment-changes/{commitmentId}/missing/mark-ended", new { fingerprint })).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict,
+            (await owner.Client.PostAsJsonAsync(
+                $"/api/commitment-changes/{commitmentId}/missing/mark-ended", new { fingerprint })).StatusCode);
+        using var scope = app.Services.CreateScope();
+        var persisted = await scope.ServiceProvider.GetRequiredService<BudgetContext>()
+            .Commitments.SingleAsync(value => value.Id == commitmentId);
+        Assert.Equal(CommitmentLifecycle.Ended, persisted.Lifecycle);
+        Assert.Equal(25m, persisted.ExpectedAmount);
+        Assert.Equal(20, persisted.ExpectedDay);
+    }
+
+    [Fact]
+    public async Task Not_seen_recently_can_be_kept_but_cannot_mark_the_commitment_ended()
+    {
+        var clock = new FixedCommitmentTimeProvider(new DateTimeOffset(2026, 9, 29, 18, 0, 0, TimeSpan.Zero));
+        await using var app = new ClockedCommitmentFinancialApiTestApplication(clock);
+        using var owner = await app.CreateAuthenticatedUserAsync("not-seen-change@example.com");
+        var evidence = new[]
+        {
+            await app.SeedExpenseAsync(owner.Id, "insurance", 25m, new DateOnly(2026, 5, 20), "bills"),
+            await app.SeedExpenseAsync(owner.Id, "insurance", 25m, new DateOnly(2026, 6, 20), "bills"),
+            await app.SeedExpenseAsync(owner.Id, "insurance", 25m, new DateOnly(2026, 7, 20), "bills")
+        };
+        var commitmentId = await SeedCommitmentAsync(
+            app, owner.Id, evidence, name: "Insurance", expectedDay: 20, expectedAmount: 25m);
+        var missing = ChangeFor(await GetChangesAsync(owner.Client), commitmentId).GetProperty("missing");
+        Assert.Equal("not_seen_recently", missing.GetProperty("state").GetString());
+        var fingerprint = missing.GetProperty("fingerprint").GetString()!;
+
+        Assert.Equal(HttpStatusCode.Conflict,
+            (await owner.Client.PostAsJsonAsync(
+                $"/api/commitment-changes/{commitmentId}/missing/mark-ended", new { fingerprint })).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent,
+            (await owner.Client.PostAsJsonAsync(
+                $"/api/commitment-changes/{commitmentId}/missing/keep", new { fingerprint })).StatusCode);
+        Assert.Equal("kept", ChangeFor(await GetChangesAsync(owner.Client), commitmentId)
+            .GetProperty("missing").GetProperty("decisionState").GetString());
+        clock.SetUtcNow(new DateTimeOffset(2026, 10, 29, 18, 0, 0, TimeSpan.Zero));
+        var advanced = ChangeFor(await GetChangesAsync(owner.Client), commitmentId).GetProperty("missing");
+        Assert.Equal("possibly_ended", advanced.GetProperty("state").GetString());
+        Assert.Equal("pending", advanced.GetProperty("decisionState").GetString());
+        Assert.NotEqual(fingerprint, advanced.GetProperty("fingerprint").GetString());
+        Assert.Equal(HttpStatusCode.Conflict,
+            (await owner.Client.PostAsJsonAsync(
+                $"/api/commitment-changes/{commitmentId}/missing/keep", new { fingerprint })).StatusCode);
+        using var scope = app.Services.CreateScope();
+        Assert.Equal(CommitmentLifecycle.Active,
+            (await scope.ServiceProvider.GetRequiredService<BudgetContext>()
+                .Commitments.SingleAsync(value => value.Id == commitmentId)).Lifecycle);
     }
 
     [Fact]
@@ -581,7 +992,11 @@ public sealed class CommitmentsApiTests
         string category = "bills",
         int expectedDay = 10,
         decimal expectedAmount = 10m,
-        CommitmentLifecycle lifecycle = CommitmentLifecycle.Active)
+        CommitmentLifecycle lifecycle = CommitmentLifecycle.Active,
+        CommitmentCadence cadence = CommitmentCadence.Monthly,
+        CommitmentTimingKind timingKind = CommitmentTimingKind.DayOfMonth,
+        DayOfWeek? expectedDayOfWeek = null,
+        int? expectedMonth = null)
     {
         using var scope = app.Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<BudgetContext>();
@@ -593,9 +1008,13 @@ public sealed class CommitmentsApiTests
             Name = name,
             Category = category,
             Lifecycle = lifecycle,
-            Cadence = CommitmentCadence.Monthly,
-            TimingKind = CommitmentTimingKind.DayOfMonth,
-            ExpectedDay = expectedDay,
+            Cadence = cadence,
+            TimingKind = timingKind,
+            ExpectedDayOfWeek = expectedDayOfWeek,
+            ExpectedDay = timingKind is CommitmentTimingKind.DayOfMonth or CommitmentTimingKind.MonthAndDay
+                ? expectedDay
+                : null,
+            ExpectedMonth = expectedMonth,
             WindowBeforeDays = 0,
             WindowAfterDays = 0,
             AmountMode = CommitmentAmountMode.Fixed,
@@ -657,6 +1076,9 @@ public sealed class CommitmentsApiTests
         Assert.Equal("matching_unavailable", change.GetProperty("amount").GetProperty("state").GetString());
         Assert.Equal("matching_unavailable", change.GetProperty("timing").GetProperty("state").GetString());
         Assert.Equal("matching_unavailable", change.GetProperty("missing").GetProperty("state").GetString());
+        Assert.Equal(JsonValueKind.Null, change.GetProperty("amount").GetProperty("decisionState").ValueKind);
+        Assert.Equal(JsonValueKind.Null, change.GetProperty("timing").GetProperty("decisionState").ValueKind);
+        Assert.Equal(JsonValueKind.Null, change.GetProperty("missing").GetProperty("decisionState").ValueKind);
     }
 
     private static DateOnly[] RecentMonthlyDates()
@@ -672,6 +1094,22 @@ public sealed class CommitmentsApiTests
         return Assert.Single(response.GetProperty("candidates").EnumerateArray())
             .GetProperty("fingerprint").GetString()!;
     }
+
+    private static async Task<JsonElement> GetChangesAsync(HttpClient client) =>
+        await client.GetFromJsonAsync<JsonElement>("/api/commitment-changes");
+
+    private static JsonElement ChangeFor(JsonElement response, Guid commitmentId) =>
+        response.GetProperty("changes").EnumerateArray().Single(value =>
+            value.GetProperty("commitment").GetProperty("id").GetGuid() == commitmentId);
+
+    private static string? NullableString(JsonElement value) =>
+        value.ValueKind == JsonValueKind.Null ? null : value.GetString();
+
+    private static int? NullableInt(JsonElement value) =>
+        value.ValueKind == JsonValueKind.Null ? null : value.GetInt32();
+
+    private static string? NullableEnumName<T>(T? value) where T : struct, Enum =>
+        value?.ToString().ToLowerInvariant();
 
     private static object FixedConfirmation(string fingerprint) => new
     {
@@ -704,5 +1142,9 @@ internal sealed class ClockedCommitmentFinancialApiTestApplication(FixedCommitme
 
 internal sealed class FixedCommitmentTimeProvider(DateTimeOffset utcNow) : TimeProvider
 {
-    public override DateTimeOffset GetUtcNow() => utcNow;
+    private DateTimeOffset _utcNow = utcNow;
+
+    public override DateTimeOffset GetUtcNow() => _utcNow;
+
+    public void SetUtcNow(DateTimeOffset value) => _utcNow = value;
 }

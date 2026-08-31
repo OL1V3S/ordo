@@ -74,6 +74,48 @@ public sealed class CommitmentsController(ICommitmentService commitments) : Cont
             : Ok(await commitments.GetChangesAsync(ownerId, cancellationToken));
     }
 
+    [HttpPost("commitment-changes/{commitmentId:guid}/amount/accept")]
+    public async Task<IActionResult> AcceptAmountChange(
+        Guid commitmentId,
+        CommitmentChangeDecisionRequest request,
+        CancellationToken cancellationToken) =>
+        await ChangeDecisionResult(
+            ownerId => commitments.AcceptAmountChangeAsync(ownerId, commitmentId, request, cancellationToken));
+
+    [HttpPost("commitment-changes/{commitmentId:guid}/timing/accept")]
+    public async Task<IActionResult> AcceptTimingChange(
+        Guid commitmentId,
+        CommitmentChangeDecisionRequest request,
+        CancellationToken cancellationToken) =>
+        await ChangeDecisionResult(
+            ownerId => commitments.AcceptTimingChangeAsync(ownerId, commitmentId, request, cancellationToken));
+
+    [HttpPost("commitment-changes/{commitmentId:guid}/missing/mark-ended")]
+    public async Task<IActionResult> MarkEndedFromChange(
+        Guid commitmentId,
+        CommitmentChangeDecisionRequest request,
+        CancellationToken cancellationToken) =>
+        await ChangeDecisionResult(
+            ownerId => commitments.MarkEndedFromChangeAsync(ownerId, commitmentId, request, cancellationToken));
+
+    [HttpPost("commitment-changes/{commitmentId:guid}/{dimension}/keep")]
+    public async Task<IActionResult> KeepChange(
+        Guid commitmentId,
+        string dimension,
+        CommitmentChangeDecisionRequest request,
+        CancellationToken cancellationToken) =>
+        await ChangeDecisionResult(
+            ownerId => commitments.KeepChangeAsync(ownerId, commitmentId, dimension, request, cancellationToken));
+
+    [HttpPost("commitment-changes/{commitmentId:guid}/{dimension}/reconsider")]
+    public async Task<IActionResult> ReconsiderChange(
+        Guid commitmentId,
+        string dimension,
+        CommitmentChangeDecisionRequest request,
+        CancellationToken cancellationToken) =>
+        await ChangeDecisionResult(
+            ownerId => commitments.ReconsiderChangeAsync(ownerId, commitmentId, dimension, request, cancellationToken));
+
     [HttpPut("commitments/{id:guid}")]
     public async Task<IActionResult> Update(
         Guid id,
@@ -100,15 +142,24 @@ public sealed class CommitmentsController(ICommitmentService commitments) : Cont
 
     private string? OwnerId() => User.FindFirstValue(ClaimTypes.NameIdentifier);
 
+    private async Task<IActionResult> ChangeDecisionResult(
+        Func<string, Task<CommitmentOperation<bool>>> operation)
+    {
+        var ownerId = OwnerId();
+        if (ownerId is null) return Unauthorized();
+        var result = await operation(ownerId);
+        return result.IsSuccess ? NoContent() : ErrorResult(result.Error!);
+    }
+
     private IActionResult ErrorResult(CommitmentError error)
     {
         var status = error.Code switch
         {
             "commitment_not_found" => StatusCodes.Status404NotFound,
-            "candidate_changed" or "candidate_dismissed" or "confirmation_conflict" =>
+            "candidate_changed" or "candidate_dismissed" or "confirmation_conflict" or "change_proposal_changed" =>
                 StatusCodes.Status409Conflict,
             "fingerprint_invalid" or "name_invalid" or "category_invalid" or "cadence_invalid"
-                or "timing_invalid" or "amount_invalid" or "lifecycle_invalid" =>
+                or "timing_invalid" or "amount_invalid" or "lifecycle_invalid" or "dimension_invalid" =>
                 StatusCodes.Status400BadRequest,
             _ => StatusCodes.Status422UnprocessableEntity
         };

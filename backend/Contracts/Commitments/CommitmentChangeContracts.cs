@@ -47,6 +47,7 @@ public sealed record CommitmentChangeObservationResponse(
 public sealed record CommitmentAmountChangeResponse(
     string State,
     string? Fingerprint,
+    string? DecisionState,
     string? ProposedMode,
     decimal? ProposedAmount,
     decimal? ProposedMinimumAmount,
@@ -57,6 +58,7 @@ public sealed record CommitmentAmountChangeResponse(
 public sealed record CommitmentTimingChangeResponse(
     string State,
     string? Fingerprint,
+    string? DecisionState,
     string? ProposedTimingKind,
     string? ProposedDayOfWeek,
     int? ProposedDay,
@@ -68,4 +70,7 @@ public sealed record CommitmentTimingChangeResponse(
 public sealed record CommitmentMissingResponse(
     string State,
     string? Fingerprint,
+    string? DecisionState,
     IReadOnlyList<DateOnly> MissedSlotAnchors);
+
+public sealed record CommitmentChangeDecisionRequest(string? Fingerprint);
