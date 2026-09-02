@@ -1083,9 +1083,12 @@ public sealed class CommitmentsApiTests
 
     private static DateOnly[] RecentMonthlyDates()
     {
-        var now = DateTime.UtcNow;
-        var current = new DateOnly(now.Year, now.Month, 10);
-        return [current.AddMonths(-2), current.AddMonths(-1), current];
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var currentMonthAnchor = new DateOnly(today.Year, today.Month, 10);
+        var latest = currentMonthAnchor <= today
+            ? currentMonthAnchor
+            : currentMonthAnchor.AddMonths(-1);
+        return [latest.AddMonths(-2), latest.AddMonths(-1), latest];
     }
 
     private static async Task<string> CandidateFingerprintAsync(HttpClient client)
