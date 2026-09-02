@@ -25,10 +25,6 @@ const REFRESH_AFTER_ERROR = new Set([
   "change_proposal_changed",
 ]);
 
-export function isCommitmentChangeReviewEnabled() {
-  return import.meta.env.VITE_COMMITMENT_CHANGE_REVIEW_ENABLED === "true";
-}
-
 export function getCommitmentErrorMessage(error) {
   const code = error?.response?.data?.code;
   return ERROR_MESSAGES[code] ?? "Something went wrong. Try again.";
@@ -47,8 +43,6 @@ export function useCommitments() {
   const [busyKey, setBusyKey] = useState(null);
   const requestId = useRef(0);
   const busyRef = useRef(null);
-  const changeReviewEnabled = isCommitmentChangeReviewEnabled();
-
   const refresh = useCallback(async ({ rethrow = false } = {}) => {
     const currentRequestId = ++requestId.current;
     setLoading(true);
@@ -57,8 +51,8 @@ export function useCommitments() {
       const requests = [
         commitmentsApi.getCandidates(),
         commitmentsApi.getCommitments(),
+        commitmentsApi.getChanges(),
       ];
-      if (changeReviewEnabled) requests.push(commitmentsApi.getChanges());
       const [candidateResponse, commitmentResponse, changeResponse] = await Promise.all(requests);
       if (currentRequestId === requestId.current) {
         setCandidates(candidateResponse.data?.candidates ?? []);
@@ -75,7 +69,7 @@ export function useCommitments() {
     } finally {
       if (currentRequestId === requestId.current) setLoading(false);
     }
-  }, [changeReviewEnabled]);
+  }, []);
 
   useEffect(() => {
     refresh();
@@ -109,7 +103,6 @@ export function useCommitments() {
     commitments,
     commitmentChanges,
     changeEvaluatedOn,
-    changeReviewEnabled,
     loading,
     loadError,
     actionError,

@@ -1,5 +1,5 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { commitmentsApi } from "../api/commitmentsApi";
 import { getCommitmentErrorMessage, useCommitments } from "./useCommitments";
 
@@ -24,7 +24,6 @@ vi.mock("../api/commitmentsApi", () => ({
 describe("commitment state", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.stubEnv("VITE_COMMITMENT_CHANGE_REVIEW_ENABLED", "false");
     commitmentsApi.getCandidates.mockResolvedValue({
       data: { candidates: [{ fingerprint: "candidate-1" }], dismissedCandidates: [{ fingerprint: "dismissed-1" }] },
     });
@@ -38,28 +37,14 @@ describe("commitment state", () => {
     commitmentsApi.keepChange.mockResolvedValue({ data: null });
   });
 
-  afterEach(() => vi.unstubAllEnvs());
-
-  it("loads active proposals, dismissed proposals, and confirmed commitments together", async () => {
+  it("loads proposals, commitments, and change assessments together", async () => {
     const { result } = renderHook(() => useCommitments());
 
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.candidates).toEqual([{ fingerprint: "candidate-1" }]);
     expect(result.current.dismissedCandidates).toEqual([{ fingerprint: "dismissed-1" }]);
     expect(result.current.commitments).toEqual([{ id: "commitment-1" }]);
-    expect(result.current.changeReviewEnabled).toBe(false);
-    expect(result.current.commitmentChanges).toEqual([]);
-    expect(commitmentsApi.getChanges).not.toHaveBeenCalled();
-  });
-
-  it("loads change assessments only when the default-off review flag is explicitly enabled", async () => {
-    vi.stubEnv("VITE_COMMITMENT_CHANGE_REVIEW_ENABLED", "true");
-    const { result } = renderHook(() => useCommitments());
-
-    await waitFor(() => expect(result.current.loading).toBe(false));
-
     expect(commitmentsApi.getChanges).toHaveBeenCalledTimes(1);
-    expect(result.current.changeReviewEnabled).toBe(true);
     expect(result.current.changeEvaluatedOn).toBe("2026-10-29");
     expect(result.current.commitmentChanges).toEqual([{ commitment: { id: "commitment-1" } }]);
   });
@@ -97,7 +82,6 @@ describe("commitment state", () => {
   });
 
   it("refreshes every collection after a change action and maps stale proposals safely", async () => {
-    vi.stubEnv("VITE_COMMITMENT_CHANGE_REVIEW_ENABLED", "true");
     commitmentsApi.acceptAmountChange.mockRejectedValue({
       response: { data: { code: "change_proposal_changed", detail: "private financial state" } },
     });
@@ -115,7 +99,6 @@ describe("commitment state", () => {
   });
 
   it("prevents a second action while the first change decision is pending", async () => {
-    vi.stubEnv("VITE_COMMITMENT_CHANGE_REVIEW_ENABLED", "true");
     let resolveAction;
     commitmentsApi.acceptAmountChange.mockReturnValue(new Promise((resolve) => { resolveAction = resolve; }));
     const { result } = renderHook(() => useCommitments());

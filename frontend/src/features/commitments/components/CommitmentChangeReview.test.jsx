@@ -78,7 +78,6 @@ const missingCommitment = {
 
 function reviewState(overrides = {}) {
   return {
-    changeReviewEnabled: true,
     commitmentChanges: [changedCommitment, missingCommitment],
     changeEvaluatedOn: "2026-10-29",
     busyKey: null,
@@ -195,10 +194,5 @@ describe("commitment change review", () => {
     rerender(<CommitmentChangeReview state={reviewState({ busyKey: "change:amount:accept" })} />);
     expect(screen.getAllByRole("button")).not.toHaveLength(0);
     expect(screen.getAllByRole("button").every((button) => button.disabled)).toBe(true);
-  });
-
-  it("renders nothing when the review flag is disabled", () => {
-    const { container } = render(<CommitmentChangeReview state={reviewState({ changeReviewEnabled: false })} />);
-    expect(container).toBeEmptyDOMElement();
   });
 });
