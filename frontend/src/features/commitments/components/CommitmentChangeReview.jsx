@@ -283,7 +283,6 @@ function ChangeSection({ id, title: sectionTitle, description, changes, state, k
 }
 
 export default function CommitmentChangeReview({ state }) {
-  if (!state.changeReviewEnabled) return null;
   const pending = groupCommitmentChanges(state.commitmentChanges, "pending");
   const kept = groupCommitmentChanges(state.commitmentChanges, "kept");
 

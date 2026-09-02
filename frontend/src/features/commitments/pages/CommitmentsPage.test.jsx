@@ -68,7 +68,6 @@ function state(overrides = {}) {
     commitments: [commitment],
     commitmentChanges: [],
     changeEvaluatedOn: null,
-    changeReviewEnabled: false,
     loading: false,
     loadError: null,
     actionError: null,
@@ -101,11 +100,10 @@ describe("Commitments workspace", () => {
     expect(screen.getByRole("heading", { name: "Rent" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Streaming service" })).toBeInTheDocument();
     expect(screen.queryByText(/revision/i)).not.toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "Changes to review" })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Changes to review" })).toBeInTheDocument();
   });
 
-  it("places the enabled change workflow before confirmed commitments", () => {
-    useCommitments.mockReturnValue(state({ changeReviewEnabled: true }));
+  it("places the change workflow before confirmed commitments", () => {
     render(<CommitmentsPage />);
 
     const changes = screen.getByRole("heading", { name: "Changes to review" });
