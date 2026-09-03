@@ -21,4 +21,5 @@ public class ImportPreviewBatch
     public DateTime? ConfirmedAt { get; set; }
     public List<ImportPreviewRow> Rows { get; set; } = [];
     public List<ImportExpenseProvenance> Provenance { get; set; } = [];
+    public List<ImportInflowProvenance> InflowProvenance { get; set; } = [];
 }
