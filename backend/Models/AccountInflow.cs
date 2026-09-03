@@ -1,8 +1,6 @@
-using System.Text.RegularExpressions;
-
 namespace BudgetPlanner.Models;
 
-public partial class AccountInflow
+public class AccountInflow
 {
     public int Id { get; set; }
     public string OwnerId { get; set; } = "";
@@ -17,7 +15,8 @@ public partial class AccountInflow
         var trimmedDescription = description.Trim();
         var materiallyChanged = Amount != amount
             || Date != date
-            || NormalizeDescriptionIdentity(Description) != NormalizeDescriptionIdentity(trimmedDescription);
+            || AccountInflowIdentity.NormalizeDescription(Description)
+                != AccountInflowIdentity.NormalizeDescription(trimmedDescription);
 
         Description = trimmedDescription;
         Amount = amount;
@@ -29,10 +28,4 @@ public partial class AccountInflow
 
         return materiallyChanged;
     }
-
-    private static string NormalizeDescriptionIdentity(string? value) =>
-        WhitespaceRegex().Replace((value ?? "").Trim(), " ").ToLowerInvariant();
-
-    [GeneratedRegex(@"\s+")]
-    private static partial Regex WhitespaceRegex();
 }
