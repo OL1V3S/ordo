@@ -33,6 +33,19 @@ public sealed class AccountInflowTests
     }
 
     [Fact]
+    public void Shared_identity_normalization_matches_update_evidence_materiality()
+    {
+        Assert.Equal(
+            "weekly payroll",
+            AccountInflowIdentity.NormalizeDescription("  WEEKLY\t\n PAYROLL  "));
+
+        var inflow = Inflow();
+        var revision = inflow.PaycheckEvidenceRevision;
+        Assert.False(inflow.UpdateEvidence("\nweekly\tpayroll ", inflow.Amount, inflow.Date));
+        Assert.Equal(revision, inflow.PaycheckEvidenceRevision);
+    }
+
+    [Fact]
     public void UpdateEvidence_rotates_revision_for_each_material_evidence_change()
     {
         var inflow = Inflow();
