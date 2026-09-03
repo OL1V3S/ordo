@@ -159,6 +159,90 @@ public sealed class PostgreSqlFinancialApiTests
         Assert.Contains("(\"ExpenseId\")", provenanceExpenseIndex);
         Assert.Contains("WHERE (\"ExpenseId\" IS NOT NULL)", provenanceExpenseIndex);
 
+        var inflowAmountType = await context.Database.SqlQueryRaw<string>(
+            """
+            SELECT data_type || ':' || numeric_precision || ':' || numeric_scale AS "Value"
+            FROM information_schema.columns
+            WHERE table_schema = 'public'
+              AND table_name = 'AccountInflows'
+              AND column_name = 'Amount'
+            """).SingleAsync();
+        Assert.Equal("numeric:18:2", inflowAmountType);
+
+        var inflowDateType = await context.Database.SqlQueryRaw<string>(
+            """
+            SELECT data_type AS "Value"
+            FROM information_schema.columns
+            WHERE table_schema = 'public'
+              AND table_name = 'AccountInflows'
+              AND column_name = 'Date'
+            """).SingleAsync();
+        Assert.Equal("date", inflowDateType);
+
+        var paycheckEvidenceRevision = await context.Database.SqlQueryRaw<string>(
+            """
+            SELECT data_type || ':' || is_nullable || ':' || (column_default LIKE '%gen_random_uuid%') AS "Value"
+            FROM information_schema.columns
+            WHERE table_schema = 'public'
+              AND table_name = 'AccountInflows'
+              AND column_name = 'PaycheckEvidenceRevision'
+            """).SingleAsync();
+        Assert.Equal("uuid:NO:true", paycheckEvidenceRevision);
+
+        Assert.Contains("\"Amount\" >", await ReadConstraintDefinitionAsync(
+            context,
+            "CK_AccountInflow_PositiveAmount"));
+        var inflowDescriptionCheck = await ReadConstraintDefinitionAsync(
+            context,
+            "CK_AccountInflow_Description");
+        Assert.Contains("btrim", inflowDescriptionCheck);
+        Assert.Contains("\"Description\"", inflowDescriptionCheck);
+        Assert.Contains("ON DELETE CASCADE", await ReadConstraintDefinitionAsync(
+            context,
+            "FK_AccountInflows_AspNetUsers_OwnerId"));
+
+        var inflowOwnerDateIndex = await ReadIndexDefinitionAsync(
+            context,
+            "IX_AccountInflows_OwnerId_Date");
+        Assert.Contains("CREATE INDEX", inflowOwnerDateIndex);
+        Assert.Contains("(\"OwnerId\", \"Date\")", inflowOwnerDateIndex);
+
+        var inflowProvenanceColumns = await context.Database.SqlQueryRaw<string>(
+            """
+            SELECT column_name || ':' || data_type || ':' || is_nullable AS "Value"
+            FROM information_schema.columns
+            WHERE table_schema = 'public'
+              AND table_name = 'ImportInflowProvenances'
+            ORDER BY ordinal_position
+            """).ToListAsync();
+        Assert.Equal(
+            [
+                "BatchId:uuid:NO",
+                "SourceRowOrdinal:integer:NO",
+                "OwnerId:text:NO",
+                "AccountInflowId:integer:YES",
+                "AccountInflowOwnerId:text:YES"
+            ],
+            inflowProvenanceColumns);
+        Assert.Equal(
+            "PRIMARY KEY (\"BatchId\", \"SourceRowOrdinal\")",
+            await ReadConstraintDefinitionAsync(context, "PK_ImportInflowProvenances"));
+        Assert.Contains("ON DELETE CASCADE", await ReadConstraintDefinitionAsync(
+            context,
+            "FK_ImportInflowProvenance_Batch_Owner"));
+        Assert.Contains("ON DELETE SET NULL", await ReadConstraintDefinitionAsync(
+            context,
+            "FK_ImportInflowProvenance_AccountInflow_Owner"));
+        Assert.Contains("\"AccountInflowOwnerId\" = \"OwnerId\"", await ReadConstraintDefinitionAsync(
+            context,
+            "CK_ImportInflowProvenance_OwnerConsistency"));
+        var inflowProvenanceIndex = await ReadIndexDefinitionAsync(
+            context,
+            "IX_ImportInflowProvenances_AccountInflowId");
+        Assert.Contains("CREATE UNIQUE INDEX", inflowProvenanceIndex);
+        Assert.Contains("(\"AccountInflowId\")", inflowProvenanceIndex);
+        Assert.Contains("WHERE (\"AccountInflowId\" IS NOT NULL)", inflowProvenanceIndex);
+
         Assert.Contains("CHECK", await ReadConstraintDefinitionAsync(context, "CK_Commitment_Timing"));
         Assert.Contains("CHECK", await ReadConstraintDefinitionAsync(context, "CK_Commitment_Amount"));
         Assert.Contains("ON DELETE CASCADE", await ReadConstraintDefinitionAsync(
@@ -200,6 +284,181 @@ public sealed class PostgreSqlFinancialApiTests
         Assert.Contains(
             "(\"OwnerId\", \"CommitmentId\", \"AlgorithmVersion\", \"Dimension\", \"EvidenceFingerprint\")",
             changeDismissalUniqueIndex);
+    }
+
+    [PostgreSqlFact]
+    public async Task Account_inflow_foundation_migration_upgrades_additively()
+    {
+        await using var app = new PostgreSqlFinancialApiTestApplication();
+        using var client = app.CreateTestClient();
+        using var scope = app.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<BudgetContext>();
+        var migrator = context.GetService<IMigrator>();
+
+        await context.Database.EnsureDeletedAsync();
+        await migrator.MigrateAsync("20260830053939_AddCommitmentChangeDismissals");
+        await context.Database.ExecuteSqlRawAsync(
+            """
+            INSERT INTO "AspNetUsers"
+                ("Id", "EmailConfirmed", "PhoneNumberConfirmed", "TwoFactorEnabled", "LockoutEnabled", "AccessFailedCount")
+            VALUES
+                ('account-inflow-migration-user', false, false, false, false, 0);
+
+            INSERT INTO "Expenses" ("Description", "Amount", "Date", "Category", "UserId")
+            VALUES
+                ('existing expense', 10.00, DATE '2026-09-01', 'food', 'account-inflow-migration-user');
+            """);
+
+        await migrator.MigrateAsync();
+
+        Assert.True(await context.Users.AnyAsync(value => value.Id == "account-inflow-migration-user"));
+        Assert.True(await context.Expenses.AnyAsync(value => value.UserId == "account-inflow-migration-user"));
+        Assert.Empty(await context.AccountInflows.ToListAsync());
+        Assert.Empty(await context.ImportInflowProvenances.ToListAsync());
+        Assert.False((await context.Database.GetPendingMigrationsAsync()).Any());
+    }
+
+    [PostgreSqlFact]
+    public async Task Account_inflow_foundation_enforces_constraints_provenance_and_safe_rollback()
+    {
+        await using var app = new PostgreSqlFinancialApiTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("account-inflow-owner@example.com");
+        using var scope = app.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<BudgetContext>();
+        var now = DateTime.UtcNow;
+        var batch = new ImportPreviewBatch
+        {
+            Id = Guid.NewGuid(),
+            OwnerId = owner.Id,
+            SourceType = SunflowerStatementParser.SourceType,
+            ParserRuleVersion = SunflowerStatementParser.RuleVersion,
+            DocumentDigest = Enumerable.Repeat((byte)1, 32).ToArray(),
+            CreatedAt = now,
+            ExpiresAt = now.AddMinutes(30),
+            Lifecycle = ImportPreviewLifecycle.Open
+        };
+        var inflow = new AccountInflow
+        {
+            OwnerId = owner.Id,
+            Description = "SYNTHETIC PAYROLL DEPOSIT",
+            Amount = 2450m,
+            Date = new DateOnly(2026, 9, 1)
+        };
+        batch.InflowProvenance.Add(new ImportInflowProvenance
+        {
+            SourceRowOrdinal = 1,
+            AccountInflow = inflow
+        });
+        context.ImportPreviewBatches.Add(batch);
+        await context.SaveChangesAsync();
+        context.ChangeTracker.Clear();
+
+        var persisted = await context.AccountInflows.AsNoTracking().SingleAsync();
+        Assert.Equal(owner.Id, persisted.OwnerId);
+        Assert.Equal(2450m, persisted.Amount);
+        Assert.Equal(new DateOnly(2026, 9, 1), persisted.Date);
+        Assert.NotEqual(Guid.Empty, persisted.PaycheckEvidenceRevision);
+
+        using var otherOwner = await app.CreateAuthenticatedUserAsync("account-inflow-other-owner@example.com");
+        var otherOwnerInflow = new AccountInflow
+        {
+            OwnerId = otherOwner.Id,
+            Description = "OTHER OWNER DEPOSIT",
+            Amount = 500m,
+            Date = new DateOnly(2026, 9, 1)
+        };
+        context.AccountInflows.Add(otherOwnerInflow);
+        await context.SaveChangesAsync();
+
+        var crossOwnerLink = await Assert.ThrowsAsync<PostgresException>(() =>
+            context.Database.ExecuteSqlInterpolatedAsync(
+                $"""
+                INSERT INTO "ImportInflowProvenances"
+                    ("BatchId", "SourceRowOrdinal", "OwnerId", "AccountInflowId", "AccountInflowOwnerId")
+                VALUES ({batch.Id}, {2}, {owner.Id}, {otherOwnerInflow.Id}, {otherOwner.Id})
+                """));
+        Assert.Equal(PostgresErrorCodes.CheckViolation, crossOwnerLink.SqlState);
+        Assert.Equal("CK_ImportInflowProvenance_OwnerConsistency", crossOwnerLink.ConstraintName);
+        context.AccountInflows.Remove(otherOwnerInflow);
+        await context.SaveChangesAsync();
+
+        Task InsertInflowAsync(string description, decimal amount) =>
+            context.Database.ExecuteSqlInterpolatedAsync(
+                $"""
+                INSERT INTO "AccountInflows" ("OwnerId", "Description", "Amount", "Date")
+                VALUES ({owner.Id}, {description}, {amount}, DATE '2026-09-02')
+                """);
+
+        var nonPositive = await Assert.ThrowsAsync<PostgresException>(() =>
+            InsertInflowAsync("invalid amount", 0m));
+        Assert.Equal(PostgresErrorCodes.CheckViolation, nonPositive.SqlState);
+        Assert.Equal("CK_AccountInflow_PositiveAmount", nonPositive.ConstraintName);
+
+        var blankDescription = await Assert.ThrowsAsync<PostgresException>(() =>
+            InsertInflowAsync("   ", 1m));
+        Assert.Equal(PostgresErrorCodes.CheckViolation, blankDescription.SqlState);
+        Assert.Equal("CK_AccountInflow_Description", blankDescription.ConstraintName);
+
+        var invalidOrdinal = await Assert.ThrowsAsync<PostgresException>(() =>
+            context.Database.ExecuteSqlInterpolatedAsync(
+                $"""
+                INSERT INTO "ImportInflowProvenances"
+                    ("BatchId", "SourceRowOrdinal", "OwnerId", "AccountInflowId", "AccountInflowOwnerId")
+                VALUES ({batch.Id}, {0}, {owner.Id}, {persisted.Id}, {owner.Id})
+                """));
+        Assert.Equal(PostgresErrorCodes.CheckViolation, invalidOrdinal.SqlState);
+        Assert.Equal("CK_ImportInflowProvenance_PositiveSourceRowOrdinal", invalidOrdinal.ConstraintName);
+
+        var duplicateLink = await Assert.ThrowsAsync<PostgresException>(() =>
+            context.Database.ExecuteSqlInterpolatedAsync(
+                $"""
+                INSERT INTO "ImportInflowProvenances"
+                    ("BatchId", "SourceRowOrdinal", "OwnerId", "AccountInflowId", "AccountInflowOwnerId")
+                VALUES ({batch.Id}, {2}, {owner.Id}, {persisted.Id}, {owner.Id})
+                """));
+        Assert.Equal(PostgresErrorCodes.UniqueViolation, duplicateLink.SqlState);
+        Assert.Equal("IX_ImportInflowProvenances_AccountInflowId", duplicateLink.ConstraintName);
+
+        var migrator = context.GetService<IMigrator>();
+        var rollback = await Assert.ThrowsAsync<PostgresException>(() =>
+            migrator.MigrateAsync("20260830053939_AddCommitmentChangeDismissals"));
+        Assert.Contains("Cannot roll back account inflow foundation", rollback.MessageText);
+        Assert.Single(await context.AccountInflows.AsNoTracking().ToListAsync());
+
+        context.AccountInflows.Remove(await context.AccountInflows.SingleAsync());
+        await context.SaveChangesAsync();
+        context.ChangeTracker.Clear();
+        var retainedProvenance = await context.ImportInflowProvenances.AsNoTracking().SingleAsync();
+        Assert.Equal(owner.Id, retainedProvenance.OwnerId);
+        Assert.Null(retainedProvenance.AccountInflowId);
+        Assert.Null(retainedProvenance.AccountInflowOwnerId);
+
+        var secondInflow = new AccountInflow
+        {
+            OwnerId = owner.Id,
+            Description = "SECOND SYNTHETIC DEPOSIT",
+            Amount = 100m,
+            Date = new DateOnly(2026, 9, 2)
+        };
+        context.AccountInflows.Add(secondInflow);
+        context.ImportInflowProvenances.Add(new ImportInflowProvenance
+        {
+            BatchId = batch.Id,
+            OwnerId = owner.Id,
+            SourceRowOrdinal = 2,
+            AccountInflow = secondInflow
+        });
+        await context.SaveChangesAsync();
+        context.ChangeTracker.Clear();
+
+        context.ImportPreviewBatches.Remove(await context.ImportPreviewBatches.SingleAsync());
+        await context.SaveChangesAsync();
+        Assert.Empty(await context.ImportInflowProvenances.AsNoTracking().ToListAsync());
+        Assert.Single(await context.AccountInflows.AsNoTracking().ToListAsync());
+
+        context.Users.Remove(await context.Users.SingleAsync(value => value.Id == owner.Id));
+        await context.SaveChangesAsync();
+        Assert.Empty(await context.AccountInflows.AsNoTracking().ToListAsync());
     }
 
     [PostgreSqlFact]

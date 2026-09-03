@@ -10,11 +10,13 @@ public class BudgetContext : IdentityDbContext<ApplicationUser>, IDataProtection
     public BudgetContext(DbContextOptions<BudgetContext> options) : base(options) {}
 
     public DbSet<Expense> Expenses { get; set; }
+    public DbSet<AccountInflow> AccountInflows { get; set; }
     public DbSet<BudgetLimit> BudgetLimits { get; set; }
     public DbSet<DataProtectionKey> DataProtectionKeys { get; set; }
     public DbSet<ImportPreviewBatch> ImportPreviewBatches { get; set; }
     public DbSet<ImportPreviewRow> ImportPreviewRows { get; set; }
     public DbSet<ImportExpenseProvenance> ImportExpenseProvenances { get; set; }
+    public DbSet<ImportInflowProvenance> ImportInflowProvenances { get; set; }
     public DbSet<Commitment> Commitments { get; set; }
     public DbSet<CommitmentOccurrence> CommitmentOccurrences { get; set; }
     public DbSet<CommitmentCandidateDismissal> CommitmentCandidateDismissals { get; set; }
@@ -46,6 +48,29 @@ public class BudgetContext : IdentityDbContext<ApplicationUser>, IDataProtection
             .HasForeignKey(e => e.UserId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        modelBuilder.Entity<AccountInflow>(inflow =>
+        {
+            inflow.ToTable(table =>
+            {
+                table.HasCheckConstraint(
+                    "CK_AccountInflow_PositiveAmount",
+                    "\"Amount\" > 0");
+                table.HasCheckConstraint(
+                    "CK_AccountInflow_Description",
+                    "length(btrim(\"Description\")) > 0");
+            });
+            inflow.Property(value => value.Description).HasMaxLength(500);
+            inflow.Property(value => value.Amount).HasColumnType("numeric(18,2)");
+            inflow.Property(value => value.Date).HasColumnType("date");
+            inflow.Property(value => value.PaycheckEvidenceRevision)
+                .HasDefaultValueSql("gen_random_uuid()");
+            inflow.HasAlternateKey(value => new { value.Id, value.OwnerId })
+                .HasName("AK_AccountInflows_Id_OwnerId");
+            inflow.HasOne(value => value.Owner).WithMany().HasForeignKey(value => value.OwnerId)
+                .OnDelete(DeleteBehavior.Cascade);
+            inflow.HasIndex(value => new { value.OwnerId, value.Date });
+        });
+
         modelBuilder.Entity<ImportPreviewBatch>(batch =>
         {
             batch.ToTable(table =>
@@ -62,6 +87,8 @@ public class BudgetContext : IdentityDbContext<ApplicationUser>, IDataProtection
             batch.Property(value => value.ParserRuleVersion).HasMaxLength(100);
             batch.Property(value => value.DocumentDigest).HasColumnType("bytea").HasMaxLength(32);
             batch.Property(value => value.Lifecycle).HasConversion<string>().HasMaxLength(20);
+            batch.HasAlternateKey(value => new { value.Id, value.OwnerId })
+                .HasName("AK_ImportPreviewBatches_Id_OwnerId");
             batch.HasOne(value => value.Owner).WithMany().HasForeignKey(value => value.OwnerId)
                 .OnDelete(DeleteBehavior.Cascade);
             batch.HasIndex(value => new { value.OwnerId, value.SourceType, value.DocumentDigest })
@@ -127,6 +154,37 @@ public class BudgetContext : IdentityDbContext<ApplicationUser>, IDataProtection
             provenance.HasIndex(value => value.ExpenseId)
                 .IsUnique()
                 .HasFilter("\"ExpenseId\" IS NOT NULL");
+        });
+
+        modelBuilder.Entity<ImportInflowProvenance>(provenance =>
+        {
+            provenance.ToTable(table =>
+            {
+                table.HasCheckConstraint(
+                    "CK_ImportInflowProvenance_PositiveSourceRowOrdinal",
+                    "\"SourceRowOrdinal\" > 0");
+                table.HasCheckConstraint(
+                    "CK_ImportInflowProvenance_OwnerConsistency",
+                    "(\"AccountInflowId\" IS NULL AND \"AccountInflowOwnerId\" IS NULL) OR " +
+                    "(\"AccountInflowId\" IS NOT NULL AND \"AccountInflowOwnerId\" IS NOT NULL AND " +
+                    "\"AccountInflowOwnerId\" = \"OwnerId\")");
+            });
+            provenance.HasKey(value => new { value.BatchId, value.SourceRowOrdinal });
+            provenance.HasOne(value => value.Batch)
+                .WithMany(value => value.InflowProvenance)
+                .HasForeignKey(value => new { value.BatchId, value.OwnerId })
+                .HasPrincipalKey(value => new { value.Id, value.OwnerId })
+                .HasConstraintName("FK_ImportInflowProvenance_Batch_Owner")
+                .OnDelete(DeleteBehavior.Cascade);
+            provenance.HasOne(value => value.AccountInflow)
+                .WithMany()
+                .HasForeignKey(value => new { value.AccountInflowId, value.AccountInflowOwnerId })
+                .HasPrincipalKey(value => new { value.Id, value.OwnerId })
+                .HasConstraintName("FK_ImportInflowProvenance_AccountInflow_Owner")
+                .OnDelete(DeleteBehavior.SetNull);
+            provenance.HasIndex(value => value.AccountInflowId)
+                .IsUnique()
+                .HasFilter("\"AccountInflowId\" IS NOT NULL");
         });
 
         modelBuilder.Entity<Commitment>(commitment =>
