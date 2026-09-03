@@ -64,6 +64,8 @@ public class BudgetContext : IdentityDbContext<ApplicationUser>, IDataProtection
             inflow.Property(value => value.Date).HasColumnType("date");
             inflow.Property(value => value.PaycheckEvidenceRevision)
                 .HasDefaultValueSql("gen_random_uuid()");
+            inflow.HasAlternateKey(value => new { value.Id, value.OwnerId })
+                .HasName("AK_AccountInflows_Id_OwnerId");
             inflow.HasOne(value => value.Owner).WithMany().HasForeignKey(value => value.OwnerId)
                 .OnDelete(DeleteBehavior.Cascade);
             inflow.HasIndex(value => new { value.OwnerId, value.Date });
@@ -85,6 +87,8 @@ public class BudgetContext : IdentityDbContext<ApplicationUser>, IDataProtection
             batch.Property(value => value.ParserRuleVersion).HasMaxLength(100);
             batch.Property(value => value.DocumentDigest).HasColumnType("bytea").HasMaxLength(32);
             batch.Property(value => value.Lifecycle).HasConversion<string>().HasMaxLength(20);
+            batch.HasAlternateKey(value => new { value.Id, value.OwnerId })
+                .HasName("AK_ImportPreviewBatches_Id_OwnerId");
             batch.HasOne(value => value.Owner).WithMany().HasForeignKey(value => value.OwnerId)
                 .OnDelete(DeleteBehavior.Cascade);
             batch.HasIndex(value => new { value.OwnerId, value.SourceType, value.DocumentDigest })
@@ -154,17 +158,29 @@ public class BudgetContext : IdentityDbContext<ApplicationUser>, IDataProtection
 
         modelBuilder.Entity<ImportInflowProvenance>(provenance =>
         {
-            provenance.ToTable(table => table.HasCheckConstraint(
-                "CK_ImportInflowProvenance_PositiveSourceRowOrdinal",
-                "\"SourceRowOrdinal\" > 0"));
+            provenance.ToTable(table =>
+            {
+                table.HasCheckConstraint(
+                    "CK_ImportInflowProvenance_PositiveSourceRowOrdinal",
+                    "\"SourceRowOrdinal\" > 0");
+                table.HasCheckConstraint(
+                    "CK_ImportInflowProvenance_OwnerConsistency",
+                    "(\"AccountInflowId\" IS NULL AND \"AccountInflowOwnerId\" IS NULL) OR " +
+                    "(\"AccountInflowId\" IS NOT NULL AND \"AccountInflowOwnerId\" IS NOT NULL AND " +
+                    "\"AccountInflowOwnerId\" = \"OwnerId\")");
+            });
             provenance.HasKey(value => new { value.BatchId, value.SourceRowOrdinal });
             provenance.HasOne(value => value.Batch)
                 .WithMany(value => value.InflowProvenance)
-                .HasForeignKey(value => value.BatchId)
+                .HasForeignKey(value => new { value.BatchId, value.OwnerId })
+                .HasPrincipalKey(value => new { value.Id, value.OwnerId })
+                .HasConstraintName("FK_ImportInflowProvenance_Batch_Owner")
                 .OnDelete(DeleteBehavior.Cascade);
             provenance.HasOne(value => value.AccountInflow)
                 .WithMany()
-                .HasForeignKey(value => value.AccountInflowId)
+                .HasForeignKey(value => new { value.AccountInflowId, value.AccountInflowOwnerId })
+                .HasPrincipalKey(value => new { value.Id, value.OwnerId })
+                .HasConstraintName("FK_ImportInflowProvenance_AccountInflow_Owner")
                 .OnDelete(DeleteBehavior.SetNull);
             provenance.HasIndex(value => value.AccountInflowId)
                 .IsUnique()

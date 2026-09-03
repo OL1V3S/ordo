@@ -12,6 +12,11 @@ namespace backend.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.AddUniqueConstraint(
+                name: "AK_ImportPreviewBatches_Id_OwnerId",
+                table: "ImportPreviewBatches",
+                columns: new[] { "Id", "OwnerId" });
+
             migrationBuilder.CreateTable(
                 name: "AccountInflows",
                 columns: table => new
@@ -27,6 +32,7 @@ namespace backend.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_AccountInflows", x => x.Id);
+                    table.UniqueConstraint("AK_AccountInflows_Id_OwnerId", x => new { x.Id, x.OwnerId });
                     table.CheckConstraint("CK_AccountInflow_Description", "length(btrim(\"Description\")) > 0");
                     table.CheckConstraint("CK_AccountInflow_PositiveAmount", "\"Amount\" > 0");
                     table.ForeignKey(
@@ -43,23 +49,26 @@ namespace backend.Migrations
                 {
                     BatchId = table.Column<Guid>(type: "uuid", nullable: false),
                     SourceRowOrdinal = table.Column<int>(type: "integer", nullable: false),
-                    AccountInflowId = table.Column<int>(type: "integer", nullable: true)
+                    OwnerId = table.Column<string>(type: "text", nullable: false),
+                    AccountInflowId = table.Column<int>(type: "integer", nullable: true),
+                    AccountInflowOwnerId = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_ImportInflowProvenances", x => new { x.BatchId, x.SourceRowOrdinal });
+                    table.CheckConstraint("CK_ImportInflowProvenance_OwnerConsistency", "(\"AccountInflowId\" IS NULL AND \"AccountInflowOwnerId\" IS NULL) OR (\"AccountInflowId\" IS NOT NULL AND \"AccountInflowOwnerId\" IS NOT NULL AND \"AccountInflowOwnerId\" = \"OwnerId\")");
                     table.CheckConstraint("CK_ImportInflowProvenance_PositiveSourceRowOrdinal", "\"SourceRowOrdinal\" > 0");
                     table.ForeignKey(
-                        name: "FK_ImportInflowProvenances_AccountInflows_AccountInflowId",
-                        column: x => x.AccountInflowId,
+                        name: "FK_ImportInflowProvenance_AccountInflow_Owner",
+                        columns: x => new { x.AccountInflowId, x.AccountInflowOwnerId },
                         principalTable: "AccountInflows",
-                        principalColumn: "Id",
+                        principalColumns: new[] { "Id", "OwnerId" },
                         onDelete: ReferentialAction.SetNull);
                     table.ForeignKey(
-                        name: "FK_ImportInflowProvenances_ImportPreviewBatches_BatchId",
-                        column: x => x.BatchId,
+                        name: "FK_ImportInflowProvenance_Batch_Owner",
+                        columns: x => new { x.BatchId, x.OwnerId },
                         principalTable: "ImportPreviewBatches",
-                        principalColumn: "Id",
+                        principalColumns: new[] { "Id", "OwnerId" },
                         onDelete: ReferentialAction.Cascade);
                 });
 
@@ -74,6 +83,16 @@ namespace backend.Migrations
                 column: "AccountInflowId",
                 unique: true,
                 filter: "\"AccountInflowId\" IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ImportInflowProvenances_AccountInflowId_AccountInflowOwnerId",
+                table: "ImportInflowProvenances",
+                columns: new[] { "AccountInflowId", "AccountInflowOwnerId" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ImportInflowProvenances_BatchId_OwnerId",
+                table: "ImportInflowProvenances",
+                columns: new[] { "BatchId", "OwnerId" });
         }
 
         /// <inheritdoc />
@@ -95,6 +114,10 @@ namespace backend.Migrations
 
             migrationBuilder.DropTable(
                 name: "AccountInflows");
+
+            migrationBuilder.DropUniqueConstraint(
+                name: "AK_ImportPreviewBatches_Id_OwnerId",
+                table: "ImportPreviewBatches");
         }
     }
 }

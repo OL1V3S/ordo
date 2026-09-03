@@ -219,7 +219,9 @@ public sealed class PostgreSqlFinancialApiTests
             [
                 "BatchId:uuid:NO",
                 "SourceRowOrdinal:integer:NO",
-                "AccountInflowId:integer:YES"
+                "OwnerId:text:NO",
+                "AccountInflowId:integer:YES",
+                "AccountInflowOwnerId:text:YES"
             ],
             inflowProvenanceColumns);
         Assert.Equal(
@@ -227,10 +229,13 @@ public sealed class PostgreSqlFinancialApiTests
             await ReadConstraintDefinitionAsync(context, "PK_ImportInflowProvenances"));
         Assert.Contains("ON DELETE CASCADE", await ReadConstraintDefinitionAsync(
             context,
-            "FK_ImportInflowProvenances_ImportPreviewBatches_BatchId"));
+            "FK_ImportInflowProvenance_Batch_Owner"));
         Assert.Contains("ON DELETE SET NULL", await ReadConstraintDefinitionAsync(
             context,
-            "FK_ImportInflowProvenances_AccountInflows_AccountInflowId"));
+            "FK_ImportInflowProvenance_AccountInflow_Owner"));
+        Assert.Contains("\"AccountInflowOwnerId\" = \"OwnerId\"", await ReadConstraintDefinitionAsync(
+            context,
+            "CK_ImportInflowProvenance_OwnerConsistency"));
         var inflowProvenanceIndex = await ReadIndexDefinitionAsync(
             context,
             "IX_ImportInflowProvenances_AccountInflowId");
@@ -354,6 +359,29 @@ public sealed class PostgreSqlFinancialApiTests
         Assert.Equal(new DateOnly(2026, 9, 1), persisted.Date);
         Assert.NotEqual(Guid.Empty, persisted.PaycheckEvidenceRevision);
 
+        using var otherOwner = await app.CreateAuthenticatedUserAsync("account-inflow-other-owner@example.com");
+        var otherOwnerInflow = new AccountInflow
+        {
+            OwnerId = otherOwner.Id,
+            Description = "OTHER OWNER DEPOSIT",
+            Amount = 500m,
+            Date = new DateOnly(2026, 9, 1)
+        };
+        context.AccountInflows.Add(otherOwnerInflow);
+        await context.SaveChangesAsync();
+
+        var crossOwnerLink = await Assert.ThrowsAsync<PostgresException>(() =>
+            context.Database.ExecuteSqlInterpolatedAsync(
+                $"""
+                INSERT INTO "ImportInflowProvenances"
+                    ("BatchId", "SourceRowOrdinal", "OwnerId", "AccountInflowId", "AccountInflowOwnerId")
+                VALUES ({batch.Id}, {2}, {owner.Id}, {otherOwnerInflow.Id}, {otherOwner.Id})
+                """));
+        Assert.Equal(PostgresErrorCodes.CheckViolation, crossOwnerLink.SqlState);
+        Assert.Equal("CK_ImportInflowProvenance_OwnerConsistency", crossOwnerLink.ConstraintName);
+        context.AccountInflows.Remove(otherOwnerInflow);
+        await context.SaveChangesAsync();
+
         Task InsertInflowAsync(string description, decimal amount) =>
             context.Database.ExecuteSqlInterpolatedAsync(
                 $"""
@@ -374,8 +402,9 @@ public sealed class PostgreSqlFinancialApiTests
         var invalidOrdinal = await Assert.ThrowsAsync<PostgresException>(() =>
             context.Database.ExecuteSqlInterpolatedAsync(
                 $"""
-                INSERT INTO "ImportInflowProvenances" ("BatchId", "SourceRowOrdinal", "AccountInflowId")
-                VALUES ({batch.Id}, {0}, {persisted.Id})
+                INSERT INTO "ImportInflowProvenances"
+                    ("BatchId", "SourceRowOrdinal", "OwnerId", "AccountInflowId", "AccountInflowOwnerId")
+                VALUES ({batch.Id}, {0}, {owner.Id}, {persisted.Id}, {owner.Id})
                 """));
         Assert.Equal(PostgresErrorCodes.CheckViolation, invalidOrdinal.SqlState);
         Assert.Equal("CK_ImportInflowProvenance_PositiveSourceRowOrdinal", invalidOrdinal.ConstraintName);
@@ -383,8 +412,9 @@ public sealed class PostgreSqlFinancialApiTests
         var duplicateLink = await Assert.ThrowsAsync<PostgresException>(() =>
             context.Database.ExecuteSqlInterpolatedAsync(
                 $"""
-                INSERT INTO "ImportInflowProvenances" ("BatchId", "SourceRowOrdinal", "AccountInflowId")
-                VALUES ({batch.Id}, {2}, {persisted.Id})
+                INSERT INTO "ImportInflowProvenances"
+                    ("BatchId", "SourceRowOrdinal", "OwnerId", "AccountInflowId", "AccountInflowOwnerId")
+                VALUES ({batch.Id}, {2}, {owner.Id}, {persisted.Id}, {owner.Id})
                 """));
         Assert.Equal(PostgresErrorCodes.UniqueViolation, duplicateLink.SqlState);
         Assert.Equal("IX_ImportInflowProvenances_AccountInflowId", duplicateLink.ConstraintName);
@@ -398,7 +428,10 @@ public sealed class PostgreSqlFinancialApiTests
         context.AccountInflows.Remove(await context.AccountInflows.SingleAsync());
         await context.SaveChangesAsync();
         context.ChangeTracker.Clear();
-        Assert.Null((await context.ImportInflowProvenances.AsNoTracking().SingleAsync()).AccountInflowId);
+        var retainedProvenance = await context.ImportInflowProvenances.AsNoTracking().SingleAsync();
+        Assert.Equal(owner.Id, retainedProvenance.OwnerId);
+        Assert.Null(retainedProvenance.AccountInflowId);
+        Assert.Null(retainedProvenance.AccountInflowOwnerId);
 
         var secondInflow = new AccountInflow
         {
@@ -411,6 +444,7 @@ public sealed class PostgreSqlFinancialApiTests
         context.ImportInflowProvenances.Add(new ImportInflowProvenance
         {
             BatchId = batch.Id,
+            OwnerId = owner.Id,
             SourceRowOrdinal = 2,
             AccountInflow = secondInflow
         });

@@ -55,6 +55,9 @@ namespace backend.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasAlternateKey("Id", "OwnerId")
+                        .HasName("AK_AccountInflows_Id_OwnerId");
+
                     b.HasIndex("OwnerId", "Date");
 
                     b.ToTable("AccountInflows", t =>
@@ -460,14 +463,27 @@ namespace backend.Migrations
                     b.Property<int?>("AccountInflowId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("AccountInflowOwnerId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("OwnerId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.HasKey("BatchId", "SourceRowOrdinal");
 
                     b.HasIndex("AccountInflowId")
                         .IsUnique()
                         .HasFilter("\"AccountInflowId\" IS NOT NULL");
 
+                    b.HasIndex("AccountInflowId", "AccountInflowOwnerId");
+
+                    b.HasIndex("BatchId", "OwnerId");
+
                     b.ToTable("ImportInflowProvenances", t =>
                         {
+                            t.HasCheckConstraint("CK_ImportInflowProvenance_OwnerConsistency", "(\"AccountInflowId\" IS NULL AND \"AccountInflowOwnerId\" IS NULL) OR (\"AccountInflowId\" IS NOT NULL AND \"AccountInflowOwnerId\" IS NOT NULL AND \"AccountInflowOwnerId\" = \"OwnerId\")");
+
                             t.HasCheckConstraint("CK_ImportInflowProvenance_PositiveSourceRowOrdinal", "\"SourceRowOrdinal\" > 0");
                         });
                 });
@@ -512,6 +528,9 @@ namespace backend.Migrations
                         .HasColumnType("character varying(50)");
 
                     b.HasKey("Id");
+
+                    b.HasAlternateKey("Id", "OwnerId")
+                        .HasName("AK_ImportPreviewBatches_Id_OwnerId");
 
                     b.HasIndex("ExpiresAt");
 
@@ -889,14 +908,18 @@ namespace backend.Migrations
                 {
                     b.HasOne("BudgetPlanner.Models.AccountInflow", "AccountInflow")
                         .WithMany()
-                        .HasForeignKey("AccountInflowId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .HasForeignKey("AccountInflowId", "AccountInflowOwnerId")
+                        .HasPrincipalKey("Id", "OwnerId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("FK_ImportInflowProvenance_AccountInflow_Owner");
 
                     b.HasOne("BudgetPlanner.Models.ImportPreviewBatch", "Batch")
                         .WithMany("InflowProvenance")
-                        .HasForeignKey("BatchId")
+                        .HasForeignKey("BatchId", "OwnerId")
+                        .HasPrincipalKey("Id", "OwnerId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("FK_ImportInflowProvenance_Batch_Owner");
 
                     b.Navigation("AccountInflow");
 
