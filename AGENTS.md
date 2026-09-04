@@ -74,8 +74,8 @@ and engineering execution remain distinct. `ROADMAP.md` is an engineering
 roadmap, not a product backlog or automatic execution queue.
 
 These continuation rules do not change existing risk approvals, verification
-requirements, publication rules, production-operation authority, or human merge
-authority.
+requirements, publication rules, or the approved delivery and exceptional
+production-operation authority defined below.
 
 ## General workflow
 
@@ -124,7 +124,7 @@ when local Git tooling is available.
 
 If deletion cannot be performed or verified safely, do not guess and do not
 block the already-approved merge. Report that remote branch cleanup remains
-required. Human merge authority remains unchanged.
+required. Branch cleanup does not broaden approved delivery authority.
 
 ### General safety
 
@@ -158,7 +158,7 @@ PR through GitHub Desktop or the GitHub web interface.
 
 Never claim that a push, PR, or CI result exists unless it has been verified.
 Publication handoff does not weaken the requirement for a draft PR, successful
-required CI, independent review, or human merge authority.
+required CI, independent review, or authorized merge execution.
 
 ## Risk levels
 
@@ -184,6 +184,9 @@ Agent authority:
 
 No separate implementation approval is required unless the task reveals unexpected risk.
 
+The human owner performs the final merge for LOW work. Selecting a LOW task
+alone does not delegate merge or deployment authority.
+
 ### MEDIUM
 
 Examples:
@@ -205,6 +208,10 @@ Agent authority:
 7. push;
 8. open a draft PR.
 
+Durably recorded explicit owner approval authorizes the approved slice through
+the delivery process below, including independent review, bounded corrections,
+authorized merge, and ordinary non-destructive application deployment.
+
 ### HIGH
 
 Examples:
@@ -217,7 +224,7 @@ Examples:
 - secrets;
 - destructive data operations;
 - financial/business-rule semantic changes;
-- deployment or migration procedures.
+- new or materially changed deployment or migration procedures.
 
 Agent authority:
 
@@ -225,9 +232,66 @@ Agent authority:
 2. produce a plan, risks, rollback considerations, and verification plan;
 3. stop for explicit human approval before implementation.
 
-High-risk production operations require separate explicit authorization.
+After explicit owner approval is durably recorded, the same approved delivery
+authority below applies. Exceptional production operations remain separately
+gated.
 
 Never perform a production migration or destructive production action merely because implementation is complete.
+
+## Approved delivery authority
+
+The human remains the product owner and approval authority for product priority,
+scope, MEDIUM/HIGH plans, and exceptional production operations. Once explicit
+owner approval of a MEDIUM/HIGH plan is durably recorded on the governing GitHub
+Issue, it authorizes that exact approved slice through the steps below. Explicit
+limits or exclusions in the issue or owner approval remain binding.
+
+The approved delivery steps are:
+
+- implementation, commits, publication, and a draft PR;
+- required local and CI verification;
+- independent review of the actual PR, diff, discussion, and CI evidence;
+- bounded review corrections and affected verification;
+- merge after required checks succeed and blocking review findings are resolved;
+- ordinary non-destructive application deployment when available authorized
+  tooling supports it and deployment introduces no new authority decision.
+
+No additional approval is needed merely to advance between those delivery
+steps. Required CI and independent review must succeed on the final changes
+before merge; local Codex results or an implementation summary cannot replace
+them. Privacy, security, financial invariants, and issue/plan scope remain
+mandatory. This section governs delivery authority; supporting verification
+documents continue to govern required evidence.
+
+ChatGPT/command-center tooling may merge within that approved authority after
+the gates succeed. Codex must not self-approve or merge pull requests, including
+by invoking command-center tooling to merge its own PR. The command-center
+review must be independent of the implementing Codex agent.
+
+Separate explicit owner authorization remains required for:
+
+- applying a production database migration;
+- destructive or irreversible production-data operations;
+- secrets/credential changes or materially new production configuration authority;
+- destructive rollback or data cleanup;
+- scope expansion beyond the approved issue/plan; and
+- any newly discovered HIGH-risk production operation not already covered by a
+  standing policy.
+
+Creating and testing an approved migration locally or in CI does not authorize
+applying it to production. Ordinary deployment must respect existing schema and
+release prerequisites; a missing prerequisite that requires an exceptional
+operation returns to the separate authorization gate above.
+
+After authorized merge, Codex or command-center tooling may perform an ordinary
+non-destructive application deployment within this authority. If available
+authorized tooling cannot perform it, report **deployment handoff required**
+with the merged revision, verified delivery state, and exact remaining steps.
+Do not claim deployment or full delivery is complete without verified evidence.
+
+Governance changes take effect only after merge under the previously effective
+policy. An unmerged governance edit cannot grant authority for its own merge or
+deployment; the issue #115 governance PR requires the human owner's final merge.
 
 ## Behavioral preservation
 
@@ -341,9 +405,11 @@ PRs should include:
 - explicit scope boundaries;
 - migration/API/dependency impact if applicable.
 
-Do not merge pull requests.
+Codex must not self-approve or merge pull requests.
 
-Merge authority remains with the human repository owner after CI and independent review.
+For an approved MEDIUM/HIGH slice, ChatGPT/command-center tooling may merge after
+required CI and independent review succeed and blocking findings are resolved,
+under the approved delivery authority above.
 
 ## Review and correction
 
@@ -387,9 +453,11 @@ The human and ChatGPT are the product/engineering command center. They own:
 - product discussion and priority;
 - selecting or creating the governing GitHub Issue;
 - resolving ambiguity and defining acceptance criteria;
-- risk classification and required approvals;
+- risk classification and obtaining required human approvals;
 - recording durable plan/approval state when MEDIUM/HIGH gates require it;
-- independent review of the resulting GitHub PR and CI evidence.
+- independent review of the resulting GitHub PR and CI evidence;
+- merge and ordinary non-destructive deployment within approved delivery
+  authority, using available authorized tooling.
 
 Codex owns repository engineering execution after that authority is established:
 
@@ -400,9 +468,14 @@ Codex owns repository engineering execution after that authority is established:
 - create intentional commits;
 - push the feature/PR branch and open a draft PR when publication tooling is
   available;
-- address bounded review corrections on the existing PR branch.
+- address bounded review corrections on the existing PR branch;
+- after authorized merge, perform ordinary non-destructive application
+  deployment when covered by the approved plan and available authorized tooling,
+  or report a deployment handoff.
 
-The human repository owner remains the sole merge authority.
+The human retains approval authority. ChatGPT/command-center tooling may execute
+an authorized merge after the independent gates; Codex cannot self-approve or
+merge its own work.
 
 ### Minimal human handoff
 
@@ -426,6 +499,10 @@ implementation handoff may be similarly short, for example:
 ```text
 Implement the approved plan for Ordo issue #57. Follow AGENTS.md and the issue exactly.
 ```
+
+That approval covers the exact slice through the approved delivery process;
+the human need not separately authorize each routine step or manually perform
+each merge. Exceptional operations and scope changes retain their separate gates.
 
 If Codex cannot retrieve the governing issue or required authority document,
 stop and report that access gap rather than asking the human to reconstruct the
@@ -499,7 +576,8 @@ when they materially affected execution.
 Credit efficiency never weakens issue scope, context pruning, MEDIUM/HIGH
 approval gates, security/privacy/financial invariants, required tests or CI,
 independent PR review, migration/deployment/production-operation approvals, or
-human merge authority. Correctness and those controls always take precedence.
+the separation of implementation from approval and merge. Correctness and those
+controls always take precedence.
 
 If the environment cannot programmatically select an agent, model, subagent, or
 reasoning level, do not claim a switch occurred and do not treat the missing
@@ -514,13 +592,16 @@ LOW work may proceed after the task is explicitly selected under the LOW
 authority above.
 
 For MEDIUM work, Codex must inspect and produce the concise plan required by the
-risk gate, then stop. Implementation begins only after explicit human approval.
+risk gate, then stop unless explicit owner approval of that plan is already
+durably recorded. That approval authorizes the exact slice through the approved
+delivery process above.
 
 For HIGH work, Codex must inspect only and provide the required plan, risks,
-rollback considerations, and verification plan, then stop. Implementation
-begins only after explicit human approval. A separate explicit authorization is
-still required for production migrations or other high-risk production
-operations.
+rollback considerations, and verification plan, then stop unless explicit owner
+approval of that plan is already durably recorded. Do not request the same
+approval again when it already exists. The approved delivery process then
+applies, with separate explicit authorization for the exceptional production
+operations listed above.
 
 For every MEDIUM/HIGH planning-only run, Codex must publish the completed plan
 as a top-level comment on the governing GitHub Issue before stopping for
@@ -533,7 +614,8 @@ The planning comment is a durable planning artifact, not implementation
 authority. Publishing it does not authorize repository edits, branch creation,
 commits, pushes, pull requests, migrations, production access or operations,
 deployment, or merge. Implementation still requires the existing explicit
-approval and short implementation handoff.
+owner approval to be durably recorded; a handoff carries that authority and
+does not create another approval gate.
 
 If issue-comment publication is unavailable, Codex must stop and report a
 **planning-publication capability gap**, identifying the governing issue and
@@ -561,11 +643,15 @@ local Codex checkout
 -> draft pull request
 -> independent GitHub CI
 -> ChatGPT review of actual PR + CI
--> human merge
+-> authorized human or ChatGPT/command-center merge
+-> ordinary non-destructive application deployment, or deployment handoff
 ```
 
-Codex must never push directly to `main`, merge a pull request, deploy, apply a
-production migration, or perform destructive production/data operations.
+Codex must never push directly to `main`, self-approve, or merge a pull request.
+Ordinary non-destructive application deployment follows the approved delivery
+authority above. Production migrations and other exceptional operations require
+their own explicit authorization; approval of implementation or merge is not
+that authorization.
 
 If Codex can safely authenticate to GitHub, it may push the approved branch and
 open the draft PR itself. If push or PR tooling is unavailable, stop at a clean
@@ -588,4 +674,6 @@ the existing PR branch and make only the smallest correction required. The
 short handoff may reference the PR/review finding instead of restating the
 entire task. Scope-expanding corrections return to normal planning and approval.
 
-Human review and merge authority remain unchanged.
+Independent review and successful required CI gate authorized command-center
+merge. Human approval authority, exceptional-operation gates, and the prohibition
+on Codex self-approval and self-merge remain mandatory.
