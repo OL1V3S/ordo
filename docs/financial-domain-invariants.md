@@ -57,6 +57,120 @@ only when the user explicitly selects it during statement review; that selection
 is false by default. Credits never become Expenses, and saving an imported
 credit does not call it income or a paycheck.
 
+## Confirmed paycheck profiles
+
+The owner-approved Stage 4 plan on [issue #114](https://github.com/OL1V3S/ordo/issues/114)
+establishes the backend profile and API boundary. A detector candidate is derived
+evidence until the user explicitly confirms it. A manual profile is a separate
+explicit statement of expected paycheck behavior; creating an `AccountInflow`
+alone never creates a paycheck. Multiple profiles per owner remain valid.
+
+Profiles store a user-controlled display name, paycheck-specific lifecycle
+(`active`, `paused`, `ended`), immutable schedule, accepted timing windows, and
+either a fixed amount or an explicitly accepted range. Names are outer-trimmed,
+nonblank, and at most 500 characters. Amounts are positive `numeric(18,2)` values
+with at most two decimals; range minimum must be strictly less than maximum.
+Each timing window is explicitly supplied and is between zero and three days.
+An observed variable amount requires an explicit confirmed range; raw detector
+minimum/maximum values are never automatically adopted as the expectation.
+
+Schedules reuse the unchanged Stage 2 types and rules:
+
+- weekly and biweekly use only a reference anchor date;
+- monthly uses one canonical day-of-month or month-end anchor;
+- semimonthly uses two ordered canonical anchors that remain at least seven
+  days apart within and across months;
+- a day-of-month API anchor has `kind: day_of_month` and day `1..30`; a month-end
+  anchor has `kind: month_end` and null day. Persistence encodes month end as 31.
+
+All schedule variants have exclusive shapes: interval schedules cannot contain
+month anchors, and calendar schedules cannot contain an interval reference.
+Candidate confirmation must explicitly accept the exact detector schedule;
+changing it returns `400 candidate_schedule_mismatch`. Changing a durable
+schedule requires explicitly ending the old profile and creating/confirming a
+replacement. Updates may change only the display name, accepted windows, and
+amount. All lifecycle transitions, including reactivation, are explicit. There
+is no profile-delete API, automatic transition, or automatic evidence release.
+
+### Evidence, decisions, and concurrency
+
+Each `PaycheckOccurrence` stores one exact confirmation-evidence membership:
+profile/inflow IDs, consistent owner, evidence revision at assignment, slot
+anchor, timing offset, and link time. Composite foreign keys enforce owner
+consistency; a unique inflow index prevents assignment to a second profile.
+Occurrences do not imply employer verification, gross pay, taxes, deductions,
+payroll-document truth, or earned-income classification.
+
+Editing an assigned inflow keeps its assignment. The stored revision enables an
+`editedSinceConfirmation` flag without retaining duplicate financial snapshots
+or diagnosing a paycheck change. Deleting an inflow removes only its occurrence
+link, leaving the profile unchanged. Pausing or ending a profile retains its
+assignments. Candidate detection excludes claimed inflows before invoking the
+unchanged `paycheck-candidate-v1` detector. A later disjoint set of evidence may
+surface a new candidate, including for the same exact normalized description.
+There is no fuzzy matching or automatic attachment to an existing profile.
+
+Dismissal identity is owner + algorithm version + cadence + exact fingerprint.
+Reads partition current candidates into available/dismissed arrays without
+deleting obsolete decisions. Dismiss is idempotent for an existing exact row;
+otherwise it requires the current candidate. Reconsider removes only that exact
+owner decision and is idempotent even after the candidate changes.
+
+Confirmation recomputes owner-scoped candidates in a serializable transaction,
+checks the exact version/fingerprint and accepted schedule, rejects an exact
+dismissal, locks selected inflows in ascending ID order, and revalidates their
+revisions and assignment state. One profile and every candidate occurrence are
+written atomically. The unique owner/version/origin fingerprint makes a retry
+return the existing profile, even after later profile edits or evidence deletion.
+Conflicting confirmations cannot both claim an inflow; a loser returns the same
+winner for an identical origin or a stable conflict after rollback. Manual
+creation accepts no evidence IDs and creates no occurrences.
+
+### Authenticated API and projection contract
+
+Owner identity comes only from claims. Request and response DTOs expose no
+authoritative owner IDs. Candidate evidence contains current dates, descriptions,
+amounts, manual/imported source, and exact slot assignments; no evidence revision
+is exposed. Candidates sort by normalized identity and fingerprint ordinal;
+evidence sorts by posted date and inflow ID. Profiles sort by lifecycle rank
+(`active`, `paused`, `ended`), display name ordinal, then ID.
+
+| Route | Result |
+| --- | --- |
+| `GET /api/paycheck-candidates` | Evaluation date, available and dismissed candidates |
+| `POST /api/paycheck-candidates/dismiss` | Exact version/cadence/fingerprint dismissal; `204` |
+| `POST /api/paycheck-candidates/reconsider` | Exact decision removal; `204` |
+| `POST /api/paycheck-candidates/confirm` | Profile plus `alreadyConfirmed`; `201`, or `200` on retry |
+| `POST /api/paychecks` | Explicit active manual profile; `201` with item location |
+| `GET /api/paychecks` | One evaluation date and ordered profiles |
+| `GET /api/paychecks/{id}` | Current profile, evidence, and projection |
+| `PUT /api/paychecks/{id}` | Update display name, windows, and accepted amount |
+| `PATCH /api/paychecks/{id}/lifecycle` | Explicit active/paused/ended transition |
+
+Missing and foreign profile GET/PUT/PATCH operations return the same empty `404`.
+Validation returns privacy-safe `400` ProblemDetails with stable codes. Candidate
+staleness, dismissal, and conflicting confirmation return `409` without foreign
+owner disclosure. A failed database write during confirmation rolls back and
+returns a generic `500 confirmation_failed` without database details. Financial
+content, request bodies, and tokens are not logged.
+
+Only active profiles invoke the unchanged `paycheck-projector-v1`. The confirmed
+pattern maps directly from persisted schedule/windows/amount and the maximum
+slot anchor among currently linked occurrences, or null when no links remain.
+The response supplies algorithm version, one captured UTC evaluation date,
+anchor, earliest/latest expected dates, and accepted amount. Paused/ended
+profiles return null projection. These dates are **expected, not guaranteed**;
+there is no missed-pay diagnosis or amount/timing change detection. Writes whose
+projection window would exceed the representable calendar are rejected before
+persisting that state.
+
+The Stage 4 migration is additive and has no backfill. An ordinary application
+rollback leaves the added tables inert. Production schema readiness must precede
+application rollout; creating/testing this migration locally or in CI does not
+authorize production application. Down removes occurrence links before decision
+and profile tables and would destroy durable decisions. Production Down or data
+cleanup requires separate explicit authorization and a retention/export decision.
+
 ## Description invariant
 
 An expense description is required. At the authoritative write boundary it is
@@ -213,7 +327,7 @@ implementation must provide:
 The following remain for F1, F2, or later approved product work:
 
 - refund and reversal relationships beyond current direction-based treatment;
-- an income model;
+- a broader income model beyond the explicitly confirmed paycheck boundary;
 - merchant extraction;
 - provenance and raw descriptions;
 - parser versions;

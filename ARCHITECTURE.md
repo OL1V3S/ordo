@@ -72,6 +72,18 @@ only confirmed commitments, occurrence links, and dismissals are persisted.
 The approved V1 semantics and explicit non-goals are defined in
 [`docs/commitment-intelligence.md`](docs/commitment-intelligence.md).
 
+`backend/Paychecks/` contains the pure, versioned paycheck candidate detector and
+projector plus the owner-scoped profile application service. The authenticated
+`/api/paycheck-candidates` and `/api/paychecks` APIs separate generic inflow
+evidence from explicit user-confirmed paycheck meaning. Profiles, confirmation
+occurrences, and exact-fingerprint dismissals are persisted; candidate and
+projection results remain derived. Confirmation uses a serializable transaction,
+ordered inflow locks, owner-consistent foreign keys, and exclusive evidence
+assignment. The profile schedule is immutable, while accepted amounts, windows,
+display name, and lifecycle are explicitly editable. No Paychecks frontend or
+paycheck change detection is included. See the paycheck section of
+[`docs/financial-domain-invariants.md`](docs/financial-domain-invariants.md).
+
 ### Authentication and ownership boundaries
 
 ASP.NET Core Identity manages users, JWT bearer authentication establishes the
@@ -88,8 +100,9 @@ not implemented yet.
 ### Persistence and migrations
 
 PostgreSQL is the application persistence provider. The database stores
-Identity data, expenses, budget limits, commitment decisions and links, and the
-ASP.NET Core Data Protection key ring. Normal application startup does not
+Identity data, expenses, budget limits, commitment decisions and links, account
+inflows and their import provenance, paycheck profiles/evidence/dismissals, and
+the ASP.NET Core Data Protection key ring. Normal application startup does not
 apply migrations. Production migrations remain a separate, deliberate,
 human-authorized operation described in [`README.md`](README.md).
 
