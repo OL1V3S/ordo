@@ -37,6 +37,26 @@ If Ordo later tracks multiple accounts, this invariant must be
 revisited before cross-account transfers are represented so the product does
 not accidentally double-count the same movement across tracked accounts.
 
+## Account inflow invariant
+
+An `AccountInflow` is owner-scoped evidence that money increased the one
+tracked checking account. It is not an `Expense`, does not use a negative
+amount, and does not by itself classify the movement as income or a paycheck.
+Transfers, refunds, reimbursements, and other non-paycheck credits may therefore
+be retained as inflow evidence without acquiring income meaning.
+
+Its amount is strictly positive, uses at most two decimal places, and shares the
+application's `numeric(18,2)` monetary range. Its posted date is a calendar date
+using API `YYYY-MM-DD`, .NET `DateOnly`, and PostgreSQL `date`. Its description
+is required, outer-trimmed at the authoritative write boundary, limited to 500
+characters, and preserves meaningful case and internal text.
+
+Ownership comes only from authenticated identity. Manual inflows have no import
+provenance. A confidently directed imported credit becomes an `AccountInflow`
+only when the user explicitly selects it during statement review; that selection
+is false by default. Credits never become Expenses, and saving an imported
+credit does not call it income or a paycheck.
+
 ## Description invariant
 
 An expense description is required. At the authoritative write boundary it is

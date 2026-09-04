@@ -12,7 +12,8 @@ const preview = {
   sourceType: 'sunflower_pdf',
   expiresAt: '2026-08-21T12:00:00Z',
   rows: [{
-    rowId: 'row-1', isEligible: true, selectedForImport: false,
+    rowId: 'row-1', isEligible: true, isInflowEligible: false,
+    selectedForImport: false, selectedForInflow: false,
     editableExpenseDescription: 'Coffee', category: 'food',
   }],
 }
@@ -22,6 +23,7 @@ const confirmed = {
   status: 'confirmed',
   confirmedAt: '2026-08-25T21:00:00Z',
   importedExpenseCount: 1,
+  importedInflowCount: 0,
 }
 
 describe('useImportPreview', () => {
@@ -69,7 +71,7 @@ describe('useImportPreview', () => {
     await act(() => result.current.selectSource('sunflower_pdf'))
     await act(() => result.current.upload(new File(['pdf'], 'statement.pdf')))
 
-    expect(result.current.error).toBe('This statement was already imported. No duplicate expenses were created.')
+    expect(result.current.error).toBe('This statement was already imported. No duplicate financial records were created.')
     expect(result.current.error).not.toContain('private server detail')
   })
 
@@ -99,6 +101,22 @@ describe('useImportPreview', () => {
     expect(result.current.preview).toEqual(preview)
     expect(result.current.error).toBe('That row cannot be selected for import.')
     expect(result.current.error).not.toContain('internal detail')
+  })
+
+  it('counts explicitly selected eligible incoming deposits independently of expense selection', async () => {
+    window.history.replaceState({}, '', `/transactions?importBatch=${preview.batchId}`)
+    const creditPreview = {
+      ...preview,
+      rows: [{
+        ...preview.rows[0], isEligible: false, isInflowEligible: true,
+        selectedForImport: false, selectedForInflow: true,
+      }],
+    }
+    importPreviewApi.getById.mockResolvedValue({ status: 200, data: creditPreview })
+    const { result } = renderHook(() => useImportPreview())
+
+    await waitFor(() => expect(result.current.preview).toEqual(creditPreview))
+    expect(result.current.selectedCount).toBe(1)
   })
 
   it('requires explicit source selection before looking for an open preview', async () => {

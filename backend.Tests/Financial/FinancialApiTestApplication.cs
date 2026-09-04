@@ -136,6 +136,26 @@ internal abstract class FinancialApiTestApplicationBase : WebApplicationFactory<
         return expense;
     }
 
+    public async Task<AccountInflow> SeedInflowAsync(
+        string ownerId,
+        string description = "seeded inflow",
+        decimal amount = 123.45m,
+        DateOnly? date = null)
+    {
+        using var scope = Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<BudgetContext>();
+        var inflow = new AccountInflow
+        {
+            OwnerId = ownerId,
+            Description = description,
+            Amount = amount,
+            Date = date ?? new DateOnly(2026, 9, 1)
+        };
+        context.AccountInflows.Add(inflow);
+        await context.SaveChangesAsync();
+        return inflow;
+    }
+
     public async Task<BudgetLimit> SeedBudgetLimitAsync(
         string userId,
         string category = "food",
@@ -161,6 +181,14 @@ internal abstract class FinancialApiTestApplicationBase : WebApplicationFactory<
         using var scope = Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<BudgetContext>();
         return await context.Expenses.AsNoTracking().SingleOrDefaultAsync(expense => expense.Id == id);
+    }
+
+    public async Task<AccountInflow?> FindInflowAsync(int id)
+    {
+        using var scope = Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<BudgetContext>();
+        return await context.AccountInflows.AsNoTracking()
+            .SingleOrDefaultAsync(value => value.Id == id);
     }
 
     public async Task<int> CountExpensesAsync()

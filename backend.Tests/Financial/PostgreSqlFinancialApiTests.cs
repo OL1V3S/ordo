@@ -1421,6 +1421,60 @@ public sealed class PostgreSqlFinancialApiTests
     }
 
     [PostgreSqlFact]
+    public async Task Mixed_confirmation_inflow_failure_rolls_back_both_target_types_and_preview_changes()
+    {
+        await using var app = new PostgreSqlImportPreviewTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("postgres-mixed-confirm-rollback@example.com");
+        var preview = await CreatePreviewAsync(
+            owner.Client,
+            SunflowerFixtureCorpus.CreateRepresentativePdf());
+        var batchId = preview.GetProperty("batchId").GetGuid();
+        await SelectCreditForInflowAsync(owner.Client, preview);
+
+        using (var setupScope = app.Services.CreateScope())
+        {
+            var setupContext = setupScope.ServiceProvider.GetRequiredService<BudgetContext>();
+            await setupContext.Database.ExecuteSqlRawAsync(
+                """
+                CREATE FUNCTION reject_import_inflow_provenance() RETURNS trigger
+                LANGUAGE plpgsql AS $function$
+                BEGIN
+                    RAISE EXCEPTION 'intentional disposable-test inflow provenance rejection';
+                END;
+                $function$;
+
+                CREATE TRIGGER reject_import_inflow_provenance_insert
+                BEFORE INSERT ON "ImportInflowProvenances"
+                FOR EACH ROW EXECUTE FUNCTION reject_import_inflow_provenance();
+                """);
+        }
+
+        using var response = await owner.Client.PostAsync(
+            $"/api/import-previews/{batchId}/confirm",
+            content: null);
+        var error = await response.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+        Assert.Equal("confirmation_failed", error.GetProperty("code").GetString());
+
+        using var scope = app.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<BudgetContext>();
+        var batch = await context.ImportPreviewBatches.AsNoTracking()
+            .Include(value => value.Rows)
+            .Include(value => value.Provenance)
+            .Include(value => value.InflowProvenance)
+            .SingleAsync(value => value.Id == batchId);
+        Assert.Equal(ImportPreviewLifecycle.Open, batch.Lifecycle);
+        Assert.Null(batch.ConfirmedAt);
+        Assert.Equal(13, batch.Rows.Count);
+        Assert.Equal(11, batch.Rows.Count(value => value.SelectedForImport));
+        Assert.Empty(batch.Provenance);
+        Assert.Empty(batch.InflowProvenance);
+        Assert.False(await context.Expenses.AnyAsync());
+        Assert.False(await context.AccountInflows.AnyAsync());
+    }
+
+    [PostgreSqlFact]
     public async Task Concurrent_confirmations_serialize_to_confirmed_and_already_confirmed()
     {
         await using var app = new PostgreSqlImportPreviewTestApplication();
@@ -1429,6 +1483,7 @@ public sealed class PostgreSqlFinancialApiTests
             owner.Client,
             SunflowerFixtureCorpus.CreateRepresentativePdf());
         var batchId = preview.GetProperty("batchId").GetGuid();
+        await SelectCreditForInflowAsync(owner.Client, preview);
 
         using var lockScope = app.Services.CreateScope();
         var lockContext = lockScope.ServiceProvider.GetRequiredService<BudgetContext>();
@@ -1459,6 +1514,8 @@ public sealed class PostgreSqlFinancialApiTests
             }.Order());
         Assert.Equal(10, firstBody.GetProperty("importedExpenseCount").GetInt32());
         Assert.Equal(10, secondBody.GetProperty("importedExpenseCount").GetInt32());
+        Assert.Equal(1, firstBody.GetProperty("importedInflowCount").GetInt32());
+        Assert.Equal(1, secondBody.GetProperty("importedInflowCount").GetInt32());
         Assert.Equal(
             firstBody.GetProperty("confirmedAt").GetDateTime(),
             secondBody.GetProperty("confirmedAt").GetDateTime());
@@ -1466,6 +1523,7 @@ public sealed class PostgreSqlFinancialApiTests
         using var assertScope = app.Services.CreateScope();
         var context = assertScope.ServiceProvider.GetRequiredService<BudgetContext>();
         Assert.Equal(10, await context.Expenses.CountAsync(value => value.UserId == owner.Id));
+        Assert.Equal(1, await context.AccountInflows.CountAsync(value => value.OwnerId == owner.Id));
         Assert.Equal(10, await context.ImportExpenseProvenances.CountAsync(
             value => value.BatchId == batchId));
         Assert.Equal(10, await context.ImportExpenseProvenances
@@ -1473,6 +1531,8 @@ public sealed class PostgreSqlFinancialApiTests
             .Select(value => value.ExpenseId)
             .Distinct()
             .CountAsync());
+        Assert.Equal(1, await context.ImportInflowProvenances.CountAsync(
+            value => value.BatchId == batchId));
     }
 
     [PostgreSqlFact]
@@ -1819,6 +1879,67 @@ public sealed class PostgreSqlFinancialApiTests
     }
 
     [PostgreSqlFact]
+    public async Task Inflow_delete_nulls_owner_consistent_provenance_and_preserves_replay_counts_and_document_identity()
+    {
+        await using var app = new PostgreSqlImportPreviewTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("postgres-inflow-provenance-delete@example.com");
+        var pdf = SunflowerFixtureCorpus.CreateRepresentativePdf();
+        var preview = await CreatePreviewAsync(owner.Client, pdf);
+        var batchId = preview.GetProperty("batchId").GetGuid();
+        await SelectCreditForInflowAsync(owner.Client, preview);
+
+        using var confirmation = await owner.Client.PostAsync(
+            $"/api/import-previews/{batchId}/confirm",
+            content: null);
+        var confirmationBody = await confirmation.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, confirmation.StatusCode);
+        Assert.Equal(10, confirmationBody.GetProperty("importedExpenseCount").GetInt32());
+        Assert.Equal(1, confirmationBody.GetProperty("importedInflowCount").GetInt32());
+
+        int inflowId;
+        int sourceRowOrdinal;
+        using (var readScope = app.Services.CreateScope())
+        {
+            var context = readScope.ServiceProvider.GetRequiredService<BudgetContext>();
+            var provenance = await context.ImportInflowProvenances.AsNoTracking()
+                .SingleAsync(value => value.BatchId == batchId);
+            inflowId = Assert.IsType<int>(provenance.AccountInflowId);
+            sourceRowOrdinal = provenance.SourceRowOrdinal;
+            Assert.Equal(owner.Id, provenance.OwnerId);
+            Assert.Equal(owner.Id, provenance.AccountInflowOwnerId);
+        }
+
+        using var delete = await owner.Client.DeleteAsync($"/api/inflows/{inflowId}");
+        Assert.Equal(HttpStatusCode.NoContent, delete.StatusCode);
+
+        using (var assertScope = app.Services.CreateScope())
+        {
+            var context = assertScope.ServiceProvider.GetRequiredService<BudgetContext>();
+            var provenance = await context.ImportInflowProvenances.AsNoTracking()
+                .SingleAsync(value => value.BatchId == batchId
+                    && value.SourceRowOrdinal == sourceRowOrdinal);
+            Assert.Equal(owner.Id, provenance.OwnerId);
+            Assert.Null(provenance.AccountInflowId);
+            Assert.Null(provenance.AccountInflowOwnerId);
+        }
+
+        using var replay = await owner.Client.PostAsync(
+            $"/api/import-previews/{batchId}/confirm",
+            content: null);
+        var replayBody = await replay.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, replay.StatusCode);
+        Assert.Equal("already_confirmed", replayBody.GetProperty("status").GetString());
+        Assert.Equal(10, replayBody.GetProperty("importedExpenseCount").GetInt32());
+        Assert.Equal(1, replayBody.GetProperty("importedInflowCount").GetInt32());
+
+        using var upload = CreatePdfUpload(pdf);
+        using var reupload = await owner.Client.PostAsync("/api/import-previews", upload);
+        var error = await reupload.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.Conflict, reupload.StatusCode);
+        Assert.Equal("already_imported", error.GetProperty("code").GetString());
+    }
+
+    [PostgreSqlFact]
     public async Task Budget_create_read_upsert_and_delete_use_relational_month_query()
     {
         await using var app = new PostgreSqlFinancialApiTestApplication();
@@ -1874,6 +1995,26 @@ public sealed class PostgreSqlFinancialApiTests
             response.StatusCode == HttpStatusCode.Created,
             $"Expected preview creation, received {(int)response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
         return body;
+    }
+
+    private static async Task SelectCreditForInflowAsync(
+        HttpClient client,
+        JsonElement preview,
+        string sourceDescription = "DEMO PAYROLL CREDIT")
+    {
+        var batchId = preview.GetProperty("batchId").GetGuid();
+        var row = preview.GetProperty("rows").EnumerateArray().Single(value =>
+            value.GetProperty("sourceDescription").GetString() == sourceDescription);
+        using var response = await client.PatchAsJsonAsync(
+            $"/api/import-previews/{batchId}/rows/{row.GetProperty("rowId").GetGuid()}",
+            new
+            {
+                editableExpenseDescription = (string?)null,
+                category = (string?)null,
+                selectedForImport = false,
+                selectedForInflow = true
+            });
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
     private static DateOnly[] RecentCommitmentDates()

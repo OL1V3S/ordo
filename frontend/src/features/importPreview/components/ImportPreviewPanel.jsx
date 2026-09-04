@@ -37,7 +37,7 @@ function issueTitle(code) {
   if (code === "duplicate_review_required") return "Review new duplicate warnings";
   if (code === "preview_expired") return "Preview expired";
   if (code === "preview_unavailable") return "Preview unavailable";
-  return "Expenses were not imported";
+  return "Statement was not confirmed";
 }
 
 function focusAfterRender(ref) {
@@ -195,14 +195,16 @@ export default function ImportPreviewPanel({ importState, onImportConfirmed = as
       editableExpenseDescription: draft.description.trim(),
       category: categoryFromDraft(draft),
       selectedForImport: row.selectedForImport,
+      selectedForInflow: false,
     }, true);
   }
 
-  async function updateSelection(row, selectedForImport) {
+  async function updateSelection(row, selected) {
     return runRowUpdate(row, {
-      editableExpenseDescription: row.editableExpenseDescription,
-      category: row.category,
-      selectedForImport,
+      editableExpenseDescription: row.isEligible ? row.editableExpenseDescription : null,
+      category: row.isEligible ? row.category : null,
+      selectedForImport: row.isEligible ? selected : false,
+      selectedForInflow: row.isInflowEligible ? selected : false,
     }, false);
   }
 
@@ -227,9 +229,9 @@ export default function ImportPreviewPanel({ importState, onImportConfirmed = as
 
     focusAfterRender(completionHeading);
     try {
-      await onImportConfirmed();
+      if (result.importedExpenseCount > 0) await onImportConfirmed();
     } catch {
-      setRefreshError("Expenses were imported, but Transactions could not be refreshed. Reload this page to see them.");
+      setRefreshError("The import succeeded, but Transactions could not be refreshed. Reload this page to see imported expenses.");
     }
   }
 
@@ -238,7 +240,7 @@ export default function ImportPreviewPanel({ importState, onImportConfirmed = as
     if (hasPendingRows) return "Wait for every row update to finish before confirming.";
     if (hasDirtyRows) return "Save every row with unsaved changes before confirming.";
     if (selectedCount === 0) return "Select at least one eligible row to import.";
-    return `${selectedCount} selected ${selectedCount === 1 ? "expense is" : "expenses are"} ready to import.`;
+    return `${selectedCount} selected ${selectedCount === 1 ? "row is" : "rows are"} ready to confirm.`;
   }
 
   function confirmationCodesFor(rowId) {
@@ -285,7 +287,7 @@ export default function ImportPreviewPanel({ importState, onImportConfirmed = as
 
       {!confirmation && (
         <div className="status-message status-message--info">
-          Review and save any edits before importing. Expenses are created only after confirmation.
+          Review and save any edits before confirming. Expenses and explicitly selected incoming deposits are created only after confirmation.
         </div>
       )}
 
@@ -296,9 +298,9 @@ export default function ImportPreviewPanel({ importState, onImportConfirmed = as
           </h3>
           <p>
             {confirmation.importedExpenseCount} {confirmation.importedExpenseCount === 1 ? "expense" : "expenses"}
-            {confirmation.status === "already_confirmed"
-              ? confirmation.importedExpenseCount === 1 ? " was already imported" : " were already imported"
-              : " imported"}
+            {" and "}
+            {confirmation.importedInflowCount} {confirmation.importedInflowCount === 1 ? "incoming deposit" : "incoming deposits"}
+            {confirmation.status === "already_confirmed" ? " were already saved" : " saved"}
             {` at ${formatConfirmationTime(confirmation.confirmedAt)}.`}
           </p>
         </div>
@@ -380,10 +382,10 @@ export default function ImportPreviewPanel({ importState, onImportConfirmed = as
                 onClick={handleConfirm}
               >
                 {confirming
-                  ? "Importing expenses…"
+                  ? "Confirming selected rows…"
                   : selectedCount > 0
-                    ? `Import ${selectedCount} selected ${selectedCount === 1 ? "expense" : "expenses"}`
-                    : "Import selected expenses"}
+                    ? `Confirm ${selectedCount} selected ${selectedCount === 1 ? "row" : "rows"}`
+                    : "Confirm selected rows"}
               </button>
             </div>
           </div>
