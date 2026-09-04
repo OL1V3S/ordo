@@ -14,15 +14,15 @@ const SAFE_ERRORS = {
   processing_timed_out: "Statement processing timed out. Try the upload again.",
   processing_cancelled: "Statement processing was cancelled.",
   import_in_progress: "Another statement is already being processed.",
-  already_imported: "This statement was already imported. No duplicate expenses were created.",
+  already_imported: "This statement was already imported. No duplicate financial records were created.",
   row_not_selectable: "That row cannot be selected for import.",
-  row_validation_failed: "Check the description and category, then try again.",
+  row_validation_failed: "Check the row details, then try again.",
 };
 
 const CONFIRMATION_MESSAGES = {
-  no_rows_selected: "Select at least one eligible row before importing expenses.",
+  no_rows_selected: "Select at least one eligible row before confirming.",
   duplicate_review_required: "New possible duplicates were found. Review the affected rows and explicitly select any row you still want to import.",
-  confirmation_validation_failed: "One or more selected rows need attention before expenses can be imported.",
+  confirmation_validation_failed: "One or more selected rows need attention before the import can be confirmed.",
   confirmation_conflict: "The statement could not be confirmed because its import state changed. Review the preview and try again.",
   confirmation_failed: "The statement could not be confirmed safely. Nothing is being reported as imported; you can try again.",
   preview_expired: "This preview expired. Re-upload the statement to create a new review.",
@@ -31,6 +31,7 @@ const CONFIRMATION_MESSAGES = {
 
 const SAFE_CONFIRMATION_ROW_CODES = new Set([
   "possible_duplicate",
+  "possible_inflow_duplicate",
   "row_not_selectable",
   "date_required",
   "amount_must_be_positive",
@@ -80,7 +81,9 @@ function isConfirmationResponse(value, batchId) {
     && (value.status === "confirmed" || value.status === "already_confirmed")
     && typeof value.confirmedAt === "string"
     && Number.isInteger(value.importedExpenseCount)
-    && value.importedExpenseCount >= 0;
+    && value.importedExpenseCount >= 0
+    && Number.isInteger(value.importedInflowCount)
+    && value.importedInflowCount >= 0;
 }
 
 function batchIdFromLocation() {
@@ -216,7 +219,8 @@ export function useImportPreview() {
       }));
       setConfirmationIssue((current) => {
         if (!current) return null;
-        if (current.code === "no_rows_selected" && payload.selectedForImport) return null;
+        if (current.code === "no_rows_selected"
+          && (payload.selectedForImport || payload.selectedForInflow)) return null;
         if (!current.rows.some((row) => row.rowId === rowId)) return current;
         return {
           ...current,
@@ -284,7 +288,9 @@ export function useImportPreview() {
     forgetBatch();
   }, []);
 
-  const selectedCount = preview?.rows.filter((row) => row.isEligible && row.selectedForImport).length ?? 0;
+  const selectedCount = preview?.rows.filter((row) =>
+    (row.isEligible && row.selectedForImport)
+    || (row.isInflowEligible && row.selectedForInflow)).length ?? 0;
 
   return {
     preview,

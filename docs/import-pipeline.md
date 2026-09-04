@@ -21,10 +21,10 @@ The V1 pipeline is:
 1. **Parse** the supported Sunflower statement under the approved F1 threat-model limits.
 2. **Normalize** each supported source row into a bank-neutral imported-row representation.
 3. **Validate** required financial fields and supported formats.
-4. **Deduplicate** against exact import provenance and existing expense data.
+4. **Deduplicate** against exact import provenance and the applicable existing expense or account-inflow data.
 5. **Preview** every successfully parsed batch for authenticated-user review.
 6. **Confirm** only explicitly selected, valid rows after authoritative backend revalidation.
-7. **Persist** selected rows as ordinary expenses atomically and idempotently once all persistence prerequisites are satisfied.
+7. **Persist** selected debits as ordinary Expenses and explicitly selected credits as generic AccountInflows atomically and idempotently once all persistence prerequisites are satisfied.
 
 Format-specific parsing must remain separate from the core expense write boundary. Existing Transactions, Budgets, and Analytics continue to consume normal `Expense` records after a successful import; V1 does not introduce a parallel outflow model.
 
@@ -45,7 +45,7 @@ The conceptual V1 row includes:
 - category, defaulting to canonical `uncategorized` for eligible expenses;
 - validation errors and warnings;
 - duplicate status;
-- selected-for-import state; and
+- separate selected-for-expense-import and selected-for-inflow state; and
 - minimum provenance metadata required to identify source, parser/rule version, batch, and source row without retaining the original PDF.
 
 The normalized import model is intentionally broader than `Expense`. Credits and deposits may exist in preview without being representable as negative expenses.
@@ -56,7 +56,7 @@ V1 uses four classification states:
 
 - `expense_candidate` — a supported, valid debit/outflow from the tracked checking account and eligible for user selection;
 - `needs_review` — a transaction-like row was recognized, but the parser cannot confidently establish debit/credit direction or another required source fact; never auto-selected or persisted;
-- `non_expense` — a known credit or deposit that increases the tracked checking account balance and is excluded from expense persistence; and
+- `non_expense` — a known credit or deposit that increases the tracked checking account balance, is excluded from Expense persistence, and may be explicitly saved as generic account-inflow evidence when otherwise valid; and
 - `invalid` — cannot satisfy required date, amount, description, or supported-format rules.
 
 Classification rules must be explicit, testable, and versioned when a rule change can affect normalized output.
@@ -72,7 +72,7 @@ For the initial supported Sunflower statement format:
 - `needs_review` is reserved for source-parsing uncertainty such as a transaction-like row whose direction or required source facts cannot be established confidently, not for uncertainty about whether a valid debit is "true spending"; and
 - unsupported sections or rows are surfaced as unsupported/invalid according to parser confidence and are never silently persisted.
 
-No income model is introduced by V1. Credits and deposits may be visible in preview as excluded rows but are not persisted as expenses.
+No income model is introduced by V1. Credits and deposits are never persisted as Expenses. A valid confidently directed credit may be saved explicitly as an `AccountInflow`, which records only an observed increase to the tracked account and does not classify it as income or a paycheck.
 
 ## Validation
 
@@ -87,6 +87,8 @@ At minimum, eligible rows require:
 - ownership derived exclusively from the authenticated user.
 
 Frontend validation is user experience only. Confirmation must revalidate the selected rows on the backend; client preview state is never authoritative.
+
+An eligible AccountInflow uses the same positive amount/date/description limits without an Expense category. Its description is the outer-trimmed source description; normalized-description identity is used only for deterministic possible-duplicate warnings.
 
 ## Preview and review behavior
 
@@ -106,10 +108,10 @@ Default selection behavior:
 
 - `expense_candidate`: selected by default only when validation is clean and there is no duplicate warning;
 - `needs_review`: not selected until the source ambiguity is resolved into an eligible debit or an excluded credit/deposit;
-- `non_expense`: cannot be selected for expense import in V1; and
+- `non_expense`: cannot be selected for Expense import; a valid confidently directed credit has a separate **Save incoming deposit as inflow evidence** selection that is always false by default; and
 - `invalid`: cannot be selected for expense import.
 
-Rows with possible-duplicate warnings are not selected by default. The user must explicitly choose to import them.
+Rows with possible-duplicate warnings are not selected by default. The user must explicitly choose to import or save them.
 
 V1 does not auto-categorize merchants. Eligible expenses default to `uncategorized` unless the user chooses another valid category during review.
 
@@ -130,7 +132,7 @@ The digest is used only as an exact-document identity aid; it does not replace s
 For the same authenticated user, source type, and parser/rule version:
 
 - if an unexpired open preview exists for the same digest, reuse/return that batch rather than creating a second independent preview; and
-- if that statement was already confirmed, report it as already imported and do not create duplicate expenses by default.
+- if that statement was already confirmed, report it as already imported and do not create duplicate Expenses or AccountInflows.
 
 An open preview produced by an incompatible parser/rule version must not be
 resumed, mutated, or reused as current financial interpretation. A successful
@@ -149,7 +151,7 @@ A row already confirmed from the same source batch/provenance is blocked automat
 
 ### Possible duplicate
 
-A normalized row that resembles an existing expense or another relevant row by fields such as date, amount, and normalized/user-facing description is a **warning**, not an automatic rejection.
+A normalized row that resembles an existing target record is a **warning**, not an automatic rejection. AccountInflow warnings use the exact owner + posted date + amount + normalized-description identity key. Expense warning behavior is unchanged.
 
 Legitimate repeated outflows can have the same date, amount, and description. Therefore:
 
@@ -169,19 +171,19 @@ At confirmation time, the backend must:
 2. reject expired or invalid batch state;
 3. revalidate every selected row against authoritative financial rules;
 4. re-run the required duplicate/idempotency checks against current persisted state; and
-5. persist only the selected valid expense rows.
+5. persist only the selected valid debit and credit rows into their separate approved target models.
 
-A batch may be successfully confirmed only once. Retrying a confirmation request after success must return a stable already-confirmed/success result without creating additional expenses.
+A batch may be successfully confirmed only once. Retrying a confirmation request after success must return a stable already-confirmed/success result without creating additional Expenses or AccountInflows.
 
 Client-supplied row state cannot bypass backend classification, validation, ownership, duplicate, or idempotency rules.
 
 ## Atomic persistence
 
-Confirmation of the selected expense rows is atomic.
+Confirmation of all selected debit and credit rows is atomic.
 
-If any selected row fails authoritative validation, ownership, exact-duplicate/idempotency checks, or persistence, persist **none** of the selected rows and return safe per-row errors so the user can correct or unselect problematic rows and retry.
+If any selected row fails authoritative validation, ownership, exact-duplicate/idempotency checks, or persistence, persist **none** of either target type and return safe per-row errors so the user can correct or unselect problematic rows and retry.
 
-Rows that remain excluded as `needs_review`, `non_expense`, or `invalid` are not part of the persistence transaction and do not make confirmation fail merely because they remain excluded.
+Rows that remain unselected, `needs_review`, or `invalid` are not part of the persistence transaction and do not make confirmation fail merely because they remain excluded. An unselected `non_expense` credit remains preview-only.
 
 This prevents half-imported statements and makes retries predictable.
 
@@ -195,7 +197,7 @@ Retain only the minimum durable metadata needed for idempotency and auditability
 - parser/rule version;
 - document digest;
 - source section plus stable row ordinal/fingerprint;
-- link to the created Expense ID; and
+- link to the created Expense or AccountInflow ID through its distinct provenance table; and
 - confirmed timestamp/status.
 
 Do not retain the raw PDF.
@@ -214,7 +216,7 @@ The 24-hour retention applies only to normalized preview state needed for the un
 
 Implementation should use the simplest enforceable cleanup/expiry mechanism compatible with the current architecture. Do not introduce a background-job framework solely for preview cleanup.
 
-Confirmed minimal provenance may remain with the linked imported expenses unless a later approved deletion/export/privacy policy changes that decision.
+Confirmed minimal provenance may remain with linked imported Expenses and AccountInflows unless a later approved deletion/export/privacy policy changes that decision. Deleting a target may null its link without reopening confirmed document identity.
 
 ## Date-only persistence prerequisite
 

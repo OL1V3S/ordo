@@ -243,6 +243,230 @@ public sealed class ImportPreviewApiTests
     }
 
     [Fact]
+    public async Task Credit_preview_uses_separate_default_off_selection_and_owner_scoped_exact_duplicate_warning()
+    {
+        await using var app = new SyntheticExtractionFinancialApiTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("preview-inflow-owner@example.com");
+        using var other = await app.CreateAuthenticatedUserAsync("preview-inflow-other@example.com");
+        var firstMatch = await app.SeedInflowAsync(
+            owner.Id,
+            "  demo   payroll credit ",
+            2450m,
+            new DateOnly(2026, 2, 3));
+        var secondMatch = await app.SeedInflowAsync(
+            owner.Id,
+            "DEMO PAYROLL CREDIT",
+            2450m,
+            new DateOnly(2026, 2, 3));
+        await app.SeedInflowAsync(owner.Id, "DEMO PAYROLL CREDIT", 2451m, new DateOnly(2026, 2, 3));
+        await app.SeedInflowAsync(other.Id, "DEMO REIMBURSEMENT CREDIT", 18.25m, new DateOnly(2026, 2, 3));
+
+        var preview = await UploadPreviewAsync(owner, SunflowerFixtureCorpus.CreateRepresentativePdf());
+        var rows = preview.GetProperty("rows").EnumerateArray().ToList();
+        var payroll = rows.Single(row => row.GetProperty("sourceDescription").GetString() == "DEMO PAYROLL CREDIT");
+        var reimbursement = rows.Single(row => row.GetProperty("sourceDescription").GetString() == "DEMO REIMBURSEMENT CREDIT");
+        var debit = rows.Single(row => row.GetProperty("sourceDescription").GetString() == "STREAMCO SUBSCRIPTION");
+        var ambiguous = rows.Single(row => row.GetProperty("classification").GetString() == "needs_review");
+
+        Assert.False(payroll.GetProperty("isEligible").GetBoolean());
+        Assert.True(payroll.GetProperty("isInflowEligible").GetBoolean());
+        Assert.False(payroll.GetProperty("selectedForImport").GetBoolean());
+        Assert.False(payroll.GetProperty("selectedForInflow").GetBoolean());
+        Assert.False(payroll.GetProperty("isPossibleDuplicate").GetBoolean());
+        Assert.Empty(payroll.GetProperty("duplicateExpenseIds").EnumerateArray());
+        Assert.True(payroll.GetProperty("isPossibleInflowDuplicate").GetBoolean());
+        Assert.Equal(
+            new[] { firstMatch.Id, secondMatch.Id }.Order(),
+            payroll.GetProperty("duplicateInflowIds").EnumerateArray()
+                .Select(value => value.GetInt32()));
+        Assert.Contains("possible_inflow_duplicate", payroll.GetProperty("warnings").EnumerateArray()
+            .Select(value => value.GetString()));
+
+        Assert.True(reimbursement.GetProperty("isInflowEligible").GetBoolean());
+        Assert.False(reimbursement.GetProperty("isPossibleInflowDuplicate").GetBoolean());
+        Assert.Empty(reimbursement.GetProperty("duplicateInflowIds").EnumerateArray());
+        Assert.True(debit.GetProperty("isEligible").GetBoolean());
+        Assert.False(debit.GetProperty("isInflowEligible").GetBoolean());
+        Assert.False(debit.GetProperty("selectedForInflow").GetBoolean());
+        Assert.Empty(debit.GetProperty("duplicateInflowIds").EnumerateArray());
+        Assert.False(ambiguous.GetProperty("isInflowEligible").GetBoolean());
+        Assert.False(ambiguous.GetProperty("selectedForInflow").GetBoolean());
+    }
+
+    [Fact]
+    public async Task Credit_and_debit_selection_are_mutually_exclusive_and_credit_selection_resumes()
+    {
+        await using var app = new SyntheticExtractionFinancialApiTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("preview-inflow-selection@example.com");
+        var preview = await UploadPreviewAsync(owner, SunflowerFixtureCorpus.CreateRepresentativePdf());
+        var batchId = preview.GetProperty("batchId").GetGuid();
+        var rows = preview.GetProperty("rows").EnumerateArray().ToList();
+        var credit = rows.Single(row => row.GetProperty("sourceDescription").GetString() == "DEMO PAYROLL CREDIT");
+        var debit = rows.Single(row => row.GetProperty("sourceDescription").GetString() == "STREAMCO SUBSCRIPTION");
+
+        using var wrongCredit = await owner.Client.PatchAsJsonAsync(
+            $"/api/import-previews/{batchId}/rows/{credit.GetProperty("rowId").GetGuid()}",
+            new { selectedForImport = true, selectedForInflow = false });
+        using var both = await owner.Client.PatchAsJsonAsync(
+            $"/api/import-previews/{batchId}/rows/{credit.GetProperty("rowId").GetGuid()}",
+            new { selectedForImport = true, selectedForInflow = true });
+        using var wrongDebit = await owner.Client.PatchAsJsonAsync(
+            $"/api/import-previews/{batchId}/rows/{debit.GetProperty("rowId").GetGuid()}",
+            new
+            {
+                editableExpenseDescription = debit.GetProperty("editableExpenseDescription").GetString(),
+                category = debit.GetProperty("category").GetString(),
+                selectedForImport = false,
+                selectedForInflow = true
+            });
+        using var selected = await owner.Client.PatchAsJsonAsync(
+            $"/api/import-previews/{batchId}/rows/{credit.GetProperty("rowId").GetGuid()}",
+            new
+            {
+                editableExpenseDescription = "ignored private edit",
+                category = "ignored",
+                selectedForImport = false,
+                selectedForInflow = true
+            });
+        var selectedBody = await selected.Content.ReadFromJsonAsync<JsonElement>();
+        var resumed = await owner.Client.GetFromJsonAsync<JsonElement>($"/api/import-previews/{batchId}");
+        var resumedCredit = resumed.GetProperty("rows").EnumerateArray()
+            .Single(row => row.GetProperty("rowId").GetGuid() == credit.GetProperty("rowId").GetGuid());
+
+        Assert.Equal(HttpStatusCode.BadRequest, wrongCredit.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, both.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, wrongDebit.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, selected.StatusCode);
+        Assert.True(selectedBody.GetProperty("selectedForInflow").GetBoolean());
+        Assert.False(selectedBody.GetProperty("selectedForImport").GetBoolean());
+        Assert.Equal(JsonValueKind.Null, selectedBody.GetProperty("editableExpenseDescription").ValueKind);
+        Assert.Equal(JsonValueKind.Null, selectedBody.GetProperty("category").ValueKind);
+        Assert.True(resumedCredit.GetProperty("selectedForInflow").GetBoolean());
+    }
+
+    [Fact]
+    public async Task Confirmation_persists_selected_credit_only_and_replays_stable_separate_counts()
+    {
+        await using var app = new SyntheticExtractionFinancialApiTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("preview-inflow-confirm@example.com");
+        var pdf = SunflowerFixtureCorpus.CreateRepresentativePdf();
+        var preview = await UploadPreviewAsync(owner, pdf);
+        var batchId = preview.GetProperty("batchId").GetGuid();
+        var rows = preview.GetProperty("rows").EnumerateArray().ToList();
+        var credit = rows.Single(row => row.GetProperty("sourceDescription").GetString() == "DEMO PAYROLL CREDIT");
+        await SelectOnlyAsync(owner, batchId, rows, selectedRowId: null);
+        await SelectInflowAsync(owner, batchId, credit, selected: true);
+
+        using var first = await owner.Client.PostAsync($"/api/import-previews/{batchId}/confirm", null);
+        var firstBody = await first.Content.ReadFromJsonAsync<JsonElement>();
+        using var retry = await owner.Client.PostAsync($"/api/import-previews/{batchId}/confirm", null);
+        var retryBody = await retry.Content.ReadFromJsonAsync<JsonElement>();
+        var inflows = await owner.Client.GetFromJsonAsync<JsonElement>("/api/inflows");
+
+        Assert.Equal(HttpStatusCode.OK, first.StatusCode);
+        Assert.Equal("confirmed", firstBody.GetProperty("status").GetString());
+        Assert.Equal(0, firstBody.GetProperty("importedExpenseCount").GetInt32());
+        Assert.Equal(1, firstBody.GetProperty("importedInflowCount").GetInt32());
+        Assert.Equal("already_confirmed", retryBody.GetProperty("status").GetString());
+        Assert.Equal(0, retryBody.GetProperty("importedExpenseCount").GetInt32());
+        Assert.Equal(1, retryBody.GetProperty("importedInflowCount").GetInt32());
+        Assert.Equal(firstBody.GetProperty("confirmedAt").GetDateTime(), retryBody.GetProperty("confirmedAt").GetDateTime());
+        var inflow = Assert.Single(inflows.EnumerateArray());
+        Assert.Equal("DEMO PAYROLL CREDIT", inflow.GetProperty("description").GetString());
+        Assert.Equal(2450m, inflow.GetProperty("amount").GetDecimal());
+        Assert.Equal("2026-02-03", inflow.GetProperty("date").GetString());
+        Assert.Equal(0, await app.CountExpensesAsync());
+
+        using var scope = app.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<BudgetContext>();
+        var batch = await context.ImportPreviewBatches.AsNoTracking()
+            .Include(value => value.Rows)
+            .Include(value => value.Provenance)
+            .Include(value => value.InflowProvenance)
+            .SingleAsync(value => value.Id == batchId);
+        Assert.Empty(batch.Rows);
+        Assert.Empty(batch.Provenance);
+        var provenance = Assert.Single(batch.InflowProvenance);
+        Assert.Equal(owner.Id, provenance.OwnerId);
+        Assert.Equal(owner.Id, provenance.AccountInflowOwnerId);
+        Assert.Equal(credit.GetProperty("sourceRowOrdinal").GetInt32(), provenance.SourceRowOrdinal);
+        Assert.NotNull(provenance.AccountInflowId);
+    }
+
+    [Fact]
+    public async Task Mixed_confirmation_persists_selected_debits_and_only_explicitly_selected_credit()
+    {
+        await using var app = new SyntheticExtractionFinancialApiTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("preview-inflow-mixed@example.com");
+        var preview = await UploadPreviewAsync(owner, SunflowerFixtureCorpus.CreateRepresentativePdf());
+        var batchId = preview.GetProperty("batchId").GetGuid();
+        var rows = preview.GetProperty("rows").EnumerateArray().ToList();
+        var payroll = rows.Single(row => row.GetProperty("sourceDescription").GetString() == "DEMO PAYROLL CREDIT");
+        var reimbursement = rows.Single(row => row.GetProperty("sourceDescription").GetString() == "DEMO REIMBURSEMENT CREDIT");
+        await SelectInflowAsync(owner, batchId, payroll, selected: true);
+
+        using var response = await owner.Client.PostAsync($"/api/import-previews/{batchId}/confirm", null);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        var inflows = await owner.Client.GetFromJsonAsync<JsonElement>("/api/inflows");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(10, body.GetProperty("importedExpenseCount").GetInt32());
+        Assert.Equal(1, body.GetProperty("importedInflowCount").GetInt32());
+        Assert.Equal(10, await app.CountExpensesAsync());
+        var inflow = Assert.Single(inflows.EnumerateArray());
+        Assert.Equal(payroll.GetProperty("sourceDescription").GetString(), inflow.GetProperty("description").GetString());
+        Assert.NotEqual(reimbursement.GetProperty("sourceDescription").GetString(), inflow.GetProperty("description").GetString());
+    }
+
+    [Fact]
+    public async Task Newly_discovered_inflow_duplicate_requires_review_before_explicit_reselection()
+    {
+        await using var app = new SyntheticExtractionFinancialApiTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("preview-inflow-new-duplicate@example.com");
+        var preview = await UploadPreviewAsync(owner, SunflowerFixtureCorpus.CreateRepresentativePdf());
+        var batchId = preview.GetProperty("batchId").GetGuid();
+        var rows = preview.GetProperty("rows").EnumerateArray().ToList();
+        var credit = rows.Single(row => row.GetProperty("sourceDescription").GetString() == "DEMO PAYROLL CREDIT");
+        var rowId = credit.GetProperty("rowId").GetGuid();
+        await SelectOnlyAsync(owner, batchId, rows, selectedRowId: null);
+        await SelectInflowAsync(owner, batchId, credit, selected: true);
+        var match = await app.SeedInflowAsync(
+            owner.Id,
+            " demo   payroll credit ",
+            2450m,
+            new DateOnly(2026, 2, 3));
+
+        using var first = await owner.Client.PostAsync($"/api/import-previews/{batchId}/confirm", null);
+        var firstText = await first.Content.ReadAsStringAsync();
+        using var firstDocument = JsonDocument.Parse(firstText);
+        var firstBody = firstDocument.RootElement;
+
+        Assert.Equal(HttpStatusCode.Conflict, first.StatusCode);
+        Assert.Equal("duplicate_review_required", firstBody.GetProperty("code").GetString());
+        AssertSafeRowError(firstBody, rowId, "possible_inflow_duplicate");
+        Assert.DoesNotContain("DEMO PAYROLL CREDIT", firstText);
+
+        var refreshed = await owner.Client.GetFromJsonAsync<JsonElement>($"/api/import-previews/{batchId}");
+        var refreshedCredit = refreshed.GetProperty("rows").EnumerateArray()
+            .Single(row => row.GetProperty("rowId").GetGuid() == rowId);
+        Assert.True(refreshedCredit.GetProperty("isPossibleInflowDuplicate").GetBoolean());
+        Assert.False(refreshedCredit.GetProperty("selectedForInflow").GetBoolean());
+        Assert.Equal(
+            new[] { match.Id },
+            refreshedCredit.GetProperty("duplicateInflowIds").EnumerateArray().Select(value => value.GetInt32()));
+
+        await SelectInflowAsync(owner, batchId, refreshedCredit, selected: true);
+        using var second = await owner.Client.PostAsync($"/api/import-previews/{batchId}/confirm", null);
+        var secondBody = await second.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.Equal(HttpStatusCode.OK, second.StatusCode);
+        Assert.Equal(0, secondBody.GetProperty("importedExpenseCount").GetInt32());
+        Assert.Equal(1, secondBody.GetProperty("importedInflowCount").GetInt32());
+        var inflows = await owner.Client.GetFromJsonAsync<JsonElement>("/api/inflows");
+        Assert.Equal(2, inflows.GetArrayLength());
+    }
+
+    [Fact]
     public async Task Confirmation_uses_only_server_owned_selected_fields_and_is_retry_safe()
     {
         await using var app = new SyntheticExtractionFinancialApiTestApplication();
@@ -276,6 +500,7 @@ public sealed class ImportPreviewApiTests
         Assert.Equal(batchId, firstBody.GetProperty("batchId").GetGuid());
         Assert.Equal("confirmed", firstBody.GetProperty("status").GetString());
         Assert.Equal(1, firstBody.GetProperty("importedExpenseCount").GetInt32());
+        Assert.Equal(0, firstBody.GetProperty("importedInflowCount").GetInt32());
         Assert.Equal(0, confirmedAt.Ticks % TimeSpan.TicksPerMicrosecond);
         var expenses = await owner.Client.GetFromJsonAsync<JsonElement>("/api/expenses");
         var expense = Assert.Single(expenses.EnumerateArray());
@@ -292,6 +517,7 @@ public sealed class ImportPreviewApiTests
         Assert.Equal("already_confirmed", retryBody.GetProperty("status").GetString());
         Assert.Equal(confirmedAt, retryBody.GetProperty("confirmedAt").GetDateTime());
         Assert.Equal(1, retryBody.GetProperty("importedExpenseCount").GetInt32());
+        Assert.Equal(0, retryBody.GetProperty("importedInflowCount").GetInt32());
         Assert.Equal(1, await app.CountExpensesAsync());
 
         using (var scope = app.Services.CreateScope())
@@ -954,6 +1180,24 @@ public sealed class ImportPreviewApiTests
                 });
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         }
+    }
+
+    private static async Task SelectInflowAsync(
+        TestUser owner,
+        Guid batchId,
+        JsonElement row,
+        bool selected)
+    {
+        var response = await owner.Client.PatchAsJsonAsync(
+            $"/api/import-previews/{batchId}/rows/{row.GetProperty("rowId").GetGuid()}",
+            new
+            {
+                editableExpenseDescription = (string?)null,
+                category = (string?)null,
+                selectedForImport = false,
+                selectedForInflow = selected
+            });
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
     private static void AssertSafeRowError(JsonElement error, Guid rowId, string code)

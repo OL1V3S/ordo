@@ -13,12 +13,15 @@ const row = {
   sourceSection: 'electronic_transactions',
   classification: 'expense_candidate',
   isEligible: true,
+  isInflowEligible: false,
   errors: [],
   warnings: [],
   isPossibleDuplicate: false,
+  isPossibleInflowDuplicate: false,
   editableExpenseDescription: 'Coffee',
   category: 'food',
   selectedForImport: true,
+  selectedForInflow: false,
 }
 
 const preview = {
@@ -67,7 +70,7 @@ describe('ImportPreviewPanel confirmation safety', () => {
     expect(within(card).getByLabelText('Expense description')).toHaveValue('Morning coffee')
     expect(within(table).getByRole('status')).toHaveTextContent('Unsaved changes')
     expect(screen.getByText('Save every row with unsaved changes before confirming.')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Import 1 selected expense' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Confirm 1 selected row' })).toBeDisabled()
     expect(state.confirm).not.toHaveBeenCalled()
   })
 
@@ -85,22 +88,23 @@ describe('ImportPreviewPanel confirmation safety', () => {
     await user.click(within(table).getByRole('button', { name: 'Save row' }))
 
     expect(within(table).getByRole('status')).toHaveTextContent('Saving…')
-    expect(screen.getByRole('button', { name: 'Import 1 selected expense' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Confirm 1 selected row' })).toBeDisabled()
     expect(updateRow).toHaveBeenCalledWith('row-1', {
       editableExpenseDescription: 'Morning coffee',
       category: 'food',
       selectedForImport: true,
+      selectedForInflow: false,
     })
 
     await act(async () => {
       resolveUpdate({ ...row, editableExpenseDescription: 'Morning coffee' })
     })
     expect(within(table).getByRole('status')).toHaveTextContent('Saved')
-    expect(screen.getByRole('button', { name: 'Import 1 selected expense' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Confirm 1 selected row' })).toBeEnabled()
 
     await user.type(description, ' again')
     expect(within(table).getByRole('status')).toHaveTextContent('Unsaved changes')
-    expect(screen.getByRole('button', { name: 'Import 1 selected expense' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Confirm 1 selected row' })).toBeDisabled()
   })
 
   it('keeps a failed save draft visible and customer-readable', async () => {
@@ -116,7 +120,7 @@ describe('ImportPreviewPanel confirmation safety', () => {
 
     expect(await within(table).findByRole('alert')).toHaveTextContent('Save failed. Changes remain unsaved.')
     expect(description).toHaveValue('Unsaved coffee')
-    expect(screen.getByRole('button', { name: 'Import 1 selected expense' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Confirm 1 selected row' })).toBeDisabled()
   })
 
   it('tracks selection PATCH state before enabling confirmation', async () => {
@@ -130,7 +134,7 @@ describe('ImportPreviewPanel confirmation safety', () => {
 
     expect(within(table).getByLabelText('Select for import')).toBeDisabled()
     expect(within(table).getByRole('status')).toHaveTextContent('Saving…')
-    expect(screen.getByRole('button', { name: 'Import 1 selected expense' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Confirm 1 selected row' })).toBeDisabled()
 
     await act(async () => { resolveUpdate({ ...row, selectedForImport: false }) })
     expect(within(table).getByRole('status')).toHaveTextContent('Saved')
@@ -139,7 +143,7 @@ describe('ImportPreviewPanel confirmation safety', () => {
   it('shows one accessible responsive confirmation action and clear zero-selection guidance', () => {
     render(<ImportPreviewPanel importState={importState({ selectedCount: 0 })} />)
 
-    const buttons = screen.getAllByRole('button', { name: 'Import selected expenses' })
+    const buttons = screen.getAllByRole('button', { name: 'Confirm selected rows' })
     expect(buttons).toHaveLength(1)
     expect(buttons[0]).toBeDisabled()
     expect(buttons[0]).toHaveAttribute('aria-describedby', 'import-confirmation-guidance')
@@ -153,7 +157,7 @@ describe('ImportPreviewPanel confirmation safety', () => {
     const state = importState({ confirming: true })
     render(<ImportPreviewPanel importState={state} />)
 
-    const button = screen.getByRole('button', { name: 'Importing expenses…' })
+    const button = screen.getByRole('button', { name: 'Confirming selected rows…' })
     expect(button).toBeDisabled()
     expect(button).toHaveAttribute('aria-busy', 'true')
     expect(within(tableRegion()).getByLabelText('Select for import')).toBeDisabled()
@@ -166,12 +170,13 @@ describe('ImportPreviewPanel confirmation safety', () => {
       status: 'confirmed',
       confirmedAt: '2026-08-25T21:00:00Z',
       importedExpenseCount: 1,
+      importedInflowCount: 0,
     }
     const confirm = vi.fn().mockResolvedValue(confirmation)
     const onImportConfirmed = vi.fn().mockResolvedValue(undefined)
     render(<ImportPreviewPanel importState={importState({ confirm })} onImportConfirmed={onImportConfirmed} />)
 
-    await user.click(screen.getByRole('button', { name: 'Import 1 selected expense' }))
+    await user.click(screen.getByRole('button', { name: 'Confirm 1 selected row' }))
 
     expect(confirm).toHaveBeenCalledOnce()
     expect(onImportConfirmed).toHaveBeenCalledOnce()
@@ -187,7 +192,7 @@ describe('ImportPreviewPanel confirmation safety', () => {
       />,
     )
 
-    await user.click(screen.getByRole('button', { name: 'Import 1 selected expense' }))
+    await user.click(screen.getByRole('button', { name: 'Confirm 1 selected row' }))
 
     expect(onImportConfirmed).not.toHaveBeenCalled()
   })
@@ -199,14 +204,15 @@ describe('ImportPreviewPanel confirmation safety', () => {
       status: 'already_confirmed',
       confirmedAt: '2026-08-25T21:00:00Z',
       importedExpenseCount: 1,
+      importedInflowCount: 0,
     }
     const state = importState({ confirm: vi.fn().mockResolvedValue(result) })
     const { rerender } = render(
       <ImportPreviewPanel importState={state} onImportConfirmed={vi.fn().mockRejectedValue(new Error('offline'))} />,
     )
 
-    await user.click(screen.getByRole('button', { name: 'Import 1 selected expense' }))
-    expect(await screen.findByRole('alert')).toHaveTextContent('Expenses were imported, but Transactions could not be refreshed')
+    await user.click(screen.getByRole('button', { name: 'Confirm 1 selected row' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('The import succeeded, but Transactions could not be refreshed')
 
     rerender(<ImportPreviewPanel importState={importState({
       preview: null,
@@ -214,7 +220,7 @@ describe('ImportPreviewPanel confirmation safety', () => {
       confirmation: result,
     })} />)
     expect(screen.getByRole('heading', { name: 'Statement already imported' })).toBeInTheDocument()
-    expect(screen.getByText(/1 expense was already imported/)).toBeInTheDocument()
+    expect(screen.getByText(/1 expense and 0 incoming deposits were already saved/)).toBeInTheDocument()
   })
 
   it('shows safe row-level duplicate guidance and blocks a stale review', () => {
@@ -229,7 +235,42 @@ describe('ImportPreviewPanel confirmation safety', () => {
 
     expect(screen.getByRole('heading', { name: 'Review new duplicate warnings' })).toBeInTheDocument()
     expect(within(tableRegion()).getByText(/New possible duplicate/)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Import 1 selected expense' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Confirm 1 selected row' })).toBeDisabled()
     expect(screen.getByText(/Refresh this page to load the authoritative duplicate review/)).toBeInTheDocument()
+  })
+
+  it('offers a separate default-off incoming-deposit evidence control without expense fields', async () => {
+    const user = userEvent.setup()
+    const credit = {
+      ...row,
+      rowId: 'credit-1',
+      direction: 'credit',
+      classification: 'non_expense',
+      sourceDescription: 'SYNTHETIC DEPOSIT',
+      isEligible: false,
+      isInflowEligible: true,
+      editableExpenseDescription: null,
+      category: null,
+      selectedForImport: false,
+      selectedForInflow: false,
+    }
+    const updateRow = vi.fn().mockResolvedValue({ ...credit, selectedForInflow: true })
+    render(<ImportPreviewPanel importState={importState({
+      preview: { ...preview, rows: [credit] },
+      selectedCount: 0,
+      updateRow,
+    })} />)
+    const table = tableRegion()
+
+    expect(within(table).queryByLabelText('Expense description')).not.toBeInTheDocument()
+    expect(within(table).getByText(/does not classify it as income or a paycheck/)).toBeInTheDocument()
+    await user.click(within(table).getByLabelText('Save incoming deposit as inflow evidence'))
+
+    expect(updateRow).toHaveBeenCalledWith('credit-1', {
+      editableExpenseDescription: null,
+      category: null,
+      selectedForImport: false,
+      selectedForInflow: true,
+    })
   })
 })

@@ -168,10 +168,15 @@ public sealed class ImportPreviewService(
             Lifecycle = ImportPreviewLifecycle.Open
         };
 
-        var eligibleRows = parsed.Rows.Where(IsPotentiallyEligible).ToList();
-        var dates = eligibleRows.Where(row => row.PostedDate.HasValue).Select(row => row.PostedDate!.Value).Distinct().ToList();
+        var eligibleRows = parsed.Rows.Where(row =>
+            IsPotentiallyExpenseEligible(row) || IsPotentiallyInflowEligible(row)).ToList();
+        var dates = eligibleRows.Where(row => row.PostedDate.HasValue)
+            .Select(row => row.PostedDate!.Value).Distinct().ToList();
         var expenses = await context.Expenses.AsNoTracking()
             .Where(expense => expense.UserId == userId && dates.Contains(expense.Date))
+            .ToListAsync(cancellationToken);
+        var inflows = await context.AccountInflows.AsNoTracking()
+            .Where(inflow => inflow.OwnerId == userId && dates.Contains(inflow.Date))
             .ToListAsync(cancellationToken);
 
         foreach (var source in parsed.Rows.OrderBy(row => row.SourceRowOrdinal))
@@ -181,22 +186,45 @@ public sealed class ImportPreviewService(
             var errors = source.Errors.ToList();
             if (source.SourceDescription.Length > 500)
                 errors.Add("source_description_too_long");
-            var eligible = IsPotentiallyEligible(source);
-            if (eligible)
+            var expenseEligible = IsPotentiallyExpenseEligible(source);
+            var inflowEligible = IsPotentiallyInflowEligible(source);
+            if (expenseEligible)
                 errors.AddRange(ExpenseInputRules.Validate(source.Amount, source.PostedDate, description, category));
-            eligible = eligible && errors.Count == 0;
+            if (inflowEligible)
+                errors.AddRange(AccountInflowInputRules.Validate(
+                    source.Amount,
+                    source.PostedDate,
+                    source.SourceDescription));
+            errors = errors.Distinct().ToList();
+            expenseEligible = expenseEligible && errors.Count == 0;
+            inflowEligible = inflowEligible && errors.Count == 0;
 
-            var duplicateIds = eligible
+            var expenseDuplicateIds = expenseEligible
                 ? expenses.Where(expense => expense.Date == source.PostedDate
                     && expense.Amount == source.Amount
                     && ExpenseInputRules.NormalizeDescriptionForComparison(expense.Description)
                         == ExpenseInputRules.NormalizeDescriptionForComparison(description))
-                    .Select(expense => expense.Id).ToList()
+                    .Select(expense => expense.Id).Distinct().OrderBy(value => value).ToList()
                 : [];
+            var inflowDuplicateIds = inflowEligible
+                ? inflows.Where(inflow => inflow.Date == source.PostedDate
+                    && inflow.Amount == source.Amount
+                    && AccountInflowIdentity.NormalizeDescription(inflow.Description)
+                        == AccountInflowIdentity.NormalizeDescription(source.SourceDescription))
+                    .Select(inflow => inflow.Id).Distinct().OrderBy(value => value).ToList()
+                : [];
+            var duplicateIds = expenseEligible ? expenseDuplicateIds : inflowDuplicateIds;
 
             var warnings = source.Warnings.ToList();
-            if (duplicateIds.Count > 0 && !warnings.Contains("possible_duplicate"))
-                warnings.Add("possible_duplicate");
+            var duplicateWarning = expenseEligible
+                ? "possible_duplicate"
+                : inflowEligible ? "possible_inflow_duplicate" : null;
+            if (duplicateIds.Count > 0
+                && duplicateWarning is not null
+                && !warnings.Contains(duplicateWarning))
+            {
+                warnings.Add(duplicateWarning);
+            }
 
             batch.Rows.Add(new ImportPreviewRow
             {
@@ -211,14 +239,14 @@ public sealed class ImportPreviewService(
                 SourceSection = source.SourceSection,
                 SourcePageNumber = source.Provenance.SourcePageNumber,
                 Classification = source.Classification,
-                IsEligible = eligible,
-                ValidationErrorCodes = JsonSerializer.Serialize(errors.Distinct()),
+                IsEligible = expenseEligible,
+                ValidationErrorCodes = JsonSerializer.Serialize(errors),
                 WarningCodes = JsonSerializer.Serialize(warnings.Distinct()),
                 IsPossibleDuplicate = duplicateIds.Count > 0,
                 DuplicateExpenseIds = JsonSerializer.Serialize(duplicateIds),
-                EditableExpenseDescription = eligible ? description : null,
-                Category = eligible ? category : null,
-                SelectedForImport = eligible && duplicateIds.Count == 0
+                EditableExpenseDescription = expenseEligible ? description : null,
+                Category = expenseEligible ? category : null,
+                SelectedForImport = expenseEligible && duplicateIds.Count == 0
             });
         }
 
@@ -259,6 +287,7 @@ public sealed class ImportPreviewService(
             var batch = await context.ImportPreviewBatches
                 .Include(value => value.Rows)
                 .Include(value => value.Provenance)
+                .Include(value => value.InflowProvenance)
                 .SingleOrDefaultAsync(
                     value => value.OwnerId == userId && value.Id == batchId,
                     cancellationToken);
@@ -267,7 +296,11 @@ public sealed class ImportPreviewService(
 
             if (batch.Lifecycle == ImportPreviewLifecycle.Confirmed)
             {
-                return ConfirmationSucceeded(batch, "already_confirmed", batch.Provenance.Count);
+                return ConfirmationSucceeded(
+                    batch,
+                    "already_confirmed",
+                    batch.Provenance.Count,
+                    batch.InflowProvenance.Count);
             }
 
             if (batch.SourceType != SunflowerStatementParser.SourceType
@@ -294,7 +327,7 @@ public sealed class ImportPreviewService(
                 return ConfirmationFailed("preview_not_found", "The preview is unavailable.");
             }
 
-            if (batch.Provenance.Count > 0)
+            if (batch.Provenance.Count > 0 || batch.InflowProvenance.Count > 0)
             {
                 return ConfirmationFailed("confirmation_conflict", "The preview cannot be confirmed safely.");
             }
@@ -314,20 +347,32 @@ public sealed class ImportPreviewService(
             var currentExpenses = await context.Expenses.AsNoTracking()
                 .Where(value => value.UserId == userId && selectedDates.Contains(value.Date))
                 .ToListAsync(cancellationToken);
+            var currentInflows = await context.AccountInflows.AsNoTracking()
+                .Where(value => value.OwnerId == userId && selectedDates.Contains(value.Date))
+                .ToListAsync(cancellationToken);
 
             var newlyWarnedRows = new List<ImportConfirmationRowError>();
             foreach (var row in selectedRows)
             {
-                var duplicateIds = FindPossibleDuplicateExpenseIds(row, currentExpenses);
+                var isExpenseTarget = IsExpenseTarget(row);
+                var isInflowTarget = IsInflowTarget(row);
+                var duplicateIds = isExpenseTarget
+                    ? FindPossibleDuplicateExpenseIds(row, currentExpenses)
+                    : isInflowTarget
+                        ? FindPossibleDuplicateInflowIds(row, currentInflows)
+                        : [];
                 if (row.IsPossibleDuplicate || duplicateIds.Count == 0) continue;
 
                 row.IsPossibleDuplicate = true;
                 row.DuplicateExpenseIds = JsonSerializer.Serialize(duplicateIds);
                 var warnings = DeserializeCodes(row.WarningCodes).ToList();
-                if (!warnings.Contains("possible_duplicate")) warnings.Add("possible_duplicate");
+                var warningCode = isInflowTarget
+                    ? "possible_inflow_duplicate"
+                    : "possible_duplicate";
+                if (!warnings.Contains(warningCode)) warnings.Add(warningCode);
                 row.WarningCodes = JsonSerializer.Serialize(warnings.Distinct());
                 row.SelectedForImport = false;
-                newlyWarnedRows.Add(new(row.Id, ["possible_duplicate"]));
+                newlyWarnedRows.Add(new(row.Id, [warningCode]));
             }
 
             if (newlyWarnedRows.Count > 0)
@@ -341,28 +386,44 @@ public sealed class ImportPreviewService(
             }
 
             var validationErrors = new List<ImportConfirmationRowError>();
-            var normalizedRows = new List<(ImportPreviewRow Row, string Description, string Category)>();
+            var normalizedExpenseRows = new List<(ImportPreviewRow Row, string Description, string Category)>();
+            var normalizedInflowRows = new List<(ImportPreviewRow Row, string Description)>();
             foreach (var row in selectedRows)
             {
-                var description = ExpenseInputRules.NormalizeDescription(row.EditableExpenseDescription);
-                var category = ExpenseInputRules.NormalizeCategory(row.Category);
                 var errors = new List<string>();
-                if (!row.IsEligible
-                    || row.Classification != ImportedRowClassification.ExpenseCandidate
-                    || row.Direction != ImportedTransactionDirection.Debit)
+                if (IsExpenseTarget(row))
+                {
+                    var description = ExpenseInputRules.NormalizeDescription(row.EditableExpenseDescription);
+                    var category = ExpenseInputRules.NormalizeCategory(row.Category);
+                    if (!IsExpenseEligible(row)) errors.Add("row_not_selectable");
+                    errors.AddRange(ExpenseInputRules.Validate(
+                        row.Amount,
+                        row.PostedDate,
+                        description,
+                        category));
+                    if (errors.Count == 0)
+                        normalizedExpenseRows.Add((row, description, category));
+                }
+                else if (IsInflowTarget(row))
+                {
+                    var description = AccountInflowInputRules.NormalizeDescription(row.SourceDescription);
+                    if (!IsInflowEligible(row)) errors.Add("row_not_selectable");
+                    errors.AddRange(AccountInflowInputRules.Validate(
+                        row.Amount,
+                        row.PostedDate,
+                        description));
+                    if (errors.Count == 0)
+                        normalizedInflowRows.Add((row, description));
+                }
+                else
                 {
                     errors.Add("row_not_selectable");
                 }
-                errors.AddRange(ExpenseInputRules.Validate(row.Amount, row.PostedDate, description, category));
 
                 var distinctErrors = errors.Distinct().ToList();
                 if (distinctErrors.Count > 0)
                 {
                     validationErrors.Add(new(row.Id, distinctErrors));
-                }
-                else
-                {
-                    normalizedRows.Add((row, description, category));
                 }
             }
 
@@ -374,7 +435,7 @@ public sealed class ImportPreviewService(
                     validationErrors);
             }
 
-            foreach (var normalized in normalizedRows)
+            foreach (var normalized in normalizedExpenseRows)
             {
                 var expense = new Expense
                 {
@@ -393,12 +454,36 @@ public sealed class ImportPreviewService(
                 });
             }
 
+            foreach (var normalized in normalizedInflowRows)
+            {
+                var inflow = new AccountInflow
+                {
+                    OwnerId = userId,
+                    Description = normalized.Description,
+                    Amount = normalized.Row.Amount!.Value,
+                    Date = normalized.Row.PostedDate!.Value
+                };
+                context.AccountInflows.Add(inflow);
+                batch.InflowProvenance.Add(new ImportInflowProvenance
+                {
+                    BatchId = batch.Id,
+                    OwnerId = userId,
+                    SourceRowOrdinal = normalized.Row.SourceRowOrdinal,
+                    AccountInflowOwnerId = userId,
+                    AccountInflow = inflow
+                });
+            }
+
             batch.Lifecycle = ImportPreviewLifecycle.Confirmed;
             batch.ConfirmedAt = TruncateToPostgreSqlTimestampPrecision(now);
             context.ImportPreviewRows.RemoveRange(batch.Rows);
             await context.SaveChangesAsync(cancellationToken);
             await CommitAsync(transaction, cancellationToken);
-            return ConfirmationSucceeded(batch, "confirmed", normalizedRows.Count);
+            return ConfirmationSucceeded(
+                batch,
+                "confirmed",
+                normalizedExpenseRows.Count,
+                normalizedInflowRows.Count);
         }
         catch (OperationCanceledException)
         {
@@ -459,10 +544,16 @@ public sealed class ImportPreviewService(
 
             var row = batch.Rows.SingleOrDefault(value => value.Id == rowId);
             if (row is null) return Failed("preview_not_found", "The preview is unavailable.");
-            if (!row.IsEligible && request.SelectedForImport)
+            var expenseEligible = IsExpenseEligible(row);
+            var inflowEligible = IsInflowEligible(row);
+            if ((request.SelectedForImport && request.SelectedForInflow)
+                || (request.SelectedForImport && !expenseEligible)
+                || (request.SelectedForInflow && !inflowEligible))
+            {
                 return Failed("row_not_selectable", "This row cannot be selected for import.");
+            }
 
-            if (row.IsEligible)
+            if (expenseEligible)
             {
                 var description = ExpenseInputRules.NormalizeDescription(request.EditableExpenseDescription);
                 var category = ExpenseInputRules.NormalizeCategory(request.Category);
@@ -471,6 +562,10 @@ public sealed class ImportPreviewService(
                 row.EditableExpenseDescription = description;
                 row.Category = category;
                 row.SelectedForImport = request.SelectedForImport;
+            }
+            else if (inflowEligible)
+            {
+                row.SelectedForImport = request.SelectedForInflow;
             }
             else
             {
@@ -555,6 +650,21 @@ public sealed class ImportPreviewService(
                 && expense.Amount == row.Amount.Value
                 && ExpenseInputRules.NormalizeDescriptionForComparison(expense.Description) == description)
             .Select(expense => expense.Id)
+            .Distinct()
+            .OrderBy(value => value)
+            .ToList();
+    }
+
+    private static List<int> FindPossibleDuplicateInflowIds(
+        ImportPreviewRow row,
+        IReadOnlyList<AccountInflow> inflows)
+    {
+        if (!row.PostedDate.HasValue || !row.Amount.HasValue) return [];
+        var description = AccountInflowIdentity.NormalizeDescription(row.SourceDescription);
+        return inflows.Where(inflow => inflow.Date == row.PostedDate.Value
+                && inflow.Amount == row.Amount.Value
+                && AccountInflowIdentity.NormalizeDescription(inflow.Description) == description)
+            .Select(inflow => inflow.Id)
             .Distinct()
             .OrderBy(value => value)
             .ToList();
@@ -742,9 +852,33 @@ public sealed class ImportPreviewService(
         await context.SaveChangesAsync(cancellationToken);
     }
 
-    private static bool IsPotentiallyEligible(NormalizedImportedRow row) =>
+    private static bool IsPotentiallyExpenseEligible(NormalizedImportedRow row) =>
         row.Classification == ImportedRowClassification.ExpenseCandidate
         && row.Direction == ImportedTransactionDirection.Debit;
+
+    private static bool IsPotentiallyInflowEligible(NormalizedImportedRow row) =>
+        row.Classification == ImportedRowClassification.NonExpense
+        && row.Direction == ImportedTransactionDirection.Credit;
+
+    private static bool IsExpenseTarget(ImportPreviewRow row) =>
+        row.Classification == ImportedRowClassification.ExpenseCandidate
+        && row.Direction == ImportedTransactionDirection.Debit;
+
+    private static bool IsInflowTarget(ImportPreviewRow row) =>
+        row.Classification == ImportedRowClassification.NonExpense
+        && row.Direction == ImportedTransactionDirection.Credit;
+
+    private static bool IsExpenseEligible(ImportPreviewRow row) =>
+        row.IsEligible && IsExpenseTarget(row);
+
+    private static bool IsInflowEligible(ImportPreviewRow row) =>
+        !row.IsEligible
+        && IsInflowTarget(row)
+        && DeserializeCodes(row.ValidationErrorCodes).Count == 0
+        && AccountInflowInputRules.Validate(
+            row.Amount,
+            row.PostedDate,
+            row.SourceDescription).Count == 0;
 
     private static ImportPreviewOperation MapExtractionFailure(PdfExtractionFailure failure) => failure.Code switch
     {
@@ -760,12 +894,14 @@ public sealed class ImportPreviewService(
     private static ImportConfirmationOperation ConfirmationSucceeded(
         ImportPreviewBatch batch,
         string status,
-        int importedExpenseCount) => new(
+        int importedExpenseCount,
+        int importedInflowCount) => new(
             new(
                 batch.Id,
                 status,
                 batch.ConfirmedAt ?? throw new InvalidOperationException("A confirmed batch requires a confirmation time."),
-                importedExpenseCount),
+                importedExpenseCount,
+                importedInflowCount),
             null);
 
     private static ImportConfirmationOperation ConfirmationFailed(
@@ -781,15 +917,25 @@ public sealed class ImportPreviewService(
 
     private static ImportPreviewResponse ToResponse(ImportPreviewBatch batch) => new(
         batch.Id, batch.SourceType, batch.ParserRuleVersion, batch.CreatedAt, batch.ExpiresAt,
-        batch.Rows.OrderBy(row => row.SourceRowOrdinal).Select(row => new ImportPreviewRowResponse(
-            row.Id, row.SourceRowOrdinal, row.PostedDate, row.Amount,
-            row.Direction.ToString().ToLowerInvariant(), row.SourceDescription, row.SourceSection,
-            ToSnakeCase(row.Classification), row.IsEligible,
-            JsonSerializer.Deserialize<string[]>(row.ValidationErrorCodes) ?? [],
-            JsonSerializer.Deserialize<string[]>(row.WarningCodes) ?? [],
-            row.IsPossibleDuplicate,
-            JsonSerializer.Deserialize<int[]>(row.DuplicateExpenseIds) ?? [],
-            row.EditableExpenseDescription, row.Category, row.SelectedForImport)).ToList());
+        batch.Rows.OrderBy(row => row.SourceRowOrdinal).Select(row =>
+        {
+            var expenseEligible = IsExpenseEligible(row);
+            var inflowEligible = IsInflowEligible(row);
+            var duplicateIds = JsonSerializer.Deserialize<int[]>(row.DuplicateExpenseIds) ?? [];
+            return new ImportPreviewRowResponse(
+                row.Id, row.SourceRowOrdinal, row.PostedDate, row.Amount,
+                row.Direction.ToString().ToLowerInvariant(), row.SourceDescription, row.SourceSection,
+                ToSnakeCase(row.Classification), expenseEligible, inflowEligible,
+                JsonSerializer.Deserialize<string[]>(row.ValidationErrorCodes) ?? [],
+                JsonSerializer.Deserialize<string[]>(row.WarningCodes) ?? [],
+                expenseEligible && row.IsPossibleDuplicate,
+                expenseEligible ? duplicateIds : [],
+                inflowEligible && row.IsPossibleDuplicate,
+                inflowEligible ? duplicateIds : [],
+                row.EditableExpenseDescription, row.Category,
+                expenseEligible && row.SelectedForImport,
+                inflowEligible && row.SelectedForImport);
+        }).ToList());
 
     private static string ToSnakeCase(ImportedRowClassification value) => value switch
     {

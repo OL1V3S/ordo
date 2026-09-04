@@ -227,7 +227,7 @@ describe('existing expense workflows', () => {
     await user.upload(screen.getByLabelText('Sunflower statement PDF'), file)
 
     expect(upload).toHaveBeenCalledWith(file)
-    expect(screen.getByText(/Expenses are created only after confirmation/)).toBeInTheDocument()
+    expect(screen.getByText(/Expenses and explicitly selected incoming deposits are created only after confirmation/)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /confirm|import expenses/i })).not.toBeInTheDocument()
   })
 
@@ -268,6 +268,7 @@ describe('existing expense workflows', () => {
       status,
       confirmedAt: '2026-08-25T21:00:00Z',
       importedExpenseCount: 1,
+      importedInflowCount: 0,
     }
     const confirm = vi.fn().mockResolvedValue(result)
     useExpenses.mockReturnValue({ ...baseExpensesHook, refresh })
@@ -280,7 +281,7 @@ describe('existing expense workflows', () => {
     })
     render(<TransactionsPage />)
 
-    await user.click(screen.getByRole('button', { name: 'Import 1 selected expense' }))
+    await user.click(screen.getByRole('button', { name: 'Confirm 1 selected row' }))
 
     expect(confirm).toHaveBeenCalledOnce()
     expect(refresh).toHaveBeenCalledOnce()
@@ -294,6 +295,7 @@ describe('existing expense workflows', () => {
       status: 'confirmed',
       confirmedAt: '2026-08-25T21:00:00Z',
       importedExpenseCount: 1,
+      importedInflowCount: 0,
     })
     useExpenses.mockReturnValue({ ...baseExpensesHook, refresh })
     useImportPreview.mockReturnValue({
@@ -305,11 +307,11 @@ describe('existing expense workflows', () => {
     })
     render(<TransactionsPage />)
 
-    await user.click(screen.getByRole('button', { name: 'Import 1 selected expense' }))
+    await user.click(screen.getByRole('button', { name: 'Confirm 1 selected row' }))
 
     expect(refresh).toHaveBeenCalledOnce()
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Expenses were imported, but Transactions could not be refreshed'
+      'The import succeeded, but Transactions could not be refreshed'
     )
   })
 
@@ -358,7 +360,8 @@ describe('existing expense workflows', () => {
       editableExpenseDescription: 'Morning coffee',
       category: 'food',
       selectedForImport: false,
+      selectedForInflow: false,
     })
-    expect(screen.getByRole('button', { name: 'Import selected expenses' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Confirm selected rows' })).toBeDisabled()
   })
 })

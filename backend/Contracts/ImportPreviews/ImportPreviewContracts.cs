@@ -15,7 +15,8 @@ public sealed record ImportConfirmationResponse(
     Guid BatchId,
     string Status,
     DateTime ConfirmedAt,
-    int ImportedExpenseCount);
+    int ImportedExpenseCount,
+    int ImportedInflowCount);
 
 public sealed record ImportPreviewResponse(
     Guid BatchId,
@@ -35,15 +36,20 @@ public sealed record ImportPreviewRowResponse(
     string SourceSection,
     string Classification,
     bool IsEligible,
+    bool IsInflowEligible,
     IReadOnlyList<string> Errors,
     IReadOnlyList<string> Warnings,
     bool IsPossibleDuplicate,
     IReadOnlyList<int> DuplicateExpenseIds,
+    bool IsPossibleInflowDuplicate,
+    IReadOnlyList<int> DuplicateInflowIds,
     string? EditableExpenseDescription,
     string? Category,
-    bool SelectedForImport);
+    bool SelectedForImport,
+    bool SelectedForInflow);
 
 public sealed record UpdateImportPreviewRowRequest(
     string? EditableExpenseDescription,
     string? Category,
-    bool SelectedForImport);
+    bool SelectedForImport,
+    bool SelectedForInflow);
