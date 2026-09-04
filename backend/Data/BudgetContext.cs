@@ -21,6 +21,9 @@ public class BudgetContext : IdentityDbContext<ApplicationUser>, IDataProtection
     public DbSet<CommitmentOccurrence> CommitmentOccurrences { get; set; }
     public DbSet<CommitmentCandidateDismissal> CommitmentCandidateDismissals { get; set; }
     public DbSet<CommitmentChangeDismissal> CommitmentChangeDismissals { get; set; }
+    public DbSet<PaycheckProfile> PaycheckProfiles { get; set; }
+    public DbSet<PaycheckOccurrence> PaycheckOccurrences { get; set; }
+    public DbSet<PaycheckCandidateDismissal> PaycheckCandidateDismissals { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -319,6 +322,109 @@ public class BudgetContext : IdentityDbContext<ApplicationUser>, IDataProtection
                 value.Dimension,
                 value.EvidenceFingerprint
             }).IsUnique().HasDatabaseName("UX_CommitmentChangeDismissals_Owner_Assessment");
+        });
+
+        modelBuilder.Entity<PaycheckProfile>(profile =>
+        {
+            profile.ToTable(table =>
+            {
+                table.HasCheckConstraint(
+                    "CK_PaycheckProfile_Text", "length(btrim(\"DisplayName\")) > 0");
+                table.HasCheckConstraint(
+                    "CK_PaycheckProfile_Enums",
+                    "\"Lifecycle\" IN ('Active', 'Paused', 'Ended') AND " +
+                    "\"Cadence\" IN ('Weekly', 'Biweekly', 'Semimonthly', 'Monthly') AND " +
+                    "\"AmountMode\" IN ('Fixed', 'Range')");
+                // Explicit IS NOT NULL guards keep PostgreSQL CHECK's unknown result
+                // from accepting incomplete nullable schedule shapes.
+                table.HasCheckConstraint(
+                    "CK_PaycheckProfile_Schedule",
+                    "(\"Cadence\" IN ('Weekly', 'Biweekly') AND \"ReferenceAnchorDate\" IS NOT NULL AND \"FirstMonthAnchor\" IS NULL AND \"SecondMonthAnchor\" IS NULL) OR " +
+                    "(\"Cadence\" = 'Monthly' AND \"ReferenceAnchorDate\" IS NULL AND \"FirstMonthAnchor\" IS NOT NULL AND \"FirstMonthAnchor\" BETWEEN 1 AND 31 AND \"SecondMonthAnchor\" IS NULL) OR " +
+                    "(\"Cadence\" = 'Semimonthly' AND \"ReferenceAnchorDate\" IS NULL AND \"FirstMonthAnchor\" IS NOT NULL AND \"SecondMonthAnchor\" IS NOT NULL AND " +
+                    "\"FirstMonthAnchor\" BETWEEN 1 AND 31 AND \"SecondMonthAnchor\" BETWEEN 1 AND 31 AND \"FirstMonthAnchor\" < \"SecondMonthAnchor\" AND " +
+                    "LEAST(\"SecondMonthAnchor\", 28) - LEAST(\"FirstMonthAnchor\", 28) >= 7 AND 28 - LEAST(\"SecondMonthAnchor\", 28) + LEAST(\"FirstMonthAnchor\", 28) >= 7)");
+                table.HasCheckConstraint(
+                    "CK_PaycheckProfile_Windows",
+                    "\"WindowBeforeDays\" BETWEEN 0 AND 3 AND \"WindowAfterDays\" BETWEEN 0 AND 3");
+                table.HasCheckConstraint(
+                    "CK_PaycheckProfile_Amount",
+                    "(\"AmountMode\" = 'Fixed' AND \"ExpectedAmount\" IS NOT NULL AND \"ExpectedAmount\" > 0 AND \"ExpectedMinimumAmount\" IS NULL AND \"ExpectedMaximumAmount\" IS NULL) OR " +
+                    "(\"AmountMode\" = 'Range' AND \"ExpectedAmount\" IS NULL AND \"ExpectedMinimumAmount\" IS NOT NULL AND \"ExpectedMinimumAmount\" > 0 AND " +
+                    "\"ExpectedMaximumAmount\" IS NOT NULL AND \"ExpectedMaximumAmount\" > \"ExpectedMinimumAmount\")");
+                table.HasCheckConstraint(
+                    "CK_PaycheckProfile_Origin",
+                    "(\"OriginAlgorithmVersion\" IS NULL AND \"OriginEvidenceFingerprint\" IS NULL) OR " +
+                    "(\"OriginAlgorithmVersion\" IS NOT NULL AND length(btrim(\"OriginAlgorithmVersion\")) > 0 AND \"OriginEvidenceFingerprint\" IS NOT NULL AND octet_length(\"OriginEvidenceFingerprint\") = 32)");
+                table.HasCheckConstraint(
+                    "CK_PaycheckProfile_Timestamps", "\"UpdatedAt\" >= \"CreatedAt\"");
+            });
+            profile.Property(value => value.DisplayName).HasMaxLength(500);
+            profile.Property(value => value.Lifecycle).HasConversion<string>().HasMaxLength(20);
+            profile.Property(value => value.Cadence).HasConversion<string>().HasMaxLength(20);
+            profile.Property(value => value.ReferenceAnchorDate).HasColumnType("date");
+            profile.Property(value => value.AmountMode).HasConversion<string>().HasMaxLength(20);
+            profile.Property(value => value.ExpectedAmount).HasColumnType("numeric(18,2)");
+            profile.Property(value => value.ExpectedMinimumAmount).HasColumnType("numeric(18,2)");
+            profile.Property(value => value.ExpectedMaximumAmount).HasColumnType("numeric(18,2)");
+            profile.Property(value => value.OriginAlgorithmVersion).HasMaxLength(100);
+            profile.Property(value => value.OriginEvidenceFingerprint).HasColumnType("bytea").HasMaxLength(32);
+            profile.HasAlternateKey(value => new { value.Id, value.OwnerId })
+                .HasName("AK_PaycheckProfiles_Id_OwnerId");
+            profile.HasOne(value => value.Owner).WithMany().HasForeignKey(value => value.OwnerId)
+                .OnDelete(DeleteBehavior.Cascade);
+            profile.HasIndex(value => value.OwnerId);
+            profile.HasIndex(value => new { value.OwnerId, value.OriginAlgorithmVersion, value.OriginEvidenceFingerprint })
+                .IsUnique().HasDatabaseName("UX_PaycheckProfiles_Owner_Origin")
+                .HasFilter("\"OriginEvidenceFingerprint\" IS NOT NULL");
+        });
+
+        modelBuilder.Entity<PaycheckOccurrence>(occurrence =>
+        {
+            occurrence.ToTable(table =>
+            {
+                table.HasCheckConstraint(
+                    "CK_PaycheckOccurrence_Kind", "\"Kind\" = 'ConfirmationEvidence'");
+                table.HasCheckConstraint(
+                    "CK_PaycheckOccurrence_EvidenceRevision",
+                    "\"EvidenceRevisionAtAssignment\" <> '00000000-0000-0000-0000-000000000000'::uuid");
+                table.HasCheckConstraint(
+                    "CK_PaycheckOccurrence_TimingOffset", "\"TimingOffsetDays\" BETWEEN -3 AND 3");
+            });
+            occurrence.HasKey(value => new { value.PaycheckProfileId, value.AccountInflowId });
+            occurrence.Property(value => value.Kind).HasConversion<string>().HasMaxLength(30);
+            occurrence.Property(value => value.SlotAnchor).HasColumnType("date");
+            occurrence.HasOne(value => value.PaycheckProfile).WithMany(value => value.Occurrences)
+                .HasForeignKey(value => new { value.PaycheckProfileId, value.OwnerId })
+                .HasPrincipalKey(value => new { value.Id, value.OwnerId })
+                .HasConstraintName("FK_PaycheckOccurrence_Profile_Owner")
+                .OnDelete(DeleteBehavior.Cascade);
+            occurrence.HasOne(value => value.AccountInflow).WithMany()
+                .HasForeignKey(value => new { value.AccountInflowId, value.OwnerId })
+                .HasPrincipalKey(value => new { value.Id, value.OwnerId })
+                .HasConstraintName("FK_PaycheckOccurrence_AccountInflow_Owner")
+                .OnDelete(DeleteBehavior.Cascade);
+            occurrence.HasIndex(value => value.AccountInflowId).IsUnique();
+        });
+
+        modelBuilder.Entity<PaycheckCandidateDismissal>(dismissal =>
+        {
+            dismissal.ToTable(table =>
+            {
+                table.HasCheckConstraint(
+                    "CK_PaycheckCandidateDismissal_AlgorithmVersion", "length(btrim(\"AlgorithmVersion\")) > 0");
+                table.HasCheckConstraint(
+                    "CK_PaycheckCandidateDismissal_Cadence", "\"Cadence\" IN ('Weekly', 'Biweekly', 'Semimonthly', 'Monthly')");
+                table.HasCheckConstraint(
+                    "CK_PaycheckCandidateDismissal_FingerprintLength", "octet_length(\"EvidenceFingerprint\") = 32");
+            });
+            dismissal.Property(value => value.AlgorithmVersion).HasMaxLength(100);
+            dismissal.Property(value => value.Cadence).HasConversion<string>().HasMaxLength(20);
+            dismissal.Property(value => value.EvidenceFingerprint).HasColumnType("bytea").HasMaxLength(32);
+            dismissal.HasOne(value => value.Owner).WithMany().HasForeignKey(value => value.OwnerId)
+                .OnDelete(DeleteBehavior.Cascade);
+            dismissal.HasIndex(value => new { value.OwnerId, value.AlgorithmVersion, value.Cadence, value.EvidenceFingerprint })
+                .IsUnique().HasDatabaseName("UX_PaycheckCandidateDismissals_Owner_Origin");
         });
 
         modelBuilder.Entity<BudgetLimit>()

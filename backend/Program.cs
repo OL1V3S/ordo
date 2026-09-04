@@ -14,6 +14,7 @@ using Microsoft.Extensions.Options;
 using BudgetPlanner.Import;
 using BudgetPlanner.Import.Sunflower;
 using BudgetPlanner.Commitments;
+using BudgetPlanner.Paychecks;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -42,6 +43,9 @@ builder.Services.AddScoped<IImportPreviewService, ImportPreviewService>();
 builder.Services.AddSingleton<ICommitmentDetector, CommitmentDetector>();
 builder.Services.AddSingleton<ICommitmentChangeDetector, CommitmentChangeDetector>();
 builder.Services.AddScoped<ICommitmentService, CommitmentService>();
+builder.Services.AddSingleton<PaycheckCandidateDetector>();
+builder.Services.AddSingleton<PaycheckProjector>();
+builder.Services.AddScoped<IPaycheckService, PaycheckService>();
 
 builder.Services
     .AddOptions<EmailSettingsOptions>()
