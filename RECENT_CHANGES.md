@@ -26,6 +26,7 @@ the permanent, complete archive.
 
 ### 2026-09-17 — Record paycheck received
 
+[PR #145](https://github.com/OL1V3S/ordo/pull/145) ·
 [Issue #143](https://github.com/OL1V3S/ordo/issues/143)
 
 - Added an active-paycheck workflow to create and link actual cash in or select
