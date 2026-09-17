@@ -110,7 +110,11 @@ export function makePaycheck(overrides = {}) {
     },
     createdAt: "2026-07-12T12:00:00.000Z",
     updatedAt: "2026-07-12T12:00:00.000Z",
-    evidence: makeProfileEvidence(),
+    evidence: makeProfileEvidence().map((row) => ({ ...row, assignmentKind: "confirmation_evidence" })),
+    receiptSlots: [
+      { relation: "current", anchor: "2026-08-10", earliestExpectedDate: "2026-08-09", latestExpectedDate: "2026-08-11" },
+      { relation: "previous", anchor: "2026-07-10", earliestExpectedDate: "2026-07-09", latestExpectedDate: "2026-07-11" },
+    ],
     nextProjection: makeProjection(),
     ...overrides,
   };

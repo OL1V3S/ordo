@@ -3,7 +3,7 @@ import client from "../../../shared/api/client";
 import { paychecksApi } from "./paychecksApi";
 
 vi.mock("../../../shared/api/client", () => ({
-  default: { get: vi.fn(), post: vi.fn(), put: vi.fn(), patch: vi.fn() },
+  default: { get: vi.fn(), post: vi.fn(), put: vi.fn(), patch: vi.fn(), delete: vi.fn() },
 }));
 
 const schedule = {
@@ -61,6 +61,14 @@ describe("paycheck API contracts", () => {
   it.each(["active", "paused", "ended"])("patches the explicit %s lifecycle without other profile fields", async (lifecycle) => {
     await paychecksApi.updateLifecycle("profile-id", lifecycle);
     expect(client.patch).toHaveBeenCalledWith("/api/paychecks/profile-id/lifecycle", { lifecycle });
+  });
+
+  it("records and removes receipt links through profile-scoped routes", async () => {
+    const payload = { slotAnchor: "2026-09-10", existingInflowId: 42 };
+    await paychecksApi.recordReceipt("profile-id", payload);
+    await paychecksApi.removeReceipt("profile-id", 42);
+    expect(client.post).toHaveBeenCalledWith("/api/paychecks/profile-id/receipts", payload);
+    expect(client.delete).toHaveBeenCalledWith("/api/paychecks/profile-id/receipts/42");
   });
 
   it("passes write failures to the caller without automatically retrying", async () => {

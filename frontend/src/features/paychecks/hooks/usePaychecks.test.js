@@ -6,7 +6,7 @@ import { getPaycheckErrorMessage, usePaychecks } from "./usePaychecks";
 vi.mock("../api/paychecksApi", () => ({ paychecksApi: {
   getCandidates: vi.fn(), getPaychecks: vi.fn(), getPaycheck: vi.fn(), confirmCandidate: vi.fn(),
   dismissCandidate: vi.fn(), reconsiderCandidate: vi.fn(), createPaycheck: vi.fn(),
-  updatePaycheck: vi.fn(), updateLifecycle: vi.fn(),
+  updatePaycheck: vi.fn(), updateLifecycle: vi.fn(), recordReceipt: vi.fn(), removeReceipt: vi.fn(),
 } }));
 
 const candidateData = {
@@ -33,7 +33,7 @@ describe("paycheck state", () => {
     vi.resetAllMocks();
     paychecksApi.getCandidates.mockResolvedValue({ data: candidateData });
     paychecksApi.getPaychecks.mockResolvedValue({ data: profileData });
-    for (const method of ["confirmCandidate", "dismissCandidate", "reconsiderCandidate", "createPaycheck", "updatePaycheck", "updateLifecycle"])
+    for (const method of ["confirmCandidate", "dismissCandidate", "reconsiderCandidate", "createPaycheck", "updatePaycheck", "updateLifecycle", "recordReceipt", "removeReceipt"])
       paychecksApi[method].mockResolvedValue({ data: { id: "saved" } });
   });
 
@@ -266,6 +266,24 @@ describe("paycheck state", () => {
     expect(result.current.actionError).toContain("Refresh and check");
     expect(result.current.uncertainCreate).toBe(false);
     expect(paychecksApi.updateLifecycle).toHaveBeenCalledTimes(1);
+  });
+
+  it("blocks an uncertain receipt retry until a successful refresh checks linked deposits", async () => {
+    const { result } = await ready();
+    const receipt = { slotAnchor: "2026-09-10", newInflow: { description: "Payroll", amount: "1000", date: "2026-09-10" } };
+    paychecksApi.recordReceipt.mockRejectedValueOnce(new Error("offline"));
+    let outcome;
+    await act(async () => { outcome = await result.current.recordReceipt("profile", receipt); });
+    expect(outcome).toEqual({ ok: false, code: "receipt_uncertain", uncertain: true });
+    expect(result.current.uncertainReceipt).toBe(true);
+    expect(await result.current.recordReceipt("profile", receipt)).toEqual(outcome);
+    expect(paychecksApi.recordReceipt).toHaveBeenCalledTimes(1);
+    paychecksApi.getPaychecks.mockRejectedValueOnce(new Error("still offline"));
+    await act(() => result.current.refresh());
+    expect(result.current.uncertainReceipt).toBe(true);
+    await act(() => result.current.refresh());
+    expect(result.current.uncertainReceipt).toBe(false);
+    expect(result.current.notice).toContain("Check the linked deposits");
   });
 
   it("ignores read completions after unmount and prevents later imperative actions", async () => {

@@ -353,6 +353,15 @@ internal static class PaycheckScheduleEngine
         _ => throw new ArgumentException("Unsupported paycheck schedule.", nameof(schedule))
     };
 
+    internal static DateOnly? PreviousAnchorBefore(PaycheckSchedule schedule, DateOnly target) => schedule switch
+    {
+        WeeklyPaycheckSchedule weekly => PreviousIntervalAnchorBefore(weekly.ReferenceAnchor, 7, target),
+        BiweeklyPaycheckSchedule biweekly => PreviousIntervalAnchorBefore(biweekly.ReferenceAnchor, 14, target),
+        MonthlyPaycheckSchedule monthly => PreviousCalendarAnchorBefore([monthly.Anchor], target),
+        SemimonthlyPaycheckSchedule semimonthly => PreviousCalendarAnchorBefore([semimonthly.First, semimonthly.Second], target),
+        _ => throw new ArgumentException("Unsupported paycheck schedule.", nameof(schedule))
+    };
+
     internal static int AnchorKindCode(PaycheckMonthAnchor anchor) =>
         anchor.Kind == PaycheckMonthAnchorKind.DayOfMonth ? 1 : 2;
 
@@ -381,6 +390,13 @@ internal static class PaycheckScheduleEngine
     {
         if (target <= reference) return reference;
         return FirstPhaseAnchorOnOrAfter(reference, intervalDays, target);
+    }
+
+    private static DateOnly? PreviousIntervalAnchorBefore(DateOnly reference, int intervalDays, DateOnly target)
+    {
+        var difference = target.DayNumber - reference.DayNumber;
+        if (difference <= 0) return null;
+        return DateOnly.FromDayNumber(reference.DayNumber + ((difference - 1) / intervalDays * intervalDays));
     }
 
     private static IReadOnlyList<DateOnly> GenerateCalendarAnchors(
@@ -417,6 +433,21 @@ internal static class PaycheckScheduleEngine
                 if (date >= target) return date;
             }
             month = month.AddMonths(1);
+        }
+    }
+
+    private static DateOnly? PreviousCalendarAnchorBefore(
+        IReadOnlyList<PaycheckMonthAnchor> anchors,
+        DateOnly target)
+    {
+        var month = new DateOnly(target.Year, target.Month, 1);
+        while (true)
+        {
+            var candidate = anchors.Select(anchor => CalendarAnchor(month.Year, month.Month, anchor))
+                .Where(date => date < target).DefaultIfEmpty().Max();
+            if (candidate != default) return candidate;
+            if (month == DateOnly.MinValue) return null;
+            month = month.AddMonths(-1);
         }
     }
 

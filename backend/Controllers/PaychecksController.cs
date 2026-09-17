@@ -91,6 +91,26 @@ public sealed class PaychecksController(IPaycheckService paychecks) : Controller
         return result.IsSuccess ? Ok(result.Value) : ErrorResult(result.Error!);
     }
 
+    [HttpPost("paychecks/{id:guid}/receipts")]
+    public async Task<IActionResult> RecordReceipt(
+        Guid id, RecordPaycheckReceiptRequest request, CancellationToken cancellationToken)
+    {
+        var ownerId = OwnerId();
+        if (ownerId is null) return Unauthorized();
+        var result = await paychecks.RecordReceiptAsync(ownerId, id, request, cancellationToken);
+        if (!result.IsSuccess) return ErrorResult(result.Error!);
+        return result.Value!.AlreadyRecorded ? Ok(result.Value) : StatusCode(StatusCodes.Status201Created, result.Value);
+    }
+
+    [HttpDelete("paychecks/{id:guid}/receipts/{accountInflowId:int}")]
+    public async Task<IActionResult> RemoveReceipt(Guid id, int accountInflowId, CancellationToken cancellationToken)
+    {
+        var ownerId = OwnerId();
+        if (ownerId is null) return Unauthorized();
+        var result = await paychecks.RemoveReceiptAsync(ownerId, id, accountInflowId, cancellationToken);
+        return result.IsSuccess ? Ok(result.Value) : ErrorResult(result.Error!);
+    }
+
     private string? OwnerId() => User.FindFirstValue(ClaimTypes.NameIdentifier);
 
     private IActionResult ErrorResult(PaycheckError error)
@@ -102,8 +122,10 @@ public sealed class PaychecksController(IPaycheckService paychecks) : Controller
         }
         var status = error.Code switch
         {
-            "candidate_changed" or "candidate_dismissed" or "confirmation_conflict" => StatusCodes.Status409Conflict,
-            "confirmation_failed" => StatusCodes.Status500InternalServerError,
+            "candidate_changed" or "candidate_dismissed" or "confirmation_conflict"
+                or "paycheck_not_active" or "receipt_slot_unavailable" or "receipt_inflow_unavailable"
+                or "receipt_conflict" or "receipt_link_protected" => StatusCodes.Status409Conflict,
+            "confirmation_failed" or "receipt_failed" => StatusCodes.Status500InternalServerError,
             _ => StatusCodes.Status400BadRequest
         };
         return StatusCode(status, new ProblemDetails

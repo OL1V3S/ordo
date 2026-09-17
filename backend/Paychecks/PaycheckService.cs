@@ -26,6 +26,8 @@ public interface IPaycheckService
     Task<PaycheckOperation<PaycheckProfileDto>> GetAsync(string ownerId, Guid id, CancellationToken cancellationToken);
     Task<PaycheckOperation<PaycheckProfileDto>> UpdateAsync(string ownerId, Guid id, UpdatePaycheckRequest request, CancellationToken cancellationToken);
     Task<PaycheckOperation<PaycheckProfileDto>> UpdateLifecycleAsync(string ownerId, Guid id, UpdatePaycheckLifecycleRequest request, CancellationToken cancellationToken);
+    Task<PaycheckOperation<RecordPaycheckReceiptResponse>> RecordReceiptAsync(string ownerId, Guid id, RecordPaycheckReceiptRequest request, CancellationToken cancellationToken);
+    Task<PaycheckOperation<PaycheckProfileDto>> RemoveReceiptAsync(string ownerId, Guid id, int accountInflowId, CancellationToken cancellationToken);
 }
 
 public sealed class PaycheckService(
@@ -269,6 +271,153 @@ public sealed class PaycheckService(
         return response;
     }
 
+    public async Task<PaycheckOperation<RecordPaycheckReceiptResponse>> RecordReceiptAsync(
+        string ownerId, Guid id, RecordPaycheckReceiptRequest request, CancellationToken cancellationToken)
+    {
+        if (request.SlotAnchor is null)
+            return Fail<RecordPaycheckReceiptResponse>("receipt_slot_invalid", "Choose an available paycheck slot.");
+        var hasExisting = request.ExistingInflowId is > 0;
+        var hasNew = request.NewInflow is not null;
+        if (hasExisting == hasNew)
+            return Fail<RecordPaycheckReceiptResponse>("receipt_source_invalid", "Choose either existing cash in or new cash in.");
+
+        var normalizedDescription = hasNew ? AccountInflowInputRules.NormalizeDescription(request.NewInflow!.Description) : null;
+        if (hasNew && AccountInflowInputRules.Validate(request.NewInflow!.Amount, request.NewInflow.Date, normalizedDescription).Count > 0)
+            return Fail<RecordPaycheckReceiptResponse>("receipt_inflow_invalid", "Enter a valid positive amount, date, and description.");
+
+        var evaluatedOn = DateOnly.FromDateTime(clock.GetUtcNow().UtcDateTime);
+        await using var transaction = await BeginAsync(cancellationToken);
+        try
+        {
+            var profile = await LockProfileAsync(ownerId, id, cancellationToken);
+            if (profile is null) return NotFound<RecordPaycheckReceiptResponse>();
+            if (profile.Lifecycle != PaycheckLifecycle.Active)
+                return Fail<RecordPaycheckReceiptResponse>("paycheck_not_active", "Only an active paycheck can record a new receipt.");
+
+            var existingSlot = await ReceiptAtSlotAsync(ownerId, id, request.SlotAnchor.Value, cancellationToken);
+            if (existingSlot is not null)
+            {
+                var matches = hasExisting
+                    ? existingSlot.Inflow.Id == request.ExistingInflowId
+                    : existingSlot.Inflow.Date == request.NewInflow!.Date
+                      && existingSlot.Inflow.Amount == request.NewInflow.Amount
+                      && existingSlot.Inflow.Description == normalizedDescription;
+                if (existingSlot.Occurrence.Kind == PaycheckOccurrenceKind.RecordedReceipt && matches)
+                {
+                    var dto = await ProfileDtoAsync(profile, evaluatedOn, cancellationToken);
+                    await CommitAsync(transaction, cancellationToken);
+                    return PaycheckOperation<RecordPaycheckReceiptResponse>.Success(new(
+                        dto, dto.Evidence.Single(value => value.AccountInflowId == existingSlot.Inflow.Id), true));
+                }
+                return Fail<RecordPaycheckReceiptResponse>("receipt_conflict", "That paycheck slot already has a different linked deposit.");
+            }
+
+            var allowed = await ReceiptSlotsAsync(profile, evaluatedOn, cancellationToken);
+            if (!PaycheckScheduleEngine.IsAnchor(PaycheckProfileRules.ReadSchedule(profile), request.SlotAnchor.Value))
+                return Fail<RecordPaycheckReceiptResponse>("receipt_slot_invalid", "The selected date is not a paycheck schedule anchor.");
+            if (!allowed.Any(value => value.Anchor == request.SlotAnchor.Value))
+                return Fail<RecordPaycheckReceiptResponse>("receipt_slot_unavailable", "That paycheck slot is no longer available. Refresh and choose again.");
+
+            AccountInflow inflow;
+            if (hasExisting)
+            {
+                inflow = await LockInflowAsync(ownerId, request.ExistingInflowId!.Value, cancellationToken)
+                    ?? throw new ReceiptUnavailableException();
+                if (await context.PaycheckOccurrences.AnyAsync(value => value.AccountInflowId == inflow.Id, cancellationToken))
+                    throw new ReceiptUnavailableException();
+            }
+            else
+            {
+                inflow = new AccountInflow
+                {
+                    OwnerId = ownerId, Description = normalizedDescription!, Amount = request.NewInflow!.Amount!.Value,
+                    Date = request.NewInflow.Date!.Value, PaycheckEvidenceRevision = Guid.NewGuid()
+                };
+                context.AccountInflows.Add(inflow);
+            }
+
+            var offset = inflow.Date.DayNumber - request.SlotAnchor.Value.DayNumber;
+            if (offset is < short.MinValue or > short.MaxValue)
+                return Fail<RecordPaycheckReceiptResponse>("receipt_date_invalid", "The observed date is too far from the selected paycheck slot.");
+            var occurrence = new PaycheckOccurrence
+            {
+                PaycheckProfileId = profile.Id, AccountInflow = inflow, AccountInflowId = inflow.Id, OwnerId = ownerId,
+                Kind = PaycheckOccurrenceKind.RecordedReceipt, EvidenceRevisionAtAssignment = inflow.PaycheckEvidenceRevision,
+                SlotAnchor = request.SlotAnchor.Value, TimingOffsetDays = (short)offset, LinkedAt = clock.GetUtcNow().UtcDateTime
+            };
+            context.PaycheckOccurrences.Add(occurrence);
+            await context.SaveChangesAsync(cancellationToken);
+            var result = await ProfileDtoAsync(profile, evaluatedOn, cancellationToken);
+            await CommitAsync(transaction, cancellationToken);
+            return PaycheckOperation<RecordPaycheckReceiptResponse>.Success(new(
+                result, result.Evidence.Single(value => value.AccountInflowId == inflow.Id), false));
+        }
+        catch (ReceiptUnavailableException)
+        {
+            await ResetAsync(transaction);
+            return Fail<RecordPaycheckReceiptResponse>("receipt_inflow_unavailable", "That cash-in record is unavailable. Refresh and choose again.");
+        }
+        catch (Exception exception) when (IsConflict(exception))
+        {
+            await ResetAsync(transaction);
+            var reconciled = await ReconcileReceiptAsync(
+                ownerId, id, request, normalizedDescription, evaluatedOn, cancellationToken);
+            if (reconciled is not null)
+                return PaycheckOperation<RecordPaycheckReceiptResponse>.Success(reconciled);
+            return Fail<RecordPaycheckReceiptResponse>("receipt_conflict", "The receipt changed or was claimed. Refresh and review the paycheck.");
+        }
+        catch (DbUpdateException)
+        {
+            await ResetAsync(transaction);
+            return Fail<RecordPaycheckReceiptResponse>("receipt_failed", "The paycheck receipt could not be recorded.");
+        }
+    }
+
+    public async Task<PaycheckOperation<PaycheckProfileDto>> RemoveReceiptAsync(
+        string ownerId, Guid id, int accountInflowId, CancellationToken cancellationToken)
+    {
+        var evaluatedOn = DateOnly.FromDateTime(clock.GetUtcNow().UtcDateTime);
+        await using var transaction = await BeginAsync(cancellationToken);
+        try
+        {
+            var profile = await LockProfileAsync(ownerId, id, cancellationToken);
+            if (profile is null) return NotFound<PaycheckProfileDto>();
+            var occurrence = await context.PaycheckOccurrences.SingleOrDefaultAsync(value =>
+                value.OwnerId == ownerId && value.PaycheckProfileId == id && value.AccountInflowId == accountInflowId,
+                cancellationToken);
+            if (occurrence is not null)
+            {
+                if (occurrence.Kind != PaycheckOccurrenceKind.RecordedReceipt)
+                    return Fail<PaycheckProfileDto>("receipt_link_protected", "Confirmation evidence cannot be removed from this workflow.");
+                context.PaycheckOccurrences.Remove(occurrence);
+                await context.SaveChangesAsync(cancellationToken);
+            }
+            var result = await ProfileDtoAsync(profile, evaluatedOn, cancellationToken);
+            await CommitAsync(transaction, cancellationToken);
+            return PaycheckOperation<PaycheckProfileDto>.Success(result);
+        }
+        catch (Exception exception) when (IsConflict(exception))
+        {
+            await ResetAsync(transaction);
+            var profile = await context.PaycheckProfiles.AsNoTracking().SingleOrDefaultAsync(
+                value => value.OwnerId == ownerId && value.Id == id, cancellationToken);
+            if (profile is null) return NotFound<PaycheckProfileDto>();
+            var occurrence = await context.PaycheckOccurrences.AsNoTracking().SingleOrDefaultAsync(value =>
+                value.OwnerId == ownerId && value.PaycheckProfileId == id && value.AccountInflowId == accountInflowId,
+                cancellationToken);
+            if (occurrence is null)
+                return PaycheckOperation<PaycheckProfileDto>.Success(await ProfileDtoAsync(profile, evaluatedOn, cancellationToken));
+            if (occurrence.Kind != PaycheckOccurrenceKind.RecordedReceipt)
+                return Fail<PaycheckProfileDto>("receipt_link_protected", "Confirmation evidence cannot be removed from this workflow.");
+            return Fail<PaycheckProfileDto>("receipt_conflict", "The receipt changed during removal. Refresh and review the paycheck.");
+        }
+        catch (DbUpdateException)
+        {
+            await ResetAsync(transaction);
+            return Fail<PaycheckProfileDto>("receipt_failed", "The paycheck receipt link could not be removed.");
+        }
+    }
+
     private async Task<IReadOnlyList<PaycheckCandidate>> DetectAsync(
         string ownerId, DateOnly evaluatedOn, CancellationToken cancellationToken)
     {
@@ -298,6 +447,61 @@ public sealed class PaycheckService(
             && AccountInflowIdentity.NormalizeDescription(inflow.Description) == candidate.NormalizedDescriptionIdentity
             && PaycheckScheduleEngine.IsAnchor(candidate.Schedule, value.SlotAnchor)
             && value.PostedDate.DayNumber - value.SlotAnchor.DayNumber == value.TimingOffsetDays);
+    }
+
+    private Task<PaycheckProfile?> LockProfileAsync(
+        string ownerId, Guid id, CancellationToken cancellationToken) => context.Database.IsNpgsql()
+        ? context.PaycheckProfiles.FromSqlInterpolated($"""
+            SELECT * FROM "PaycheckProfiles"
+            WHERE "OwnerId" = {ownerId} AND "Id" = {id}
+            FOR UPDATE
+            """).SingleOrDefaultAsync(cancellationToken)
+        : context.PaycheckProfiles.SingleOrDefaultAsync(
+            value => value.OwnerId == ownerId && value.Id == id, cancellationToken);
+
+    private Task<AccountInflow?> LockInflowAsync(
+        string ownerId, int id, CancellationToken cancellationToken) => context.Database.IsNpgsql()
+        ? context.AccountInflows.FromSqlInterpolated($"""
+            SELECT * FROM "AccountInflows"
+            WHERE "OwnerId" = {ownerId} AND "Id" = {id}
+            FOR UPDATE
+            """).SingleOrDefaultAsync(cancellationToken)
+        : context.AccountInflows.SingleOrDefaultAsync(
+            value => value.OwnerId == ownerId && value.Id == id, cancellationToken);
+
+    private async Task<ReceiptLink?> ReceiptAtSlotAsync(
+        string ownerId, Guid profileId, DateOnly slotAnchor, CancellationToken cancellationToken)
+    {
+        var occurrence = await context.PaycheckOccurrences.AsNoTracking().SingleOrDefaultAsync(value =>
+            value.OwnerId == ownerId && value.PaycheckProfileId == profileId && value.SlotAnchor == slotAnchor,
+            cancellationToken);
+        if (occurrence is null) return null;
+        var inflow = await context.AccountInflows.AsNoTracking().SingleAsync(value =>
+            value.OwnerId == ownerId && value.Id == occurrence.AccountInflowId, cancellationToken);
+        return new(occurrence, inflow);
+    }
+
+    private async Task<IReadOnlyList<PaycheckReceiptSlotDto>> ReceiptSlotsAsync(
+        PaycheckProfile profile, DateOnly evaluatedOn, CancellationToken cancellationToken) =>
+        (await ProfileDtoAsync(profile, evaluatedOn, cancellationToken)).ReceiptSlots;
+
+    private async Task<RecordPaycheckReceiptResponse?> ReconcileReceiptAsync(
+        string ownerId, Guid profileId, RecordPaycheckReceiptRequest request,
+        string? normalizedDescription, DateOnly evaluatedOn, CancellationToken cancellationToken)
+    {
+        var linked = await ReceiptAtSlotAsync(ownerId, profileId, request.SlotAnchor!.Value, cancellationToken);
+        if (linked?.Occurrence.Kind != PaycheckOccurrenceKind.RecordedReceipt) return null;
+        var matches = request.ExistingInflowId is > 0
+            ? linked.Inflow.Id == request.ExistingInflowId
+            : linked.Inflow.Date == request.NewInflow!.Date
+              && linked.Inflow.Amount == request.NewInflow.Amount
+              && linked.Inflow.Description == normalizedDescription;
+        if (!matches) return null;
+        var profile = await context.PaycheckProfiles.AsNoTracking().SingleOrDefaultAsync(
+            value => value.OwnerId == ownerId && value.Id == profileId, cancellationToken);
+        if (profile is null) return null;
+        var dto = await ProfileDtoAsync(profile, evaluatedOn, cancellationToken);
+        return new(dto, dto.Evidence.Single(value => value.AccountInflowId == linked.Inflow.Id), true);
     }
 
     private IQueryable<PaycheckCandidateDismissal> DismissalQuery(
@@ -361,6 +565,10 @@ public sealed class PaycheckService(
                 projection = new(projected.AlgorithmVersion, projected.EvaluatedOn, projected.Anchor,
                     projected.EarliestExpectedDate, projected.LatestExpectedDate, PaycheckProfileRules.ToDto(projected.Amount));
             }
+            var occupied = linked.Select(value => value.Occurrence.SlotAnchor).ToHashSet();
+            var receiptSlots = projection is null
+                ? Array.Empty<PaycheckReceiptSlotDto>()
+                : BuildReceiptSlots(schedule, profile.WindowBeforeDays, profile.WindowAfterDays, projection.Anchor, occupied);
             return new PaycheckProfileDto(profile.Id, profile.DisplayName, profile.Lifecycle.ToString().ToLowerInvariant(),
                 PaycheckProfileRules.ToDto(schedule), profile.WindowBeforeDays, profile.WindowAfterDays,
                 PaycheckProfileRules.ToDto(amount), profile.OriginEvidenceFingerprint is null ? "manual" : "candidate",
@@ -369,8 +577,22 @@ public sealed class PaycheckService(
                     value.Inflow.Id, value.Inflow.Date, value.Inflow.Amount, value.Inflow.Description,
                     imported.Contains(value.Inflow.Id) ? "imported" : "manual", value.Occurrence.SlotAnchor,
                     value.Occurrence.TimingOffsetDays, value.Occurrence.LinkedAt,
-                    value.Inflow.PaycheckEvidenceRevision != value.Occurrence.EvidenceRevisionAtAssignment)).ToArray(), projection);
+                    value.Inflow.PaycheckEvidenceRevision != value.Occurrence.EvidenceRevisionAtAssignment,
+                    value.Occurrence.Kind == PaycheckOccurrenceKind.RecordedReceipt ? "recorded_receipt" : "confirmation_evidence"))
+                    .ToArray(), receiptSlots, projection);
         }).ToArray();
+    }
+
+    private static IReadOnlyList<PaycheckReceiptSlotDto> BuildReceiptSlots(
+        PaycheckSchedule schedule, int before, int after, DateOnly current, IReadOnlySet<DateOnly> occupied)
+    {
+        var slots = new List<PaycheckReceiptSlotDto>();
+        if (!occupied.Contains(current))
+            slots.Add(new("current", current, current.AddDays(-before), current.AddDays(after)));
+        var previous = PaycheckScheduleEngine.PreviousAnchorBefore(schedule, current);
+        if (previous is { } anchor && !occupied.Contains(anchor))
+            slots.Add(new("previous", anchor, anchor.AddDays(-before), anchor.AddDays(after)));
+        return slots;
     }
 
     private static PaycheckProfile NewProfile(string ownerId, PaycheckSchedule schedule, PaycheckExpectation expectation, DateTime now)
@@ -449,4 +671,7 @@ public sealed class PaycheckService(
     private static PaycheckOperation<T> NotFound<T>() => Fail<T>("paycheck_not_found", "Paycheck was not found.");
     private static PaycheckOperation<T> InvalidFingerprint<T>() => Fail<T>("fingerprint_invalid", "Candidate fingerprint is invalid.");
     private static PaycheckOperation<T> InvalidSchedule<T>() => Fail<T>("schedule_invalid", "Provide a valid paycheck schedule with only its required fields.");
+
+    private sealed record ReceiptLink(PaycheckOccurrence Occurrence, AccountInflow Inflow);
+    private sealed class ReceiptUnavailableException : Exception;
 }

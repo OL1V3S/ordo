@@ -99,6 +99,35 @@ public sealed class PaycheckProjectorTests
     }
 
     [Fact]
+    public void Previous_anchor_preserves_interval_phase_and_never_precedes_reference()
+    {
+        var weekly = new WeeklyPaycheckSchedule(new(2026, 9, 4));
+        var biweekly = new BiweeklyPaycheckSchedule(new(2026, 8, 28));
+
+        Assert.Null(PaycheckScheduleEngine.PreviousAnchorBefore(weekly, new(2026, 9, 4)));
+        Assert.Null(PaycheckScheduleEngine.PreviousAnchorBefore(weekly, new(2020, 1, 1)));
+        Assert.Equal(new DateOnly(2026, 9, 4),
+            PaycheckScheduleEngine.PreviousAnchorBefore(weekly, new(2026, 9, 11)));
+        Assert.Equal(new DateOnly(2026, 8, 28),
+            PaycheckScheduleEngine.PreviousAnchorBefore(biweekly, new(2026, 9, 11)));
+    }
+
+    [Fact]
+    public void Previous_calendar_anchor_handles_month_end_semimonthly_and_calendar_floor()
+    {
+        Assert.Equal(new DateOnly(2024, 2, 29), PaycheckScheduleEngine.PreviousAnchorBefore(
+            new MonthlyPaycheckSchedule(PaycheckMonthAnchor.MonthEnd), new(2024, 3, 31)));
+        Assert.Equal(new DateOnly(2026, 9, 15), PaycheckScheduleEngine.PreviousAnchorBefore(
+            new SemimonthlyPaycheckSchedule(PaycheckMonthAnchor.DayOfMonth(15), PaycheckMonthAnchor.MonthEnd),
+            new(2026, 9, 30)));
+        Assert.Equal(new DateOnly(2026, 8, 31), PaycheckScheduleEngine.PreviousAnchorBefore(
+            new SemimonthlyPaycheckSchedule(PaycheckMonthAnchor.DayOfMonth(15), PaycheckMonthAnchor.MonthEnd),
+            new(2026, 9, 15)));
+        Assert.Null(PaycheckScheduleEngine.PreviousAnchorBefore(
+            new MonthlyPaycheckSchedule(PaycheckMonthAnchor.DayOfMonth(1)), DateOnly.MinValue));
+    }
+
+    [Fact]
     public void Invalid_schedule_window_amount_and_latest_slot_shapes_are_rejected()
     {
         Assert.Throws<ArgumentOutOfRangeException>(() => PaycheckMonthAnchor.DayOfMonth(0));

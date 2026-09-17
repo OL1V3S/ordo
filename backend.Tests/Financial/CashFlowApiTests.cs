@@ -236,6 +236,58 @@ public sealed class CashFlowApiTests
     }
 
     [Fact]
+    public async Task Recording_and_unlinking_receipts_changes_cash_only_through_the_actual_inflow()
+    {
+        await using var app = new PaycheckTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("cashflow-receipts@example.com");
+        var existing = await app.SeedInflowAsync(owner.Id, "Existing cash", 100m, new(2026, 9, 1));
+        using var creation = await owner.Client.PostAsJsonAsync("/api/paychecks", new
+        {
+            displayName = "Synthetic payroll",
+            schedule = new
+            {
+                cadence = "monthly", referenceAnchorDate = (string?)null,
+                firstMonthAnchor = new { kind = "day_of_month", day = 10 }, secondMonthAnchor = (object?)null
+            },
+            windowBeforeDays = 1, windowAfterDays = 1,
+            amount = new { mode = "fixed", fixedAmount = 500m, minimumAmount = (decimal?)null, maximumAmount = (decimal?)null }
+        });
+        creation.EnsureSuccessStatusCode();
+        var profileId = (await creation.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        var before = await ReadAsync(owner.Client);
+        Assert.Equal("10000", before.Selected.CashInMinor);
+        Assert.Equal("0", before.Selected.PaycheckCashInMinor);
+        Assert.Equal("10000", before.Selected.OtherCashInMinor);
+
+        using var linked = await owner.Client.PostAsJsonAsync($"/api/paychecks/{profileId}/receipts", new
+        {
+            slotAnchor = "2026-09-10", existingInflowId = existing.Id, newInflow = (object?)null
+        });
+        Assert.Equal(HttpStatusCode.Created, linked.StatusCode);
+        var afterLink = await ReadAsync(owner.Client);
+        Assert.Equal(before.Selected.CashInMinor, afterLink.Selected.CashInMinor);
+        Assert.Equal(before.Selected.NetMinor, afterLink.Selected.NetMinor);
+        Assert.Equal("10000", afterLink.Selected.PaycheckCashInMinor);
+        Assert.Equal("0", afterLink.Selected.OtherCashInMinor);
+
+        using var removed = await owner.Client.DeleteAsync($"/api/paychecks/{profileId}/receipts/{existing.Id}");
+        removed.EnsureSuccessStatusCode();
+        Assert.Equal(before.Selected, (await ReadAsync(owner.Client)).Selected);
+
+        using var recorded = await owner.Client.PostAsJsonAsync($"/api/paychecks/{profileId}/receipts", new
+        {
+            slotAnchor = "2026-09-10", existingInflowId = (int?)null,
+            newInflow = new { description = "Actual cash", amount = 75m, date = "2026-09-10" }
+        });
+        Assert.Equal(HttpStatusCode.Created, recorded.StatusCode);
+        var afterCreate = await ReadAsync(owner.Client);
+        Assert.Equal("17500", afterCreate.Selected.CashInMinor);
+        Assert.Equal("7500", afterCreate.Selected.PaycheckCashInMinor);
+        Assert.Equal("10000", afterCreate.Selected.OtherCashInMinor);
+        Assert.Equal("17500", afterCreate.Selected.NetMinor);
+    }
+
+    [Fact]
     public async Task Inflow_edits_and_deletion_use_current_dates_amounts_and_surviving_links_without_mutating_on_read()
     {
         await using var app = new FinancialApiTestApplication();

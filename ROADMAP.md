@@ -171,11 +171,13 @@ ASP.NET Core API, and PostgreSQL. The current shipped foundation includes:
 
 - authenticated Expense CRUD and monthly category budgets;
 - owner-scoped `AccountInflow` persistence and authenticated inflow CRUD;
+- first-class Activity cash-in entry, search, edit, and delete;
 - Sunflower statement preview/import with explicit debit and credit selection;
 - recurring Commitment Intelligence with confirmation, lifecycle, evidence, and
   reviewed change workflows;
 - Paycheck Intelligence with candidates, confirmed/manual profiles, lifecycle,
-  evidence links, and deterministic next-paycheck projection;
+  explicit actual-receipt creation/linking and correction, evidence links, and
+  deterministic next-paycheck projection;
 - historical cash-flow analytics using recorded AccountInflows and Expenses;
 - the completed Ordo UX V3 information hierarchy and responsive/accessibility
   pass;
@@ -184,9 +186,6 @@ ASP.NET Core API, and PostgreSQL. The current shipped foundation includes:
 
 Important current product gaps relative to the direction above include:
 
-- no first-class frontend manual cash-in workflow;
-- no explicit runtime action for recording a newly received paycheck against an
-  existing manual/confirmed paycheck profile;
 - no automatic attachment of later inflows to an existing paycheck profile;
 - no canonical tracked-account balance or reconciliation model;
 - no Safe-to-Spend or forecasted-balance semantics; and
@@ -218,13 +217,13 @@ work; task selection still follows `AGENTS.md` and durable GitHub state.
 
 ### Track A — Financial Event Correctness
 
-#### A1. Complete paycheck receipt semantics
+#### A1. Maintain completed paycheck receipt semantics
 
-- **Goal:** Define and implement the exact financial action for recording an
-  actual paycheck received against an existing paycheck profile.
-- **Why:** The current profile/projector models expectations correctly but does
-  not provide the everyday bridge from expected paycheck to observed cash-in.
-- **Priority:** Near-term product dependency.
+- **Goal:** Preserve the shipped explicit action for recording actual paycheck
+  cash against an existing active profile.
+- **Why:** The receipt workflow is the bridge from expected paycheck to observed
+  cash-in and must remain financially exact as adjacent features evolve.
+- **Priority:** Shipped foundation; maintain under required CI.
 - **Risk:** High.
 - **Completion criteria:** Owner-approved semantics cover new versus existing
   inflow linkage, actual amount/date, occurrence meaning, schedule-slot mapping,
@@ -460,10 +459,10 @@ unless a concrete security dependency is identified.
 This sequence describes the product direction the engineering roadmap should
 make possible. It does **not** authorize these items by itself.
 
-1. **First-class manual cash in** — let users record incoming money as naturally
-   as they record expenses.
-2. **Record paycheck received** — connect a saved paycheck expectation to an
-   actual observed inflow without inventing money on payday.
+1. **First-class manual cash in (shipped)** — users can record incoming money as
+   naturally as they record expenses.
+2. **Record paycheck received (shipped)** — users can connect a saved paycheck
+   expectation to an actual observed inflow without inventing money on payday.
 3. **Recorded Activity coherence** — make money-in and money-out records easy to
    review while preserving their distinct domain semantics.
 4. **Intelligence-assisted matching and recurrence** — reduce repeated entry with

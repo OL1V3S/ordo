@@ -416,6 +416,56 @@ public sealed class PostgreSqlPaycheckTests
     }
 
     [PostgreSqlFact]
+    public async Task Concurrent_identical_receipt_requests_reconcile_to_one_inflow_and_one_slot_link()
+    {
+        await using var app = new FixedDatePostgreSqlPaycheckApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("paycheck-receipt-race@example.com");
+        using var creation = await owner.Client.PostAsJsonAsync("/api/paychecks", new
+        {
+            displayName = "Synthetic payroll",
+            schedule = new
+            {
+                cadence = "monthly", referenceAnchorDate = (string?)null,
+                firstMonthAnchor = new { kind = "day_of_month", day = 10 }, secondMonthAnchor = (object?)null
+            },
+            windowBeforeDays = 1, windowAfterDays = 1,
+            amount = new { mode = "fixed", fixedAmount = 1000m, minimumAmount = (decimal?)null, maximumAmount = (decimal?)null }
+        });
+        creation.EnsureSuccessStatusCode();
+        var profileId = (await creation.Content.ReadFromJsonAsync<PaycheckProfileDto>())!.Id;
+        var request = new RecordPaycheckReceiptRequest(new DateOnly(2026, 9, 10), null,
+            new NewPaycheckReceiptInflowDto("Actual payroll", 1001.25m, new DateOnly(2026, 9, 12)));
+
+        var responses = await Task.WhenAll(
+            owner.Client.PostAsJsonAsync($"/api/paychecks/{profileId}/receipts", request),
+            owner.Client.PostAsJsonAsync($"/api/paychecks/{profileId}/receipts", request));
+        Assert.All(responses, response => Assert.Contains(response.StatusCode,
+            new[] { HttpStatusCode.Created, HttpStatusCode.OK }));
+        var bodies = await Task.WhenAll(responses.Select(response =>
+            response.Content.ReadFromJsonAsync<RecordPaycheckReceiptResponse>()));
+        Assert.Single(bodies, body => !body!.AlreadyRecorded);
+        Assert.Single(bodies, body => body!.AlreadyRecorded);
+        Assert.Single(bodies.Select(body => body!.Receipt.AccountInflowId).Distinct());
+
+        using var scope = app.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<BudgetContext>();
+        Assert.Equal(1, await context.AccountInflows.CountAsync());
+        var occurrence = await context.PaycheckOccurrences.AsNoTracking().SingleAsync();
+        Assert.Equal(PaycheckOccurrenceKind.RecordedReceipt, occurrence.Kind);
+        Assert.Equal(new DateOnly(2026, 9, 10), occurrence.SlotAnchor);
+        Assert.Equal(2, occurrence.TimingOffsetDays);
+        var inflowId = occurrence.AccountInflowId;
+        context.ChangeTracker.Clear();
+
+        var deletions = await Task.WhenAll(
+            owner.Client.DeleteAsync($"/api/paychecks/{profileId}/receipts/{inflowId}"),
+            owner.Client.DeleteAsync($"/api/paychecks/{profileId}/receipts/{inflowId}"));
+        Assert.All(deletions, response => Assert.Equal(HttpStatusCode.OK, response.StatusCode));
+        Assert.Empty(await context.PaycheckOccurrences.AsNoTracking().ToListAsync());
+        Assert.True(await context.AccountInflows.AsNoTracking().AnyAsync(value => value.Id == inflowId));
+    }
+
+    [PostgreSqlFact]
     public async Task Overlapping_old_and_current_fingerprints_cannot_both_confirm()
     {
         await using var app = new PostgreSqlFinancialApiTestApplication();

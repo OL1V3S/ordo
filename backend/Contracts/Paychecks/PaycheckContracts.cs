@@ -35,6 +35,12 @@ public sealed record UpdatePaycheckRequest(
 
 public sealed record UpdatePaycheckLifecycleRequest(string? Lifecycle);
 
+public sealed record NewPaycheckReceiptInflowDto(
+    string? Description, decimal? Amount, DateOnly? Date);
+
+public sealed record RecordPaycheckReceiptRequest(
+    DateOnly? SlotAnchor, int? ExistingInflowId, NewPaycheckReceiptInflowDto? NewInflow);
+
 public sealed record PaycheckCandidateEvidenceDto(
     int AccountInflowId, DateOnly PostedDate, decimal Amount, string Description,
     string Source, DateOnly SlotAnchor, int TimingOffsetDays);
@@ -54,7 +60,10 @@ public sealed record PaycheckOriginDto(string AlgorithmVersion, string Fingerpri
 public sealed record PaycheckProfileEvidenceDto(
     int AccountInflowId, DateOnly PostedDate, decimal Amount, string Description,
     string Source, DateOnly SlotAnchor, int TimingOffsetDays, DateTime LinkedAt,
-    bool EditedSinceConfirmation);
+    bool EditedSinceConfirmation, string AssignmentKind);
+
+public sealed record PaycheckReceiptSlotDto(
+    string Relation, DateOnly Anchor, DateOnly EarliestExpectedDate, DateOnly LatestExpectedDate);
 
 public sealed record PaycheckProjectionDto(
     string AlgorithmVersion, DateOnly EvaluatedOn, DateOnly Anchor,
@@ -65,8 +74,13 @@ public sealed record PaycheckProfileDto(
     Guid Id, string DisplayName, string Lifecycle, PaycheckScheduleDto Schedule,
     int WindowBeforeDays, int WindowAfterDays, ConfirmedPaycheckAmountDto Amount,
     string Source, PaycheckOriginDto? Origin, DateTime CreatedAt, DateTime UpdatedAt,
-    IReadOnlyList<PaycheckProfileEvidenceDto> Evidence, PaycheckProjectionDto? NextProjection);
+    IReadOnlyList<PaycheckProfileEvidenceDto> Evidence,
+    IReadOnlyList<PaycheckReceiptSlotDto> ReceiptSlots,
+    PaycheckProjectionDto? NextProjection);
 
 public sealed record PaychecksResponse(DateOnly EvaluatedOn, IReadOnlyList<PaycheckProfileDto> Paychecks);
 
 public sealed record ConfirmPaycheckResponse(PaycheckProfileDto Paycheck, bool AlreadyConfirmed);
+
+public sealed record RecordPaycheckReceiptResponse(
+    PaycheckProfileDto Paycheck, PaycheckProfileEvidenceDto Receipt, bool AlreadyRecorded);
