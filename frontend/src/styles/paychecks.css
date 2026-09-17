@@ -49,6 +49,10 @@
 .paycheck-evidence__row .paycheck-evidence__edited { color: var(--color-text); font-weight: 700; }
 .paycheck-actions { min-width: 0; flex-wrap: wrap; }
 .paycheck-schedule-note { margin: 0; font-size: var(--text-sm); }
+.paycheck-receipt { display: grid; gap: var(--space-3); margin-top: var(--space-3); padding-top: var(--space-3); border-top: 1px solid var(--color-divider); }
+.paycheck-receipt fieldset { display: grid; gap: var(--space-2); margin: 0; padding: 0; border: 0; }
+.paycheck-receipt fieldset label { display: flex; align-items: center; gap: var(--space-2); min-height: 44px; }
+.paycheck-receipt__existing { display: grid; gap: var(--space-3); }
 .paycheck-history { min-width: 0; border-top: 1px solid var(--color-divider); }
 .paycheck-history > summary { width: 100%; padding: var(--space-3) var(--space-2); border-radius: var(--radius-sm); overflow-wrap: anywhere; }
 .paycheck-history > summary::marker { color: var(--color-primary); }

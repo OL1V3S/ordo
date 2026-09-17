@@ -34,7 +34,9 @@ public sealed class PaychecksApiTests
             (HttpMethod.Post, "/api/paychecks"),
             (HttpMethod.Get, $"/api/paychecks/{id}"),
             (HttpMethod.Put, $"/api/paychecks/{id}"),
-            (HttpMethod.Patch, $"/api/paychecks/{id}/lifecycle")
+            (HttpMethod.Patch, $"/api/paychecks/{id}/lifecycle"),
+            (HttpMethod.Post, $"/api/paychecks/{id}/receipts"),
+            (HttpMethod.Delete, $"/api/paychecks/{id}/receipts/1")
         })
         {
             using var request = new HttpRequestMessage(method, path) { Content = JsonContent.Create(new { }) };
@@ -162,6 +164,7 @@ public sealed class PaychecksApiTests
         if (range) Assert.Equal(1500m, profile.GetProperty("amount").GetProperty("maximumAmount").GetDecimal());
         Assert.Equal("2026-10-10", profile.GetProperty("nextProjection").GetProperty("anchor").GetString());
         Assert.All(profile.GetProperty("evidence").EnumerateArray(), e => Assert.False(e.GetProperty("editedSinceConfirmation").GetBoolean()));
+        Assert.All(profile.GetProperty("evidence").EnumerateArray(), e => Assert.Equal("confirmation_evidence", e.GetProperty("assignmentKind").GetString()));
         using var scope = app.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<BudgetContext>();
         var saved = await db.PaycheckProfiles.AsNoTracking().SingleAsync();
@@ -372,6 +375,126 @@ public sealed class PaychecksApiTests
     }
 
     [Theory]
+    [MemberData(nameof(ReceiptSlotSchedules))]
+    public async Task Active_profiles_expose_server_derived_current_and_previous_receipt_slots(
+        PaycheckSchedule schedule, string current, string? previous)
+    {
+        await using var app = new PaycheckTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync($"paycheck-slots-{schedule.Cadence}@example.com");
+        using var creation = await owner.Client.PostAsJsonAsync("/api/paychecks", Manual(schedule: schedule));
+        creation.EnsureSuccessStatusCode();
+        var profile = await creation.Content.ReadFromJsonAsync<JsonElement>();
+        var slots = profile.GetProperty("receiptSlots").EnumerateArray().ToArray();
+        Assert.Equal(previous is null ? 1 : 2, slots.Length);
+        Assert.Equal("current", slots[0].GetProperty("relation").GetString());
+        Assert.Equal(current, slots[0].GetProperty("anchor").GetString());
+        Assert.Equal(DateOnly.Parse(current).AddDays(-3).ToString("yyyy-MM-dd"), slots[0].GetProperty("earliestExpectedDate").GetString());
+        Assert.Equal(DateOnly.Parse(current).AddDays(2).ToString("yyyy-MM-dd"), slots[0].GetProperty("latestExpectedDate").GetString());
+        if (previous is not null)
+        {
+            Assert.Equal("previous", slots[1].GetProperty("relation").GetString());
+            Assert.Equal(previous, slots[1].GetProperty("anchor").GetString());
+        }
+        var id = profile.GetProperty("id").GetGuid();
+        var paused = await SetLifecycleAsync(owner.Client, id, "paused");
+        Assert.Empty(paused.GetProperty("receiptSlots").EnumerateArray());
+    }
+
+    [Fact]
+    public async Task New_receipt_is_atomic_exactly_idempotent_advances_projection_and_unlinks_without_deleting_cash()
+    {
+        await using var app = new PaycheckTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("paycheck-new-receipt@example.com");
+        var profile = await CreateManualAsync(owner.Client, "Synthetic employer");
+        var id = profile.GetProperty("id").GetGuid();
+        var request = new
+        {
+            slotAnchor = "2026-09-10", existingInflowId = (int?)null,
+            newInflow = new { description = "  Actual payroll  ", amount = 1200.25m, date = "2026-09-14" }
+        };
+
+        using var created = await owner.Client.PostAsJsonAsync($"/api/paychecks/{id}/receipts", request);
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+        var body = await created.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.False(body.GetProperty("alreadyRecorded").GetBoolean());
+        var receipt = body.GetProperty("receipt");
+        var inflowId = receipt.GetProperty("accountInflowId").GetInt32();
+        Assert.Equal("recorded_receipt", receipt.GetProperty("assignmentKind").GetString());
+        Assert.Equal("Actual payroll", receipt.GetProperty("description").GetString());
+        Assert.Equal(4, receipt.GetProperty("timingOffsetDays").GetInt32());
+        Assert.Equal("2026-10-10", body.GetProperty("paycheck").GetProperty("nextProjection").GetProperty("anchor").GetString());
+        Assert.Equal(1000m, body.GetProperty("paycheck").GetProperty("amount").GetProperty("fixedAmount").GetDecimal());
+
+        using var retry = await owner.Client.PostAsJsonAsync($"/api/paychecks/{id}/receipts", request);
+        Assert.Equal(HttpStatusCode.OK, retry.StatusCode);
+        Assert.True((await retry.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("alreadyRecorded").GetBoolean());
+        Assert.Equal(1, await CountAsync(app, db => db.AccountInflows.CountAsync()));
+        Assert.Equal(1, await CountAsync(app, db => db.PaycheckOccurrences.CountAsync()));
+
+        await SetLifecycleAsync(owner.Client, id, "paused");
+        using var removed = await owner.Client.DeleteAsync($"/api/paychecks/{id}/receipts/{inflowId}");
+        Assert.Equal(HttpStatusCode.OK, removed.StatusCode);
+        Assert.Equal(1, await CountAsync(app, db => db.AccountInflows.CountAsync()));
+        Assert.Equal(0, await CountAsync(app, db => db.PaycheckOccurrences.CountAsync()));
+        Assert.Equal(HttpStatusCode.OK, (await owner.Client.DeleteAsync($"/api/paychecks/{id}/receipts/{inflowId}")).StatusCode);
+    }
+
+    [Fact]
+    public async Task Existing_receipt_is_owner_scoped_active_only_and_cannot_be_claimed_twice()
+    {
+        await using var app = new PaycheckTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("paycheck-existing-receipt@example.com");
+        using var other = await app.CreateAuthenticatedUserAsync("paycheck-existing-receipt-other@example.com");
+        var first = await CreateManualAsync(owner.Client, "First payroll");
+        var second = await CreateManualAsync(owner.Client, "Second payroll");
+        var owned = await app.SeedInflowAsync(owner.Id, "Existing payroll", 900m, new(2026, 9, 1));
+        var foreign = await app.SeedInflowAsync(other.Id, "FOREIGN PRIVATE", 900m, new(2026, 9, 1));
+        var firstId = first.GetProperty("id").GetGuid();
+        var secondId = second.GetProperty("id").GetGuid();
+        var request = new { slotAnchor = "2026-09-10", existingInflowId = owned.Id, newInflow = (object?)null };
+
+        using var linked = await owner.Client.PostAsJsonAsync($"/api/paychecks/{firstId}/receipts", request);
+        Assert.Equal(HttpStatusCode.Created, linked.StatusCode);
+        using var retry = await owner.Client.PostAsJsonAsync($"/api/paychecks/{firstId}/receipts", request);
+        Assert.Equal(HttpStatusCode.OK, retry.StatusCode);
+        await AssertErrorAsync(await owner.Client.PostAsJsonAsync($"/api/paychecks/{secondId}/receipts", request),
+            HttpStatusCode.Conflict, "receipt_inflow_unavailable");
+        foreach (var unavailableId in new[] { foreign.Id, int.MaxValue })
+            await AssertErrorAsync(await owner.Client.PostAsJsonAsync($"/api/paychecks/{secondId}/receipts",
+                new { slotAnchor = "2026-09-10", existingInflowId = unavailableId, newInflow = (object?)null }),
+                HttpStatusCode.Conflict, "receipt_inflow_unavailable");
+        await SetLifecycleAsync(owner.Client, secondId, "ended");
+        await AssertErrorAsync(await owner.Client.PostAsJsonAsync($"/api/paychecks/{secondId}/receipts",
+            new { slotAnchor = "2026-09-10", existingInflowId = (int?)null,
+                newInflow = new { description = "No", amount = 1m, date = "2026-09-10" } }),
+            HttpStatusCode.Conflict, "paycheck_not_active");
+        Assert.Equal(2, await CountAsync(app, db => db.AccountInflows.CountAsync()));
+    }
+
+    [Fact]
+    public async Task Receipt_validation_and_protected_confirmation_unlink_fail_closed()
+    {
+        await using var app = new PaycheckTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("paycheck-receipt-validation@example.com");
+        var manual = await CreateManualAsync(owner.Client, "Manual payroll");
+        var manualId = manual.GetProperty("id").GetGuid();
+        await AssertErrorAsync(await owner.Client.PostAsJsonAsync($"/api/paychecks/{manualId}/receipts", new
+        {
+            slotAnchor = "2026-09-11", existingInflowId = (int?)null,
+            newInflow = new { description = "Actual", amount = 1m, date = "2026-09-11" }
+        }), HttpStatusCode.BadRequest, "receipt_slot_invalid");
+        Assert.Equal(0, await CountAsync(app, db => db.AccountInflows.CountAsync()));
+
+        var rows = await SeedMonthlyAsync(app, owner.Id, "Protected evidence");
+        using var confirmed = await owner.Client.PostAsJsonAsync("/api/paycheck-candidates/confirm", Confirmation(await CandidateAsync(owner.Client)));
+        confirmed.EnsureSuccessStatusCode();
+        var confirmedId = (await confirmed.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("paycheck").GetProperty("id").GetGuid();
+        await AssertErrorAsync(await owner.Client.DeleteAsync($"/api/paychecks/{confirmedId}/receipts/{rows[0].Id}"),
+            HttpStatusCode.Conflict, "receipt_link_protected");
+        Assert.Equal(3, await CountAsync(app, db => db.PaycheckOccurrences.CountAsync()));
+    }
+
+    [Theory]
     [InlineData("displayName", "\"  \"")]
     [InlineData("windowAfterDays", "4")]
     [InlineData("amount.maximumAmount", "800")]
@@ -568,6 +691,17 @@ public sealed class PaychecksApiTests
         yield return [new MonthlyPaycheckSchedule(PaycheckMonthAnchor.MonthEnd)];
         yield return [new SemimonthlyPaycheckSchedule(PaycheckMonthAnchor.DayOfMonth(15), PaycheckMonthAnchor.MonthEnd)];
         yield return [new SemimonthlyPaycheckSchedule(PaycheckMonthAnchor.DayOfMonth(5), PaycheckMonthAnchor.DayOfMonth(20))];
+    }
+
+    public static IEnumerable<object[]> ReceiptSlotSchedules()
+    {
+        yield return [new WeeklyPaycheckSchedule(new(2026, 9, 4)), "2026-09-11", "2026-09-04"];
+        yield return [new BiweeklyPaycheckSchedule(new(2026, 8, 28)), "2026-09-11", "2026-08-28"];
+        yield return [new MonthlyPaycheckSchedule(PaycheckMonthAnchor.DayOfMonth(30)), "2026-09-30", "2026-08-30"];
+        yield return [new MonthlyPaycheckSchedule(PaycheckMonthAnchor.MonthEnd), "2026-09-30", "2026-08-31"];
+        yield return [new SemimonthlyPaycheckSchedule(PaycheckMonthAnchor.DayOfMonth(15), PaycheckMonthAnchor.MonthEnd), "2026-09-15", "2026-08-31"];
+        yield return [new SemimonthlyPaycheckSchedule(PaycheckMonthAnchor.DayOfMonth(5), PaycheckMonthAnchor.DayOfMonth(20)), "2026-09-20", "2026-09-05"];
+        yield return [new WeeklyPaycheckSchedule(new(2026, 9, 11)), "2026-09-11", null!];
     }
 
     public static IEnumerable<object[]> InvalidManualRequests()

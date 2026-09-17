@@ -6,9 +6,100 @@ import PaycheckEvidence from "../components/PaycheckEvidence";
 import PaycheckForm from "../components/PaycheckForm";
 import { usePaychecks } from "../hooks/usePaychecks";
 import { cadenceLabel, formatAmount, formatDate, formatMoney, formatSchedule, formatWindow } from "../utils/formatPaychecks";
+import InflowForm from "../../inflows/components/InflowForm";
+import { inflowsApi } from "../../inflows/api/inflowsApi";
+import { initialInflowDraft, validateInflow } from "../../inflows/utils/inflowForm";
+import { isCalendarDate, isUnsafeNumericAmount, parseAmount } from "../utils/paycheckForm";
+import "../../../styles/inflows.css";
 
 const LIFECYCLE_LABELS = { active: "Active", paused: "Paused", ended: "Ended" };
-const STALE_CODES = new Set(["candidate_changed", "candidate_dismissed", "confirmation_conflict", "paycheck_not_found"]);
+const STALE_CODES = new Set(["candidate_changed", "candidate_dismissed", "confirmation_conflict", "paycheck_not_found", "paycheck_not_active"]);
+
+function receiptWarnings(profile, slot, inflow) {
+  if (!slot || !inflow) return [];
+  const warnings = [];
+  if (isCalendarDate(inflow.date) && (inflow.date < slot.earliestExpectedDate || inflow.date > slot.latestExpectedDate))
+    warnings.push("Date is outside this paycheck's expected window. You can still record the actual deposit date.");
+  const observed = isUnsafeNumericAmount(inflow.amount) ? null : parseAmount(inflow.amount);
+  if (!observed) {
+    if (inflow.amount !== "") warnings.push("Amount needs review. Linking by record ID will not change the saved expectation.");
+    return warnings;
+  }
+  if (profile.amount?.mode === "fixed") {
+    const expected = isUnsafeNumericAmount(profile.amount.fixedAmount) ? null : parseAmount(profile.amount.fixedAmount);
+    if (!expected) warnings.push("Expected amount needs review. Recording the actual amount will not change the saved expectation.");
+    else if (observed.cents !== expected.cents) warnings.push("Amount differs from the fixed expectation. You can still record the actual amount.");
+  } else {
+    const minimum = isUnsafeNumericAmount(profile.amount?.minimumAmount) ? null : parseAmount(profile.amount?.minimumAmount);
+    const maximum = isUnsafeNumericAmount(profile.amount?.maximumAmount) ? null : parseAmount(profile.amount?.maximumAmount);
+    if (!minimum || !maximum) warnings.push("Expected amount range needs review. Recording the actual amount will not change the saved expectation.");
+    else if (observed.cents < minimum.cents || observed.cents > maximum.cents)
+      warnings.push("Amount is outside the expected range. You can still record the actual amount.");
+  }
+  return warnings;
+}
+
+function ReceiptPanel({ profile, busy, submitDisabled, onSubmit, onCancel }) {
+  const fixed = profile.amount?.mode === "fixed" ? profile.amount.fixedAmount : null;
+  const [selectedSlot, setSelectedSlot] = useState(() => profile.receiptSlots?.[0] ?? null);
+  const [mode, setMode] = useState("new");
+  const [draft, setDraft] = useState(() => ({
+    ...initialInflowDraft(), description: profile.displayName,
+    amount: fixed == null || isUnsafeNumericAmount(fixed) ? "" : parseAmount(fixed)?.value ?? "",
+  }));
+  const [errors, setErrors] = useState({});
+  const [inflows, setInflows] = useState([]);
+  const [inflowError, setInflowError] = useState(false);
+  const [selectedId, setSelectedId] = useState("");
+  const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    if (mode !== "existing" || inflows.length || inflowError) return;
+    let active = true;
+    inflowsApi.getAll().then((response) => { if (active) setInflows(Array.isArray(response.data) ? response.data : []); })
+      .catch(() => { if (active) setInflowError(true); });
+    return () => { active = false; };
+  }, [mode, inflows.length, inflowError]);
+
+  function submitNew() {
+    const result = validateInflow(draft);
+    setErrors(result.errors);
+    if (result.payload) onSubmit({ slotAnchor: selectedSlot.anchor, newInflow: result.payload });
+  }
+
+  const linked = new Set(profile.evidence.map((row) => row.accountInflowId));
+  const choices = inflows.filter((row) => !linked.has(row.id)
+    && row.description.toLowerCase().includes(search.trim().toLowerCase()));
+  const availableSlots = profile.receiptSlots ?? [];
+  const selectedSlotIsStale = selectedSlot && !availableSlots.some((slot) => slot.anchor === selectedSlot.anchor);
+  const slotOptions = selectedSlotIsStale ? [selectedSlot, ...availableSlots] : availableSlots;
+  const selectedInflow = mode === "new" ? draft : inflows.find((row) => String(row.id) === selectedId);
+  const warnings = receiptWarnings(profile, selectedSlot, selectedInflow);
+
+  return <section className="paycheck-receipt" aria-label={`Record received paycheck for ${profile.displayName}`}>
+    <h4>Record received</h4>
+    <p className="muted">Link actual cash in to this paycheck. This does not change the saved expectation.</p>
+    <label className="field">Expected paycheck date<select value={selectedSlot?.anchor ?? ""} onChange={(event) => setSelectedSlot(slotOptions.find((slot) => slot.anchor === event.target.value) ?? null)} disabled={busy}>
+      {slotOptions.map((slot) => <option key={slot.anchor} value={slot.anchor}>{slot.relation === "current" ? "Current" : "Previous"}: {formatDate(slot.earliestExpectedDate)}–{formatDate(slot.latestExpectedDate)}{selectedSlotIsStale && slot.anchor === selectedSlot.anchor ? " (previously selected)" : ""}</option>)}
+    </select></label>
+    <fieldset disabled={busy}><legend>Cash-in source</legend>
+      <label><input type="radio" name="receipt-source" checked={mode === "new"} onChange={() => setMode("new")} /> Enter new cash in</label>
+      <label><input type="radio" name="receipt-source" checked={mode === "existing"} onChange={() => setMode("existing")} /> Use existing cash in</label>
+    </fieldset>
+    {warnings.length > 0 && <div className="paycheck-receipt__warnings" aria-live="polite">
+      {warnings.map((warning) => <p key={warning} className="inflow-form__warning">{warning}</p>)}
+    </div>}
+    {mode === "new" ? <InflowForm draft={draft} onChange={setDraft} fieldErrors={errors} pending={busy}
+      disabled={submitDisabled || !selectedSlot} amountNeedsReview={fixed != null && isUnsafeNumericAmount(fixed)} onSubmit={submitNew} onCancel={onCancel} /> : <div className="paycheck-receipt__existing">
+      <label className="field">Search cash in<input type="search" value={search} onChange={(event) => setSearch(event.target.value)} /></label>
+      {inflowError ? <StatusMessage tone="danger">Cash in could not be loaded. Cancel and try again.</StatusMessage> : <fieldset disabled={busy}><legend>Choose cash in</legend>
+        {choices.map((row) => <label key={row.id}><input type="radio" name="existing-inflow" value={row.id} checked={selectedId === String(row.id)} onChange={(event) => setSelectedId(event.target.value)} /> {row.description} · {formatDate(row.date)} · {formatMoney(row.amount)}</label>)}
+        {!choices.length && <p className="muted">No available cash-in records match.</p>}
+      </fieldset>}
+      <div className="inline-actions"><button type="button" disabled={busy || submitDisabled || !selectedSlot || !selectedId} onClick={() => onSubmit({ slotAnchor: selectedSlot.anchor, existingInflowId: Number(selectedId) })}>Link cash in</button><button type="button" className="button-ghost" disabled={busy} onClick={onCancel}>Cancel</button></div>
+    </div>}
+  </section>;
+}
 
 function CandidateCard({ candidate, dismissed, evaluatedOn, busy, actionsDisabled, editor, onReview, onCancel, onConfirm, onDecision }) {
   const name = candidate.normalizedDescriptionIdentity;
@@ -58,7 +149,7 @@ function CandidateCard({ candidate, dismissed, evaluatedOn, busy, actionsDisable
   );
 }
 
-function ProfileCard({ profile, evaluatedOn, busy, actionsDisabled, ending, onEndingChange, editor, onEdit, onCancel, onSave, onLifecycle }) {
+function ProfileCard({ profile, evaluatedOn, busy, actionsDisabled, receiptSubmitDisabled, ending, onEndingChange, editor, onEdit, onCancel, onSave, onLifecycle, receiving, onReceive, onRecord, onRemoveReceipt }) {
   const detailsRef = useRef(null);
   const endTrigger = useRef(null);
   const endConfirm = useRef(null);
@@ -100,7 +191,7 @@ function ProfileCard({ profile, evaluatedOn, busy, actionsDisabled, ending, onEn
           {profile.origin?.algorithmVersion && <div><dt>Detection details</dt><dd>{profile.origin.algorithmVersion}</dd></div>}
           <div><dt>Schedule</dt><dd>{formatSchedule(profile.schedule)}</dd></div>
           <div><dt>Expected date window</dt><dd>{formatWindow(profile.windowBeforeDays, profile.windowAfterDays)}</dd></div>
-          <div><dt>Records used to confirm</dt><dd>{profile.evidence.length} linked deposit(s)</dd></div>
+          <div><dt>Linked paycheck deposits</dt><dd>{profile.evidence.length} linked deposit(s)</dd></div>
           {evaluatedOn && <div><dt>Profiles evaluated</dt><dd>{formatDate(evaluatedOn)}</dd></div>}
           {projection && <>
             <div><dt>Projection amount</dt><dd>{formatAmount(projection.amount)}</dd></div>
@@ -109,14 +200,14 @@ function ProfileCard({ profile, evaluatedOn, busy, actionsDisabled, ending, onEn
             <div><dt>Projection details</dt><dd>{projection.algorithmVersion}</dd></div>
           </>}
         </dl>
-        <PaycheckEvidence evidence={profile.evidence} confirmed disclosure={false} />
+        <PaycheckEvidence evidence={profile.evidence} confirmed disclosure={false} disabled={busy} onRemove={onRemoveReceipt} />
         <p className="muted paycheck-schedule-note">To change this schedule, end this profile and create or confirm a replacement. Linked evidence stays with this profile.</p>
-        {!editing && !ending && <div className="inline-actions paycheck-actions">
+        {!editing && !ending && !receiving && <div className="inline-actions paycheck-actions">
           {profile.lifecycle === "ended" && <button type="button" className="button-ghost" disabled={actionsDisabled} onClick={() => onLifecycle(profile.id, "paused")} aria-label={`Pause ${profile.displayName}`}>Pause</button>}
           {profile.lifecycle !== "ended" && <button ref={endTrigger} type="button" className="button-ghost" disabled={actionsDisabled} onClick={() => onEndingChange({ id: profile.id, lifecycle: profile.lifecycle })} aria-label={`End ${profile.displayName}`}>End</button>}
         </div>}
       </details>
-      {editing ? (
+      {receiving ? <ReceiptPanel profile={profile} busy={busy} submitDisabled={receiptSubmitDisabled} onSubmit={onRecord} onCancel={onCancel} /> : editing ? (
         <PaycheckForm key={profile.id} mode="edit" model={editor.model} busy={busy} onSubmit={(payload) => onSave(profile.id, payload)} onCancel={onCancel} />
       ) : ending ? (
         <div className="paycheck-end-confirmation" role="group" aria-label={`End ${profile.displayName}`}>
@@ -128,6 +219,7 @@ function ProfileCard({ profile, evaluatedOn, busy, actionsDisabled, ending, onEn
         </div>
       ) : (
         <div className="inline-actions paycheck-actions">
+          {profile.lifecycle === "active" && profile.receiptSlots?.length > 0 && <button type="button" disabled={actionsDisabled} onClick={(event) => onReceive(profile, event.currentTarget)} aria-label={`Record received ${profile.displayName}`}>Record received</button>}
           <button type="button" className="button-ghost" disabled={actionsDisabled} onClick={(event) => onEdit(profile, event.currentTarget)} aria-label={`Edit ${profile.displayName}`}>Edit</button>
           {profile.lifecycle !== "active" ? (
             <button type="button" disabled={actionsDisabled} onClick={() => onLifecycle(profile.id, "active")} aria-label={`Reactivate ${profile.displayName}`}>Reactivate</button>
@@ -144,6 +236,7 @@ export default function PaychecksPage() {
   const state = usePaychecks();
   const [editor, setEditor] = useState(null);
   const [endingTarget, setEndingTarget] = useState(null);
+  const [receiptTarget, setReceiptTarget] = useState(null);
   const [historyOpen, setHistoryOpen] = useState({ paused: false, ended: false, dismissed: false });
   const editorTrigger = useRef(null);
   const editorLocation = useRef(null);
@@ -152,7 +245,7 @@ export default function PaychecksPage() {
   const dismissedSummary = useRef(null);
   const feedback = useRef(null);
   const busy = Boolean(state.busyKey) || state.loading || state.refreshing;
-  const actionsDisabled = busy || Boolean(editor) || endingTarget !== null;
+  const actionsDisabled = busy || Boolean(editor) || endingTarget !== null || receiptTarget !== null || state.uncertainReceipt;
   const hasContent = state.paychecks.length + state.candidates.length + state.dismissedCandidates.length > 0;
   const showContent = hasContent || (!state.loading && !state.loadError);
 
@@ -175,6 +268,7 @@ export default function PaychecksPage() {
 
   function cancelEditor() {
     setEditor(null);
+    setReceiptTarget(null);
     requestAnimationFrame(() => {
       const original = editorTrigger.current;
       const location = editorLocation.current;
@@ -189,9 +283,11 @@ export default function PaychecksPage() {
     const result = await operation();
     if (result?.ok) {
       setEditor(null);
+      setReceiptTarget(null);
       focus(profilesHeading);
     } else if (STALE_CODES.has(result?.code)) {
       setEditor(null);
+      setReceiptTarget(null);
       focus(feedback);
     } else {
       focus(feedback);
@@ -221,9 +317,13 @@ export default function PaychecksPage() {
 
   function profileCard(profile) {
     return <ProfileCard key={profile.id} profile={profile} evaluatedOn={state.paychecksEvaluatedOn}
-      busy={busy} actionsDisabled={actionsDisabled} ending={endingTarget?.id === profile.id && endingTarget.lifecycle === profile.lifecycle} onEndingChange={setEndingTarget}
+      busy={busy} actionsDisabled={actionsDisabled} receiptSubmitDisabled={state.uncertainReceipt} ending={endingTarget?.id === profile.id && endingTarget.lifecycle === profile.lifecycle} onEndingChange={setEndingTarget}
       editor={editor} onEdit={(model, trigger) => openEditor("edit", model, trigger)} onCancel={cancelEditor}
-      onSave={(id, payload) => submit(() => state.updatePaycheck(id, payload))} onLifecycle={lifecycle} />;
+      onSave={(id, payload) => submit(() => state.updatePaycheck(id, payload))} onLifecycle={lifecycle}
+      receiving={receiptTarget?.id === profile.id}
+      onReceive={(model, trigger) => { editorTrigger.current = trigger; editorLocation.current = { container: trigger.closest("article"), label: trigger.getAttribute("aria-label") }; state.clearMessages(); setReceiptTarget(model); }}
+      onRecord={(payload) => submit(() => state.recordReceipt(profile.id, payload))}
+      onRemoveReceipt={(accountInflowId) => submit(() => state.removeReceipt(profile.id, accountInflowId))} />;
   }
 
   const activeProfiles = state.paychecks.filter((profile) => profile.lifecycle === "active");

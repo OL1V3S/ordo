@@ -32,10 +32,13 @@ review, confirmation, dismissal/reconsideration, expectation edits, and
 lifecycle controls inside `frontend/src/features/commitments/`. The protected
 Paychecks experience in `frontend/src/features/paychecks/` consumes the existing
 candidate/profile APIs for explicit confirmation, dismissal/reconsideration,
-manual expectations, allowed edits, and lifecycle changes. It displays the
-server's active-profile projection as expected, never guaranteed, and keeps
-candidate schedules and saved profile schedules immutable. Shared HTTP,
-constants, theme, UI, and utilities live under
+manual expectations, allowed edits, lifecycle changes, and receipt recording.
+Receipt forms reuse the inflow feature's exact-decimal validation while the
+backend supplies allowed schedule slots; the UI may create-and-link actual cash
+in or link an existing record and supports non-destructive unlink correction.
+It displays the server's active-profile projection as expected, never
+guaranteed, and keeps candidate schedules and saved profile schedules immutable.
+Shared HTTP, constants, theme, UI, and utilities live under
 `frontend/src/shared/`; chart-specific presentation lives under
 `frontend/src/charts/`.
 
@@ -113,13 +116,16 @@ The approved V1 semantics and explicit non-goals are defined in
 projector plus the owner-scoped profile application service. The authenticated
 `/api/paycheck-candidates` and `/api/paychecks` APIs separate generic inflow
 evidence from explicit user-confirmed paycheck meaning. Profiles, confirmation
-occurrences, and exact-fingerprint dismissals are persisted; candidate and
-projection results remain derived. Confirmation uses a serializable transaction,
-ordered inflow locks, owner-consistent foreign keys, and exclusive evidence
-assignment. The profile schedule is immutable, while accepted amounts, windows,
-display name, and lifecycle are explicitly editable. The Paychecks frontend
-consumes these contracts without changing their semantics. Paycheck change
-detection is not included. See the paycheck section of
+evidence, recorded-receipt occurrences, and exact-fingerprint dismissals are
+persisted; candidate, receipt-slot, and projection results remain derived.
+Confirmation and receipt assignment use serializable transactions, owner-scoped
+locks, owner-consistent foreign keys, exclusive inflow assignment, and unique
+profile/slot protection. Actual receipt money remains an `AccountInflow`; the
+occurrence records its profile assignment and exact date-to-slot offset. The
+profile schedule is immutable, while accepted amounts, windows, display name,
+and lifecycle are explicitly editable. The Paychecks frontend consumes these
+contracts without changing their semantics. Automatic matching and paycheck
+change detection are not included. See the paycheck section of
 [`docs/financial-domain-invariants.md`](docs/financial-domain-invariants.md).
 
 `backend/Analytics/` owns the historical cash-flow read model and pure exact-cent
@@ -149,7 +155,7 @@ not implemented yet.
 
 PostgreSQL is the application persistence provider. The database stores
 Identity data, expenses, budget limits, commitment decisions and links, account
-inflows and their import provenance, paycheck profiles/evidence/dismissals, and
+inflows and their import provenance, paycheck profiles/occurrences/dismissals, and
 the ASP.NET Core Data Protection key ring. Normal application startup does not
 apply migrations. Production migrations remain a separate, deliberate,
 human-authorized operation described in [`README.md`](README.md).

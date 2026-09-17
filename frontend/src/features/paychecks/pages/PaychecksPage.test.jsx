@@ -3,13 +3,15 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import PaychecksPage from "./PaychecksPage";
 import { paychecksApi } from "../api/paychecksApi";
+import { inflowsApi } from "../../inflows/api/inflowsApi";
 import { makeCandidate, makeCandidateResponse, makePaycheck, makePaychecksResponse } from "../test/paycheckFixtures";
 
 vi.mock("../api/paychecksApi", () => ({ paychecksApi: {
   getCandidates: vi.fn(), getPaychecks: vi.fn(), confirmCandidate: vi.fn(),
   dismissCandidate: vi.fn(), reconsiderCandidate: vi.fn(), createPaycheck: vi.fn(),
-  updatePaycheck: vi.fn(), updateLifecycle: vi.fn(),
+  updatePaycheck: vi.fn(), updateLifecycle: vi.fn(), recordReceipt: vi.fn(), removeReceipt: vi.fn(),
 } }));
+vi.mock("../../inflows/api/inflowsApi", () => ({ inflowsApi: { getAll: vi.fn() } }));
 const response = (data) => ({ data });
 const deferred = () => { let resolve, reject; const promise = new Promise((yes, no) => { resolve = yes; reject = no; }); return { promise, resolve, reject }; };
 const card = (name) => screen.getByRole("heading", { name, exact: true }).closest("article");
@@ -43,6 +45,9 @@ beforeEach(() => {
   paychecksApi.createPaycheck.mockResolvedValue(response(makePaycheck({ source: "manual", origin: null, evidence: [] })));
   paychecksApi.updatePaycheck.mockResolvedValue(response(makePaycheck()));
   paychecksApi.updateLifecycle.mockResolvedValue(response(makePaycheck()));
+  paychecksApi.recordReceipt.mockResolvedValue(response({ paycheck: makePaycheck(), alreadyRecorded: false }));
+  paychecksApi.removeReceipt.mockResolvedValue(response(makePaycheck()));
+  inflowsApi.getAll.mockResolvedValue(response([]));
 });
 
 afterEach(() => {
@@ -89,8 +94,8 @@ describe("Paychecks page", () => {
     expect(profile.getByText("Profiles evaluated").closest("div")).toHaveTextContent("Jul 12, 2026");
     expect(profile.getByText("Detection details").closest("div")).toHaveTextContent("paycheck-candidate-v1");
     expect(profile.getByText("Projection details").closest("div")).toHaveTextContent("paycheck-projector-v1");
-    expect(profile.getByText("Records used to confirm (3)")).toBeVisible();
-    expect(profile.getByText(/Edited since confirmation\. The saved expectation is unchanged/)).toBeVisible();
+    expect(profile.getByText("Linked paycheck deposits (3)")).toBeVisible();
+    expect(profile.getByText(/Edited since this deposit was linked\. The saved expectation is unchanged/)).toBeVisible();
     expect(profile.getAllByRole("listitem")).toHaveLength(3);
     expect(profile.getByText(/May 10, 2026/, { selector: "time" })).toHaveAttribute("datetime", "2026-05-10");
     const candidate = within(card("acme payroll"));
@@ -306,6 +311,107 @@ describe("Paychecks page", () => {
     await waitFor(() => expect(within(form).getByRole("button", { name: "Create paycheck" })).toBeEnabled());
     expect(screen.getByRole("status")).toHaveTextContent("Check the saved profiles");
     expect(paychecksApi.createPaycheck).toHaveBeenCalledTimes(1);
+  });
+
+  it("records actual cash in for a server-provided slot with exact mismatch warnings", async () => {
+    const user = userEvent.setup();
+    const profile = makePaycheck();
+    loadState({ paychecks: [profile] });
+    await renderPage();
+    await user.click(screen.getByRole("button", { name: "Record received Acme Payroll" }));
+    const panel = screen.getByRole("region", { name: "Record received paycheck for Acme Payroll" });
+    const form = within(panel).getByRole("form", { name: "Add cash in" });
+    expect(within(form).getByLabelText("Description")).toHaveValue("Acme Payroll");
+    expect(within(form).getByLabelText("Amount")).toHaveValue("2500");
+    await user.clear(within(form).getByLabelText("Amount"));
+    await user.type(within(form).getByLabelText("Amount"), "2600.25");
+    await user.clear(within(form).getByLabelText("Date"));
+    await user.type(within(form).getByLabelText("Date"), "2026-08-15");
+    expect(within(panel).getByText(/Amount differs from the fixed expectation/)).toBeVisible();
+    expect(within(panel).getByText(/Date is outside this paycheck's expected window/)).toBeVisible();
+    loadState({ paychecks: [makePaycheck({ receiptSlots: [] })] });
+    await user.click(within(form).getByRole("button", { name: "Add cash in" }));
+    expect(paychecksApi.recordReceipt).toHaveBeenCalledExactlyOnceWith(profile.id, {
+      slotAnchor: "2026-08-10",
+      newInflow: { description: "Acme Payroll", amount: "2600.25", date: "2026-08-15" },
+    });
+    expect(await screen.findByRole("status")).toHaveTextContent("Paycheck received");
+  });
+
+  it("preserves the exact receipt draft and slot after an uncertain result is checked", async () => {
+    const user = userEvent.setup();
+    const profile = makePaycheck();
+    paychecksApi.recordReceipt.mockRejectedValueOnce(new Error("response lost"));
+    loadState({ paychecks: [profile] });
+    await renderPage();
+    await user.click(screen.getByRole("button", { name: "Record received Acme Payroll" }));
+    const panel = screen.getByRole("region", { name: "Record received paycheck for Acme Payroll" });
+    const form = within(panel).getByRole("form", { name: "Add cash in" });
+    await user.clear(within(form).getByLabelText("Date"));
+    await user.type(within(form).getByLabelText("Date"), "2026-08-10");
+    await user.click(within(form).getByRole("button", { name: "Add cash in" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("could not confirm the outcome");
+    expect(within(form).getByRole("button", { name: "Add cash in" })).toBeDisabled();
+
+    loadState({ paychecks: [makePaycheck({ receiptSlots: [] })] });
+    await user.click(screen.getByRole("button", { name: "Refresh paychecks" }));
+    expect(await screen.findByRole("status")).toHaveTextContent("Check the linked deposits");
+    expect(within(panel).getByRole("combobox", { name: "Expected paycheck date" })).toHaveValue("2026-08-10");
+    expect(within(panel).getByRole("option", { name: /previously selected/ })).toBeInTheDocument();
+    expect(within(form).getByLabelText("Date")).toHaveValue("2026-08-10");
+    expect(within(form).getByRole("button", { name: "Add cash in" })).toBeEnabled();
+
+    await user.click(within(form).getByRole("button", { name: "Add cash in" }));
+    expect(paychecksApi.recordReceipt).toHaveBeenCalledTimes(2);
+    expect(paychecksApi.recordReceipt).toHaveBeenNthCalledWith(2, profile.id, {
+      slotAnchor: "2026-08-10",
+      newInflow: { description: "Acme Payroll", amount: "2500", date: "2026-08-10" },
+    });
+  });
+
+  it("lazily selects an unlinked existing inflow and preserves server ordering", async () => {
+    const user = userEvent.setup();
+    const profile = makePaycheck();
+    inflowsApi.getAll.mockResolvedValue(response([
+      { id: 201, description: "First available", amount: 2400, date: "2026-08-10" },
+      { id: 101, description: "Already linked", amount: 2500, date: "2026-05-10" },
+      { id: 202, description: "Second available", amount: 2600, date: "2026-08-12" },
+    ]));
+    loadState({ paychecks: [profile] });
+    await renderPage();
+    await user.click(screen.getByRole("button", { name: "Record received Acme Payroll" }));
+    await user.click(screen.getByRole("radio", { name: "Use existing cash in" }));
+    expect(await screen.findByRole("radio", { name: /First available/ })).toBeInTheDocument();
+    expect(screen.queryByText("Already linked")).not.toBeInTheDocument();
+    const choices = screen.getAllByRole("radio", { name: /available/ });
+    expect(choices.map((choice) => choice.value)).toEqual(["201", "202"]);
+    await user.click(choices[0]);
+    expect(screen.getByText(/Amount differs from the fixed expectation/)).toBeVisible();
+    loadState({ paychecks: [makePaycheck({ receiptSlots: [] })] });
+    await user.click(screen.getByRole("button", { name: "Link cash in" }));
+    expect(paychecksApi.recordReceipt).toHaveBeenCalledExactlyOnceWith(profile.id, {
+      slotAnchor: "2026-08-10", existingInflowId: 201,
+    });
+    expect(inflowsApi.getAll).toHaveBeenCalledTimes(1);
+  });
+
+  it("requires explicit confirmation before removing only a recorded-receipt link", async () => {
+    const user = userEvent.setup();
+    const evidence = makePaycheck().evidence;
+    const receipt = { ...evidence[0], assignmentKind: "recorded_receipt", accountInflowId: 301, description: "Actual payroll" };
+    const profile = makePaycheck({ evidence: [evidence[1], receipt] });
+    loadState({ paychecks: [profile] });
+    await renderPage();
+    await user.click(screen.getByLabelText("Details for Acme Payroll"));
+    expect(screen.getByText("Confirmation history")).toBeVisible();
+    expect(screen.getByText("Received paycheck")).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Remove paycheck link" }));
+    expect(paychecksApi.removeReceipt).not.toHaveBeenCalled();
+    expect(screen.getByText(/cash-in record will remain in Activity/)).toBeVisible();
+    expect(screen.getByRole("button", { name: "Confirm removal" })).toHaveFocus();
+    loadState({ paychecks: [makePaycheck({ evidence: [evidence[1]] })] });
+    await user.click(screen.getByRole("button", { name: "Confirm removal" }));
+    expect(paychecksApi.removeReceipt).toHaveBeenCalledExactlyOnceWith(profile.id, 301);
   });
 
   it("closes a stale review with a visible conflict and requires explicit review of replacement evidence", async () => {

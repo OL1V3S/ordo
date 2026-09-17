@@ -94,11 +94,16 @@ is no profile-delete API, automatic transition, or automatic evidence release.
 
 ### Evidence, decisions, and concurrency
 
-Each `PaycheckOccurrence` stores one exact confirmation-evidence membership:
-profile/inflow IDs, consistent owner, evidence revision at assignment, slot
-anchor, timing offset, and link time. Composite foreign keys enforce owner
-consistency; a unique inflow index prevents assignment to a second profile.
-Occurrences do not imply employer verification, gross pay, taxes, deductions,
+Each `PaycheckOccurrence` stores one exact inflow-to-profile membership with a
+kind of `ConfirmationEvidence` or `RecordedReceipt`: profile/inflow IDs,
+consistent owner, evidence revision at assignment, slot anchor, exact timing
+offset, and link time. Confirmation evidence remains constrained to the
+detector's three-day timing boundary. A recorded receipt may preserve an exact
+out-of-window offset when it fits the existing `smallint`; the mismatch does not
+rewrite the expectation. Composite foreign keys enforce owner consistency, a
+unique inflow index prevents assignment to a second profile, and a unique
+profile/slot index permits at most one receipt for a paycheck slot. Occurrences
+do not imply employer verification, gross pay, taxes, deductions,
 payroll-document truth, or earned-income classification.
 
 Editing an assigned inflow keeps its assignment. The stored revision enables an
@@ -126,6 +131,17 @@ Conflicting confirmations cannot both claim an inflow; a loser returns the same
 winner for an identical origin or a stable conflict after rollback. Manual
 creation accepts no evidence IDs and creates no occurrences.
 
+Recording a receipt is active-profile-only and uses one of two explicit sources:
+create a validated `AccountInflow` in the same transaction, or link an existing
+owner-scoped unclaimed inflow. The backend accepts only its derived current or
+immediately previous unoccupied schedule slot. Weekly/biweekly receipt slots do
+not precede their persisted reference anchor. Exact normalized new-inflow
+content or an exact existing inflow/profile/slot retry returns the existing link;
+conflicting concurrent claims roll back without duplicate cash. Removing a
+`RecordedReceipt` link is idempotent and leaves the inflow intact, including
+after the profile is paused or ended. Confirmation-evidence links are protected
+from that correction route.
+
 ### Authenticated API and projection contract
 
 Owner identity comes only from claims. Request and response DTOs expose no
@@ -146,13 +162,16 @@ evidence sorts by posted date and inflow ID. Profiles sort by lifecycle rank
 | `GET /api/paychecks/{id}` | Current profile, evidence, and projection |
 | `PUT /api/paychecks/{id}` | Update display name, windows, and accepted amount |
 | `PATCH /api/paychecks/{id}/lifecycle` | Explicit active/paused/ended transition |
+| `POST /api/paychecks/{id}/receipts` | Create/link actual cash in to an allowed slot; `201`, or `200` on exact retry |
+| `DELETE /api/paychecks/{id}/receipts/{accountInflowId}` | Remove only a recorded-receipt link; preserve cash in |
 
-Missing and foreign profile GET/PUT/PATCH operations return the same empty `404`.
+Missing and foreign profile operations return the same empty `404`.
 Validation returns privacy-safe `400` ProblemDetails with stable codes. Candidate
 staleness, dismissal, and conflicting confirmation return `409` without foreign
-owner disclosure. A failed database write during confirmation rolls back and
-returns a generic `500 confirmation_failed` without database details. Financial
-content, request bodies, and tokens are not logged.
+owner disclosure. Receipt races, occupied slots, and unavailable/foreign/already
+claimed inflows return privacy-safe conflicts. Failed database writes roll back
+and return generic `500` errors without database details. Financial content,
+request bodies, and tokens are not logged.
 
 Only active profiles invoke the unchanged `paycheck-projector-v1`. The confirmed
 pattern maps directly from persisted schedule/windows/amount and the maximum
@@ -164,12 +183,24 @@ there is no missed-pay diagnosis or amount/timing change detection. Writes whose
 projection window would exceed the representable calendar are rejected before
 persisting that state.
 
+Active profile responses also expose up to two backend-derived unoccupied
+receipt slots: the current projected anchor and its immediately preceding
+schedule anchor. Linking a receipt naturally advances the unchanged projector
+because all linked occurrence anchors participate in the maximum confirmed slot.
+An expected date passing by itself never creates an inflow or occurrence.
+
 The Stage 4 migration is additive and has no backfill. An ordinary application
 rollback leaves the added tables inert. Production schema readiness must precede
 application rollout; creating/testing this migration locally or in CI does not
 authorize production application. Down removes occurrence links before decision
 and profile tables and would destroy durable decisions. Production Down or data
 cleanup requires separate explicit authorization and a retention/export decision.
+
+The recorded-receipt readiness migration is additive with no backfill. It adds
+the second occurrence kind, kind-specific timing constraints, and unique
+profile/slot enforcement. The compatible pre-feature application revision is
+the rollback target after receipt rows exist; production Down would reject or
+destroy durable receipt meaning and is not an ordinary rollback.
 
 ## Historical cash-flow analytics
 

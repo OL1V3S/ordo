@@ -16,6 +16,15 @@ const ERROR_MESSAGES = {
   timing_invalid: "Enter whole timing windows from zero to three days.",
   amount_invalid: "Enter a positive fixed amount or increasing range, with at most two decimal places.",
   lifecycle_invalid: "Choose active, paused, or ended.",
+  paycheck_not_active: "Only an active paycheck can record a new receipt.",
+  receipt_slot_invalid: "Choose an available paycheck date.",
+  receipt_slot_unavailable: "That paycheck date is no longer available. Review the refreshed profile.",
+  receipt_source_invalid: "Choose either new cash in or an existing cash-in record.",
+  receipt_inflow_invalid: "Enter a valid description, positive amount, and date.",
+  receipt_inflow_unavailable: "That cash-in record is unavailable or already linked. Review the refreshed records.",
+  receipt_conflict: "That receipt changed or was claimed. Review the refreshed paycheck.",
+  receipt_link_protected: "Confirmation-history links cannot be removed here.",
+  receipt_date_invalid: "The observed date is too far from the selected paycheck date.",
   request_invalid: "Check the form fields and try again.",
   request_failed: "The request could not be completed. Try again.",
 };
@@ -47,12 +56,14 @@ export function usePaychecks() {
   const [notice, setNotice] = useState(null);
   const [busyKey, setBusyKey] = useState(null);
   const [uncertainCreate, setUncertainCreate] = useState(false);
+  const [uncertainReceipt, setUncertainReceipt] = useState(false);
   const mounted = useRef(false);
   const lifetime = useRef(0);
   const readId = useRef(0);
   const initialSettled = useRef(false);
   const busyRef = useRef(null);
   const uncertainCreateRef = useRef(false);
+  const uncertainReceiptRef = useRef(false);
 
   const load = useCallback(async () => {
     if (!mounted.current) return false;
@@ -76,6 +87,12 @@ export function usePaychecks() {
         setUncertainCreate(false);
         setActionError((previous) => previous === UNCERTAIN_CREATE_MESSAGE ? null : previous);
         setNotice("Paychecks loaded. Check the saved profiles before intentionally trying to create another paycheck.");
+      }
+      if (uncertainReceiptRef.current) {
+        uncertainReceiptRef.current = false;
+        setUncertainReceipt(false);
+        setActionError((previous) => previous === UNCERTAIN_WRITE_MESSAGE ? null : previous);
+        setNotice("Paychecks loaded. Check the linked deposits before intentionally recording another receipt.");
       }
       return true;
     } catch (error) {
@@ -104,12 +121,14 @@ export function usePaychecks() {
 
   const refresh = useCallback(() => busyRef.current ? Promise.resolve(false) : load(), [load]);
 
-  const perform = useCallback(async (key, operation, successMessage, manualCreate = false) => {
+  const perform = useCallback(async (key, operation, successMessage, uncertaintyKind = null) => {
     if (!mounted.current) return { ok: false, code: "unmounted" };
     if (busyRef.current) return { ok: false, code: "busy" };
     if (!initialSettled.current) return { ok: false, code: "loading" };
-    if (manualCreate && uncertainCreateRef.current)
+    if (uncertaintyKind === "create" && uncertainCreateRef.current)
       return { ok: false, code: "creation_uncertain", uncertain: true };
+    if (uncertaintyKind === "receipt" && uncertainReceiptRef.current)
+      return { ok: false, code: "receipt_uncertain", uncertain: true };
     const epoch = lifetime.current;
     const current = () => mounted.current && lifetime.current === epoch;
     busyRef.current = key;
@@ -130,12 +149,17 @@ export function usePaychecks() {
       if (!current()) return { ok: false, code: "unmounted" };
       const uncertain = !error?.response || error.response.status >= 500;
       if (uncertain) {
-        if (manualCreate) {
+        if (uncertaintyKind === "create") {
           uncertainCreateRef.current = true;
           setUncertainCreate(true);
         }
-        setActionError(manualCreate ? UNCERTAIN_CREATE_MESSAGE : UNCERTAIN_WRITE_MESSAGE);
-        return { ok: false, code: manualCreate ? "creation_uncertain" : "write_uncertain", uncertain: true };
+        if (uncertaintyKind === "receipt") {
+          uncertainReceiptRef.current = true;
+          setUncertainReceipt(true);
+        }
+        setActionError(uncertaintyKind === "create" ? UNCERTAIN_CREATE_MESSAGE : UNCERTAIN_WRITE_MESSAGE);
+        return { ok: false, code: uncertaintyKind === "create" ? "creation_uncertain"
+          : uncertaintyKind === "receipt" ? "receipt_uncertain" : "write_uncertain", uncertain: true };
       }
       const code = errorCode(error);
       setActionError(ERROR_MESSAGES[code]);
@@ -154,7 +178,8 @@ export function usePaychecks() {
 
   const clearMessages = useCallback(() => {
     if (!mounted.current) return;
-    setActionError(uncertainCreateRef.current ? UNCERTAIN_CREATE_MESSAGE : null);
+    setActionError(uncertainCreateRef.current ? UNCERTAIN_CREATE_MESSAGE
+      : uncertainReceiptRef.current ? UNCERTAIN_WRITE_MESSAGE : null);
     setNotice(null);
   }, []);
 
@@ -167,7 +192,7 @@ export function usePaychecks() {
 
   return {
     candidates, dismissedCandidates, paychecks, candidatesEvaluatedOn, paychecksEvaluatedOn,
-    loading, refreshing, loadError, actionError, notice, busyKey, uncertainCreate,
+    loading, refreshing, loadError, actionError, notice, busyKey, uncertainCreate, uncertainReceipt,
     refresh, clearMessages, acknowledgeUncertainCreate,
     confirmCandidate: (payload) => perform(`confirm:${payload.fingerprint}`,
       () => paychecksApi.confirmCandidate(payload), "Paycheck confirmed."),
@@ -175,10 +200,14 @@ export function usePaychecks() {
       () => paychecksApi.dismissCandidate(tuple), "Candidate dismissed. You can reconsider it below."),
     reconsiderCandidate: (tuple) => perform(`reconsider:${tuple.fingerprint}`,
       () => paychecksApi.reconsiderCandidate(tuple), "Candidate reconsidered."),
-    createPaycheck: (payload) => perform("create", () => paychecksApi.createPaycheck(payload), "Paycheck created.", true),
+    createPaycheck: (payload) => perform("create", () => paychecksApi.createPaycheck(payload), "Paycheck created.", "create"),
     updatePaycheck: (id, payload) => perform(`update:${id}`,
       () => paychecksApi.updatePaycheck(id, payload), "Paycheck updated."),
     updateLifecycle: (id, lifecycle) => perform(`lifecycle:${id}`,
       () => paychecksApi.updateLifecycle(id, lifecycle), "Paycheck status updated."),
+    recordReceipt: (id, payload) => perform(`receipt:${id}`,
+      () => paychecksApi.recordReceipt(id, payload), "Paycheck received. Actual cash in is now linked.", "receipt"),
+    removeReceipt: (id, accountInflowId) => perform(`unlink:${id}:${accountInflowId}`,
+      () => paychecksApi.removeReceipt(id, accountInflowId), "Paycheck link removed. The cash-in record remains in Activity."),
   };
 }

@@ -24,6 +24,18 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-09-17 — Record paycheck received
+
+[PR #145](https://github.com/OL1V3S/ordo/pull/145) ·
+[Issue #143](https://github.com/OL1V3S/ordo/issues/143)
+
+- Added an active-paycheck workflow to create and link actual cash in or select
+  an existing unclaimed cash-in record for the current or previous schedule slot.
+- Preserved observed amount/date differences without rewriting expectations,
+  advanced projections from recorded slots, and added non-destructive unlinking.
+- Enforced owner, inflow, slot, retry, and concurrency invariants with exact
+  historical cash-flow reclassification and focused frontend/backend coverage.
+
 ### 2026-09-08 — Recorded cash-in management
 
 [PR #142](https://github.com/OL1V3S/ordo/pull/142) ·

@@ -43,11 +43,14 @@ silently treating every detected pattern as a financial fact.
   decision. Saved timing describes a pattern, not an upcoming payment forecast.
 - **Paychecks:** See active saved expectations first, with expected amounts and
   the next available payment window, then review possible recurring deposits.
-  Add a paycheck manually or manage existing profiles; paused, ended, and
-  dismissed items sit in expandable groups. Card Details reveal linked records
-  and schedule information. Profiles support several pay schedules and fixed
-  amounts or expected ranges. These are expectations, not guaranteed deposits
-  or employer-verified earnings.
+  Add a paycheck manually, manage existing profiles, or record a received
+  paycheck by entering actual cash in or linking an existing unclaimed cash-in
+  record. Actual dates and amounts may differ from the expectation without
+  rewriting it; a mistaken receipt link can be removed without deleting the
+  cash-in record. Paused, ended, and dismissed items sit in expandable groups.
+  Card Details reveal linked records and schedule information. Profiles support
+  several pay schedules and fixed amounts or expected ranges. These are
+  expectations, not guaranteed deposits or employer-verified earnings.
 - **Insights / Analytics:** Compare recorded cash in with spending for a selected
   month and see the difference as net recorded cash flow. Explore a six-month
   trend and ranked spending categories, with budget usage, month-over-month

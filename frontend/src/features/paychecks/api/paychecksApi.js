@@ -10,4 +10,6 @@ export const paychecksApi = {
   createPaycheck: (payload) => client.post("/api/paychecks", payload),
   updatePaycheck: (id, payload) => client.put(`/api/paychecks/${id}`, payload),
   updateLifecycle: (id, lifecycle) => client.patch(`/api/paychecks/${id}/lifecycle`, { lifecycle }),
+  recordReceipt: (id, payload) => client.post(`/api/paychecks/${id}/receipts`, payload),
+  removeReceipt: (id, accountInflowId) => client.delete(`/api/paychecks/${id}/receipts/${accountInflowId}`),
 };
