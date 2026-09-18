@@ -24,6 +24,18 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-09-18 — English and Spanish localization foundation
+
+[PR #148](https://github.com/OL1V3S/ordo/pull/148) ·
+[Issue #147](https://github.com/OL1V3S/ordo/issues/147)
+
+- Added a persisted English/Spanish browser preference with bundled catalogs,
+  English fallback, and active-language document metadata.
+- Localized the responsive shell, navigation hubs, Settings, and theme controls
+  while preserving routes, user content, financial semantics, and feature behavior.
+- Established catalog parity tests, accessible in-place switching, a reviewed
+  glossary, and precision-safe boundaries for future feature localization.
+
 ### 2026-09-17 — Record paycheck received
 
 [PR #145](https://github.com/OL1V3S/ordo/pull/145) ·

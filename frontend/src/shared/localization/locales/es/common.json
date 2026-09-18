@@ -1,0 +1,19 @@
+{
+  "shell": {
+    "skipToMainContent": "Saltar al contenido principal",
+    "signedIn": "Sesión iniciada",
+    "logout": "Cerrar sesión",
+    "accountMenu": "Menú de la cuenta",
+    "accountOptions": "Opciones de la cuenta",
+    "signedInAs": "Sesión iniciada como"
+  },
+  "theme": {
+    "label": "Tema",
+    "preferenceLabel": "Preferencia de tema",
+    "options": {
+      "system": "Sistema",
+      "light": "Claro",
+      "dark": "Oscuro"
+    }
+  }
+}

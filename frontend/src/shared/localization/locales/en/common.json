@@ -1,0 +1,19 @@
+{
+  "shell": {
+    "skipToMainContent": "Skip to main content",
+    "signedIn": "Signed in",
+    "logout": "Logout",
+    "accountMenu": "Account menu",
+    "accountOptions": "Account options",
+    "signedInAs": "Signed in as"
+  },
+  "theme": {
+    "label": "Theme",
+    "preferenceLabel": "Theme preference",
+    "options": {
+      "system": "System",
+      "light": "Light",
+      "dark": "Dark"
+    }
+  }
+}

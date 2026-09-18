@@ -11,14 +11,14 @@ import {
 } from "lucide-react";
 
 export const APP_DESTINATIONS = [
-  { to: "/overview", label: "Home", icon: LayoutDashboard },
-  { to: "/transactions", label: "Activity", icon: ReceiptText },
-  { to: "/budgets", label: "Budgets", icon: BarChart3, description: "Set and review monthly category limits." },
-  { to: "/analytics", label: "Insights", icon: ChartNoAxesCombined },
-  { to: "/commitments", label: "Commitments", icon: Repeat2, description: "Review recurring expenses and manage saved commitments." },
-  { to: "/paychecks", label: "Paychecks", icon: WalletCards, description: "Review deposits and manage saved paycheck expectations." },
-  { to: "/investing", label: "Investing", icon: Landmark, description: "Planned for a future release." },
-  { to: "/settings", label: "Settings", icon: Settings, description: "Choose your theme and review your signed-in email." },
+  { to: "/overview", labelKey: "destinations.home.label", icon: LayoutDashboard },
+  { to: "/transactions", labelKey: "destinations.activity.label", icon: ReceiptText },
+  { to: "/budgets", labelKey: "destinations.budgets.label", icon: BarChart3, descriptionKey: "destinations.budgets.description" },
+  { to: "/analytics", labelKey: "destinations.insights.label", icon: ChartNoAxesCombined },
+  { to: "/commitments", labelKey: "destinations.commitments.label", icon: Repeat2, descriptionKey: "destinations.commitments.description" },
+  { to: "/paychecks", labelKey: "destinations.paychecks.label", icon: WalletCards, descriptionKey: "destinations.paychecks.description" },
+  { to: "/investing", labelKey: "destinations.investing.label", icon: Landmark, descriptionKey: "destinations.investing.description" },
+  { to: "/settings", labelKey: "destinations.settings.label", icon: Settings, descriptionKey: "destinations.settings.description" },
 ];
 
 export const PLAN_DESTINATIONS = APP_DESTINATIONS.filter(({ to }) =>
@@ -27,11 +27,11 @@ export const MORE_DESTINATIONS = ["/settings", "/investing"]
   .map((to) => APP_DESTINATIONS.find((destination) => destination.to === to));
 
 export const MOBILE_DESTINATIONS = [
-  { to: "/overview", label: "Home", icon: LayoutDashboard, paths: ["/overview"] },
-  { to: "/transactions", label: "Activity", icon: ReceiptText, paths: ["/transactions"] },
-  { to: "/plan", label: "Plan", icon: WalletCards, paths: ["/plan", ...PLAN_DESTINATIONS.map(({ to }) => to)] },
-  { to: "/analytics", label: "Insights", icon: ChartNoAxesCombined, paths: ["/analytics"] },
-  { to: "/more", label: "More", icon: Ellipsis, paths: ["/more", ...MORE_DESTINATIONS.map(({ to }) => to)] },
+  { to: "/overview", labelKey: "destinations.home.label", icon: LayoutDashboard, paths: ["/overview"] },
+  { to: "/transactions", labelKey: "destinations.activity.label", icon: ReceiptText, paths: ["/transactions"] },
+  { to: "/plan", labelKey: "destinations.plan.label", icon: WalletCards, paths: ["/plan", ...PLAN_DESTINATIONS.map(({ to }) => to)] },
+  { to: "/analytics", labelKey: "destinations.insights.label", icon: ChartNoAxesCombined, paths: ["/analytics"] },
+  { to: "/more", labelKey: "destinations.more.label", icon: Ellipsis, paths: ["/more", ...MORE_DESTINATIONS.map(({ to }) => to)] },
 ];
 
 export function getMobileDestination(pathname) {

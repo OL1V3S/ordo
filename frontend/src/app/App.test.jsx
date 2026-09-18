@@ -5,6 +5,8 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
+import { LocaleProvider } from '../shared/localization/LocaleProvider'
+import i18n from '../shared/localization/i18n'
 import { ThemeProvider } from '../shared/theme/ThemeProvider'
 import client from '../shared/api/client'
 import { authApi } from '../shared/api/authApi'
@@ -68,7 +70,7 @@ function LocationProbe() {
 }
 
 function renderAt(path, { strict = false } = {}) {
-  const application = <ThemeProvider><App /><LocationProbe /></ThemeProvider>
+  const application = <ThemeProvider><LocaleProvider><App /><LocationProbe /></LocaleProvider></ThemeProvider>
   return render(
     <MemoryRouter initialEntries={[path]}>
       {strict ? <StrictMode>{application}</StrictMode> : application}
@@ -84,8 +86,9 @@ function rejectSession(config) {
 const originalAdapter = client.defaults.adapter
 
 describe('application routes and shell', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     localStorage.clear()
+    await i18n.changeLanguage('en')
     vi.stubGlobal('scrollTo', vi.fn())
     document.documentElement.removeAttribute('data-theme')
   })
@@ -286,6 +289,7 @@ describe('application routes and shell', () => {
       localStorage.setItem('token', 'synthetic-malformed-session')
       localStorage.setItem('email', 'stale@example.invalid')
       localStorage.setItem('budget-planner-theme', 'dark')
+      localStorage.setItem('ordo-language', 'es')
       const adapter = vi.fn(rejectSession)
       renderAt(path)
       expect(screen.getByRole('navigation', { name: 'Primary navigation' })).toBeInTheDocument()
@@ -302,6 +306,7 @@ describe('application routes and shell', () => {
       expect(localStorage.getItem('token')).toBeNull()
       expect(localStorage.getItem('email')).toBeNull()
       expect(localStorage.getItem('budget-planner-theme')).toBe('dark')
+      expect(localStorage.getItem('ordo-language')).toBe('es')
     },
   )
 
@@ -459,6 +464,29 @@ describe('application routes and shell', () => {
     expect(settingsControl).toHaveValue('dark')
     expect(document.documentElement).toHaveAttribute('data-theme', 'dark')
     expect(localStorage.getItem('budget-planner-theme')).toBe('dark')
+  })
+
+  it('switches adopted shell and Settings copy to Spanish without changing routes or account content', async () => {
+    const user = userEvent.setup()
+    localStorage.setItem('token', 'jwt-value')
+    localStorage.setItem('email', 'person@example.com')
+    renderAt('/settings')
+
+    const language = screen.getByRole('combobox', { name: 'Language preference' })
+    await user.selectOptions(language, 'es')
+
+    expect(language).toHaveFocus()
+    expect(document.documentElement).toHaveAttribute('lang', 'es')
+    expect(localStorage.getItem('ordo-language')).toBe('es')
+    expect(screen.getByRole('heading', { name: 'Configuración', level: 1 })).toBeInTheDocument()
+    expect(screen.getByRole('navigation', { name: 'Navegación principal' })).toBeInTheDocument()
+    expect(screen.getByRole('navigation', { name: 'Navegación móvil' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Saltar al contenido principal' })).toHaveAttribute('href', '#main-content')
+    expect(screen.getByRole('button', { name: 'Menú de la cuenta' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Cerrar sesión' })).toBeInTheDocument()
+    expect(screen.getAllByRole('link', { name: /Configuración/ })).toHaveLength(2)
+    expect(screen.getAllByText('person@example.com')).toHaveLength(2)
+    expect(screen.getByTestId('location')).toHaveTextContent('/settings')
   })
 
   it('renders the honest Investing surface without starting an integration request', async () => {

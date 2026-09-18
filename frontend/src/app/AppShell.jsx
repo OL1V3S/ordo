@@ -1,23 +1,26 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, LogOut, UserRound } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import ThemeControl from "../shared/theme/ThemeControl";
 import { APP_DESTINATIONS, getMobileDestination, MOBILE_DESTINATIONS } from "./navigation";
 
 function NavigationLink({ destination, compact = false }) {
+  const { t } = useTranslation("navigation");
   const Icon = destination.icon;
+  const label = t(destination.labelKey);
   return (
     <NavLink
       to={destination.to}
       className={({ isActive }) => `app-nav__link${isActive ? " app-nav__link--active" : ""}`}
-      aria-label={compact ? destination.label : undefined}
-      title={compact ? destination.label : undefined}
+      aria-label={compact ? label : undefined}
+      title={compact ? label : undefined}
     >
       {({ isActive }) => (
         <>
           <Icon size={20} aria-hidden="true" />
-          <span>{destination.label}</span>
-          {isActive && <span className="sr-only">Current page</span>}
+          <span>{label}</span>
+          {isActive && <span className="sr-only">{t("aria.currentPage")}</span>}
         </>
       )}
     </NavLink>
@@ -25,6 +28,8 @@ function NavigationLink({ destination, compact = false }) {
 }
 
 export default function AppShell({ email, onLogout }) {
+  const { t: tCommon } = useTranslation("common");
+  const { t: tNavigation } = useTranslation("navigation");
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const accountMenuRef = useRef(null);
   const accountButtonRef = useRef(null);
@@ -39,8 +44,9 @@ export default function AppShell({ email, onLogout }) {
   const mobileDestination = getMobileDestination(pathname);
   const parentDestination = mobileDestination?.to !== path && mobileDestination?.paths.length > 1
     ? mobileDestination : null;
-  const currentPage = APP_DESTINATIONS.find((destination) => destination.to === path)?.label
-    ?? mobileDestination?.label ?? "Workspace";
+  const currentPageKey = APP_DESTINATIONS.find((destination) => destination.to === path)?.labelKey
+    ?? mobileDestination?.labelKey;
+  const currentPage = currentPageKey ? tNavigation(currentPageKey) : tNavigation("workspace");
 
   useEffect(() => {
     mainRef.current?.focus({ preventScroll: true });
@@ -72,24 +78,24 @@ export default function AppShell({ email, onLogout }) {
 
   return (
     <div className="app-shell">
-      <a className="skip-link" href="#main-content">Skip to main content</a>
+      <a className="skip-link" href="#main-content">{tCommon("shell.skipToMainContent")}</a>
       <aside className="app-sidebar">
         <span className="app-wordmark">ordo</span>
-        <nav className="app-nav" aria-label="Primary navigation">
+        <nav className="app-nav" aria-label={tNavigation("aria.primary")}>
           {primaryDestinations.map((destination) => (
             <NavigationLink key={destination.to} destination={destination} />
           ))}
         </nav>
         <div className="app-sidebar__utilities">
-          <nav className="app-sidebar__secondary" aria-label="Secondary navigation">
+          <nav className="app-sidebar__secondary" aria-label={tNavigation("aria.secondary")}>
             {secondaryDestinations.map((destination) => (
               <NavigationLink key={destination.to} destination={destination} />
             ))}
           </nav>
-          <span className="app-sidebar__identity">{email || "Signed in"}</span>
+          <span className="app-sidebar__identity">{email || tCommon("shell.signedIn")}</span>
           <button type="button" className="button-ghost app-sidebar__logout" onClick={onLogout}>
             <LogOut size={18} aria-hidden="true" />
-            <span>Logout</span>
+            <span>{tCommon("shell.logout")}</span>
           </button>
         </div>
       </aside>
@@ -107,7 +113,7 @@ export default function AppShell({ email, onLogout }) {
               <button
                 type="button"
                 className="button-ghost icon-button mobile-account__trigger"
-                aria-label="Account menu"
+                aria-label={tCommon("shell.accountMenu")}
                 aria-expanded={isAccountMenuOpen}
                 aria-controls="mobile-account-options"
                 ref={accountButtonRef}
@@ -116,12 +122,12 @@ export default function AppShell({ email, onLogout }) {
                 <UserRound size={19} aria-hidden="true" />
               </button>
               {isAccountMenuOpen && (
-                <div className="mobile-account__menu" id="mobile-account-options" role="group" aria-label="Account options">
-                  <p className="mobile-account__label">Signed in as</p>
-                  <p className="mobile-account__email">{email || "Signed in"}</p>
+                <div className="mobile-account__menu" id="mobile-account-options" role="group" aria-label={tCommon("shell.accountOptions")}>
+                  <p className="mobile-account__label">{tCommon("shell.signedInAs")}</p>
+                  <p className="mobile-account__email">{email || tCommon("shell.signedIn")}</p>
                   <button type="button" className="button-ghost mobile-account__logout" onClick={onLogout}>
                     <LogOut size={18} aria-hidden="true" />
-                    Logout
+                    {tCommon("shell.logout")}
                   </button>
                 </div>
               )}
@@ -132,14 +138,14 @@ export default function AppShell({ email, onLogout }) {
           {parentDestination && (
             <Link className="mobile-parent-link" to={parentDestination.to}>
               <ArrowLeft size={16} aria-hidden="true" />
-              {parentDestination.label}
+              {tNavigation(parentDestination.labelKey)}
             </Link>
           )}
           <Outlet />
         </main>
       </div>
 
-      <nav className="mobile-nav" aria-label="Mobile navigation">
+      <nav className="mobile-nav" aria-label={tNavigation("aria.mobile")}>
         {MOBILE_DESTINATIONS.map((destination) => {
           const Icon = destination.icon;
           const isActive = mobileDestination === destination;
@@ -151,7 +157,7 @@ export default function AppShell({ email, onLogout }) {
               aria-current={isActive ? (path === destination.to ? "page" : "location") : undefined}
             >
               <Icon size={20} aria-hidden="true" />
-              <span>{destination.label}</span>
+              <span>{tNavigation(destination.labelKey)}</span>
             </Link>
           );
         })}

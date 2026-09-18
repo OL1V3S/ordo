@@ -109,7 +109,12 @@
   box-shadow: none;
 }
 
+.settings-page__language {
+  box-shadow: none;
+}
+
 .settings-page__appearance h2,
+.settings-page__language h2,
 .settings-page__account h2 {
   margin-bottom: var(--space-4);
 }

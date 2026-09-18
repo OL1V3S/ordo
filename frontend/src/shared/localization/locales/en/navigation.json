@@ -1,0 +1,49 @@
+{
+  "aria": {
+    "primary": "Primary navigation",
+    "secondary": "Secondary navigation",
+    "mobile": "Mobile navigation",
+    "currentPage": "Current page"
+  },
+  "workspace": "Workspace",
+  "destinations": {
+    "home": { "label": "Home" },
+    "activity": { "label": "Activity" },
+    "budgets": {
+      "label": "Budgets",
+      "description": "Set and review monthly category limits."
+    },
+    "insights": { "label": "Insights" },
+    "commitments": {
+      "label": "Commitments",
+      "description": "Review recurring expenses and manage saved commitments."
+    },
+    "paychecks": {
+      "label": "Paychecks",
+      "description": "Review deposits and manage saved paycheck expectations."
+    },
+    "investing": {
+      "label": "Investing",
+      "description": "Planned for a future release."
+    },
+    "settings": {
+      "label": "Settings",
+      "description": "Choose your theme and review your signed-in email."
+    },
+    "plan": { "label": "Plan" },
+    "more": { "label": "More" }
+  },
+  "hubs": {
+    "plan": {
+      "title": "Plan",
+      "description": "Choose an area to plan.",
+      "ariaLabel": "Planning tools"
+    },
+    "more": {
+      "title": "More",
+      "description": "Settings and other secondary tools.",
+      "ariaLabel": "More destinations",
+      "unavailable": "Unavailable"
+    }
+  }
+}

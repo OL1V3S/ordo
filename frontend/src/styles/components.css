@@ -38,11 +38,11 @@ summary { min-height: 44px; padding-block: .625rem; cursor: pointer; }
 .budget-row--warning { background: var(--color-warning-soft); }
 .budget-usage--warning { margin-left: var(--space-1); color: var(--color-warning); font-weight: 700; }
 .auth-help { margin: 0; color: var(--color-text-muted); font-size: var(--text-sm); }
-.theme-control { display: inline-flex; align-items: center; gap: var(--space-2); }
-.theme-control label { color: var(--color-text-muted); font-size: var(--text-sm); font-weight: 700; }
-.theme-control select { width: auto; min-height: 44px; padding-block: .45rem; }
-.theme-control--settings { align-items: stretch; flex-direction: column; }
-.theme-control--settings select { width: min(100%, 280px); }
+.theme-control, .language-control { display: inline-flex; align-items: center; gap: var(--space-2); }
+.theme-control label, .language-control label { color: var(--color-text-muted); font-size: var(--text-sm); font-weight: 700; }
+.theme-control select, .language-control select { width: auto; min-height: 44px; padding-block: .45rem; }
+.theme-control--settings, .language-control--settings { align-items: stretch; flex-direction: column; }
+.theme-control--settings select, .language-control--settings select { width: min(100%, 280px); }
 .empty-state-card__icon { display: inline-grid; place-items: center; color: var(--color-on-primary); background: var(--color-primary); }
 .app-nav { display: flex; align-items: stretch; gap: var(--space-1); }
 .app-nav__link { position: relative; display: flex; align-items: center; justify-content: center; gap: var(--space-2); min-height: 44px; padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); color: var(--color-text-muted); text-decoration: none; font-size: var(--text-sm); font-weight: 700; transition: color var(--duration-fast) var(--ease-standard), background var(--duration-fast) var(--ease-standard); }
