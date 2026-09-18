@@ -1,0 +1,21 @@
+{
+  "title": "Settings",
+  "description": "Choose how Ordo looks and which language it uses on this device.",
+  "appearance": {
+    "title": "Appearance",
+    "helper": "System follows your device. Light or Dark is saved on this device."
+  },
+  "language": {
+    "title": "Language",
+    "label": "Language preference",
+    "helper": "Your English or Spanish preference is saved on this device.",
+    "options": {
+      "en": "English",
+      "es": "Español"
+    }
+  },
+  "account": {
+    "title": "Account",
+    "signedInEmail": "Signed-in email"
+  }
+}

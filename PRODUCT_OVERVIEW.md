@@ -64,11 +64,15 @@ silently treating every detected pattern as a financial fact.
   Credits are optional and must be explicitly selected; they become inflow
   records without automatically being classified as income or paychecks.
   Scanned PDFs are not supported.
-- **Settings and account access:** Choose a System, Light, or Dark theme first,
-  then view your signed-in email in a compact account section. Account access
+- **Settings and account access:** Choose a System, Light, or Dark theme and an
+  English or Spanish interface preference for this browser, then view your
+  signed-in email in a compact account section. The language preference updates
+  the authenticated shell, primary navigation, Plan and More hubs, and Settings;
+  feature pages and public account-access pages remain English during the
+  incremental rollout. Account access
   includes registration,
   sign-in and sign-out, email confirmation and resend, and password recovery by
-  email. Settings currently provides email display and appearance controls,
+  email. Settings currently provides email display, appearance, and language controls,
   rather than a full account-management area.
 
 Navigation uses Home, Activity, and Insights consistently across screen sizes.

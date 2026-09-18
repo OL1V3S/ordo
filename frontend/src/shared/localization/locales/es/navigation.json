@@ -1,0 +1,49 @@
+{
+  "aria": {
+    "primary": "Navegación principal",
+    "secondary": "Navegación secundaria",
+    "mobile": "Navegación móvil",
+    "currentPage": "Página actual"
+  },
+  "workspace": "Espacio de trabajo",
+  "destinations": {
+    "home": { "label": "Inicio" },
+    "activity": { "label": "Actividad" },
+    "budgets": {
+      "label": "Presupuestos",
+      "description": "Establece y revisa los límites mensuales por categoría."
+    },
+    "insights": { "label": "Análisis" },
+    "commitments": {
+      "label": "Compromisos",
+      "description": "Revisa los gastos recurrentes y administra los compromisos guardados."
+    },
+    "paychecks": {
+      "label": "Pagos de nómina",
+      "description": "Revisa los depósitos y administra las expectativas de nómina guardadas."
+    },
+    "investing": {
+      "label": "Inversiones",
+      "description": "Planeado para una versión futura."
+    },
+    "settings": {
+      "label": "Configuración",
+      "description": "Elige el tema y revisa el correo electrónico de tu sesión."
+    },
+    "plan": { "label": "Plan" },
+    "more": { "label": "Más" }
+  },
+  "hubs": {
+    "plan": {
+      "title": "Plan",
+      "description": "Elige un área para planificar.",
+      "ariaLabel": "Herramientas de planificación"
+    },
+    "more": {
+      "title": "Más",
+      "description": "Configuración y otras herramientas secundarias.",
+      "ariaLabel": "Más destinos",
+      "unavailable": "No disponible"
+    }
+  }
+}

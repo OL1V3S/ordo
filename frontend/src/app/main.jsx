@@ -4,6 +4,7 @@ import { BrowserRouter } from "react-router-dom";
 import favicon from "../assets/images/ordo_favicon.svg";
 import "../index.css";        
 import App from "./App.jsx"; 
+import { LocaleProvider } from "../shared/localization/LocaleProvider.jsx";
 import { ThemeProvider } from "../shared/theme/ThemeProvider.jsx";
 
 const link = document.createElement("link");
@@ -16,7 +17,9 @@ createRoot(document.getElementById("root")).render(
   <StrictMode>
     <BrowserRouter>
       <ThemeProvider>
-        <App />
+        <LocaleProvider>
+          <App />
+        </LocaleProvider>
       </ThemeProvider>
     </BrowserRouter>
   </StrictMode>
