@@ -24,6 +24,16 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-09-21 — Reusable financial capture orchestration
+
+[PR #150](https://github.com/OL1V3S/ordo/pull/150) ·
+[Issue #149](https://github.com/OL1V3S/ordo/issues/149)
+
+- Extracted dependency-injected Expense and Cash In capture controllers while
+  preserving Activity payloads, validation, task locking, focus, and recovery behavior.
+- Kept full-list ownership outside capture so future surfaces can reuse trusted
+  writes with bounded authoritative reads instead of loading complete history.
+
 ### 2026-09-18 — English and Spanish localization foundation
 
 [PR #148](https://github.com/OL1V3S/ordo/pull/148) ·
