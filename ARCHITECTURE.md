@@ -60,6 +60,15 @@ source/linkage flags. Cash-in mutation outcomes distinguish rejected, unknown,
 and completed writes with failed refreshes. Import confirmation refreshes each
 record list according to its saved counts.
 
+Expense and cash-in capture orchestration lives in domain-specific frontend
+controllers under their respective features. The controllers receive narrow
+mutation, authoritative-refresh, read-availability, blocking, and focus
+adapters; they do not own list hooks or automatically load history. Activity
+injects its existing Expense and AccountInflow list operations, while another
+surface can reuse the same create, validation, duplicate-submit, session,
+outcome, and recovery behavior with a bounded read model. Activity retains its
+page-specific filtering, list pinning, import coordination, and presentation.
+
 Below the desktop sidebar breakpoint, the shell exposes Home, Activity, Plan,
 Insights, and More. The protected `/plan` and `/more` pages group links to the
 existing feature URLs without owning feature data or changing their workflows.
