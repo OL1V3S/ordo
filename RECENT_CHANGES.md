@@ -24,6 +24,18 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-09-22 — Exact Expense precision across browser boundaries
+
+[PR #152](https://github.com/OL1V3S/ordo/pull/152) ·
+[Issue #151](https://github.com/OL1V3S/ordo/issues/151)
+
+- Encoded Expense request and response amounts as canonical decimal strings,
+  while retaining compatible legacy numeric requests and the existing full monetary range.
+- Kept Expense entry, editing, aggregation, ordering, display, and selected
+  Expense-derived commitment evidence exact with integer minor-unit arithmetic.
+- Made ambiguous legacy Expense and BudgetLimit numbers fail closed instead of
+  driving approximate edits, commitment decisions, budget classifications, or attention.
+
 ### 2026-09-21 — Reusable financial capture orchestration
 
 [PR #150](https://github.com/OL1V3S/ordo/pull/150) ·

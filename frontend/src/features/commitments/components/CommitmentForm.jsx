@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import FormField from "../../../shared/ui/FormField";
+import StatusMessage from "../../../shared/ui/StatusMessage";
+import { parseExpenseAmount } from "../../expenses/utils/exactMoney";
 
 const WEEKDAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
 
 function initialForm(model) {
+  const observed = (value) => parseExpenseAmount(value)?.value ?? "";
   return {
     name: model.name ?? model.description ?? "",
     category: model.category ?? "",
@@ -15,9 +18,10 @@ function initialForm(model) {
     windowBeforeDays: model.windowBeforeDays?.toString() ?? "0",
     windowAfterDays: model.windowAfterDays?.toString() ?? "0",
     amountMode: model.amountMode ?? (model.observedAmountMode === "fixed" ? "fixed" : "range"),
-    expectedAmount: (model.expectedAmount ?? (model.observedAmountMode === "fixed" ? model.observedMedianAmount : null))?.toString() ?? "",
-    expectedMinimumAmount: (model.expectedMinimumAmount ?? model.observedMinimumAmount)?.toString() ?? "",
-    expectedMaximumAmount: (model.expectedMaximumAmount ?? model.observedMaximumAmount)?.toString() ?? "",
+    expectedAmount: model.expectedAmount?.toString()
+      ?? (model.observedAmountMode === "fixed" ? observed(model.observedMedianAmount) : ""),
+    expectedMinimumAmount: model.expectedMinimumAmount?.toString() ?? observed(model.observedMinimumAmount),
+    expectedMaximumAmount: model.expectedMaximumAmount?.toString() ?? observed(model.observedMaximumAmount),
   };
 }
 
@@ -28,6 +32,11 @@ function numberOrNull(value) {
 export default function CommitmentForm({ model, fingerprint, submitLabel, busy, submitDisabled = false, initialDraft, onDraftChange, onSubmit, onCancel }) {
   const [form, setForm] = useState(() => initialDraft ?? initialForm(model));
   const nameRef = useRef(null);
+  const candidateObservedUnsafe = Boolean(fingerprint) && (
+    (model.observedAmountMode === "fixed" && !parseExpenseAmount(model.observedMedianAmount))
+    || (model.observedAmountMode !== "fixed"
+      && (!parseExpenseAmount(model.observedMinimumAmount) || !parseExpenseAmount(model.observedMaximumAmount)))
+  );
   useEffect(() => { nameRef.current?.focus(); }, []);
 
   function saveDraft(next) {
@@ -55,6 +64,14 @@ export default function CommitmentForm({ model, fingerprint, submitLabel, busy, 
     const isWeekly = form.cadence === "weekly";
     const isMonthly = form.cadence === "monthly";
     const isMonthEnd = isMonthly && form.timingKind === "monthend";
+    const exactCandidateAmount = (value) => {
+      if (!fingerprint) return numberOrNull(value);
+      return value === "" ? null : parseExpenseAmount(value)?.value ?? null;
+    };
+    const candidateAmountInvalid = candidateObservedUnsafe || (fingerprint && (form.amountMode === "fixed"
+      ? !parseExpenseAmount(form.expectedAmount)
+      : !parseExpenseAmount(form.expectedMinimumAmount) || !parseExpenseAmount(form.expectedMaximumAmount)));
+    if (candidateAmountInvalid) return;
     const payload = {
       ...(fingerprint ? { fingerprint } : {}),
       name: form.name.trim(),
@@ -67,15 +84,17 @@ export default function CommitmentForm({ model, fingerprint, submitLabel, busy, 
       windowBeforeDays: Number(form.windowBeforeDays),
       windowAfterDays: Number(form.windowAfterDays),
       amountMode: form.amountMode,
-      expectedAmount: form.amountMode === "fixed" ? numberOrNull(form.expectedAmount) : null,
-      expectedMinimumAmount: form.amountMode === "range" ? numberOrNull(form.expectedMinimumAmount) : null,
-      expectedMaximumAmount: form.amountMode === "range" ? numberOrNull(form.expectedMaximumAmount) : null,
+      expectedAmount: form.amountMode === "fixed" ? exactCandidateAmount(form.expectedAmount) : null,
+      expectedMinimumAmount: form.amountMode === "range" ? exactCandidateAmount(form.expectedMinimumAmount) : null,
+      expectedMaximumAmount: form.amountMode === "range" ? exactCandidateAmount(form.expectedMaximumAmount) : null,
     };
     onSubmit(payload);
   }
 
   return (
     <form className="commitment-form" aria-label={submitLabel} onSubmit={handleSubmit}>
+      {candidateObservedUnsafe
+        && <StatusMessage tone="warning">The observed amount could not be loaded with reliable cent precision. Refresh before confirming.</StatusMessage>}
       <fieldset className="form-grid commitment-form__fields" disabled={busy}>
         <FormField label="Name">{(id) => <input ref={nameRef} id={id} required maxLength="500" value={form.name} onChange={(event) => update("name", event.target.value)} />}</FormField>
         <FormField label="Category">{(id) => <input id={id} required maxLength="100" value={form.category} onChange={(event) => update("category", event.target.value)} />}</FormField>
@@ -114,16 +133,16 @@ export default function CommitmentForm({ model, fingerprint, submitLabel, busy, 
         </select>}</FormField>
 
         {form.amountMode === "fixed" ? (
-          <FormField label="Expected amount">{(id) => <input id={id} type="number" required min="0.01" step="0.01" value={form.expectedAmount} onChange={(event) => update("expectedAmount", event.target.value)} />}</FormField>
+          <FormField label="Expected amount">{(id) => <input id={id} type={fingerprint ? "text" : "number"} inputMode="decimal" required min="0.01" step="0.01" value={form.expectedAmount} onChange={(event) => update("expectedAmount", event.target.value)} />}</FormField>
         ) : (
           <>
-            <FormField label="Minimum amount">{(id) => <input id={id} type="number" required min="0.01" step="0.01" value={form.expectedMinimumAmount} onChange={(event) => update("expectedMinimumAmount", event.target.value)} />}</FormField>
-            <FormField label="Maximum amount">{(id) => <input id={id} type="number" required min="0.01" step="0.01" value={form.expectedMaximumAmount} onChange={(event) => update("expectedMaximumAmount", event.target.value)} />}</FormField>
+            <FormField label="Minimum amount">{(id) => <input id={id} type={fingerprint ? "text" : "number"} inputMode="decimal" required min="0.01" step="0.01" value={form.expectedMinimumAmount} onChange={(event) => update("expectedMinimumAmount", event.target.value)} />}</FormField>
+            <FormField label="Maximum amount">{(id) => <input id={id} type={fingerprint ? "text" : "number"} inputMode="decimal" required min="0.01" step="0.01" value={form.expectedMaximumAmount} onChange={(event) => update("expectedMaximumAmount", event.target.value)} />}</FormField>
           </>
         )}
       </fieldset>
       <div className="inline-actions commitment-form__actions">
-        <button type="submit" disabled={busy || submitDisabled}>{busy ? "Saving..." : submitLabel}</button>
+        <button type="submit" disabled={busy || submitDisabled || candidateObservedUnsafe}>{busy ? "Saving..." : submitLabel}</button>
         <button type="button" className="button-ghost" disabled={busy} onClick={onCancel}>Cancel</button>
       </div>
     </form>

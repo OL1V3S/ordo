@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Globalization;
 using BudgetPlanner.Contracts.Expenses;
 using BudgetPlanner.Data;
 using BudgetPlanner.Import;
@@ -53,9 +54,10 @@ public class ExpensesController : ControllerBase
             return Unauthorized();
         }
 
-        if (!TryValidateAndNormalize(
+        if (!TryReadAmount(request.Amount, out var amount)
+            || !TryValidateAndNormalize(
                 request.Description,
-                request.Amount,
+                amount,
                 request.Category,
                 out var description,
                 out var category))
@@ -67,7 +69,7 @@ public class ExpensesController : ControllerBase
         {
             UserId = userId,
             Description = description,
-            Amount = request.Amount,
+            Amount = amount,
             Date = request.Date,
             Category = category
         };
@@ -104,9 +106,10 @@ public class ExpensesController : ControllerBase
             return NotFound();
         }
 
-        if (!TryValidateAndNormalize(
+        if (!TryReadAmount(request.Amount, out var amount)
+            || !TryValidateAndNormalize(
                 request.Description,
-                request.Amount,
+                amount,
                 request.Category,
                 out var description,
                 out var category))
@@ -116,13 +119,13 @@ public class ExpensesController : ControllerBase
 
         var commitmentEvidenceChanged =
             existingExpense.Date != request.Date
-            || existingExpense.Amount != request.Amount
+            || existingExpense.Amount != amount
             || ExpenseInputRules.NormalizeDescriptionForComparison(existingExpense.Description)
                 != ExpenseInputRules.NormalizeDescriptionForComparison(description)
             || existingExpense.Category != category;
 
         existingExpense.Description = description;
-        existingExpense.Amount = request.Amount;
+        existingExpense.Amount = amount;
         existingExpense.Date = request.Date;
         existingExpense.Category = category;
         if (commitmentEvidenceChanged)
@@ -188,12 +191,27 @@ public class ExpensesController : ControllerBase
         return ModelState.IsValid;
     }
 
+    private bool TryReadAmount(ExpenseAmountInput? input, out decimal amount)
+    {
+        amount = default;
+        var failure = input?.TryGetDecimal(out amount) ?? ExpenseAmountParseFailure.Invalid;
+        if (failure == ExpenseAmountParseFailure.None)
+        {
+            return true;
+        }
+
+        ModelState.AddModelError("amount", failure == ExpenseAmountParseFailure.OutOfRange
+            ? "Amount exceeds the supported monetary range."
+            : "Amount must be an invariant decimal value with no exponent, separators, or currency symbol.");
+        return false;
+    }
+
     private static ExpenseResponse ToResponse(Expense expense)
     {
         return new ExpenseResponse(
             expense.Id,
             expense.Description,
-            expense.Amount,
+            expense.Amount.ToString("0.00", CultureInfo.InvariantCulture),
             expense.Date,
             expense.Category);
     }

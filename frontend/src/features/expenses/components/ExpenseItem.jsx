@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { DEFAULT_CATEGORIES } from "../../../shared/constants/categories";
 import { displayText } from "../../../utils/text";
 import { formatExpenseDate } from "../utils/calendarDate";
+import { formatExactMoney, parseExpenseAmount } from "../utils/exactMoney";
 
 export default function ExpenseItem({
   expense,
@@ -20,6 +21,8 @@ export default function ExpenseItem({
   const selectedCategory = editingData.category || "";
   const descriptionInputRef = useRef(null);
   const expenseLabel = `${displayText(expense.description)} from ${formatExpenseDate(expense.date)}, row ${rowNumber}`;
+  const amountIsExact = Boolean(parseExpenseAmount(expense.amount));
+  const editingAmountIsValid = Boolean(parseExpenseAmount(editingData.amount));
 
   useEffect(() => {
     if (isEditing) descriptionInputRef.current?.focus();
@@ -48,22 +51,25 @@ export default function ExpenseItem({
 
       <td className="expense-cell expense-cell--amount" data-label="Amount ($)">
         {isEditing ? (
-          <input
-            disabled={busy}
-            aria-label="Edit amount"
-            type="number"
-            value={editingData.amount || ""}
-            onChange={(e) =>
-              setEditingData((prev) => ({
-                ...prev,
-                amount: e.target.value,
-              }))
-            }
-            min="0"
-            step="0.01"
-          />
+          <>
+            <input
+              disabled={busy}
+              aria-label="Edit amount"
+              aria-invalid={!editingAmountIsValid}
+              type="text"
+              inputMode="decimal"
+              value={editingData.amount || ""}
+              onChange={(e) =>
+                setEditingData((prev) => ({
+                  ...prev,
+                  amount: e.target.value,
+                }))
+              }
+            />
+            {!editingAmountIsValid && <span className="status-message status-message--danger">Enter a valid exact amount.</span>}
+          </>
         ) : (
-          Number(expense.amount).toFixed(2)
+          formatExactMoney(expense.amount).replace(/^\$/, "")
         )}
       </td>
 
@@ -133,7 +139,7 @@ export default function ExpenseItem({
       <td className="expense-cell expense-cell--actions" data-label="Actions">
         {isEditing ? (
           <div className="inline-actions">
-            <button type="button" onClick={() => onSave(expense.id)} disabled={busy || readUnavailable}>Save</button>
+            <button type="button" onClick={() => onSave(expense.id)} disabled={busy || readUnavailable || !editingAmountIsValid}>Save</button>
             <button type="button" className="button-ghost" onClick={onCancel} disabled={busy}>
               Cancel
             </button>
@@ -144,7 +150,7 @@ export default function ExpenseItem({
               type="button"
               aria-label={`Edit expense ${expenseLabel}`}
               onClick={(event) => onStartEdit(expense, event.currentTarget)}
-              disabled={busy || taskLocked || readUnavailable}
+              disabled={busy || taskLocked || readUnavailable || !amountIsExact}
             >
               Edit
             </button>

@@ -105,17 +105,13 @@ describe('existing expense workflows', () => {
 
     expect(addExpense).toHaveBeenCalledWith({
       description: 'dinner with friends',
-      amount: 12.5,
+      amount: '12.50',
       date: '2026-08-14',
       category: 'food',
     })
   })
 
-  it.each([
-    ['-1', -1],
-    ['1.234', 1.234],
-    ['0', 0],
-  ])('preserves presence-only amount submission for %s', async (amountInput, expectedAmount) => {
+  it.each(['-1', '1.234', '0', '1e2', '1,000'])('rejects unsupported exact amount input %s', async (amountInput) => {
     const user = userEvent.setup()
     const addExpense = vi.fn().mockResolvedValue(undefined)
     useExpenses.mockReturnValue({ ...baseExpensesHook, addExpense })
@@ -129,8 +125,8 @@ describe('existing expense workflows', () => {
     await user.selectOptions(within(addEntry).getByLabelText('Category'), 'food')
     await user.click(within(addEntry).getByRole('button', { name: 'Save expense' }))
 
-    expect(addExpense).toHaveBeenCalledWith(expect.objectContaining({ amount: expectedAmount }))
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(addExpense).not.toHaveBeenCalled()
+    expect(screen.getByRole('alert')).toHaveTextContent('positive amount with at most two decimals')
   })
 
   it('uses the other sentinel to send a normalized custom category', async () => {
@@ -153,7 +149,7 @@ describe('existing expense workflows', () => {
     }))
   })
 
-  it('edits a custom-category expense with the URL id in the PUT body and rounds its amount', async () => {
+  it('edits a custom-category expense with the URL id and an exact amount string', async () => {
     const user = userEvent.setup()
     const updateExpense = vi.fn().mockResolvedValue(undefined)
     useExpenses.mockReturnValue({
@@ -180,8 +176,8 @@ describe('existing expense workflows', () => {
     const textboxes = within(row).getAllByRole('textbox')
     await user.clear(textboxes[0])
     await user.type(textboxes[0], '  New Name  ')
-    await user.clear(within(row).getByRole('spinbutton'))
-    await user.type(within(row).getByRole('spinbutton'), '12.345')
+    await user.clear(within(row).getByLabelText('Edit amount'))
+    await user.type(within(row).getByLabelText('Edit amount'), '12.34')
     await user.clear(screen.getByPlaceholderText('Custom Category'))
     await user.type(screen.getByPlaceholderText('Custom Category'), '  Home Repair  ')
     expect(within(row).getByLabelText('Edit custom category')).toBeInTheDocument()
@@ -190,7 +186,7 @@ describe('existing expense workflows', () => {
     expect(updateExpense).toHaveBeenCalledWith(42, {
       id: 42,
       description: 'new name',
-      amount: 12.35,
+      amount: '12.34',
       date: '2026-08-10',
       category: 'home repair',
     })

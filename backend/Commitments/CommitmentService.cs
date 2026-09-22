@@ -1,4 +1,5 @@
 using System.Data;
+using System.Globalization;
 using System.Security.Cryptography;
 using BudgetPlanner.Contracts.Commitments;
 using BudgetPlanner.Data;
@@ -549,9 +550,9 @@ public sealed class CommitmentService(
         candidate.WindowBeforeDays,
         candidate.WindowAfterDays,
         candidate.HasFixedObservedAmount ? "fixed" : "variable",
-        candidate.ObservedMedianAmount,
-        candidate.ObservedMinimumAmount,
-        candidate.ObservedMaximumAmount,
+        FormatAmount(candidate.ObservedMedianAmount),
+        FormatAmount(candidate.ObservedMinimumAmount),
+        FormatAmount(candidate.ObservedMaximumAmount),
         candidate.Evidence[0].Date,
         candidate.Evidence[^1].Date,
         candidate.Evidence.Count,
@@ -621,10 +622,10 @@ public sealed class CommitmentService(
             detection.Amount.Fingerprint,
             DecisionState(detection, CommitmentChangeDimension.Amount, detection.Amount.Fingerprint, dismissals),
             detection.Amount.ProposedMode is null ? null : EnumName(detection.Amount.ProposedMode.Value),
-            detection.Amount.ProposedAmount,
-            detection.Amount.ProposedMinimumAmount,
-            detection.Amount.ProposedMaximumAmount,
-            detection.Amount.ObservedMedianAmount,
+            FormatAmount(detection.Amount.ProposedAmount),
+            FormatAmount(detection.Amount.ProposedMinimumAmount),
+            FormatAmount(detection.Amount.ProposedMaximumAmount),
+            FormatAmount(detection.Amount.ObservedMedianAmount),
             detection.Amount.Evidence.Select(value => value.Expense.Id).ToArray()),
         new CommitmentTimingChangeResponse(
             ChangeStateName(detection.Timing.State),
@@ -746,7 +747,7 @@ public sealed class CommitmentService(
         IReadOnlySet<int> importedExpenseIds) => new(
         observation.Expense.Id,
         observation.Expense.Date,
-        observation.Expense.Amount,
+        FormatAmount(observation.Expense.Amount),
         observation.Expense.Description,
         observation.Expense.Category,
         importedExpenseIds.Contains(observation.Expense.Id) ? "sunflower_pdf" : "manual",
@@ -778,8 +779,13 @@ public sealed class CommitmentService(
     };
 
     private static CommitmentEvidenceResponse ToEvidenceResponse(Expense expense, IReadOnlySet<int> importedExpenseIds) =>
-        new(expense.Id, expense.Date, expense.Amount, expense.Description, expense.Category,
+        new(expense.Id, expense.Date, FormatAmount(expense.Amount), expense.Description, expense.Category,
             importedExpenseIds.Contains(expense.Id) ? "sunflower_pdf" : "manual");
+
+    private static string FormatAmount(decimal amount) => amount.ToString("0.00", CultureInfo.InvariantCulture);
+
+    private static string? FormatAmount(decimal? amount) =>
+        amount?.ToString("0.00", CultureInfo.InvariantCulture);
 
     private static CommitmentOperation<Expectation> ValidateExpectation(ConfirmCommitmentRequest request) =>
         ValidateExpectation(

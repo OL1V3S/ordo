@@ -7,15 +7,19 @@ import { budgetLimitsApi } from "../../features/budgetLimits/api/budgetLimitsApi
 import { computeMonthlyTotalsByCategory } from "../../features/budgetLimits/utils/totalsByCategory";
 import { expensesApi } from "../../features/expenses/api/expensesApi";
 import { formatExpenseDate } from "../../features/expenses/utils/calendarDate";
+import {
+  formatCents,
+  formatExactMoney,
+  parseBudgetLimit,
+  parseExactMoney,
+  percentageFromRatio,
+} from "../../features/expenses/utils/exactMoney";
 import { paychecksApi } from "../../features/paychecks/api/paychecksApi";
 import { cadenceLabel, formatAmount, formatDate, formatMoney } from "../../features/paychecks/utils/formatPaychecks";
 import { commitmentsApi } from "../../features/commitments/api/commitmentsApi";
 import { getMonthYear } from "../../shared/utils/monthYear";
-import { usedPercentage } from "../../utils/budgets";
 import { displayText } from "../../utils/text";
 import StatusMessage from "../../shared/ui/StatusMessage";
-
-const currencyFormatter = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
 
 async function readList(request) {
   const response = await request;
@@ -65,9 +69,21 @@ export default function OverviewPage() {
   const throughDate = cashFlow.data?.to ?? localThroughDate();
 
   const totalsByCategory = computeMonthlyTotalsByCategory(spending.data ?? [], currentMonth);
-  const attention = (limits.data ?? []).filter((limit) => (
-    usedPercentage(totalsByCategory[limit.category] || 0, limit.limitAmount) >= 90
-  ));
+  const budgetComparisons = (limits.data ?? []).map((limit) => {
+    const spent = parseExactMoney(
+      totalsByCategory[limit.category] === undefined ? "0.00" : totalsByCategory[limit.category],
+      { allowZero: true }
+    );
+    const parsedLimit = parseBudgetLimit(limit.limitAmount);
+    if (!spent || !parsedLimit) return { limit, available: false };
+    return {
+      limit, spent, parsedLimit, available: true,
+      percentage: parsedLimit.cents === 0n ? null : percentageFromRatio(spent.cents, parsedLimit.cents),
+      needsAttention: parsedLimit.cents > 0n && spent.cents * 100n >= parsedLimit.cents * 90n,
+    };
+  });
+  const attention = budgetComparisons.filter((comparison) => comparison.available && comparison.needsAttention);
+  const unavailableBudgetCount = budgetComparisons.filter((comparison) => !comparison.available).length;
   const expectedPaychecks = (paychecks.data?.paychecks ?? [])
     .filter((profile) => profile.lifecycle === "active" && profile.nextProjection)
     .sort((left, right) => left.nextProjection.earliestExpectedDate.localeCompare(right.nextProjection.earliestExpectedDate) || compareIds(left, right))
@@ -128,23 +144,25 @@ export default function OverviewPage() {
           <ReadStatus read={limits} label="budget limits" />
           {ready(spending) && ready(limits) && (limits.data.length === 0 ? (
             <StatusMessage>No budget limits are set for this month.</StatusMessage>
+          ) : attention.length === 0 && unavailableBudgetCount > 0 ? (
+            <StatusMessage tone="warning">Budget attention is unavailable for {unavailableBudgetCount} {unavailableBudgetCount === 1 ? "limit" : "limits"} whose exact cents could not be verified.</StatusMessage>
           ) : attention.length === 0 ? (
             <StatusMessage>No limits are at or above 90% used.</StatusMessage>
           ) : (
             <>
               <p className="muted">{attention.length} {attention.length === 1 ? "limit is" : "limits are"} at or above 90% used · {limits.data.length} {limits.data.length === 1 ? "limit" : "limits"} set</p>
               <ul className="home-records">
-                {attention.slice(0, 3).map((limit, index) => {
-                  const spent = totalsByCategory[limit.category] || 0;
-                  const percentage = usedPercentage(spent, limit.limitAmount);
+                {attention.slice(0, 3).map((comparison, index) => {
+                  const { limit, spent, parsedLimit, percentage } = comparison;
                   return (
                     <li key={limit.id ?? index}>
                       <div className="home-record__line"><strong>{displayText(limit.category)}</strong><span>{percentage.toFixed(1)}% used</span></div>
-                      <p>{currencyFormatter.format(spent)} spent of {currencyFormatter.format(limit.limitAmount)}</p>
+                      <p>{formatCents(spent.cents)} spent of {formatCents(parsedLimit.cents)}</p>
                     </li>
                   );
                 })}
               </ul>
+              {unavailableBudgetCount > 0 && <p className="muted">{unavailableBudgetCount} additional {unavailableBudgetCount === 1 ? "limit needs" : "limits need"} review before budget attention can be calculated.</p>}
             </>
           ))}
         </HomeModule>
@@ -176,7 +194,7 @@ export default function OverviewPage() {
               <ul className="home-records">
                 {recentSpending.map((expense) => (
                   <li key={expense.id}>
-                    <div className="home-record__line"><strong>{expense.description}</strong><strong>{currencyFormatter.format(expense.amount)}</strong></div>
+                    <div className="home-record__line"><strong>{expense.description}</strong><strong>{formatExactMoney(expense.amount)}</strong></div>
                     <p>{formatExpenseDate(expense.date)} · {displayText(expense.category)}</p>
                   </li>
                 ))}

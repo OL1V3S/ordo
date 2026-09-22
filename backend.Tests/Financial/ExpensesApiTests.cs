@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text;
 using System.Text.Json;
 using Xunit;
 
@@ -39,7 +40,7 @@ public sealed class ExpensesApiTests
         var expense = Assert.Single(body.EnumerateArray());
         Assert.Equal(owned.Id, expense.GetProperty("id").GetInt32());
         Assert.Equal("  legacy description  ", expense.GetProperty("description").GetString());
-        Assert.Equal(-12.34m, expense.GetProperty("amount").GetDecimal());
+        Assert.Equal("-12.34", expense.GetProperty("amount").GetString());
         Assert.Equal(" Legacy  Category ", expense.GetProperty("category").GetString());
         Assert.False(expense.TryGetProperty("userId", out _));
         Assert.False(expense.TryGetProperty("user", out _));
@@ -65,7 +66,7 @@ public sealed class ExpensesApiTests
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         Assert.Equal("Mixed   CASE", body.GetProperty("description").GetString());
-        Assert.Equal(42.25m, body.GetProperty("amount").GetDecimal());
+        Assert.Equal("42.25", body.GetProperty("amount").GetString());
         Assert.Equal("food and dining", body.GetProperty("category").GetString());
         Assert.False(body.TryGetProperty("userId", out _));
         Assert.False(body.TryGetProperty("user", out _));
@@ -150,7 +151,7 @@ public sealed class ExpensesApiTests
         var acceptedBody = await accepted.Content.ReadFromJsonAsync<JsonElement>();
 
         Assert.Equal(HttpStatusCode.Created, accepted.StatusCode);
-        Assert.Equal(9999999999999999.99m, acceptedBody.GetProperty("amount").GetDecimal());
+        Assert.Equal("9999999999999999.99", acceptedBody.GetProperty("amount").GetString());
 
         var rejected = await owner.Client.PostAsJsonAsync("/api/expenses", new
         {
@@ -161,6 +162,88 @@ public sealed class ExpensesApiTests
         });
 
         await AssertValidationErrorAsync(rejected, "amount");
+    }
+
+    [Fact]
+    public async Task Create_accepts_exact_decimal_string_and_round_trips_the_full_range()
+    {
+        await using var app = new FinancialApiTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("exact-string@example.com");
+
+        var response = await owner.Client.PostAsJsonAsync("/api/expenses", new
+        {
+            description = "exact maximum",
+            amount = "9999999999999999.99",
+            date = "2026-08-15",
+            category = "food"
+        });
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        Assert.Equal("9999999999999999.99", body.GetProperty("amount").GetString());
+        var persisted = await app.FindExpenseAsync(body.GetProperty("id").GetInt32());
+        Assert.Equal(9999999999999999.99m, persisted!.Amount);
+    }
+
+    [Theory]
+    [InlineData("12", "12.00")]
+    [InlineData("12.5", "12.50")]
+    [InlineData(".50", "0.50")]
+    [InlineData("0012.50", "12.50")]
+    [InlineData(" 12.50 ", "12.50")]
+    public async Task Create_normalizes_supported_exact_string_forms(string amount, string expected)
+    {
+        await using var app = new FinancialApiTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync($"valid-{Guid.NewGuid()}@example.com");
+
+        var response = await owner.Client.PostAsJsonAsync("/api/expenses", new
+        {
+            description = "valid amount",
+            amount,
+            date = "2026-08-15",
+            category = "food"
+        });
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        Assert.Equal(expected, body.GetProperty("amount").GetString());
+    }
+
+    [Fact]
+    public async Task Create_rejects_a_numeric_exponent_token_instead_of_normalizing_it()
+    {
+        await using var app = new FinancialApiTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("numeric-exponent@example.com");
+        using var content = new StringContent(
+            """{"description":"exponent","amount":1e2,"date":"2026-08-15","category":"food"}""",
+            Encoding.UTF8,
+            "application/json");
+
+        var response = await owner.Client.PostAsync("/api/expenses", content);
+
+        await AssertValidationErrorAsync(response, "amount");
+    }
+
+    [Theory]
+    [InlineData("1e2")]
+    [InlineData("1,000.00")]
+    [InlineData("$12.00")]
+    [InlineData("+12.00")]
+    [InlineData("not-money")]
+    public async Task Create_rejects_ambiguous_string_representations(string amount)
+    {
+        await using var app = new FinancialApiTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync($"invalid-{Guid.NewGuid()}@example.com");
+
+        var response = await owner.Client.PostAsJsonAsync("/api/expenses", new
+        {
+            description = "invalid amount",
+            amount,
+            date = "2026-08-15",
+            category = "food"
+        });
+
+        await AssertValidationErrorAsync(response, "amount");
     }
 
     [Fact]
@@ -301,6 +384,55 @@ public sealed class ExpensesApiTests
         Assert.Equal("home supplies", persisted.Category);
         Assert.Equal(owner.Id, persisted.UserId);
         Assert.Equal(new DateOnly(2026, 9, 3), persisted.Date);
+    }
+
+    [Fact]
+    public async Task Put_accepts_an_exact_string_at_the_full_range_without_rotating_unchanged_evidence()
+    {
+        await using var app = new FinancialApiTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("exact-update@example.com");
+        var expense = await app.SeedExpenseAsync(owner.Id, "maximum", 9999999999999999.99m, category: "food");
+        var originalRevision = expense.CommitmentEvidenceRevision;
+
+        var response = await owner.Client.PutAsJsonAsync($"/api/expenses/{expense.Id}", new
+        {
+            id = expense.Id,
+            description = expense.Description,
+            amount = "9999999999999999.99",
+            date = expense.Date.ToString("yyyy-MM-dd"),
+            category = expense.Category
+        });
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        var persisted = await app.FindExpenseAsync(expense.Id);
+        Assert.Equal(9999999999999999.99m, persisted!.Amount);
+        Assert.Equal(originalRevision, persisted.CommitmentEvidenceRevision);
+    }
+
+    [Theory]
+    [InlineData("1e2")]
+    [InlineData("1.001")]
+    [InlineData("10000000000000000.00")]
+    public async Task Put_rejects_invalid_exact_string_amounts_without_mutation(string amount)
+    {
+        await using var app = new FinancialApiTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync($"invalid-update-{Guid.NewGuid()}@example.com");
+        var expense = await app.SeedExpenseAsync(owner.Id, "original", 12.34m, category: "food");
+
+        var response = await owner.Client.PutAsJsonAsync($"/api/expenses/{expense.Id}", new
+        {
+            id = expense.Id,
+            description = "changed",
+            amount,
+            date = "2026-09-03",
+            category = "bills"
+        });
+
+        await AssertValidationErrorAsync(response, "amount");
+        var persisted = await app.FindExpenseAsync(expense.Id);
+        Assert.Equal(12.34m, persisted!.Amount);
+        Assert.Equal("original", persisted.Description);
+        Assert.Equal("food", persisted.Category);
     }
 
     [Fact]

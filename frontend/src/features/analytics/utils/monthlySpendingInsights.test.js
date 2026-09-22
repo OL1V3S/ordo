@@ -30,17 +30,17 @@ describe("monthly spending insights", () => {
     ];
     const result = buildMonthlySpendingInsights(expenses, "2026-08", now);
 
-    expect(result.total).toBe(100);
+    expect(result.total).toBe("100.00");
     expect(result.categories).toEqual([
-      { category: "food", amount: 60, percentage: 60 },
-      { category: "transport", amount: 40, percentage: 40 },
+      { category: "food", amount: "60.00", percentage: 60 },
+      { category: "transport", amount: "40.00", percentage: 40 },
     ]);
-    expect(result.comparison).toEqual({ previousTotal: 100, difference: 0, percentage: 0 });
+    expect(result.comparison).toEqual({ previousTotal: "100.00", difference: "0.00", isIncrease: false, percentage: 0 });
     expect(result.increases).toEqual([
-      { category: "transport", difference: 40 },
-      { category: "food", difference: 35 },
+      { category: "transport", difference: "40.00" },
+      { category: "food", difference: "35.00" },
     ]);
-    expect(result.decreases).toEqual([{ category: "bills", difference: -75 }]);
+    expect(result.decreases).toEqual([{ category: "bills", difference: "-75.00" }]);
   });
 
   it("does not invent a percentage when the previous month is zero and caps largest expenses at five", () => {
@@ -54,6 +54,7 @@ describe("monthly spending insights", () => {
     const result = buildMonthlySpendingInsights(expenses, "2026-08", now);
 
     expect(result.comparison.percentage).toBeNull();
+    expect(result.largestExpensesAvailable).toBe(true);
     expect(result.largestExpenses.map(({ amount }) => amount)).toEqual([7, 6, 5, 4, 3]);
   });
 
@@ -64,6 +65,21 @@ describe("monthly spending insights", () => {
       { id: 1, description: "First", category: "food", amount: 10, date: "2026-08-02" },
     ], "2026-08", now);
     expect(result.largestExpenses.map(({ id }) => id)).toEqual([2, 3, 1]);
+  });
+
+  it("preserves unavailable category totals and suppresses rankings when a legacy amount is ambiguous", () => {
+    const result = buildMonthlySpendingInsights([
+      { id: 1, description: "Ambiguous", category: "food", amount: Number("9999999999999999"), date: "2026-08-02" },
+      { id: 2, description: "Known smaller", category: "food", amount: "10.00", date: "2026-08-03" },
+      { id: 3, description: "July food", category: "food", amount: "20.00", date: "2026-07-03" },
+    ], "2026-08", now);
+
+    expect(result.available).toBe(false);
+    expect(result.totalsByCategory.food).toBeNull();
+    expect(result.increases).toEqual([]);
+    expect(result.decreases).toEqual([]);
+    expect(result.largestExpensesAvailable).toBe(false);
+    expect(result.largestExpenses).toEqual([]);
   });
 });
 
@@ -79,7 +95,7 @@ describe("budget status", () => {
       { category: "near", status: "near limit" },
       { category: "track", status: "on track" },
     ]);
-    expect(statuses[0]).toMatchObject({ percentage: 125, over: 25, remaining: null });
+    expect(statuses[0]).toMatchObject({ percentage: 125, over: "25.00", remaining: null });
   });
 
   it("implements the approved zero-dollar limit presentation", () => {
@@ -87,7 +103,14 @@ describe("budget status", () => {
       { id: 1, category: "spent", limitAmount: 0 },
       { id: 2, category: "empty", limitAmount: 0 },
     ], { spent: 12 });
-    expect(statuses[0]).toMatchObject({ category: "spent", status: "over budget", percentage: null, over: 12 });
-    expect(statuses[1]).toMatchObject({ category: "empty", status: "on track", percentage: 0, remaining: 0 });
+    expect(statuses[0]).toMatchObject({ category: "spent", status: "over budget", percentage: null, over: "12.00" });
+    expect(statuses[1]).toMatchObject({ category: "empty", status: "on track", percentage: 0, remaining: "0.00" });
+  });
+
+  it("fails closed instead of classifying an unsafe BudgetLimit number", () => {
+    const [status] = buildBudgetStatuses([
+      { id: 1, category: "food", limitAmount: Number("9999999999999999") },
+    ], { food: "90.00" });
+    expect(status).toMatchObject({ available: false, status: "unavailable", percentage: null, over: null, remaining: null });
   });
 });

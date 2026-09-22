@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { getSessionSnapshot } from "../../../shared/auth/session";
 import { normalizeText } from "../../../utils/text";
+import { parseExpenseAmount } from "../utils/exactMoney";
 
 const EMPTY_DRAFT = Object.freeze({
   description: "",
@@ -74,12 +75,14 @@ export function useExpenseCapture({
   }
 
   function submitCreate() {
+    const amount = parseExpenseAmount(draft.amount);
+    if (!amount) return undefined;
     const category = draft.category === "other"
       ? normalizeText(draft.customCategory || "uncategorized")
       : normalizeText(draft.category);
     return runMutation(() => createExpense({
       description: normalizeText(draft.description),
-      amount: parseFloat(draft.amount),
+      amount: amount.value,
       date: draft.date,
       category,
     }), "create", () => {

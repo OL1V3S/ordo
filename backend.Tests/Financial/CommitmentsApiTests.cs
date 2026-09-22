@@ -110,7 +110,7 @@ public sealed class CommitmentsApiTests
         Assert.Equal(3, emitted.Length);
         Assert.Equal(observations[0].Id, emitted[0].GetProperty("expenseId").GetInt32());
         Assert.Equal("2026-08-12", emitted[0].GetProperty("date").GetString());
-        Assert.Equal(12m, emitted[0].GetProperty("amount").GetDecimal());
+        Assert.Equal("12.00", emitted[0].GetProperty("amount").GetString());
         Assert.Equal("membership", emitted[0].GetProperty("description").GetString());
         Assert.Equal("bills", emitted[0].GetProperty("category").GetString());
         Assert.Equal("sunflower_pdf", emitted[0].GetProperty("source").GetString());
@@ -122,10 +122,10 @@ public sealed class CommitmentsApiTests
         Assert.Equal("proposed_change", amount.GetProperty("state").GetString());
         Assert.Equal("pending", amount.GetProperty("decisionState").GetString());
         Assert.Equal("fixed", amount.GetProperty("proposedMode").GetString());
-        Assert.Equal(12m, amount.GetProperty("proposedAmount").GetDecimal());
+        Assert.Equal("12.00", amount.GetProperty("proposedAmount").GetString());
         Assert.Equal(JsonValueKind.Null, amount.GetProperty("proposedMinimumAmount").ValueKind);
         Assert.Equal(JsonValueKind.Null, amount.GetProperty("proposedMaximumAmount").ValueKind);
-        Assert.Equal(12m, amount.GetProperty("observedMedianAmount").GetDecimal());
+        Assert.Equal("12.00", amount.GetProperty("observedMedianAmount").GetString());
         Assert.Equal(64, amount.GetProperty("fingerprint").GetString()!.Length);
         Assert.Equal(observations.Select(value => value.Id),
             amount.GetProperty("evidenceExpenseIds").EnumerateArray().Select(value => value.GetInt32()));
@@ -747,10 +747,14 @@ public sealed class CommitmentsApiTests
         Assert.Equal("monthly", candidate.GetProperty("cadence").GetString());
         Assert.Equal("health", candidate.GetProperty("category").GetString());
         Assert.Equal("variable", candidate.GetProperty("observedAmountMode").GetString());
+        Assert.Equal(JsonValueKind.String, candidate.GetProperty("observedMedianAmount").ValueKind);
+        Assert.Equal(JsonValueKind.String, candidate.GetProperty("observedMinimumAmount").ValueKind);
+        Assert.Equal(JsonValueKind.String, candidate.GetProperty("observedMaximumAmount").ValueKind);
         Assert.Equal(3, candidate.GetProperty("occurrenceCount").GetInt32());
         Assert.Equal("consecutive_calendar_months", candidate.GetProperty("evidenceRule").GetString());
         Assert.Equal(3, candidate.GetProperty("evidence").GetArrayLength());
         var evidenceRows = candidate.GetProperty("evidence").EnumerateArray().ToArray();
+        Assert.All(evidenceRows, evidence => Assert.Equal(JsonValueKind.String, evidence.GetProperty("amount").ValueKind));
         Assert.Equal("sunflower_pdf", evidenceRows[0].GetProperty("source").GetString());
         Assert.All(evidenceRows.Skip(1), evidence =>
             Assert.Equal("manual", evidence.GetProperty("source").GetString()));
@@ -762,6 +766,24 @@ public sealed class CommitmentsApiTests
             Assert.Single(second.GetProperty("candidates").EnumerateArray())
                 .GetProperty("fingerprint").GetString());
         Assert.DoesNotContain("hidden", first.ToString(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task Candidate_response_preserves_high_value_expense_amounts_as_exact_strings()
+    {
+        await using var app = new FinancialApiTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("high-candidate@example.com");
+        foreach (var date in RecentMonthlyDates())
+            await app.SeedExpenseAsync(owner.Id, "maximum membership", 9999999999999999.99m, date, "bills");
+
+        var body = await owner.Client.GetFromJsonAsync<JsonElement>("/api/commitment-candidates");
+        var candidate = Assert.Single(body.GetProperty("candidates").EnumerateArray());
+
+        Assert.Equal("9999999999999999.99", candidate.GetProperty("observedMedianAmount").GetString());
+        Assert.Equal("9999999999999999.99", candidate.GetProperty("observedMinimumAmount").GetString());
+        Assert.Equal("9999999999999999.99", candidate.GetProperty("observedMaximumAmount").GetString());
+        Assert.All(candidate.GetProperty("evidence").EnumerateArray(), evidence =>
+            Assert.Equal("9999999999999999.99", evidence.GetProperty("amount").GetString()));
     }
 
     [Fact]
@@ -1127,9 +1149,9 @@ public sealed class CommitmentsApiTests
         windowBeforeDays = 0,
         windowAfterDays = 0,
         amountMode = "fixed",
-        expectedAmount = 10m,
-        expectedMinimumAmount = (decimal?)null,
-        expectedMaximumAmount = (decimal?)null
+        expectedAmount = "10.00",
+        expectedMinimumAmount = (string?)null,
+        expectedMaximumAmount = (string?)null
     };
 }
 

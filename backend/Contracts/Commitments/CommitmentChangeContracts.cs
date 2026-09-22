@@ -36,7 +36,7 @@ public sealed record CommitmentChangeSnapshotResponse(
 public sealed record CommitmentChangeObservationResponse(
     int ExpenseId,
     DateOnly Date,
-    decimal Amount,
+    string Amount,
     string Description,
     string Category,
     string Source,
@@ -49,10 +49,10 @@ public sealed record CommitmentAmountChangeResponse(
     string? Fingerprint,
     string? DecisionState,
     string? ProposedMode,
-    decimal? ProposedAmount,
-    decimal? ProposedMinimumAmount,
-    decimal? ProposedMaximumAmount,
-    decimal? ObservedMedianAmount,
+    string? ProposedAmount,
+    string? ProposedMinimumAmount,
+    string? ProposedMaximumAmount,
+    string? ObservedMedianAmount,
     IReadOnlyList<int> EvidenceExpenseIds);
 
 public sealed record CommitmentTimingChangeResponse(

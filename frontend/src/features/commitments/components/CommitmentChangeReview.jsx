@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import Card from "../../../shared/ui/Card";
 import CommitmentEvidence from "./CommitmentEvidence";
-import { formatDate, formatMoney } from "../utils/formatCommitments";
+import { formatDate, formatDerivedMoney, formatMoney } from "../utils/formatCommitments";
 import groupCommitmentChanges from "../utils/groupCommitmentChanges";
 import { displayText } from "../../../utils/text";
+import { parseExpenseAmount } from "../../expenses/utils/exactMoney";
 
 function title(value) {
   const text = value?.replaceAll("_", " ").replace(/([a-z])([A-Z])/g, "$1 $2") ?? "";
@@ -29,8 +30,8 @@ function amountSummary(model) {
 }
 
 function proposedAmountSummary(assessment) {
-  if (assessment.proposedMode === "fixed") return formatMoney(assessment.proposedAmount);
-  return `${formatMoney(assessment.proposedMinimumAmount)}–${formatMoney(assessment.proposedMaximumAmount)}`;
+  if (assessment.proposedMode === "fixed") return formatDerivedMoney(assessment.proposedAmount);
+  return `${formatDerivedMoney(assessment.proposedMinimumAmount)}–${formatDerivedMoney(assessment.proposedMaximumAmount)}`;
 }
 
 function proposedTimingSummary(commitment, assessment) {
@@ -48,6 +49,18 @@ function proposedTimingSummary(commitment, assessment) {
 function evidenceFor(change, assessment) {
   const ids = new Set(assessment.evidenceExpenseIds ?? []);
   return change.observations.filter((observation) => ids.has(observation.expenseId));
+}
+
+function exactAmountAssessmentAvailable(change, assessment) {
+  const proposedAvailable = assessment.proposedMode === "fixed"
+    ? Boolean(parseExpenseAmount(assessment.proposedAmount))
+    : assessment.proposedMode === "range"
+      && Boolean(parseExpenseAmount(assessment.proposedMinimumAmount))
+      && Boolean(parseExpenseAmount(assessment.proposedMaximumAmount));
+  const evidenceIds = new Set(assessment.evidenceExpenseIds ?? []);
+  const evidence = evidenceFor(change, assessment);
+  return proposedAvailable && evidenceIds.size > 0 && evidence.length === evidenceIds.size
+    && evidence.every((observation) => parseExpenseAmount(observation.amount));
 }
 
 function explanation(change, dimension, assessment) {
@@ -93,7 +106,8 @@ function ChangeActions({ change, dimension, assessment, state, kept, activeTask,
   const name = change.commitment.name;
   const taskKey = `${change.commitment.id}:${assessment.fingerprint}`;
   const confirmingEnd = activeTask?.mode === "change-end" && activeTask.key === taskKey;
-  const actionDisabled = Boolean(state.busyKey || state.loading || state.loadError || activeTask);
+  const exactAmountAvailable = dimension !== "amount" || exactAmountAssessmentAvailable(change, assessment);
+  const actionDisabled = Boolean(state.busyKey || state.loading || state.loadError || activeTask || !exactAmountAvailable);
   const confirmationDisabled = Boolean(state.busyKey || state.loading || state.loadError);
   const cancelDisabled = Boolean(state.busyKey || state.loading);
 
@@ -254,6 +268,8 @@ function ChangeCard({ change, state, kept, activeTask, onTaskChange, onReviewedO
       <div className="commitment-change__panels">
         {change.assessments.map(({ dimension, assessment }) => {
           const evidence = evidenceFor(change, assessment);
+          const exactAmountAvailable = dimension !== "amount"
+            || exactAmountAssessmentAvailable(change, assessment);
           return (
             <section className="commitment-change__panel" key={`${dimension}:${assessment.fingerprint}`}>
               <div className="commitment-change__panel-header">
@@ -266,6 +282,7 @@ function ChangeCard({ change, state, kept, activeTask, onTaskChange, onReviewedO
                 </span>
               </div>
               <Comparison change={change} dimension={dimension} assessment={assessment} />
+              {!exactAmountAvailable && <p className="muted">Exact amount review is unavailable. Refresh with an updated client before making this amount decision.</p>}
               <details className="commitment-change__details">
                 <summary aria-label={`Details for ${dimension} change for ${change.commitment.name}`}>Details</summary>
                 {evidence.length > 0 && <CommitmentEvidence evidence={evidence} />}

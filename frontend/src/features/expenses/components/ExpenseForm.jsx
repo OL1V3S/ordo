@@ -3,6 +3,7 @@ import { DEFAULT_CATEGORIES } from "../../../shared/constants/categories";
 import { displayText } from "../../../utils/text";
 import Card from "../../../shared/ui/Card";
 import FormField from "../../../shared/ui/FormField";
+import { parseExpenseAmount } from "../utils/exactMoney";
 
 export default function ExpenseForm({
   loading,
@@ -24,21 +25,23 @@ export default function ExpenseForm({
   const formRef = useRef(null);
   const [invalidField, setInvalidField] = useState("");
 
-  function firstMissingField() {
-    return [
+  function firstInvalidField() {
+    const missing = [
       ["description", newName],
       ["amount", newAmount],
       ["date", newDate],
       ["category", newCategory],
-    ].find(([, value]) => !value)?.[0] ?? "";
+    ].find(([, value]) => !value)?.[0];
+    if (missing) return missing;
+    return parseExpenseAmount(newAmount) ? "" : "amount";
   }
 
   function handleSubmit(event) {
     event.preventDefault();
-    const missingField = firstMissingField();
-    if (missingField) {
-      setInvalidField(missingField);
-      window.requestAnimationFrame(() => formRef.current?.elements.namedItem(missingField)?.focus());
+    const invalid = firstInvalidField();
+    if (invalid) {
+      setInvalidField(invalid);
+      window.requestAnimationFrame(() => formRef.current?.elements.namedItem(invalid)?.focus());
       return;
     }
     setInvalidField("");
@@ -55,7 +58,11 @@ export default function ExpenseForm({
       <h2 className="h2">Add expense</h2>
       <form ref={formRef} noValidate onSubmit={handleSubmit}
         onChange={() => setInvalidField("")} aria-describedby={invalidField ? "add-expense-validation" : undefined}>
-        {invalidField && <p id="add-expense-validation" className="status-message status-message--danger" role="alert">Complete the required expense fields.</p>}
+        {invalidField && <p id="add-expense-validation" className="status-message status-message--danger" role="alert">
+          {invalidField === "amount"
+            ? "Enter a positive amount with at most two decimals, up to 9999999999999999.99."
+            : "Complete the required expense fields."}
+        </p>}
         <fieldset className="activity-form-fields" disabled={pending}>
         <legend className="sr-only">New expense</legend>
         <div className="form-grid">
@@ -71,7 +78,8 @@ export default function ExpenseForm({
         />}</FormField>
 
         <FormField label="Amount">{(id) => <input id={id}
-          type="number"
+          type="text"
+          inputMode="decimal"
           name="amount"
           required
           aria-invalid={invalidField === "amount"}
@@ -79,8 +87,6 @@ export default function ExpenseForm({
           placeholder="Amount"
           value={newAmount}
           onChange={(e) => setNewAmount(e.target.value)}
-          min="0"
-          step="0.01"
         />}</FormField>
 
         <FormField label="Date">{(id) => <input id={id}

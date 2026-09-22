@@ -1,5 +1,8 @@
 import { formatLocalCalendarDate } from "../../expenses/utils/calendarDate";
-import { usedPercentage } from "../../../utils/budgets";
+import {
+  compareCents, decimalFromCents, parseBudgetLimit, parseExactMoney,
+  parseExpenseAmount, percentageFromRatio,
+} from "../../expenses/utils/exactMoney";
 
 const DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
 const MONTH_PATTERN = /^(\d{4})-(\d{2})$/;
@@ -10,43 +13,37 @@ function isValidCalendarDate(value) {
   const year = Number(match[1]);
   const month = Number(match[2]);
   const day = Number(match[3]);
-  if (month < 1 || month > 12 || day < 1) return false;
-  return day <= new Date(year, month, 0).getDate();
-}
-
-function toCents(value) {
-  const amount = Number(value);
-  return Number.isFinite(amount) ? Math.round(amount * 100) : null;
+  return month >= 1 && month <= 12 && day >= 1 && day <= new Date(year, month, 0).getDate();
 }
 
 function compareCategoryNames(left, right) {
   return left.localeCompare(right, "en", { sensitivity: "base" });
 }
 
-function expensesForMonth(expenses, monthYear, now) {
+function expenseEntriesForMonth(expenses, monthYear, now) {
   if (!MONTH_PATTERN.test(monthYear)) return [];
   const currentMonth = formatLocalCalendarDate(now).slice(0, 7);
   if (monthYear > currentMonth) return [];
-
   const today = formatLocalCalendarDate(now);
   return (expenses ?? []).filter((expense) => {
     if (!isValidCalendarDate(expense.date) || !expense.date.startsWith(`${monthYear}-`)) return false;
-    if (monthYear === currentMonth && expense.date > today) return false;
-    return toCents(expense.amount) !== null;
-  });
+    return monthYear !== currentMonth || expense.date <= today;
+  }).map((expense) => ({ expense, amount: parseExpenseAmount(expense.amount) }));
 }
 
-function totalsInCents(expenses) {
+function totalsInCents(entries) {
   const totals = new Map();
-  for (const expense of expenses) {
+  for (const { expense, amount } of entries) {
     const category = expense.category || "uncategorized";
-    totals.set(category, (totals.get(category) ?? 0) + toCents(expense.amount));
+    if (totals.get(category) === null) continue;
+    totals.set(category, amount ? (totals.get(category) ?? 0n) + amount.cents : null);
   }
   return totals;
 }
 
-function totalCents(totals) {
-  return Array.from(totals.values()).reduce((sum, amount) => sum + amount, 0);
+function availableTotal(totals) {
+  if (Array.from(totals.values()).some((amount) => amount === null)) return null;
+  return Array.from(totals.values()).reduce((sum, amount) => sum + amount, 0n);
 }
 
 export function getPreviousMonth(monthYear) {
@@ -75,78 +72,95 @@ export function getAvailableMonths(expenses, now = new Date()) {
 }
 
 export function buildMonthlySpendingInsights(expenses, selectedMonth, now = new Date()) {
-  const selectedExpenses = expensesForMonth(expenses, selectedMonth, now);
+  const selectedEntries = expenseEntriesForMonth(expenses, selectedMonth, now);
   const previousMonth = getPreviousMonth(selectedMonth);
-  const previousExpenses = expensesForMonth(expenses, previousMonth, now);
-  const selectedTotals = totalsInCents(selectedExpenses);
-  const previousTotals = totalsInCents(previousExpenses);
-  const selectedTotalCents = totalCents(selectedTotals);
-  const previousTotalCents = totalCents(previousTotals);
-  const differenceCents = selectedTotalCents - previousTotalCents;
+  const previousEntries = expenseEntriesForMonth(expenses, previousMonth, now);
+  const selectedTotals = totalsInCents(selectedEntries);
+  const previousTotals = totalsInCents(previousEntries);
+  const selectedTotal = availableTotal(selectedTotals);
+  const previousTotal = availableTotal(previousTotals);
+  const available = selectedTotal !== null && previousTotal !== null;
+  const difference = available ? selectedTotal - previousTotal : null;
 
-  const categories = Array.from(selectedTotals, ([category, amountCents]) => ({
-    category,
-    amount: amountCents / 100,
-    percentage: selectedTotalCents > 0 ? (amountCents / selectedTotalCents) * 100 : null,
-  })).sort((left, right) => right.amount - left.amount || compareCategoryNames(left.category, right.category));
+  const categories = Array.from(selectedTotals, ([category, amountCents]) => ({ category, amountCents }))
+    .filter(({ amountCents }) => amountCents !== null)
+    .sort((left, right) => compareCents(right.amountCents, left.amountCents)
+      || compareCategoryNames(left.category, right.category))
+    .map(({ category, amountCents }) => ({
+      category,
+      amount: decimalFromCents(amountCents),
+      percentage: selectedTotal !== null && selectedTotal > 0n
+        ? percentageFromRatio(amountCents, selectedTotal) : null,
+    }));
 
-  const categoryChanges = Array.from(new Set([...selectedTotals.keys(), ...previousTotals.keys()]), (category) => ({
-    category,
-    difference: ((selectedTotals.get(category) ?? 0) - (previousTotals.get(category) ?? 0)) / 100,
-  }));
-  const increases = categoryChanges
-    .filter(({ difference }) => difference > 0)
-    .sort((left, right) => right.difference - left.difference || compareCategoryNames(left.category, right.category))
-    .slice(0, 3);
-  const decreases = categoryChanges
-    .filter(({ difference }) => difference < 0)
-    .sort((left, right) => left.difference - right.difference || compareCategoryNames(left.category, right.category))
-    .slice(0, 3);
+  const categoryChanges = Array.from(new Set([...selectedTotals.keys(), ...previousTotals.keys()]), (category) => {
+    const selected = selectedTotals.has(category) ? selectedTotals.get(category) : 0n;
+    const previous = previousTotals.has(category) ? previousTotals.get(category) : 0n;
+    return { category, differenceCents: selected === null || previous === null ? null : selected - previous };
+  });
+  const increases = categoryChanges.filter(({ differenceCents }) => differenceCents > 0n)
+    .sort((left, right) => compareCents(right.differenceCents, left.differenceCents)
+      || compareCategoryNames(left.category, right.category)).slice(0, 3)
+    .map(({ category, differenceCents }) => ({ category, difference: decimalFromCents(differenceCents) }));
+  const decreases = categoryChanges.filter(({ differenceCents }) => differenceCents < 0n)
+    .sort((left, right) => compareCents(left.differenceCents, right.differenceCents)
+      || compareCategoryNames(left.category, right.category)).slice(0, 3)
+    .map(({ category, differenceCents }) => ({ category, difference: decimalFromCents(differenceCents) }));
 
-  const largestExpenses = [...selectedExpenses]
-    .sort((left, right) => {
-      const amountDifference = toCents(right.amount) - toCents(left.amount);
-      if (amountDifference) return amountDifference;
-      const dateDifference = right.date.localeCompare(left.date);
-      if (dateDifference) return dateDifference;
-      return Number(left.id ?? 0) - Number(right.id ?? 0);
-    })
-    .slice(0, 5);
+  const largestExpensesAvailable = selectedEntries.every(({ amount }) => amount !== null);
+  const largestExpenses = largestExpensesAvailable
+    ? [...selectedEntries]
+      .sort((left, right) => compareCents(right.amount.cents, left.amount.cents)
+        || right.expense.date.localeCompare(left.expense.date)
+        || Number(left.expense.id ?? 0) - Number(right.expense.id ?? 0))
+      .slice(0, 5).map(({ expense }) => expense)
+    : [];
 
   return {
+    available,
     previousMonth,
-    total: selectedTotalCents / 100,
+    total: selectedTotal === null ? null : decimalFromCents(selectedTotal),
     categories,
-    totalsByCategory: Object.fromEntries(Array.from(selectedTotals, ([category, cents]) => [category, cents / 100])),
+    totalsByCategory: Object.fromEntries(Array.from(selectedTotals, ([category, cents]) =>
+      [category, cents === null ? null : decimalFromCents(cents)])),
     comparison: {
-      previousTotal: previousTotalCents / 100,
-      difference: differenceCents / 100,
-      percentage: previousTotalCents > 0 ? (differenceCents / previousTotalCents) * 100 : null,
+      previousTotal: previousTotal === null ? null : decimalFromCents(previousTotal),
+      difference: difference === null ? null : decimalFromCents(difference),
+      isIncrease: difference !== null && difference > 0n,
+      percentage: difference !== null && previousTotal > 0n
+        ? percentageFromRatio(difference, previousTotal) : null,
     },
     increases,
     decreases,
+    largestExpensesAvailable,
     largestExpenses,
   };
 }
 
 export function buildBudgetStatuses(budgetLimits, totalsByCategory) {
   return (budgetLimits ?? []).map((limit) => {
-    const spent = Number(totalsByCategory?.[limit.category] ?? 0);
-    const limitAmount = Number(limit.limitAmount ?? 0);
-    const difference = Math.round(Math.abs(limitAmount - spent) * 100) / 100;
-    const isOver = spent > limitAmount;
-    const percentage = limitAmount === 0 ? null : usedPercentage(spent, limitAmount);
-    const status = isOver ? "over budget" : percentage >= 90 ? "near limit" : "on track";
+    const spent = parseExactMoney(
+      totalsByCategory?.[limit.category] === undefined ? "0.00" : totalsByCategory[limit.category],
+      { allowZero: true }
+    );
+    const limitAmount = parseBudgetLimit(limit.limitAmount);
+    if (!spent || !limitAmount) {
+      return { ...limit, available: false, spent: spent?.value ?? null, limitAmount: null,
+        percentage: null, status: "unavailable", remaining: null, over: null };
+    }
+    const isOver = spent.cents > limitAmount.cents;
+    const percentage = limitAmount.cents === 0n ? null : percentageFromRatio(spent.cents, limitAmount.cents);
+    const status = isOver ? "over budget"
+      : spent.cents * 100n >= limitAmount.cents * 90n && limitAmount.cents > 0n ? "near limit" : "on track";
+    const difference = isOver ? spent.cents - limitAmount.cents : limitAmount.cents - spent.cents;
     return {
-      ...limit,
-      spent,
-      percentage: limitAmount === 0 && spent === 0 ? 0 : percentage,
-      status,
-      remaining: isOver ? null : difference,
-      over: isOver ? difference : null,
+      ...limit, available: true, spent: spent.value, limitAmount: limitAmount.value,
+      percentage: limitAmount.cents === 0n && spent.cents === 0n ? 0 : percentage, status,
+      remaining: isOver ? null : decimalFromCents(difference),
+      over: isOver ? decimalFromCents(difference) : null,
     };
   }).sort((left, right) => {
-    const priority = { "over budget": 0, "near limit": 1, "on track": 2 };
+    const priority = { "over budget": 0, "near limit": 1, "on track": 2, unavailable: 3 };
     return priority[left.status] - priority[right.status] || compareCategoryNames(left.category, right.category);
   });
 }

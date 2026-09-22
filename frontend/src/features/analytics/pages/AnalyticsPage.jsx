@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useBudgetLimits } from "../../budgetLimits/hooks/useBudgetLimits";
 import { useExpenses } from "../../expenses/hooks/useExpenses";
 import { formatExpenseDate } from "../../expenses/utils/calendarDate";
+import { formatExactMoney, formatSignedMoney } from "../../expenses/utils/exactMoney";
 import { useCashFlow } from "../hooks/useCashFlow";
 import CashFlowSummary from "../components/CashFlowSummary";
 import CashFlowCategories from "../components/CashFlowCategories";
@@ -16,8 +17,6 @@ import {
   buildMonthlySpendingInsights,
   formatMonthLabel,
 } from "../utils/monthlySpendingInsights";
-
-const currencyFormatter = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
 
 function formatPercentage(value, { signed = false } = {}) {
   if (value === null) return "Not applicable";
@@ -109,6 +108,7 @@ export default function AnalyticsPage() {
 
         {!expensesLoading && !expensesError ? (
           <div className="analytics-details">
+            {!insights.available && <StatusMessage tone="warning">Some Expense amounts could not be verified exactly. Affected spending comparisons are unavailable.</StatusMessage>}
             <section className="analytics-detail" aria-labelledby="budget-status-heading">
               <details>
                 <summary><h3 id="budget-status-heading">Budget status by category</h3></summary>
@@ -130,13 +130,17 @@ export default function AnalyticsPage() {
                             <strong>{displayText(budget.category)}</strong>
                             <span className={`analytics-status analytics-status--${budget.status.replace(" ", "-")}`}>{displayText(budget.status)}</span>
                           </div>
-                          <p>{currencyFormatter.format(budget.spent)} spent of {currencyFormatter.format(budget.limitAmount)}</p>
-                          <p>{budget.over !== null
-                            ? `${currencyFormatter.format(budget.over)} over`
-                            : `${currencyFormatter.format(budget.remaining)} remaining`}</p>
-                          <p>{budget.percentage === null
-                            ? "Percentage used: Not applicable for a $0 limit"
-                            : `${formatPercentage(budget.percentage)} used`}</p>
+                          {!budget.available ? (
+                            <p>Exact comparison unavailable. Review the limit or spending amount.</p>
+                          ) : <>
+                            <p>{formatExactMoney(budget.spent, { allowZero: true })} spent of {formatExactMoney(budget.limitAmount, { allowZero: true })}</p>
+                            <p>{budget.over !== null
+                              ? `${formatExactMoney(budget.over, { allowZero: true })} over`
+                              : `${formatExactMoney(budget.remaining, { allowZero: true })} remaining`}</p>
+                            <p>{budget.percentage === null
+                              ? "Percentage used: Not applicable for a $0 limit"
+                              : `${formatPercentage(budget.percentage)} used`}</p>
+                          </>}
                         </li>
                       ))}
                     </ul>
@@ -157,15 +161,16 @@ export default function AnalyticsPage() {
                 <summary><h3 id="comparison-heading">Month-over-month change</h3></summary>
                 <div className="analytics-detail__content">
                   <p className="analytics-kicker">Compared with {formatMonthLabel(insights.previousMonth)}</p>
+                  {!insights.available ? <StatusMessage>Exact month-over-month comparison is unavailable.</StatusMessage> : <>
                   <p className="analytics-comparison__value">
-                    {insights.comparison.difference > 0 ? "+" : ""}{currencyFormatter.format(insights.comparison.difference)}
+                    {insights.comparison.isIncrease ? "+" : ""}{formatSignedMoney(insights.comparison.difference)}
                   </p>
-                  {insights.comparison.previousTotal === 0 && insights.total === 0 ? (
+                  {insights.comparison.previousTotal === "0.00" && insights.total === "0.00" ? (
                     <p className="muted">Neither month has recorded spending.</p>
                   ) : insights.comparison.percentage === null ? (
                     <p className="muted">Percentage comparison is unavailable because the previous month had $0.00 recorded spending.</p>
                   ) : (
-                    <p className="muted">{formatPercentage(insights.comparison.percentage, { signed: true })} from {currencyFormatter.format(insights.comparison.previousTotal)}</p>
+                    <p className="muted">{formatPercentage(insights.comparison.percentage, { signed: true })} from {formatExactMoney(insights.comparison.previousTotal, { allowZero: true })}</p>
                   )}
                   {insights.increases.length === 0 && insights.decreases.length === 0 ? (
                     <StatusMessage>No category changes to show between these months.</StatusMessage>
@@ -174,17 +179,18 @@ export default function AnalyticsPage() {
                       <div>
                         <h4>Largest increases</h4>
                         {insights.increases.length === 0 ? <p className="muted">No increases.</p> : (
-                          <ul>{insights.increases.map((change) => <li key={change.category}>{displayText(change.category)} <strong>+{currencyFormatter.format(change.difference)}</strong></li>)}</ul>
+                          <ul>{insights.increases.map((change) => <li key={change.category}>{displayText(change.category)} <strong>+{formatSignedMoney(change.difference)}</strong></li>)}</ul>
                         )}
                       </div>
                       <div>
                         <h4>Largest decreases</h4>
                         {insights.decreases.length === 0 ? <p className="muted">No decreases.</p> : (
-                          <ul>{insights.decreases.map((change) => <li key={change.category}>{displayText(change.category)} <strong>{currencyFormatter.format(change.difference)}</strong></li>)}</ul>
+                          <ul>{insights.decreases.map((change) => <li key={change.category}>{displayText(change.category)} <strong>{formatSignedMoney(change.difference)}</strong></li>)}</ul>
                         )}
                       </div>
                     </div>
                   )}
+                  </>}
                 </div>
               </details>
             </section>
@@ -199,14 +205,16 @@ export default function AnalyticsPage() {
                     </div>
                     <Link to="/transactions">Review activity</Link>
                   </div>
-                  {insights.largestExpenses.length === 0 ? (
+                  {!insights.largestExpensesAvailable ? (
+                    <StatusMessage>Exact largest-expense ranking is unavailable because an amount could not be verified.</StatusMessage>
+                  ) : insights.largestExpenses.length === 0 ? (
                     <StatusMessage>No expenses to rank for this month.</StatusMessage>
                   ) : (
                     <ol className="analytics-list">
                       {insights.largestExpenses.map((expense) => (
                         <li key={expense.id} className="analytics-list__item analytics-row">
                           <span><strong>{expense.description}</strong><small>{displayText(expense.category)} · {formatExpenseDate(expense.date)}</small></span>
-                          <strong>{currencyFormatter.format(expense.amount)}</strong>
+                          <strong>{formatExactMoney(expense.amount)}</strong>
                         </li>
                       ))}
                     </ol>

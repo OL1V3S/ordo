@@ -1,4 +1,4 @@
-import { formatDate, formatMoney } from "../utils/formatCommitments";
+import { formatDate, formatDerivedMoney } from "../utils/formatCommitments";
 import { displayText } from "../../../utils/text";
 
 function sourceLabel(source) {
@@ -17,7 +17,7 @@ export default function CommitmentEvidence({ evidence, heading = "Supporting exp
               <span>{formatDate(expense.date)} · {displayText(expense.category)}</span>
               <span>{sourceLabel(expense.source)}</span>
             </div>
-            <strong>{formatMoney(expense.amount)}</strong>
+            <strong>{formatDerivedMoney(expense.amount)}</strong>
           </li>
         ))}
       </ul>
