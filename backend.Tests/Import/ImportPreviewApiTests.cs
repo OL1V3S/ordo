@@ -506,7 +506,7 @@ public sealed class ImportPreviewApiTests
         var expense = Assert.Single(expenses.EnumerateArray());
         Assert.Equal("Server-edited description", expense.GetProperty("description").GetString());
         Assert.Equal("home supplies", expense.GetProperty("category").GetString());
-        Assert.Equal(7.99m, expense.GetProperty("amount").GetDecimal());
+        Assert.Equal("7.99", expense.GetProperty("amount").GetString());
         Assert.Equal("2026-02-04", expense.GetProperty("date").GetString());
 
         var retry = await owner.Client.PostAsync($"/api/import-previews/{batchId}/confirm", null);

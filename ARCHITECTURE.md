@@ -69,6 +69,18 @@ surface can reuse the same create, validation, duplicate-submit, session,
 outcome, and recovery behavior with a bounded read model. Activity retains its
 page-specific filtering, list pinning, import coordination, and presentation.
 
+Expense money crosses the browser/API boundary as canonical invariant decimal
+strings and is parsed into integer minor units for Expense entry, editing,
+aggregation, ordering, comparison, and display. The API temporarily accepts
+legacy numeric Expense requests for version compatibility. Selected commitment
+candidate, evidence, observation, and proposal fields that are derived directly
+from Expenses use the same string boundary; saved commitment expectation fields
+retain their existing contract. BudgetLimit contracts also remain numeric, so a
+browser comparison is allowed only when the received number can be reconstructed
+unambiguously at cent precision. Ambiguous legacy Expense or BudgetLimit values
+fail closed and cannot drive an edit, commitment amount decision, budget status,
+or Overview attention item.
+
 Below the desktop sidebar breakpoint, the shell exposes Home, Activity, Plan,
 Insights, and More. The protected `/plan` and `/more` pages group links to the
 existing feature URLs without owning feature data or changing their workflows.
@@ -114,6 +126,14 @@ schema history.
 The intended dependency direction is HTTP boundary to application/service and
 persistence concerns, with database access remaining behind the API. Keep this
 structure appropriately simple; new layers require a demonstrated need.
+
+The Expense HTTP boundary uses an Expense-specific decimal input adapter: new
+clients send canonical decimal strings, stale clients may send JSON number
+tokens, and both are validated into .NET `decimal` before the existing domain
+rules run. Expense responses format `numeric(18,2)` values as fixed-two-decimal
+strings. This is a transport hardening only; persistence, approved monetary
+range, financial semantics, and commitment detector arithmetic remain decimal
+and unchanged.
 
 `backend/Import/` contains the bounded PDF-to-text application boundary. Its
 private `backend.PdfWorker` child process is packaged inside the backend publish

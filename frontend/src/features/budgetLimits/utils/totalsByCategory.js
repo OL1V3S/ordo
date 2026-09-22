@@ -1,4 +1,5 @@
 import { formatLocalCalendarDate } from "../../expenses/utils/calendarDate";
+import { decimalFromCents, parseExpenseAmount } from "../../expenses/utils/exactMoney";
 
 export function computeMonthlyTotalsByCategory(expenses, limitMonthYear) {
   const [yr, mon] = String(limitMonthYear).split("-").map(Number);
@@ -20,10 +21,14 @@ export function computeMonthlyTotalsByCategory(expenses, limitMonthYear) {
 
     const cat = exp.category || "Uncategorized";
 
-    const current = totals[cat] || 0;
-    const next = current + Number(exp.amount || 0);
-
-    totals[cat] = Math.round(next * 100) / 100; // 🔥 fix
+    if (totals[cat] === null) continue;
+    const amount = parseExpenseAmount(exp.amount);
+    if (!amount) {
+      totals[cat] = null;
+      continue;
+    }
+    const current = totals[cat] == null ? 0n : parseExpenseAmount(totals[cat]).cents;
+    totals[cat] = decimalFromCents(current + amount.cents);
   }
 
   return totals;

@@ -5,7 +5,7 @@ import CommitmentEvidence from "../components/CommitmentEvidence";
 import CommitmentChangeReview from "../components/CommitmentChangeReview";
 import CommitmentForm from "../components/CommitmentForm";
 import { useCommitments } from "../hooks/useCommitments";
-import { formatDate, formatMoney } from "../utils/formatCommitments";
+import { formatDate, formatDerivedMoney, formatMoney } from "../utils/formatCommitments";
 import groupCommitmentChanges from "../utils/groupCommitmentChanges";
 import { displayText } from "../../../utils/text";
 
@@ -32,9 +32,12 @@ function timingSummary(model) {
 }
 
 function amountSummary(model) {
-  const mode = model.amountMode ?? model.observedAmountMode;
-  if (mode === "fixed") return formatMoney(model.expectedAmount ?? model.observedMedianAmount);
-  return `${formatMoney(model.expectedMinimumAmount ?? model.observedMinimumAmount)}–${formatMoney(model.expectedMaximumAmount ?? model.observedMaximumAmount)}`;
+  if (model.amountMode) {
+    if (model.amountMode === "fixed") return formatMoney(model.expectedAmount);
+    return `${formatMoney(model.expectedMinimumAmount)}–${formatMoney(model.expectedMaximumAmount)}`;
+  }
+  if (model.observedAmountMode === "fixed") return formatDerivedMoney(model.observedMedianAmount);
+  return `${formatDerivedMoney(model.observedMinimumAmount)}–${formatDerivedMoney(model.observedMaximumAmount)}`;
 }
 
 function CandidateCard({ candidate, dismissed, state, task, disabled, onOpen, onCancel, onDraftChange, onSubmit, onDecision }) {
@@ -57,7 +60,7 @@ function CandidateCard({ candidate, dismissed, state, task, disabled, onOpen, on
           <div><dt>Evidence</dt><dd>{candidate.occurrenceCount} expenses · {EVIDENCE_RULES[candidate.evidenceRule] ?? title(candidate.evidenceRule)}</dd></div>
           <div><dt>Covered period</dt><dd>{formatDate(candidate.coveredFrom)}–{formatDate(candidate.coveredTo)}</dd></div>
           <div><dt>Observed timing</dt><dd>{timingSummary(candidate)}</dd></div>
-          <div><dt>Observed amount</dt><dd>{candidate.observedAmountMode === "fixed" ? "Identical each time" : `Median ${formatMoney(candidate.observedMedianAmount)}`}</dd></div>
+          <div><dt>Observed amount</dt><dd>{candidate.observedAmountMode === "fixed" ? "Identical each time" : `Median ${formatDerivedMoney(candidate.observedMedianAmount)}`}</dd></div>
           <div><dt>Detection details</dt><dd>{candidate.algorithmVersion}</dd></div>
         </dl>
         <CommitmentEvidence evidence={candidate.evidence} />

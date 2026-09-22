@@ -56,6 +56,17 @@ describe("ExpenseList", () => {
     expect(onStartEdit).toHaveBeenCalledWith(expense, editButton);
   });
 
+  it("renders high-value strings exactly and blocks edits of ambiguous legacy numbers", () => {
+    const highExpense = { ...expense, amount: "9999999999999999.99" };
+    const { rerender } = render(<ExpenseList {...listProps({ expenses: [highExpense] })} />);
+    expect(screen.getByText("9,999,999,999,999,999.99")).toBeVisible();
+    expect(screen.getByRole("button", { name: /Edit expense Coffee/ })).toBeEnabled();
+
+    rerender(<ExpenseList {...listProps({ expenses: [{ ...expense, amount: Number("9999999999999999") }] })} />);
+    expect(screen.getByText("Amount needs review")).toBeVisible();
+    expect(screen.getByRole("button", { name: /Edit expense Coffee/ })).toBeDisabled();
+  });
+
   it("locks other row actions and keeps an unavailable read draft cancelable", () => {
     const { rerender } = render(<ExpenseList {...listProps({ taskLocked: true })} />);
     expect(screen.getByRole("button", { name: "Edit expense Coffee from 08/14/2026, row 1" })).toBeDisabled();

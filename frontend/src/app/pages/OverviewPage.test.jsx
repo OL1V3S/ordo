@@ -296,6 +296,18 @@ describe("Home current-month snapshot", () => {
     expectReadCounts({ budgets: 2 });
   });
 
+  it("does not create budget attention from an unsafe legacy limit", async () => {
+    budgetLimitsApi.getByMonth.mockResolvedValue(response([
+      { id: "unsafe", category: "food", limitAmount: Number("9999999999999999") },
+    ]));
+    renderPage();
+
+    const budgetModule = moduleNamed("Budget attention");
+    expect(await within(budgetModule).findByText(/Budget attention is unavailable for 1 limit/)).toBeVisible();
+    expect(within(budgetModule).queryByRole("listitem")).not.toBeInTheDocument();
+    expect(budgetModule).not.toHaveTextContent(/used of/);
+  });
+
   it("keeps other modules visible when expected paychecks fail, then retries only paychecks", async () => {
     paychecksApi.getPaychecks.mockRejectedValueOnce(new Error("offline"));
     renderPage();

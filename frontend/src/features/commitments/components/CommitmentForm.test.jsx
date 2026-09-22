@@ -49,8 +49,8 @@ describe("commitment expectation form", () => {
       expectedMonth: null,
       amountMode: "range",
       expectedAmount: null,
-      expectedMinimumAmount: 20,
-      expectedMaximumAmount: 20,
+      expectedMinimumAmount: "20.00",
+      expectedMaximumAmount: "20.00",
     }));
   });
 
@@ -87,5 +87,21 @@ describe("commitment expectation form", () => {
       expectedMonth: 2,
       expectedDay: 28,
     }));
+  });
+
+  it("blocks confirmation when a legacy candidate amount cannot be reconstructed exactly", () => {
+    render(
+      <CommitmentForm
+        model={{ ...model, observedMedianAmount: Number("9999999999999999") }}
+        fingerprint="candidate-unsafe"
+        submitLabel="Confirm commitment"
+        busy={false}
+        onSubmit={vi.fn()}
+        onCancel={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText(/could not be loaded with reliable cent precision/)).toBeVisible();
+    expect(screen.getByRole("button", { name: "Confirm commitment" })).toBeDisabled();
   });
 });

@@ -30,17 +30,17 @@ describe("monthly spending insights", () => {
     ];
     const result = buildMonthlySpendingInsights(expenses, "2026-08", now);
 
-    expect(result.total).toBe(100);
+    expect(result.total).toBe("100.00");
     expect(result.categories).toEqual([
-      { category: "food", amount: 60, percentage: 60 },
-      { category: "transport", amount: 40, percentage: 40 },
+      { category: "food", amount: "60.00", percentage: 60 },
+      { category: "transport", amount: "40.00", percentage: 40 },
     ]);
-    expect(result.comparison).toEqual({ previousTotal: 100, difference: 0, percentage: 0 });
+    expect(result.comparison).toEqual({ previousTotal: "100.00", difference: "0.00", isIncrease: false, percentage: 0 });
     expect(result.increases).toEqual([
-      { category: "transport", difference: 40 },
-      { category: "food", difference: 35 },
+      { category: "transport", difference: "40.00" },
+      { category: "food", difference: "35.00" },
     ]);
-    expect(result.decreases).toEqual([{ category: "bills", difference: -75 }]);
+    expect(result.decreases).toEqual([{ category: "bills", difference: "-75.00" }]);
   });
 
   it("does not invent a percentage when the previous month is zero and caps largest expenses at five", () => {
@@ -79,7 +79,7 @@ describe("budget status", () => {
       { category: "near", status: "near limit" },
       { category: "track", status: "on track" },
     ]);
-    expect(statuses[0]).toMatchObject({ percentage: 125, over: 25, remaining: null });
+    expect(statuses[0]).toMatchObject({ percentage: 125, over: "25.00", remaining: null });
   });
 
   it("implements the approved zero-dollar limit presentation", () => {
@@ -87,7 +87,14 @@ describe("budget status", () => {
       { id: 1, category: "spent", limitAmount: 0 },
       { id: 2, category: "empty", limitAmount: 0 },
     ], { spent: 12 });
-    expect(statuses[0]).toMatchObject({ category: "spent", status: "over budget", percentage: null, over: 12 });
-    expect(statuses[1]).toMatchObject({ category: "empty", status: "on track", percentage: 0, remaining: 0 });
+    expect(statuses[0]).toMatchObject({ category: "spent", status: "over budget", percentage: null, over: "12.00" });
+    expect(statuses[1]).toMatchObject({ category: "empty", status: "on track", percentage: 0, remaining: "0.00" });
+  });
+
+  it("fails closed instead of classifying an unsafe BudgetLimit number", () => {
+    const [status] = buildBudgetStatuses([
+      { id: 1, category: "food", limitAmount: Number("9999999999999999") },
+    ], { food: "90.00" });
+    expect(status).toMatchObject({ available: false, status: "unavailable", percentage: null, over: null, remaining: null });
   });
 });

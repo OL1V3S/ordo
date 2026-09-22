@@ -5,7 +5,7 @@ public sealed record CommitmentError(string Code, string Message);
 public sealed record CommitmentEvidenceResponse(
     int ExpenseId,
     DateOnly Date,
-    decimal Amount,
+    string Amount,
     string Description,
     string Category,
     string Source);
@@ -23,9 +23,9 @@ public sealed record CommitmentCandidateResponse(
     int WindowBeforeDays,
     int WindowAfterDays,
     string ObservedAmountMode,
-    decimal ObservedMedianAmount,
-    decimal ObservedMinimumAmount,
-    decimal ObservedMaximumAmount,
+    string ObservedMedianAmount,
+    string ObservedMinimumAmount,
+    string ObservedMaximumAmount,
     DateOnly CoveredFrom,
     DateOnly CoveredTo,
     int OccurrenceCount,

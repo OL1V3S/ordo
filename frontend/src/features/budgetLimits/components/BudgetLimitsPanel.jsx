@@ -1,9 +1,14 @@
 import { useMemo, useRef, useState } from "react";
-import { usedPercentage } from "../../../utils/budgets";
 import { DEFAULT_CATEGORIES } from "../../../shared/constants/categories";
 import { displayText, normalizeText } from "../../../utils/text";
 import FormField from "../../../shared/ui/FormField";
 import StatusMessage from "../../../shared/ui/StatusMessage";
+import {
+  formatCents,
+  parseBudgetLimit,
+  parseExactMoney,
+  percentageFromRatio,
+} from "../../expenses/utils/exactMoney";
 
 const roundMoney = (value) => Number(parseFloat(value || 0).toFixed(2));
 const isValidMoney = (value) => /^\d*\.?\d{0,2}$/.test(value);
@@ -52,9 +57,10 @@ export default function BudgetLimitsPanel({
     if (task || mutationDisabled) return;
     taskOpener.current = opener;
     setValidation(null);
+    const parsedLimit = parseBudgetLimit(budgetLimitsByCategory[category]?.limitAmount);
     setTask({
       type: "edit", month: limitMonthYear, category,
-      amount: Number(budgetLimitsByCategory[category]?.limitAmount ?? 0).toFixed(2),
+      amount: parsedLimit?.value ?? "",
     });
     focusAfterRender(() => taskField.current);
   }
@@ -187,26 +193,33 @@ export default function BudgetLimitsPanel({
         : <div className="budget-cards">
           {Object.entries(budgetLimitsByCategory).map(([category, limit]) => {
             const name = displayText(category);
-            const used = Number((totalsByCategory[category] || 0).toFixed(2));
-            const limitAmount = Number((limit.limitAmount || 0).toFixed(2));
-            const percentage = limitAmount ? usedPercentage(used, limitAmount) : 0;
-            const warning = spendingAvailable && used >= limitAmount * 0.9;
+            const totalValue = totalsByCategory[category] === undefined ? "0.00" : totalsByCategory[category];
+            const used = parseExactMoney(totalValue, { allowZero: true });
+            const limitAmount = parseBudgetLimit(limit.limitAmount);
+            const comparisonAvailable = spendingAvailable && Boolean(used && limitAmount);
+            const percentage = comparisonAvailable && limitAmount.cents > 0n
+              ? percentageFromRatio(used.cents, limitAmount.cents) : null;
+            const warning = comparisonAvailable && (limitAmount.cents === 0n
+              || used.cents * 100n >= limitAmount.cents * 90n);
             const status = !spendingAvailable ? "Spending unavailable"
-              : !limitAmount ? "Zero limit"
-                : used > limitAmount ? "Over limit" : used === limitAmount ? "Limit reached"
+              : !used ? "Spending needs review"
+                : !limitAmount ? "Limit needs review"
+                  : limitAmount.cents === 0n ? "Zero limit"
+                : used.cents > limitAmount.cents ? "Over limit" : used.cents === limitAmount.cents ? "Limit reached"
                   : warning ? "Near limit" : "Within limit";
             return <article key={category} className={`card budget-card${warning ? " budget-card--warning" : ""}`} aria-label={`${name} budget`}>
               <div className="budget-card__header"><h3>{name}</h3><span className="budget-card__status">{status}</span></div>
               <p className="budget-card__amounts">
-                <strong>{spendingAvailable ? `$${used.toFixed(2)}` : "Unavailable"}</strong>
-                <span> used of ${limitAmount.toFixed(2)}</span>
+                <strong>{spendingAvailable && used ? formatCents(used.cents) : "Unavailable"}</strong>
+                <span> used of {limitAmount ? formatCents(limitAmount.cents) : "Unavailable"}</span>
               </p>
-              {spendingAvailable && limitAmount > 0 && <div className="budget-card__progress">
+              {comparisonAvailable && limitAmount.cents > 0n && <div className="budget-card__progress">
                 <progress max="100" value={Math.min(100, Math.max(0, percentage))} aria-label={`${name} budget used`}
-                  aria-valuetext={`$${used.toFixed(2)} used of $${limitAmount.toFixed(2)}, ${Math.round(percentage)}%`} />
+                  aria-valuetext={`${formatCents(used.cents)} used of ${formatCents(limitAmount.cents)}, ${Math.round(percentage)}%`} />
                 <span>{Math.round(percentage)}% used</span>
               </div>}
-              {spendingAvailable && limitAmount === 0 && <p className="muted budget-card__note">No percentage for a zero limit.</p>}
+              {comparisonAvailable && limitAmount.cents === 0n && <p className="muted budget-card__note">No percentage for a zero limit.</p>}
+              {spendingAvailable && (!used || !limitAmount) && <p className="muted budget-card__note">Exact comparison is unavailable. Review the amount before relying on this budget status.</p>}
               <div className="inline-actions">
                 <button type="button" aria-label={`Edit ${name} budget`} aria-controls="budget-task"
                   aria-expanded={task?.type === "edit" && task.category === category}

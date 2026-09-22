@@ -35,7 +35,7 @@ describe("expense capture controller", () => {
   beforeEach(() => establishSession("owner-a", "a@example.test"));
   afterEach(() => clearSession());
 
-  it("does not read on mount and submits the unchanged legacy payload", async () => {
+  it("does not read on mount and submits an exact canonical amount", async () => {
     const { dependencies, result } = setup();
     expect(dependencies.refresh).not.toHaveBeenCalled();
     await fill(result);
@@ -44,7 +44,7 @@ describe("expense capture controller", () => {
 
     expect(dependencies.createExpense).toHaveBeenCalledExactlyOnceWith({
       description: "dinner with friends",
-      amount: 12.5,
+      amount: "12.50",
       date: "2026-09-21",
       category: "food",
     });

@@ -116,6 +116,23 @@ describe('budget hierarchy and truthful states', () => {
     expect(zero).toHaveClass('budget-card--warning')
     expect(screen.getByText('About monthly limits').closest('details')).not.toHaveAttribute('open')
   })
+  it('fails closed for an unsafe limit and requires fresh input before repairing it', async () => {
+    const user = userEvent.setup()
+    render(<BudgetLimitsPanel {...baseProps}
+      budgetLimits={[{ id: 7, category: 'food', limitAmount: Number('9999999999999999') }]}
+      totalsByCategory={{ food: '9999999999999999.99' }} />)
+
+    const food = screen.getByRole('article', { name: 'Food budget' })
+    expect(within(food).getByText('Limit needs review')).toBeVisible()
+    expect(within(food).queryByRole('progressbar')).not.toBeInTheDocument()
+    expect(food).not.toHaveClass('budget-card--warning')
+    expect(food).not.toHaveTextContent(/Over limit|Limit reached|Near limit|Within limit/)
+    expect(food).toHaveTextContent('Exact comparison is unavailable')
+
+    await user.click(within(food).getByRole('button', { name: 'Edit Food budget' }))
+    expect(screen.getByLabelText('Limit amount for Food')).toHaveValue('')
+    expect(screen.getByRole('button', { name: 'Save limit' })).toBeEnabled()
+  })
   it.each([{ spendingLoading: true }, { spendingError: new Error('offline') }])('never renders zero spending or progress when the read is unavailable: %j', (state) => {
     render(<BudgetLimitsPanel {...baseProps} {...state} budgetLimits={limits} />)
     expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()

@@ -1,5 +1,11 @@
+import { formatExactMoney } from "../../expenses/utils/exactMoney";
+
 export function formatMoney(value) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Number(value));
+}
+
+export function formatDerivedMoney(value) {
+  return formatExactMoney(value);
 }
 
 export function formatDate(value) {

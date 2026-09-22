@@ -53,7 +53,7 @@ describe('Budgets page ownership', () => {
 
     expect(screen.getByRole('heading', { name: 'Budgets' })).toBeInTheDocument()
     expect(screen.getByTestId('budget-month')).toHaveTextContent('2026-08')
-    expect(screen.getByTestId('budget-totals')).toHaveTextContent('{"food":12.34}')
+    expect(screen.getByTestId('budget-totals')).toHaveTextContent('{"food":"12.34"}')
     expect(useBudgetLimits).toHaveBeenLastCalledWith('2026-08')
 
     fireEvent.click(screen.getByRole('button', { name: 'Upsert' }))
@@ -68,7 +68,7 @@ describe('Budgets page ownership', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Choose July' }))
 
     expect(screen.getByTestId('budget-month')).toHaveTextContent('2026-07')
-    expect(screen.getByTestId('budget-totals')).toHaveTextContent('{"bills":50}')
+    expect(screen.getByTestId('budget-totals')).toHaveTextContent('{"bills":"50.00"}')
     expect(useBudgetLimits).toHaveBeenLastCalledWith('2026-07')
   })
   it('forwards independent read states and retry functions to the budget presentation', () => {

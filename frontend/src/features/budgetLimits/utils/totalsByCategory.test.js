@@ -17,7 +17,7 @@ describe('monthly spending totals used by budgets', () => {
       { category: 'bills', amount: 50, date: '2026-07-31' },
     ], '2026-08')
 
-    expect(result).toEqual({ food: 12.32 })
+    expect(result).toEqual({ food: '12.32' })
   })
 
   it('returns no spending for a future selected month', () => {
@@ -34,6 +34,6 @@ describe('monthly spending totals used by budgets', () => {
       { category: '', amount: 3, date: '2026-07-20' },
     ], '2026-07')
 
-    expect(result).toEqual({ food: 3.35, Food: 4, Uncategorized: 3 })
+    expect(result).toEqual({ food: null, Food: '4.00', Uncategorized: '3.00' })
   })
 })

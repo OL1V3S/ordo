@@ -264,7 +264,7 @@ describe("Commitments workspace", () => {
     expect(current.confirmCandidate).toHaveBeenCalledExactlyOnceWith({
       fingerprint: "fingerprint-1", name: "Gym plan", category: "health", cadence: "monthly", timingKind: "dayofmonth",
       expectedDayOfWeek: null, expectedDay: 15, expectedMonth: null, windowBeforeDays: 0, windowAfterDays: 0,
-      amountMode: "fixed", expectedAmount: 20, expectedMinimumAmount: null, expectedMaximumAmount: null,
+      amountMode: "fixed", expectedAmount: "20.00", expectedMinimumAmount: null, expectedMaximumAmount: null,
     });
     await waitFor(() => expect(screen.queryByRole("form", { name: "Confirm commitment" })).not.toBeInTheDocument());
     await waitFor(() => expect(screen.getByRole("heading", { name: "Your commitments" })).toHaveFocus());

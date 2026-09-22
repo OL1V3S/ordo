@@ -223,6 +223,27 @@ describe("commitment change review", () => {
     expect(state.acceptAmountChange).not.toHaveBeenCalled();
   });
 
+  it("shows exact high-value derived amounts and fails closed for ambiguous legacy amount evidence", () => {
+    const high = "9999999999999999.99";
+    const exactChange = {
+      ...changedCommitment,
+      observations: observations.map((observation) => ({ ...observation, amount: high })),
+      amount: { ...changedCommitment.amount, proposedAmount: high, observedMedianAmount: high },
+    };
+    const { rerender } = render(<CommitmentChangeReview state={reviewState({ commitmentChanges: [exactChange] })} />);
+    expect(screen.getAllByText("$9,999,999,999,999,999.99").length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: "Accept amount change for Gym plan" })).toBeEnabled();
+
+    const ambiguous = {
+      ...exactChange,
+      observations: [{ ...observations[0], amount: Number("9999999999999999") }],
+    };
+    rerender(<CommitmentChangeReview state={reviewState({ commitmentChanges: [ambiguous] })} />);
+    expect(screen.getByText(/Exact amount review is unavailable/)).toBeVisible();
+    expect(screen.getByRole("button", { name: "Accept amount change for Gym plan" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Keep current amount for Gym plan" })).toBeDisabled();
+  });
+
   it("requires an inline accessible confirmation before marking a commitment ended", async () => {
     const user = userEvent.setup();
     const state = reviewState();

@@ -14,6 +14,7 @@ import { useInflowCapture } from "../../inflows/hooks/useInflowCapture";
 import InflowForm from "../../inflows/components/InflowForm";
 import InflowList from "../../inflows/components/InflowList";
 import { isUnsafeAmount, formatInflowDate } from "../../inflows/utils/inflowForm";
+import { parseExpenseAmount } from "../../expenses/utils/exactMoney";
 import StatusMessage from "../../../shared/ui/StatusMessage";
 import "../../../styles/activity.css";
 import "../../../styles/inflows.css";
@@ -163,14 +164,16 @@ export default function TransactionsPage() {
   }
   function startEditExpense(expense, opener) {
     if (cashLock.current || editingExpense || expenseCapture.isWriteInFlight()) return;
-    legacyLock.current = true;
     const currentCategory = expense.category || "";
+    const amount = parseExpenseAmount(expense.amount);
+    if (!amount) return;
+    legacyLock.current = true;
     const categoryIsDefault = isDefaultCategory(currentCategory, DEFAULT_CATEGORIES);
     editButton.current = opener;
     setEditingExpense(expense);
     setEditingExpenseData({
       description: expense.description || "",
-      amount: Number(expense.amount ?? 0).toFixed(2),
+      amount: amount.value,
       date: expense.date || "",
       category: categoryIsDefault ? normalizeText(currentCategory) : "other",
       customCategory: categoryIsDefault ? "" : currentCategory,
@@ -182,12 +185,14 @@ export default function TransactionsPage() {
     focusAfterRender(() => editButton.current?.isConnected ? editButton.current : activityHeading.current);
   }
   async function saveExpenseEdit(id) {
+    const amount = parseExpenseAmount(editingExpenseData.amount);
+    if (!amount) return;
     const finalCategory = editingExpenseData.category === "other"
       ? normalizeText(editingExpenseData.customCategory || "uncategorized")
       : normalizeText(editingExpenseData.category);
     await expenseCapture.runMutation(() => updateExpense(id, {
       id, description: normalizeText(editingExpenseData.description),
-      amount: Math.round(parseFloat(editingExpenseData.amount) * 100) / 100,
+      amount: amount.value,
       date: editingExpenseData.date, category: finalCategory,
     }), "update", cancelEditExpense);
   }
