@@ -94,8 +94,8 @@ export function buildMonthlySpendingInsights(expenses, selectedMonth, now = new 
     }));
 
   const categoryChanges = Array.from(new Set([...selectedTotals.keys(), ...previousTotals.keys()]), (category) => {
-    const selected = selectedTotals.get(category) ?? 0n;
-    const previous = previousTotals.get(category) ?? 0n;
+    const selected = selectedTotals.has(category) ? selectedTotals.get(category) : 0n;
+    const previous = previousTotals.has(category) ? previousTotals.get(category) : 0n;
     return { category, differenceCents: selected === null || previous === null ? null : selected - previous };
   });
   const increases = categoryChanges.filter(({ differenceCents }) => differenceCents > 0n)
@@ -107,11 +107,14 @@ export function buildMonthlySpendingInsights(expenses, selectedMonth, now = new 
       || compareCategoryNames(left.category, right.category)).slice(0, 3)
     .map(({ category, differenceCents }) => ({ category, difference: decimalFromCents(differenceCents) }));
 
-  const largestExpenses = selectedEntries.filter(({ amount }) => amount)
-    .sort((left, right) => compareCents(right.amount.cents, left.amount.cents)
-      || right.expense.date.localeCompare(left.expense.date)
-      || Number(left.expense.id ?? 0) - Number(right.expense.id ?? 0))
-    .slice(0, 5).map(({ expense }) => expense);
+  const largestExpensesAvailable = selectedEntries.every(({ amount }) => amount !== null);
+  const largestExpenses = largestExpensesAvailable
+    ? [...selectedEntries]
+      .sort((left, right) => compareCents(right.amount.cents, left.amount.cents)
+        || right.expense.date.localeCompare(left.expense.date)
+        || Number(left.expense.id ?? 0) - Number(right.expense.id ?? 0))
+      .slice(0, 5).map(({ expense }) => expense)
+    : [];
 
   return {
     available,
@@ -129,6 +132,7 @@ export function buildMonthlySpendingInsights(expenses, selectedMonth, now = new 
     },
     increases,
     decreases,
+    largestExpensesAvailable,
     largestExpenses,
   };
 }

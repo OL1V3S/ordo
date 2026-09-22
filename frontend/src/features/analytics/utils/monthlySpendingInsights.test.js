@@ -65,6 +65,21 @@ describe("monthly spending insights", () => {
     ], "2026-08", now);
     expect(result.largestExpenses.map(({ id }) => id)).toEqual([2, 3, 1]);
   });
+
+  it("preserves unavailable category totals and suppresses rankings when a legacy amount is ambiguous", () => {
+    const result = buildMonthlySpendingInsights([
+      { id: 1, description: "Ambiguous", category: "food", amount: Number("9999999999999999"), date: "2026-08-02" },
+      { id: 2, description: "Known smaller", category: "food", amount: "10.00", date: "2026-08-03" },
+      { id: 3, description: "July food", category: "food", amount: "20.00", date: "2026-07-03" },
+    ], "2026-08", now);
+
+    expect(result.available).toBe(false);
+    expect(result.totalsByCategory.food).toBeNull();
+    expect(result.increases).toEqual([]);
+    expect(result.decreases).toEqual([]);
+    expect(result.largestExpensesAvailable).toBe(false);
+    expect(result.largestExpenses).toEqual([]);
+  });
 });
 
 describe("budget status", () => {

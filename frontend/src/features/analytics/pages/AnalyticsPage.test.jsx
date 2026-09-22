@@ -192,6 +192,22 @@ describe("monthly spending insights page", () => {
     expect(screen.getByText("No expenses to rank for this month.")).toBeInTheDocument();
     expect(screen.getByText("Neither month has recorded spending.")).toBeInTheDocument();
   });
+  it("shows the largest-expense ranking as unavailable when an in-scope amount is ambiguous", () => {
+    useExpenses.mockReturnValue({
+      expenses: [
+        { id: 1, description: "Ambiguous", category: "food", amount: Number("9999999999999999"), date: "2026-08-02" },
+        { id: 2, description: "Known smaller", category: "food", amount: "90.00", date: "2026-08-03" },
+      ],
+      loading: false,
+      error: null,
+      refresh: refreshExpenses,
+    });
+    renderPage();
+
+    const ranking = openDetail("Largest expenses");
+    expect(ranking).toHaveTextContent("Exact largest-expense ranking is unavailable");
+    expect(within(ranking).queryByText("Known smaller")).not.toBeInTheDocument();
+  });
   it("offers historical months represented only by other recorded inflows", () => {
     useCashFlow.mockReturnValue(loadedCashFlow("2026-08", { availableMonths: ["2026-08", "2026-07", "2026-02"] }));
     renderPage();

@@ -205,7 +205,9 @@ export default function AnalyticsPage() {
                     </div>
                     <Link to="/transactions">Review activity</Link>
                   </div>
-                  {insights.largestExpenses.length === 0 ? (
+                  {!insights.largestExpensesAvailable ? (
+                    <StatusMessage>Exact largest-expense ranking is unavailable because an amount could not be verified.</StatusMessage>
+                  ) : insights.largestExpenses.length === 0 ? (
                     <StatusMessage>No expenses to rank for this month.</StatusMessage>
                   ) : (
                     <ol className="analytics-list">
