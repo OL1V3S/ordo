@@ -54,6 +54,7 @@ describe("monthly spending insights", () => {
     const result = buildMonthlySpendingInsights(expenses, "2026-08", now);
 
     expect(result.comparison.percentage).toBeNull();
+    expect(result.largestExpensesAvailable).toBe(true);
     expect(result.largestExpenses.map(({ amount }) => amount)).toEqual([7, 6, 5, 4, 3]);
   });
 
