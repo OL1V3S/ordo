@@ -21,6 +21,7 @@ export default function ExpenseForm({
   onCancel,
   inputRef,
   pending = false,
+  copy = {},
 }) {
   const formRef = useRef(null);
   const [invalidField, setInvalidField] = useState("");
@@ -55,41 +56,41 @@ export default function ExpenseForm({
 
   return (
     <Card as="section" className="section">
-      <h2 className="h2">Add expense</h2>
+      <h2 className="h2">{copy.title ?? "Add expense"}</h2>
       <form ref={formRef} noValidate onSubmit={handleSubmit}
         onChange={() => setInvalidField("")} aria-describedby={invalidField ? "add-expense-validation" : undefined}>
         {invalidField && <p id="add-expense-validation" className="status-message status-message--danger" role="alert">
           {invalidField === "amount"
-            ? "Enter a positive amount with at most two decimals, up to 9999999999999999.99."
-            : "Complete the required expense fields."}
+            ? (copy.amountInvalid ?? "Enter a positive amount with at most two decimals, up to 9999999999999999.99.")
+            : (copy.fieldsRequired ?? "Complete the required expense fields.")}
         </p>}
         <fieldset className="activity-form-fields" disabled={pending}>
-        <legend className="sr-only">New expense</legend>
+        <legend className="sr-only">{copy.newExpenseLegend ?? "New expense"}</legend>
         <div className="form-grid">
-        <FormField label="Description">{(id) => <input id={id}
+        <FormField label={copy.description ?? "Description"}>{(id) => <input id={id}
           ref={inputRef}
           name="description"
           required
           aria-invalid={invalidField === "description"}
           aria-describedby={invalidField === "description" ? "add-expense-validation" : undefined}
-          placeholder="Description"
+          placeholder={copy.descriptionPlaceholder ?? "Description"}
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
         />}</FormField>
 
-        <FormField label="Amount">{(id) => <input id={id}
+        <FormField label={copy.amount ?? "Amount"}>{(id) => <input id={id}
           type="text"
           inputMode="decimal"
           name="amount"
           required
           aria-invalid={invalidField === "amount"}
           aria-describedby={invalidField === "amount" ? "add-expense-validation" : undefined}
-          placeholder="Amount"
+          placeholder={copy.amountPlaceholder ?? "Amount"}
           value={newAmount}
           onChange={(e) => setNewAmount(e.target.value)}
         />}</FormField>
 
-        <FormField label="Date">{(id) => <input id={id}
+        <FormField label={copy.date ?? "Date"}>{(id) => <input id={id}
           type="date"
           name="date"
           required
@@ -99,25 +100,25 @@ export default function ExpenseForm({
           onChange={(e) => setNewDate(e.target.value)}
         />}</FormField>
 
-        <FormField label="Category">{(id) => <select id={id} name="category" required
+        <FormField label={copy.category ?? "Category"}>{(id) => <select id={id} name="category" required
           aria-invalid={invalidField === "category"}
           aria-describedby={invalidField === "category" ? "add-expense-validation" : undefined}
           value={newCategory} onChange={(e) => setNewCategory(e.target.value)}>
-          <option value="">Category</option>
+          <option value="">{copy.categoryPlaceholder ?? "Category"}</option>
 
           {DEFAULT_CATEGORIES.map((c) => (
             <option key={c} value={c.toLowerCase()}>
-              {displayText(c)}
+              {copy.categories?.[c.toLowerCase()] ?? displayText(c)}
             </option>
           ))}
 
-          <option value="other">Other</option>
+          <option value="other">{copy.categories?.other ?? "Other"}</option>
         </select>}</FormField>
 
         {newCategory === "other" && (
-          <FormField label="Custom category">{(id) => <input id={id}
+          <FormField label={copy.customCategory ?? "Custom category"}>{(id) => <input id={id}
             type="text"
-            placeholder="Custom Category"
+            placeholder={copy.customCategoryPlaceholder ?? "Custom Category"}
             value={customCategory}
             onChange={(e) => setCustomCategory(e.target.value)}
           />}</FormField>
@@ -127,9 +128,9 @@ export default function ExpenseForm({
         </fieldset>
         <div className="inline-actions activity-task-actions">
           <button type="submit" disabled={loading || pending}>
-            {pending ? "Saving…" : "Save expense"}
+            {pending ? (copy.saving ?? "Saving…") : (copy.save ?? "Save expense")}
           </button>
-          <button type="button" className="button-ghost" onClick={handleCancel} disabled={pending}>Cancel</button>
+          <button type="button" className="button-ghost" onClick={handleCancel} disabled={pending}>{copy.cancel ?? "Cancel"}</button>
         </div>
       </form>
     </Card>

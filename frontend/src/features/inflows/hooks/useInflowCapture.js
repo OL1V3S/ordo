@@ -19,6 +19,7 @@ export function useInflowCapture({
   updateInflow,
   deleteInflow,
   isExternallyBlocked = () => false,
+  onUnknown = () => {},
 }) {
   const [task, setTask] = useState(null);
   const [pending, setPending] = useState(false);
@@ -78,7 +79,7 @@ export function useInflowCapture({
     setCheckedRead(false);
     try {
       const result = await refresh();
-      if (result?.stale || session !== getSessionSnapshot()) return;
+      if (result?.stale || result?.failed || session !== getSessionSnapshot()) return;
       if (gate === "unknown") {
         setCheckedRead(true);
         setFeedback({ tone: "warning", outcome: "unknown_checked" });
@@ -135,6 +136,7 @@ export function useInflowCapture({
       } else if (status === 401 || status === 403) {
         setFeedback({ tone: "danger", outcome: status === 401 ? "unauthorized" : "forbidden" });
       } else {
+        if (status !== 404) onUnknown(session);
         setGate(status === 404 ? "missing" : "unknown");
         setCheckedRead(false);
         setFeedback({ tone: "danger", outcome: status === 404 ? "missing" : "unknown" });

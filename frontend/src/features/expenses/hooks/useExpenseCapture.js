@@ -20,6 +20,7 @@ export function useExpenseCapture({
   refresh,
   readUnavailable,
   isExternallyBlocked = () => false,
+  onUnknown = () => {},
 }) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(EMPTY_DRAFT);
@@ -63,6 +64,7 @@ export function useExpenseCapture({
       setFeedback({ tone: refreshFailed ? "warning" : "success", outcome: "completed", kind, refreshFailed });
     } catch {
       if (session !== getSessionSnapshot()) return;
+      onUnknown(session);
       setRecoveryRequired(true);
       setFeedback({ tone: "danger", outcome: "unknown" });
     } finally {
@@ -95,7 +97,7 @@ export function useExpenseCapture({
     const session = getSessionSnapshot();
     try {
       const result = await refresh();
-      if (result?.stale || session !== getSessionSnapshot()) return;
+      if (result?.stale || result?.failed || session !== getSessionSnapshot()) return;
       const wasRecovering = recoveryRequired;
       setRecoveryRequired(false);
       setFeedback(wasRecovering ? { tone: "info", outcome: "refreshed" } : null);

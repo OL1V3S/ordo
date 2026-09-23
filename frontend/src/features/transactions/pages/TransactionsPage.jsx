@@ -14,6 +14,8 @@ import { useInflowCapture } from "../../inflows/hooks/useInflowCapture";
 import InflowForm from "../../inflows/components/InflowForm";
 import InflowList from "../../inflows/components/InflowList";
 import { isUnsafeAmount, formatInflowDate } from "../../inflows/utils/inflowForm";
+import { useCaptureRecovery } from "../../home/recovery/captureRecovery";
+import { useTranslation } from "react-i18next";
 import { parseExpenseAmount } from "../../expenses/utils/exactMoney";
 import StatusMessage from "../../../shared/ui/StatusMessage";
 import "../../../styles/activity.css";
@@ -66,6 +68,9 @@ function inflowFeedbackMessage(feedback) {
 }
 
 export default function TransactionsPage() {
+  const { t } = useTranslation("home");
+  const captureRecovery = useCaptureRecovery();
+  const [recoveryAcknowledged, setRecoveryAcknowledged] = useState(false);
   const importState = useImportPreview();
   const cash = useInflows();
   const [cashSearch, setCashSearch] = useState("");
@@ -95,7 +100,7 @@ export default function TransactionsPage() {
     createExpense: addExpense,
     refresh: refreshExpenses,
     readUnavailable: expensesLoading || Boolean(expensesError),
-    isExternallyBlocked: () => cashLock.current,
+    isExternallyBlocked: () => cashLock.current || Boolean(captureRecovery.source),
   });
   const inflowCapture = useInflowCapture({
     records: cash.inflows,
@@ -105,7 +110,7 @@ export default function TransactionsPage() {
     createInflow: cash.createInflow,
     updateInflow: cash.updateInflow,
     deleteInflow: cash.deleteInflow,
-    isExternallyBlocked: () => legacyLock.current,
+    isExternallyBlocked: () => legacyLock.current || Boolean(captureRecovery.source),
   });
 
   const filters = useMemo(() => ({
@@ -113,7 +118,9 @@ export default function TransactionsPage() {
   }), [dateFilter, customStartDate, customEndDate, categoryFilter, searchTerm]);
   const filteredExpenses = useMemo(() => filterExpenses(expenses, filters), [expenses, filters]);
   useEffect(() => { setShowAll(false); }, [filters]);
-  const visibleExpenses = showAll ? filteredExpenses : filteredExpenses.slice(0, ENTRIES_PER_PAGE);
+  const recoveringExpenses = captureRecovery.source === "expense";
+  const recoveringCashIn = captureRecovery.source === "account_inflow";
+  const visibleExpenses = recoveringExpenses ? expenses : showAll ? filteredExpenses : filteredExpenses.slice(0, ENTRIES_PER_PAGE);
   // A filter, pagination reset, or failed refresh must not remove an open draft.
   const editIsPinned = editingExpense && !visibleExpenses.some((expense) => expense.id === editingExpense.id);
   const expensesToShow = editIsPinned ? [editingExpense, ...visibleExpenses] : visibleExpenses;
@@ -124,18 +131,34 @@ export default function TransactionsPage() {
   const showImport = importOpen || importMustStayVisible;
   const cashLocked = inflowCapture.locked;
   cashLock.current = cashLocked;
-  const legacyBlocked = Boolean(expenseCapture.open || editingExpense || expenseCapture.pending || expenseCapture.recoveryRequired
+  const legacyBlocked = Boolean(captureRecovery.source || expenseCapture.open || editingExpense || expenseCapture.pending || expenseCapture.recoveryRequired
     || (importOpen && !importState.confirmation) || importState.preview || importState.processing
     || importState.confirming || importState.loading || importState.error || importState.confirmationIssue);
   legacyLock.current = legacyBlocked;
   const cashReadUnavailable = inflowCapture.readUnavailable;
-  const filteredCash = cash.inflows.filter((record) => record.description.toLowerCase().includes(cashSearch.trim().toLowerCase()));
-  const visibleCash = cashShowAll ? filteredCash : filteredCash.slice(0, ENTRIES_PER_PAGE);
+  const filteredCash = recoveringCashIn ? cash.inflows : cash.inflows.filter((record) => record.description.toLowerCase().includes(cashSearch.trim().toLowerCase()));
+  const visibleCash = recoveringCashIn ? cash.inflows : cashShowAll ? filteredCash : filteredCash.slice(0, ENTRIES_PER_PAGE);
   const cashPinned = inflowCapture.task?.record && !visibleCash.some((record) => record.id === inflowCapture.task.record.id);
   const cashRows = cashPinned ? [inflowCapture.task.record, ...visibleCash] : visibleCash;
   const inflowFieldErrors = Object.fromEntries(Object.entries(inflowCapture.fieldErrors)
     .map(([field, code]) => [field, INFLOW_FIELD_MESSAGES[code] ?? code]));
   useEffect(() => { setCashShowAll(false); }, [cashSearch]);
+  const recoveryReady = recoveringExpenses ? !expensesLoading && !expensesError
+    : recoveringCashIn ? !cash.loading && !cash.error : false;
+  const recoveryLoading = recoveringExpenses ? expensesLoading : recoveringCashIn ? cash.loading : false;
+  const recoveryError = recoveringExpenses ? expensesError : recoveringCashIn ? cash.error : false;
+  async function retryRecoveryList() {
+    try {
+      if (recoveringExpenses) await refreshExpenses();
+      else if (recoveringCashIn) await cash.refresh();
+    } catch { /* Keep the marker until a successful full-list read and explicit acknowledgment. */ }
+  }
+  function acknowledgeRecovery() {
+    if (!recoveryReady) return;
+    captureRecovery.clear();
+    setRecoveryAcknowledged(true);
+    focusAfterRender(() => activityHeading.current);
+  }
 
   function openCashTask(type, record, opener) {
     if (cashLock.current || inflowCapture.isWriteInFlight()) { inflowCapture.focusTask(); return; }
@@ -206,13 +229,13 @@ export default function TransactionsPage() {
       <header className="page-header">
         <div><h1>Activity</h1><p className="muted">Review recorded spending and incoming money.</p></div>
         <div className="inline-actions activity-task-openers">
-          <button type="button" ref={addButton} aria-expanded={expenseCapture.open} aria-controls="add-expense-task" onClick={openAdd}>
+          <button type="button" ref={addButton} disabled={Boolean(captureRecovery.source)} aria-expanded={expenseCapture.open} aria-controls="add-expense-task" onClick={openAdd}>
             Add expense
           </button>
           <button type="button" ref={cashAddButton} aria-expanded={inflowCapture.task?.type === "create"} aria-controls="cash-in-task"
-            disabled={cashReadUnavailable || inflowCapture.pending || Boolean(inflowCapture.gate)}
+            disabled={cashReadUnavailable || inflowCapture.pending || Boolean(inflowCapture.gate) || Boolean(captureRecovery.source)}
             onClick={(event) => openCashTask("create", null, event.currentTarget)}>Add cash in</button>
-          <button type="button" className="button-ghost" ref={importButton} aria-expanded={showImport} aria-controls="statement-import-task"
+          <button type="button" className="button-ghost" ref={importButton} disabled={Boolean(captureRecovery.source)} aria-expanded={showImport} aria-controls="statement-import-task"
             onClick={() => { if (cashLock.current) { inflowCapture.focusTask(); return; } legacyLock.current = true; setImportOpen(true); focusAfterRender(() => importRegion.current); }}>
             Import statement
           </button>
@@ -221,6 +244,15 @@ export default function TransactionsPage() {
       <nav className="activity-section-links" aria-label="Activity sections">
         <a href="#spending-activity-heading">Spending</a><a href="#cash-in-heading">Cash in</a>
       </nav>
+      {captureRecovery.source && <section className="card home-recovery" role="region" aria-labelledby="capture-recovery-heading">
+        <h2 id="capture-recovery-heading">{t("recovery.heading")}</h2>
+        <p>{t(recoveringExpenses ? "recovery.activityBannerExpense" : "recovery.activityBannerCashIn")}</p>
+        {recoveryLoading && <StatusMessage>{t("recovery.loadingList")}</StatusMessage>}
+        {recoveryError && <div><StatusMessage tone="danger">{t("recovery.listUnavailable")}</StatusMessage>
+          <button type="button" onClick={retryRecoveryList}>{t("recovery.retryList")}</button></div>}
+        <button type="button" disabled={!recoveryReady} onClick={acknowledgeRecovery}>{t("recovery.acknowledge")}</button>
+      </section>}
+      {recoveryAcknowledged && <StatusMessage tone="info">{t("recovery.acknowledged")}</StatusMessage>}
       {cashLocked && <p className="muted">Finish the cash-in task or its refresh check before starting an expense or import task.</p>}
       <div ref={expenseCapture.feedbackRef} tabIndex={-1} className="activity-feedback">
         {expenseCapture.feedback && <StatusMessage tone={expenseCapture.feedback.tone}>{expenseFeedbackMessage(expenseCapture.feedback)}</StatusMessage>}
@@ -236,7 +268,8 @@ export default function TransactionsPage() {
       </div>
       <div id="statement-import-task" ref={importRegion} tabIndex={-1} hidden={!showImport} className="activity-import-task">
         <ImportPreviewPanel importState={importState} onImportConfirmed={refreshImportedActivity}
-          externalLocked={cashLocked} isExternallyLocked={() => cashLock.current} />
+          externalLocked={cashLocked || Boolean(captureRecovery.source)}
+          isExternallyLocked={() => cashLock.current || Boolean(captureRecovery.source)} />
         {!importMustStayVisible && <button type="button" className="button-ghost" onClick={() => {
           setImportOpen(false); focusAfterRender(() => importButton.current);
         }}>Close import</button>}
@@ -247,9 +280,9 @@ export default function TransactionsPage() {
           <button type="button" className="button-ghost" disabled={expensesLoading || expenseCapture.pending}
             onClick={expenseCapture.refreshRecovery}>Refresh activity</button>
         </div>
-        <ExpenseFilters searchTerm={searchTerm} setSearchTerm={setSearchTerm} dateFilter={dateFilter} setDateFilter={setDateFilter}
+        {!recoveringExpenses && <ExpenseFilters searchTerm={searchTerm} setSearchTerm={setSearchTerm} dateFilter={dateFilter} setDateFilter={setDateFilter}
           customStartDate={customStartDate} setCustomStartDate={setCustomStartDate} customEndDate={customEndDate} setCustomEndDate={setCustomEndDate}
-          categoryFilter={categoryFilter} setCategoryFilter={setCategoryFilter} />
+          categoryFilter={categoryFilter} setCategoryFilter={setCategoryFilter} />}
         {expensesLoading && <StatusMessage>{expenses.length ? "Refreshing expenses…" : "Loading expenses..."}</StatusMessage>}
         {expensesError && <div>
           <StatusMessage tone="danger">We couldn’t load your expenses.</StatusMessage>
@@ -257,11 +290,12 @@ export default function TransactionsPage() {
         </div>}
         {editIsPinned && <StatusMessage>Your open edit stays here while the list changes.</StatusMessage>}
         {((!expensesLoading && !expensesError) || expensesToShow.length > 0) && <ExpenseList
-          expenses={expensesToShow} totalCount={expenses.length} filteredCount={filteredExpenses.length}
-          entriesPerPage={ENTRIES_PER_PAGE} showAll={showAll} onShowAll={() => setShowAll(true)}
+          expenses={expensesToShow} totalCount={expenses.length} filteredCount={recoveringExpenses ? expenses.length : filteredExpenses.length}
+          entriesPerPage={ENTRIES_PER_PAGE} showAll={recoveringExpenses || showAll} onShowAll={() => setShowAll(true)}
           editingExpenseId={editingExpense?.id ?? null} editingExpenseData={editingExpenseData} setEditingExpenseData={setEditingExpenseData}
           onStartEdit={startEditExpense} onSave={saveExpenseEdit} onCancel={cancelEditExpense} onDelete={handleDeleteExpense}
-          busy={expenseCapture.pending} taskLocked={cashLocked || Boolean(editingExpense)} readUnavailable={expensesLoading || Boolean(expensesError) || expenseCapture.recoveryRequired} />}
+          busy={expenseCapture.pending} taskLocked={Boolean(captureRecovery.source) || cashLocked || Boolean(editingExpense)}
+          readUnavailable={Boolean(captureRecovery.source) || expensesLoading || Boolean(expensesError) || expenseCapture.recoveryRequired} />}
       </section>
       <section className="activity-cash-in" aria-labelledby="cash-in-heading">
         <div className="activity-spending__header">
@@ -295,12 +329,12 @@ export default function TransactionsPage() {
           </div>}
           {inflowCapture.targetMissing && <StatusMessage>This entry is no longer in the current list. Cancel this task to choose another record.</StatusMessage>}
         </div>
-        <label className="field">Search cash in<input type="search" value={cashSearch} onChange={(event) => setCashSearch(event.target.value)} /></label>
+        {!recoveringCashIn && <label className="field">Search cash in<input type="search" value={cashSearch} onChange={(event) => setCashSearch(event.target.value)} /></label>}
         {cash.loading && <StatusMessage>{cash.inflows.length ? "Refreshing cash in…" : "Loading cash in…"}</StatusMessage>}
         {cash.error && <StatusMessage tone="danger">We couldn’t load cash in. Refresh cash in to try again.</StatusMessage>}
         {cashPinned && <StatusMessage>Your open cash-in record stays visible while the list changes.</StatusMessage>}
         {(!cashReadUnavailable || cashRows.length > 0) && <InflowList inflows={cashRows} totalCount={cash.inflows.length}
-          filteredCount={filteredCash.length} showAll={cashShowAll} onShowAll={() => setCashShowAll(true)}
+          filteredCount={filteredCash.length} showAll={recoveringCashIn || cashShowAll} onShowAll={() => setCashShowAll(true)}
           onEdit={(record, opener) => openCashTask("edit", record, opener)} onDelete={(record, opener) => openCashTask("delete", record, opener)}
           disabled={cashLocked || legacyBlocked} readUnavailable={cashReadUnavailable} taskRecordId={inflowCapture.task?.record?.id ?? null} />}
       </section>

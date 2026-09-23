@@ -1,0 +1,82 @@
+{
+  "page": {
+    "title": "Inicio",
+    "intro": "Mantén al día los movimientos de dinero de hoy."
+  },
+  "capture": {
+    "heading": "Registrar",
+    "addExpense": "Agregar gasto",
+    "addCashIn": "Agregar entrada de dinero",
+    "expense": {
+      "title": "Agregar gasto",
+      "newExpenseLegend": "Nuevo gasto",
+      "description": "Descripción",
+      "amount": "Monto",
+      "date": "Fecha",
+      "category": "Categoría",
+      "customCategory": "Categoría personalizada",
+      "save": "Guardar gasto",
+      "saving": "Guardando…",
+      "cancel": "Cancelar",
+      "amountPlaceholder": "Monto",
+      "descriptionPlaceholder": "Descripción",
+      "categoryPlaceholder": "Elige una categoría",
+      "categories": { "food": "Comida", "transport": "Transporte", "bills": "Facturas", "entertainment": "Entretenimiento", "other": "Otra" },
+      "customCategoryPlaceholder": "Categoría personalizada",
+      "amountInvalid": "Ingresa un monto positivo con hasta dos decimales, hasta 9999999999999999.99.",
+      "fieldsRequired": "Completa los campos obligatorios del gasto."
+    },
+    "cashIn": {
+      "title": "Agregar entrada de dinero",
+      "detailsLegend": "Detalles de la entrada de dinero",
+      "description": "Descripción",
+      "amount": "Monto",
+      "date": "Fecha",
+      "save": "Agregar entrada de dinero",
+      "saving": "Guardando…",
+      "cancel": "Cancelar",
+      "amountInvalid": "Ingresa un monto positivo con hasta dos decimales, hasta 9999999999999999.99.",
+      "descriptionInvalid": "Ingresa una descripción de 1 a 500 caracteres.",
+      "dateInvalid": "Ingresa una fecha válida.",
+      "checkFields": "Revisa los campos marcados."
+    },
+    "feedback": {
+      "expenseSaved": "Gasto guardado.",
+      "cashInSaved": "Entrada de dinero guardada.",
+      "expenseSavedRefreshFailed": "Gasto guardado. No se pudo actualizar la actividad de Inicio. Actualiza Inicio antes de otro registro.",
+      "cashInSavedRefreshFailed": "Entrada de dinero guardada. No se pudo actualizar la actividad de Inicio. Actualiza Inicio antes de otro registro.",
+      "unknown": "No pudimos confirmar si se guardó. Revisa la lista completa en Actividad antes de intentarlo de nuevo.",
+      "refreshFailed": "No se pudo actualizar la actividad de Inicio. Actualiza Inicio antes de otro registro.",
+      "refreshed": "Inicio está actualizado. Puedes seguir registrando movimientos."
+    },
+    "lock": "Termina o cancela el registro abierto antes de iniciar otro."
+  },
+  "activity": {
+    "heading": "Actividad reciente",
+    "viewAll": "Toda la actividad",
+    "viewInsights": "Análisis",
+    "expense": "Gasto",
+    "cashIn": "Entrada de dinero",
+    "paycheckLinked": "Vinculado a un pago de nómina",
+    "empty": "No hay actividad reciente para mostrar.",
+    "loading": "Cargando actividad reciente…",
+    "unavailable": "La actividad reciente no está disponible en este momento.",
+    "retry": "Reintentar Inicio",
+    "requestUnavailable": "No se pudo cargar Inicio. Inténtalo de nuevo.",
+    "amountReview": "El monto requiere revisión",
+    "dateUnknown": "Fecha no disponible"
+  },
+  "recovery": {
+    "heading": "Revisa la lista completa de actividad",
+    "bodyExpense": "No pudimos confirmar si se guardó el gasto. Inicio solo muestra algunos registros recientes y no puede verificarlo. Revisa todos los gastos en Actividad antes de decidir si lo intentas de nuevo.",
+    "bodyCashIn": "No pudimos confirmar si se guardó la entrada de dinero. Inicio solo muestra algunos registros recientes y no puede verificarlo. Revisa todas las entradas de dinero en Actividad antes de decidir si lo intentas de nuevo.",
+    "openActivity": "Abrir Actividad para revisar",
+    "activityBannerExpense": "No se pudo confirmar el registro del gasto. Revisa la lista completa de gastos a continuación. No lo intentes de nuevo hasta revisarla.",
+    "activityBannerCashIn": "No se pudo confirmar el registro de la entrada de dinero. Revisa la lista completa de entradas a continuación. No lo intentes de nuevo hasta revisarla.",
+    "loadingList": "Cargando la lista completa…",
+    "listUnavailable": "No se pudo cargar la lista completa. Reintenta antes de confirmar que la revisaste.",
+    "retryList": "Reintentar lista completa",
+    "acknowledge": "Ya revisé la lista completa",
+    "acknowledged": "Revisión confirmada. Ordo no determinó si el registro se guardó; decide si debes intentarlo de nuevo según los registros anteriores."
+  }
+}

@@ -13,12 +13,13 @@ export default function InflowForm({
   fieldErrors = {},
   mode = "create",
   amountNeedsReview = false,
+  copy = {},
 }) {
   const generatedId = useId();
   const formRef = useRef(null);
   const previousErrors = useRef("");
-  const formLabel = mode === "edit" ? "Edit cash in" : "Add cash in";
-  const submitLabel = mode === "edit" ? "Save changes" : "Add cash in";
+  const formLabel = mode === "edit" ? "Edit cash in" : (copy.title ?? "Add cash in");
+  const submitLabel = mode === "edit" ? "Save changes" : (copy.save ?? "Add cash in");
   const errorSignature = ["description", "amount", "date"]
     .filter((name) => fieldErrors[name])
     .map((name) => `${name}:${fieldErrors[name]}`)
@@ -77,20 +78,20 @@ export default function InflowForm({
           <strong>Amount needs review.</strong> Enter the exact amount again before saving.
         </p>
       )}
-      {errorSignature && <p className="inflow-form__error" role="alert">Check the highlighted fields.</p>}
+      {errorSignature && <p className="inflow-form__error" role="alert">{copy.checkFields ?? "Check the highlighted fields."}</p>}
 
       <fieldset className="inflow-form__fields" disabled={pending}>
-        <legend className="sr-only">Cash-in details</legend>
+        <legend className="sr-only">{copy.detailsLegend ?? "Cash-in details"}</legend>
         <div className="inflow-form__grid">
-          {field("description", "Description")}
-          {field("amount", "Amount", { inputMode: "decimal", autoComplete: "off" })}
-          {field("date", "Date", { type: "date", min: "0001-01-01", max: "9999-12-31" })}
+          {field("description", copy.description ?? "Description")}
+          {field("amount", copy.amount ?? "Amount", { inputMode: "decimal", autoComplete: "off" })}
+          {field("date", copy.date ?? "Date", { type: "date", min: "0001-01-01", max: "9999-12-31" })}
         </div>
       </fieldset>
 
       <div className="inflow-form__actions inline-actions">
-        <button type="submit" disabled={pending || disabled}>{pending ? "Saving…" : submitLabel}</button>
-        <button type="button" className="button-ghost" disabled={pending} onClick={onCancel}>Cancel</button>
+        <button type="submit" disabled={pending || disabled}>{pending ? (copy.saving ?? "Saving…") : submitLabel}</button>
+        <button type="button" className="button-ghost" disabled={pending} onClick={onCancel}>{copy.cancel ?? "Cancel"}</button>
       </div>
     </form>
   );

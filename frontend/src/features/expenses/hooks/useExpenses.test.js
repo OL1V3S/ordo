@@ -49,6 +49,15 @@ describe('expense refresh behavior', () => {
     expect(result.current.loading).toBe(false)
   })
 
+  it('rejects a malformed list response instead of treating it as a verified empty list', async () => {
+    expensesApi.getAll.mockResolvedValue({ data: { items: [] } })
+    const { result } = renderHook(() => useExpenses())
+
+    await waitFor(() => expect(result.current.error).toBeInstanceOf(Error))
+    expect(result.current.expenses).toEqual([])
+    expect(result.current.error.message).toBe('Invalid expense list response.')
+  })
+
   it('keeps refresh rejection observable to post-confirmation callers', async () => {
     const requestError = new Error('offline')
     const { result } = renderHook(() => useExpenses())
