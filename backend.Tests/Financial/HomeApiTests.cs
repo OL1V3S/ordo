@@ -138,6 +138,25 @@ public sealed class HomeApiTests
     }
 
     [Fact]
+    public async Task Recent_activity_breaks_same_day_ties_by_kind_then_id_descending()
+    {
+        await using var app = new HomeTestApplication(Now);
+        using var owner = await app.CreateAuthenticatedUserAsync("home-activity-ties@example.com");
+
+        var expense = await app.SeedExpenseAsync(owner.Id, "Expense", date: new(2026, 9, 22));
+        var firstInflow = await app.SeedInflowAsync(owner.Id, "First inflow", date: new(2026, 9, 22));
+        var secondInflow = await app.SeedInflowAsync(owner.Id, "Second inflow", date: new(2026, 9, 22));
+
+        var body = await ReadAsync(owner.Client);
+        var items = body.GetProperty("recentActivity").GetProperty("items").EnumerateArray().ToArray();
+
+        Assert.Equal(["expense", "account_inflow", "account_inflow"],
+            items.Select(value => value.GetProperty("kind").GetString()));
+        Assert.Equal([expense.Id, secondInflow.Id, firstInflow.Id],
+            items.Select(value => value.GetProperty("recordId").GetInt32()));
+    }
+
+    [Fact]
     public async Task Upcoming_uses_UTC_projection_windows_exact_amounts_and_backend_ranking()
     {
         await using var app = new HomeTestApplication(Now);
@@ -195,6 +214,35 @@ public sealed class HomeApiTests
         var item = Assert.Single(body.GetProperty("upcoming").GetProperty("items").EnumerateArray());
         Assert.Equal(dayThirteen.Id, item.GetProperty("paycheckProfileId").GetGuid());
         Assert.Equal("2026-10-06", item.GetProperty("anchorDate").GetString());
+    }
+
+    [Fact]
+    public async Task Upcoming_skips_one_unrepresentable_profile_and_keeps_valid_projections()
+    {
+        await using var app = new HomeTestApplication(
+            new DateTimeOffset(9999, 12, 18, 12, 0, 0, TimeSpan.Zero));
+        using var owner = await app.CreateAuthenticatedUserAsync("home-unrepresentable-profile@example.com");
+
+        var valid = Profile(owner.Id, "Representable profile", 22);
+        var unrepresentable = Profile(owner.Id, "Unrepresentable profile", 31);
+        var finalReceipt = await app.SeedInflowAsync(
+            owner.Id, "Final representable date", date: DateOnly.MaxValue);
+        using (var scope = app.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<BudgetContext>();
+            db.PaycheckProfiles.AddRange(valid, unrepresentable);
+            db.PaycheckOccurrences.Add(Link(
+                owner.Id, unrepresentable.Id, finalReceipt, PaycheckOccurrenceKind.RecordedReceipt));
+            await db.SaveChangesAsync();
+        }
+
+        var body = await ReadAsync(owner.Client, "/api/home?activityThroughDate=9999-12-17");
+        var upcoming = body.GetProperty("upcoming");
+        AssertAvailable(upcoming);
+        var item = Assert.Single(upcoming.GetProperty("items").EnumerateArray());
+        Assert.Equal(valid.Id, item.GetProperty("paycheckProfileId").GetGuid());
+        Assert.Equal("9999-12-22", item.GetProperty("anchorDate").GetString());
+        Assert.DoesNotContain("Unrepresentable profile", body.GetRawText(), StringComparison.Ordinal);
     }
 
     [Fact]

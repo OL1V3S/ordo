@@ -64,22 +64,23 @@ public sealed class HomeUpcomingReader(
         var projected = new List<(PaycheckProfile Profile, PaycheckProjection Projection)>();
         foreach (var profile in profiles)
         {
-            var latestAnchor = latestAnchors.TryGetValue(profile.Id, out var anchor)
-                ? anchor
-                : (DateOnly?)null;
-            var pattern = new ConfirmedPaycheckPattern(
-                PaycheckProfileRules.ReadSchedule(profile),
-                profile.WindowBeforeDays,
-                profile.WindowAfterDays,
-                PaycheckProfileRules.ReadAmount(profile),
-                latestAnchor);
             try
             {
+                var latestAnchor = latestAnchors.TryGetValue(profile.Id, out var anchor)
+                    ? anchor
+                    : (DateOnly?)null;
+                var pattern = new ConfirmedPaycheckPattern(
+                    PaycheckProfileRules.ReadSchedule(profile),
+                    profile.WindowBeforeDays,
+                    profile.WindowAfterDays,
+                    PaycheckProfileRules.ReadAmount(profile),
+                    latestAnchor);
                 projected.Add((profile, projector.Project(pattern, evaluatedOn)));
             }
-            catch (ArgumentOutOfRangeException exception)
+            catch (ArgumentOutOfRangeException)
             {
-                throw new HomeSectionUnavailableException("A paycheck projection is not representable.", exception);
+                // A single legacy profile can be unrepresentable at this evaluation date.
+                // Keep the section available and continue projecting other active profiles.
             }
         }
 
