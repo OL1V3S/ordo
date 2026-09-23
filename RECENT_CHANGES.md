@@ -24,6 +24,18 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-09-23 — Home semantic read-model foundation
+
+[PR #154](https://github.com/OL1V3S/ordo/pull/154) ·
+[Issue #153](https://github.com/OL1V3S/ordo/issues/153)
+
+- Added an authenticated Home contract with an explicit local activity cutoff
+  and UTC paycheck-evaluation horizon.
+- Composed bounded exact recent activity and paycheck-only upcoming items while
+  keeping linked inflows single and owner-scoped.
+- Added explicit partial-availability metadata and empty attention coverage on
+  independent read-only snapshots without changing financial semantics.
+
 ### 2026-09-22 — Exact Expense precision across browser boundaries
 
 [PR #152](https://github.com/OL1V3S/ordo/pull/152) ·

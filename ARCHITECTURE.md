@@ -177,6 +177,18 @@ invoke candidate detection or projection, write financial data, or introduce
 new persistence. Current recorded dates and amounts govern history; the explicit
 date-only cutoff preserves the Analytics browser-local calendar convention.
 
+`backend/Home/` owns the authenticated Home composition read model. The
+`/api/home` endpoint keeps the caller's local activity cutoff separate from the
+paycheck projector's UTC evaluation date, returns exact string money, and
+composes at most three current Expenses/AccountInflows plus two active paycheck
+projections. Linked inflows remain one actual row with relationship metadata.
+Recent Activity and Coming Up use sequential, independent read-only
+repeatable-read transactions so one recoverable source failure can be represented
+without guessing another section. V1 exposes an explicit empty attention
+coverage envelope and performs no writes, caching, schema changes, balance
+semantics, commitment projection, or localized presentation. See
+[`docs/home-read-model.md`](docs/home-read-model.md).
+
 ### Authentication and ownership boundaries
 
 ASP.NET Core Identity manages users, JWT bearer authentication establishes the
