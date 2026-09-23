@@ -273,6 +273,24 @@ current/available balance, savings, or safe-to-spend capacity. Paycheck cycles,
 expense-to-paycheck allocation, reconciliation, forecasts, and Safe-to-Spend
 remain deferred. This read model introduces no schema or migration.
 
+## Home composition invariant
+
+The authenticated `GET /api/home?activityThroughDate=YYYY-MM-DD` read model
+composes existing owner-scoped facts without creating or reclassifying financial
+records. Recent Activity contains bounded current Expenses and AccountInflows;
+a paycheck-linked inflow appears once with relationship metadata. Coming Up
+contains only bounded active paycheck projections and remains structurally
+separate from actual activity. V1 evaluates no attention family and says so
+through an explicit empty coverage envelope.
+
+Actual and expected monetary values are fixed-two-decimal strings. The caller's
+local calendar cutoff for stored date-only activity and the projector's UTC
+evaluation date remain explicit and distinct. Partial section availability must
+never turn a failed read into an empty result or guessed fact. This endpoint
+performs no writes, defines no balance or completeness semantics, and introduces
+no schema or migration. The complete contract is documented in
+[`home-read-model.md`](home-read-model.md).
+
 ## Description invariant
 
 An expense description is required. At the authoritative write boundary it is
