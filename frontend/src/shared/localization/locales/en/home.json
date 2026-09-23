@@ -77,6 +77,7 @@
     "listUnavailable": "The complete list could not be loaded. Retry before acknowledging this check.",
     "retryList": "Retry full list",
     "acknowledge": "I checked the complete list",
-    "acknowledged": "Check acknowledged. Ordo did not determine whether the entry was saved; decide whether to retry based on the records above."
+    "acknowledged": "Check acknowledged. Ordo did not determine whether the entry was saved; decide whether to retry based on the records above.",
+    "storageVolatile": "This browser could not store the recovery marker. Keep this signed-in session open and complete the Activity review before leaving."
   }
 }

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { I18nextProvider } from "react-i18next";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import TransactionsPage from "./TransactionsPage";
@@ -16,6 +16,9 @@ vi.mock("../../importPreview/hooks/useImportPreview", () => ({ useImportPreview:
 const expenses = Array.from({ length: 12 }, (_, index) => ({
   id: index + 1, description: `Expense ${index + 1}`, category: "food", amount: "1.00", date: "2026-09-01",
 }));
+const inflows = Array.from({ length: 12 }, (_, index) => ({
+  id: index + 1, description: `Cash record ${index + 1}`, amount: "2.50", date: "2026-09-01",
+}));
 const expenseRefresh = vi.fn().mockResolvedValue({ stale: false });
 function renderPage() {
   return render(<I18nextProvider i18n={i18n}><TransactionsPage /></I18nextProvider>);
@@ -32,17 +35,47 @@ beforeEach(() => {
 afterEach(() => { clearSession(); sessionStorage.clear(); vi.clearAllMocks(); });
 
 describe("uncertain Home write recovery in Activity", () => {
-  it("shows every expense and clears the marker only after explicit acknowledgment", () => {
+  it("shows every expense and clears the marker only after explicit acknowledgment", async () => {
     markCaptureRecovery("expense");
     renderPage();
     expect(screen.getByText("An expense save could not be confirmed. Review the complete expense list below. Do not retry until you have checked it.")).toBeInTheDocument();
     expect(screen.getByText("Expense 12")).toBeInTheDocument();
     expect(screen.getByText("Expense 1")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /show more/i })).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole("region", { name: "Check the complete activity list" })).toHaveFocus());
     expect(sessionStorage.length).toBe(1);
     fireEvent.click(screen.getByRole("button", { name: "I checked the complete list" }));
     expect(sessionStorage.length).toBe(0);
     expect(screen.getByText(/Ordo did not determine whether the entry was saved/)).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Spending activity" })).toHaveFocus());
+  });
+
+  it("requires a successful complete Cash In read and focuses Cash In after acknowledgment", async () => {
+    markCaptureRecovery("account_inflow");
+    useInflows.mockReturnValue({ inflows: [], loading: true, error: null, refresh: vi.fn(), createInflow: vi.fn(), updateInflow: vi.fn(), deleteInflow: vi.fn() });
+    const view = renderPage();
+    const ack = screen.getByRole("button", { name: "I checked the complete list" });
+    expect(ack).toBeDisabled();
+    await waitFor(() => expect(screen.getByRole("region", { name: "Check the complete activity list" })).toHaveFocus());
+
+    const refresh = vi.fn();
+    useInflows.mockReturnValue({ inflows: [], loading: false, error: new Error("unavailable"), refresh, createInflow: vi.fn(), updateInflow: vi.fn(), deleteInflow: vi.fn() });
+    view.rerender(<I18nextProvider i18n={i18n}><TransactionsPage /></I18nextProvider>);
+    expect(screen.getByRole("button", { name: "I checked the complete list" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Retry full list" }));
+    expect(refresh).toHaveBeenCalledOnce();
+    expect(sessionStorage.getItem("ordo-home-uncertain-write:owner%40example.test")).toBe("account_inflow");
+
+    useInflows.mockReturnValue({ inflows, loading: false, error: null, refresh, createInflow: vi.fn(), updateInflow: vi.fn(), deleteInflow: vi.fn() });
+    view.rerender(<I18nextProvider i18n={i18n}><TransactionsPage /></I18nextProvider>);
+    const table = screen.getByRole("region", { name: "Cash in table" });
+    expect(within(table).getByText("Cash record 1")).toBeInTheDocument();
+    expect(within(table).getByText("Cash record 12")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Search cash in")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "I checked the complete list" })).toBeEnabled();
+    fireEvent.click(screen.getByRole("button", { name: "I checked the complete list" }));
+    expect(sessionStorage.length).toBe(0);
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Cash in" })).toHaveFocus());
   });
 
   it("retains the marker and prevents acknowledgment when the full list failed", () => {

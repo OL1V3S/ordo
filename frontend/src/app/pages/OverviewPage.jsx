@@ -24,6 +24,7 @@ export default function OverviewPage() {
   const [feedback, setFeedback] = useState(null);
   const expenseButton = useRef(null);
   const cashInButton = useRef(null);
+  const recoveryLink = useRef(null);
   const moneyLocale = locale === "es" ? "es-US" : "en-US";
   const refreshAfterWrite = async () => {
     const session = getSessionSnapshot();
@@ -68,6 +69,11 @@ export default function OverviewPage() {
     setFeedback(next);
     if (next.outcome === "completed" || next.outcome === "unknown") setActive(null);
   }, [expense.feedback, cashIn.feedback]);
+  useEffect(() => {
+    if (!recovery.source) return undefined;
+    const frame = window.requestAnimationFrame(() => recoveryLink.current?.focus());
+    return () => window.cancelAnimationFrame(frame);
+  }, [recovery.source]);
   const canStart = !active && !recovery.source && !recovery.loading && !expense.recoveryRequired && !cashIn.gate;
   async function refreshHome() {
     let refreshed = false;
@@ -109,7 +115,8 @@ export default function OverviewPage() {
       {recovery.source && <div className="home-recovery" role="alert" aria-labelledby="home-recovery-heading">
         <h3 id="home-recovery-heading">{t("recovery.heading")}</h3>
         <p>{t(recovery.source === "expense" ? "recovery.bodyExpense" : "recovery.bodyCashIn")}</p>
-        <Link className="button-link" to="/transactions">{t("recovery.openActivity")}</Link>
+        {recovery.volatile && <p>{t("recovery.storageVolatile")}</p>}
+        <Link ref={recoveryLink} className="button-link" to="/transactions">{t("recovery.openActivity")}</Link>
       </div>}
       {data.error && <StatusMessage tone="danger">{t("capture.feedback.refreshFailed")}</StatusMessage>}
       {data.loading && <StatusMessage>{t("activity.loading")}</StatusMessage>}

@@ -88,6 +88,30 @@ describe("capture-first Home", () => {
     expect(sessionStorage.length).toBe(1);
     expect(screen.getByRole("button", { name: "Add cash in" })).toBeDisabled();
     expect(homeApi.getHome).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(screen.getByRole("link", { name: "Open Activity to check" })).toHaveFocus());
+  });
+
+  it("keeps an unknown Cash In marker through a successful Home read and focuses the Activity handoff", async () => {
+    const user = userEvent.setup();
+    homeApi.getHome.mockRejectedValueOnce(new Error("Home unavailable")).mockResolvedValue(response(home()));
+    inflowsApi.create.mockRejectedValue(new Error("network outcome unknown"));
+    renderPage();
+    await user.click(screen.getByRole("button", { name: "Add cash in" }));
+    const cashForm = screen.getByRole("form", { name: "Add cash in" });
+    await user.type(within(cashForm).getByLabelText("Description"), "Refund");
+    await user.type(within(cashForm).getByLabelText("Amount"), "3.45");
+    fireEvent.change(within(cashForm).getByLabelText("Date"), { target: { value: "2026-09-01" } });
+    await user.click(within(cashForm).getByRole("button", { name: "Add cash in" }));
+
+    const handoff = await screen.findByRole("link", { name: "Open Activity to check" });
+    await waitFor(() => expect(handoff).toHaveFocus());
+    expect(inflowsApi.create).toHaveBeenCalledOnce();
+    expect(sessionStorage.getItem("ordo-home-uncertain-write:owner%40example.test")).toBe("account_inflow");
+    await user.click(screen.getByRole("button", { name: "Retry Home" }));
+    await waitFor(() => expect(homeApi.getHome).toHaveBeenCalledTimes(2));
+    expect(screen.getByRole("link", { name: "Open Activity to check" })).toBeInTheDocument();
+    expect(sessionStorage.getItem("ordo-home-uncertain-write:owner%40example.test")).toBe("account_inflow");
+    expect(screen.getByRole("button", { name: "Add expense" })).toBeDisabled();
   });
 
   it("does not create a marker for client-side validation", async () => {

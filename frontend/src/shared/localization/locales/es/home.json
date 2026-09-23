@@ -77,6 +77,7 @@
     "listUnavailable": "No se pudo cargar la lista completa. Reintenta antes de confirmar que la revisaste.",
     "retryList": "Reintentar lista completa",
     "acknowledge": "Ya revisé la lista completa",
-    "acknowledged": "Revisión confirmada. Ordo no determinó si el registro se guardó; decide si debes intentarlo de nuevo según los registros anteriores."
+    "acknowledged": "Revisión confirmada. Ordo no determinó si el registro se guardó; decide si debes intentarlo de nuevo según los registros anteriores.",
+    "storageVolatile": "Este navegador no pudo guardar el marcador de recuperación. Mantén abierta esta sesión y completa la revisión en Actividad antes de salir."
   }
 }

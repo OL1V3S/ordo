@@ -96,6 +96,7 @@ export default function TransactionsPage() {
   const importRegion = useRef(null);
   const editButton = useRef(null);
   const activityHeading = useRef(null);
+  const recoveryRegion = useRef(null);
   const expenseCapture = useExpenseCapture({
     createExpense: addExpense,
     refresh: refreshExpenses,
@@ -147,6 +148,11 @@ export default function TransactionsPage() {
     : recoveringCashIn ? !cash.loading && !cash.error : false;
   const recoveryLoading = recoveringExpenses ? expensesLoading : recoveringCashIn ? cash.loading : false;
   const recoveryError = recoveringExpenses ? expensesError : recoveringCashIn ? cash.error : false;
+  useEffect(() => {
+    if (!captureRecovery.source) return undefined;
+    const frame = window.requestAnimationFrame(() => recoveryRegion.current?.focus());
+    return () => window.cancelAnimationFrame(frame);
+  }, [captureRecovery.source]);
   async function retryRecoveryList() {
     try {
       if (recoveringExpenses) await refreshExpenses();
@@ -157,7 +163,7 @@ export default function TransactionsPage() {
     if (!recoveryReady) return;
     captureRecovery.clear();
     setRecoveryAcknowledged(true);
-    focusAfterRender(() => activityHeading.current);
+    focusAfterRender(() => recoveringExpenses ? activityHeading.current : inflowCapture.fallbackFocusRef.current);
   }
 
   function openCashTask(type, record, opener) {
@@ -244,9 +250,10 @@ export default function TransactionsPage() {
       <nav className="activity-section-links" aria-label="Activity sections">
         <a href="#spending-activity-heading">Spending</a><a href="#cash-in-heading">Cash in</a>
       </nav>
-      {captureRecovery.source && <section className="card home-recovery" role="region" aria-labelledby="capture-recovery-heading">
+      {captureRecovery.source && <section ref={recoveryRegion} tabIndex={-1} className="card home-recovery" role="region" aria-labelledby="capture-recovery-heading">
         <h2 id="capture-recovery-heading">{t("recovery.heading")}</h2>
         <p>{t(recoveringExpenses ? "recovery.activityBannerExpense" : "recovery.activityBannerCashIn")}</p>
+        {captureRecovery.volatile && <p>{t("recovery.storageVolatile")}</p>}
         {recoveryLoading && <StatusMessage>{t("recovery.loadingList")}</StatusMessage>}
         {recoveryError && <div><StatusMessage tone="danger">{t("recovery.listUnavailable")}</StatusMessage>
           <button type="button" onClick={retryRecoveryList}>{t("recovery.retryList")}</button></div>}
