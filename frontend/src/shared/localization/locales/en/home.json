@@ -1,0 +1,83 @@
+{
+  "page": {
+    "title": "Home",
+    "intro": "Keep today’s money activity current."
+  },
+  "capture": {
+    "heading": "Capture",
+    "addExpense": "Add expense",
+    "addCashIn": "Add cash in",
+    "expense": {
+      "title": "Add expense",
+      "newExpenseLegend": "New expense",
+      "description": "Description",
+      "amount": "Amount",
+      "date": "Date",
+      "category": "Category",
+      "customCategory": "Custom category",
+      "save": "Save expense",
+      "saving": "Saving…",
+      "cancel": "Cancel",
+      "amountPlaceholder": "Amount",
+      "descriptionPlaceholder": "Description",
+      "categoryPlaceholder": "Choose a category",
+      "categories": { "food": "Food", "transport": "Transport", "bills": "Bills", "entertainment": "Entertainment", "other": "Other" },
+      "customCategoryPlaceholder": "Custom category",
+      "amountInvalid": "Enter a positive amount with at most two decimals, up to 9999999999999999.99.",
+      "fieldsRequired": "Complete the required expense fields."
+    },
+    "cashIn": {
+      "title": "Add cash in",
+      "detailsLegend": "Cash-in details",
+      "description": "Description",
+      "amount": "Amount",
+      "date": "Date",
+      "save": "Add cash in",
+      "saving": "Saving…",
+      "cancel": "Cancel",
+      "amountInvalid": "Enter a positive amount with at most two decimals, up to 9999999999999999.99.",
+      "descriptionInvalid": "Enter a description of 1 to 500 characters.",
+      "dateInvalid": "Enter a valid calendar date.",
+      "checkFields": "Check the highlighted fields."
+    },
+    "feedback": {
+      "expenseSaved": "Expense saved.",
+      "cashInSaved": "Cash in saved.",
+      "expenseSavedRefreshFailed": "Expense saved. Home activity could not be refreshed. Refresh Home before another capture.",
+      "cashInSavedRefreshFailed": "Cash in saved. Home activity could not be refreshed. Refresh Home before another capture.",
+      "unknown": "We couldn’t confirm whether this was saved. Check the complete list in Activity before trying again.",
+      "refreshFailed": "Home activity could not be refreshed. Refresh Home before another capture.",
+      "refreshed": "Home refreshed. You can continue recording activity."
+    },
+    "lock": "Finish or cancel the open capture before starting another."
+  },
+  "activity": {
+    "heading": "Recent activity",
+    "viewAll": "All activity",
+    "viewInsights": "Insights",
+    "expense": "Expense",
+    "cashIn": "Cash in",
+    "paycheckLinked": "Paycheck linked",
+    "empty": "No recent activity to show.",
+    "loading": "Loading recent activity…",
+    "unavailable": "Recent activity is unavailable right now.",
+    "retry": "Retry Home",
+    "requestUnavailable": "Home could not be loaded. Try again.",
+    "amountReview": "Amount needs review",
+    "dateUnknown": "Date unavailable"
+  },
+  "recovery": {
+    "heading": "Check the complete activity list",
+    "bodyExpense": "We couldn’t confirm whether your expense was saved. Home shows only a few recent records, so it cannot verify this write. Review all expenses in Activity before deciding whether to try again.",
+    "bodyCashIn": "We couldn’t confirm whether your cash in was saved. Home shows only a few recent records, so it cannot verify this write. Review all cash-in records in Activity before deciding whether to try again.",
+    "openActivity": "Open Activity to check",
+    "activityBannerExpense": "An expense save could not be confirmed. Review the complete expense list below. Do not retry until you have checked it.",
+    "activityBannerCashIn": "A cash-in save could not be confirmed. Review the complete cash-in list below. Do not retry until you have checked it.",
+    "loadingList": "Loading the complete list…",
+    "listUnavailable": "The complete list could not be loaded. Retry before acknowledging this check.",
+    "retryList": "Retry full list",
+    "acknowledge": "I checked the complete list",
+    "acknowledged": "Check acknowledged. Ordo did not determine whether the entry was saved; decide whether to retry based on the records above.",
+    "storageVolatile": "This browser could not store the recovery marker. Keep this signed-in session open and complete the Activity review before leaving."
+  }
+}

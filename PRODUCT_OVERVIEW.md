@@ -20,10 +20,12 @@ silently treating every detected pattern as a financial fact.
 
 ## What you can do today
 
-- **Home / Overview:** Compare this month's recorded cash in, spending, and net
-  recorded cash flow. See expected paycheck windows, category limits at or above
-  90% used, active commitments, and recent spending, with links to each workflow.
-  Each section shows its own loading or retry state when a read is unavailable.
+- **Home:** Capture an expense or cash-in record before reviewing a compact,
+  server-ordered list of up to three recent expenses and inflows. Exact amounts,
+  posted dates, expense categories, and paycheck links are shown when available;
+  unavailable reads and empty activity have distinct states. Insights remains a
+  quieter link. If a save outcome is uncertain, Home directs you to review the
+  complete relevant Activity list before deciding whether to retry.
 - **Activity / Transactions:** Scan recorded spending first, search descriptions
   and categories, and expand date/category filters when needed. A separate Cash in
   section lists recorded incoming money with its own search. Add, edit, or delete

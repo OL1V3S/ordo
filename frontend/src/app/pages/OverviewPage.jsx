@@ -1,208 +1,141 @@
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { useHomeRead } from "../hooks/useHomeRead";
-import { useCashFlow } from "../../features/analytics/hooks/useCashFlow";
-import CashFlowSummary from "../../features/analytics/components/CashFlowSummary";
-import { cashDateLabel, localThroughDate } from "../../features/analytics/utils/cashFlowPresentation";
-import { budgetLimitsApi } from "../../features/budgetLimits/api/budgetLimitsApi";
-import { computeMonthlyTotalsByCategory } from "../../features/budgetLimits/utils/totalsByCategory";
+import { useTranslation } from "react-i18next";
+import { useLocale } from "../../shared/localization/useLocale";
 import { expensesApi } from "../../features/expenses/api/expensesApi";
-import { formatExpenseDate } from "../../features/expenses/utils/calendarDate";
-import {
-  formatCents,
-  formatExactMoney,
-  parseBudgetLimit,
-  parseExactMoney,
-  percentageFromRatio,
-} from "../../features/expenses/utils/exactMoney";
-import { paychecksApi } from "../../features/paychecks/api/paychecksApi";
-import { cadenceLabel, formatAmount, formatDate, formatMoney } from "../../features/paychecks/utils/formatPaychecks";
-import { commitmentsApi } from "../../features/commitments/api/commitmentsApi";
-import { getMonthYear } from "../../shared/utils/monthYear";
-import { displayText } from "../../utils/text";
+import { inflowsApi } from "../../features/inflows/api/inflowsApi";
+import { useExpenseCapture } from "../../features/expenses/hooks/useExpenseCapture";
+import { useInflowCapture } from "../../features/inflows/hooks/useInflowCapture";
+import ExpenseForm from "../../features/expenses/components/ExpenseForm";
+import InflowForm from "../../features/inflows/components/InflowForm";
 import StatusMessage from "../../shared/ui/StatusMessage";
-
-async function readList(request) {
-  const response = await request;
-  if (!Array.isArray(response.data)) throw new Error("List unavailable");
-  return response;
-}
-const loadExpenses = () => readList(expensesApi.getAll());
-const loadLimits = (month) => readList(budgetLimitsApi.getByMonth(month));
-const loadCommitments = () => readList(commitmentsApi.getCommitments());
-const loadPaychecks = async () => {
-  const response = await paychecksApi.getPaychecks();
-  if (!Array.isArray(response.data?.paychecks)) throw new Error("Paychecks unavailable");
-  return response;
-};
-const ready = (read) => !read.loading && !read.error && read.data !== null;
-const compareIds = (left, right) => String(left.id).localeCompare(String(right.id), "en");
-
-function ReadStatus({ read, label }) {
-  if (read.error) return (
-    <div className="home-read-status">
-      <StatusMessage tone="danger">We couldn’t load {label}.</StatusMessage>
-      <button type="button" onClick={read.refresh}>Retry {label}</button>
-    </div>
-  );
-  return read.loading ? <StatusMessage>Loading {label}...</StatusMessage> : null;
-}
-
-function HomeModule({ id, title, href, linkText, children }) {
-  return (
-    <section className="card home-module" aria-labelledby={id}>
-      <h2 id={id} className="h2">{title}</h2>
-      <div className="home-module__content">{children}</div>
-      <Link to={href}>{linkText} <span aria-hidden="true">→</span></Link>
-    </section>
-  );
-}
+import { getSessionSnapshot } from "../../shared/auth/session";
+import { useHomeData } from "../../features/home/hooks/useHomeData";
+import { useCaptureRecovery } from "../../features/home/recovery/captureRecovery";
+import { formatHomeAmount, formatHomeDate } from "../../features/home/utils/homePresentation";
+import "../../styles/home-capture.css";
 
 export default function OverviewPage() {
-  const currentMonth = getMonthYear(new Date());
-  const cashFlow = useCashFlow(currentMonth);
-  const spending = useHomeRead(loadExpenses, currentMonth);
-  const limits = useHomeRead(loadLimits, currentMonth);
-  const paychecks = useHomeRead(loadPaychecks);
-  const commitments = useHomeRead(loadCommitments);
-  // Secondary reads are independent. If cash flow is unavailable, recent spending
-  // still uses an explicitly labelled local-calendar cutoff, never a guessed total.
-  const throughDate = cashFlow.data?.to ?? localThroughDate();
-
-  const totalsByCategory = computeMonthlyTotalsByCategory(spending.data ?? [], currentMonth);
-  const budgetComparisons = (limits.data ?? []).map((limit) => {
-    const spent = parseExactMoney(
-      totalsByCategory[limit.category] === undefined ? "0.00" : totalsByCategory[limit.category],
-      { allowZero: true }
-    );
-    const parsedLimit = parseBudgetLimit(limit.limitAmount);
-    if (!spent || !parsedLimit) return { limit, available: false };
-    return {
-      limit, spent, parsedLimit, available: true,
-      percentage: parsedLimit.cents === 0n ? null : percentageFromRatio(spent.cents, parsedLimit.cents),
-      needsAttention: parsedLimit.cents > 0n && spent.cents * 100n >= parsedLimit.cents * 90n,
-    };
+  const { t } = useTranslation("home");
+  const { locale } = useLocale();
+  const data = useHomeData();
+  const recovery = useCaptureRecovery();
+  const [active, setActive] = useState(null);
+  const [feedback, setFeedback] = useState(null);
+  const expenseButton = useRef(null);
+  const cashInButton = useRef(null);
+  const recoveryLink = useRef(null);
+  const moneyLocale = locale === "es" ? "es-US" : "en-US";
+  const refreshAfterWrite = async () => {
+    const session = getSessionSnapshot();
+    const result = await data.refresh();
+    if (session !== getSessionSnapshot()) return { stale: true };
+    return { refreshFailed: result.stale || result.failed };
+  };
+  const expense = useExpenseCapture({
+    createExpense: async (payload) => {
+      await expensesApi.create(payload);
+      return refreshAfterWrite();
+    },
+    refresh: data.refresh,
+    readUnavailable: false,
+    isExternallyBlocked: () => active === "cashIn" || Boolean(recovery.source),
+    onUnknown: () => recovery.mark("expense"),
   });
-  const attention = budgetComparisons.filter((comparison) => comparison.available && comparison.needsAttention);
-  const unavailableBudgetCount = budgetComparisons.filter((comparison) => !comparison.available).length;
-  const expectedPaychecks = (paychecks.data?.paychecks ?? [])
-    .filter((profile) => profile.lifecycle === "active" && profile.nextProjection)
-    .sort((left, right) => left.nextProjection.earliestExpectedDate.localeCompare(right.nextProjection.earliestExpectedDate) || compareIds(left, right))
-    .slice(0, 2);
-  const activeCommitments = (commitments.data ?? []).filter((commitment) => commitment.lifecycle === "active");
-  const recentSpending = (spending.data ?? [])
-    .filter((expense) => expense.date.startsWith(`${currentMonth}-`) && expense.date <= throughDate)
-    .sort((left, right) => right.date.localeCompare(left.date) || compareIds(left, right))
-    .slice(0, 3);
+  const cashIn = useInflowCapture({
+    records: [], loading: false, error: null,
+    createInflow: async (payload) => {
+      await inflowsApi.create(payload);
+      return refreshAfterWrite();
+    },
+    refresh: data.refresh,
+    isExternallyBlocked: () => active === "expense" || Boolean(recovery.source),
+    onUnknown: () => recovery.mark("account_inflow"),
+  });
+  const startExpense = () => { if (canStart) { setFeedback(null); setActive("expense"); expense.openCreate(expenseButton.current); } };
+  const startCashIn = () => { if (canStart) { setFeedback(null); setActive("cashIn"); cashIn.openTask("create", null, cashInButton.current); } };
+  const closeExpense = () => { expense.closeCreate(); setActive(null); };
+  const closeCashIn = () => { cashIn.cancelTask(); setActive(null); };
+  const onExpenseSubmit = async () => {
+    await expense.submitCreate();
+  };
+  const onCashSubmit = async () => {
+    await cashIn.submitTask();
+  };
+  useEffect(() => {
+    const next = expense.feedback ? { ...expense.feedback, source: "expense" }
+      : cashIn.feedback ? { ...cashIn.feedback, source: "cashIn" } : null;
+    if (!next) return;
+    setFeedback(next);
+    if (next.outcome === "completed" || next.outcome === "unknown") setActive(null);
+  }, [expense.feedback, cashIn.feedback]);
+  useEffect(() => {
+    if (!recovery.source) return undefined;
+    const frame = window.requestAnimationFrame(() => recoveryLink.current?.focus());
+    return () => window.cancelAnimationFrame(frame);
+  }, [recovery.source]);
+  const canStart = !active && !recovery.source && !recovery.loading && !expense.recoveryRequired && !cashIn.gate;
+  async function refreshHome() {
+    let refreshed = false;
+    if (expense.recoveryRequired) { await expense.refreshRecovery(); refreshed = true; }
+    if (cashIn.gate && cashIn.gate !== "unknown") { await cashIn.refreshRecovery(); refreshed = true; }
+    if (!refreshed) await data.refresh();
+  }
+  const rows = data.data?.recentActivity?.availability?.state === "available"
+    ? data.data.recentActivity.items.slice(0, 3) : [];
 
-  return (
-    <div className="shell-page home-page">
-      <header className="page-header home-page__header">
-        <div><h1>Home</h1><p className="muted">This month, at a glance.</p></div>
-        <Link className="button-link" to="/transactions">Open activity <span aria-hidden="true">→</span></Link>
-      </header>
-
-      <section className="home-cash-flow" aria-label="This month’s recorded cash flow" aria-busy={cashFlow.loading}>
-        <div className="home-cash-flow__actions">
-          <Link to="/analytics">View insights <span aria-hidden="true">→</span></Link>
-          {ready(cashFlow) && <button type="button" className="button-ghost" onClick={cashFlow.refresh}>Refresh cash flow</button>}
-        </div>
-        {cashFlow.loading && <StatusMessage>Loading recorded cash flow...</StatusMessage>}
-        {cashFlow.error && <div className="home-read-status"><StatusMessage tone="danger">{cashFlow.error}</StatusMessage><button type="button" onClick={cashFlow.refresh}>Retry cash flow</button></div>}
-        {ready(cashFlow) && <CashFlowSummary data={cashFlow.data} />}
-      </section>
-
-      <div className="home-modules">
-        <HomeModule id="home-paychecks-heading" title="Expected paychecks" href="/paychecks" linkText="All paychecks">
-          <ReadStatus read={paychecks} label="expected paychecks" />
-          {ready(paychecks) && (expectedPaychecks.length === 0 ? (
-            <StatusMessage>No expected paycheck windows are available.</StatusMessage>
-          ) : (
-            <>
-              <p className="home-qualification">Expected, not guaranteed.</p>
-              <ul className="home-records">
-                {expectedPaychecks.map((profile) => {
-                  const projection = profile.nextProjection;
-                  return (
-                    <li key={profile.id}>
-                      <div className="home-record__line"><strong>{profile.displayName}</strong><strong>{formatAmount(projection.amount)}</strong></div>
-                      <p>{cadenceLabel(profile.schedule?.cadence)}</p>
-                      <p>Expected {formatDate(projection.earliestExpectedDate)}{projection.latestExpectedDate !== projection.earliestExpectedDate && ` – ${formatDate(projection.latestExpectedDate)}`}</p>
-                    </li>
-                  );
-                })}
-              </ul>
-              <details className="home-disclosure">
-                <summary>About these expectations</summary>
-                <p>Evaluated {formatDate(paychecks.data.evaluatedOn)}. Expected windows can overlap; their order does not guarantee which deposit arrives first.</p>
-              </details>
-            </>
-          ))}
-        </HomeModule>
-
-        <HomeModule id="home-budgets-heading" title="Budget attention" href="/budgets" linkText="All budgets">
-          <ReadStatus read={spending} label="spending" />
-          <ReadStatus read={limits} label="budget limits" />
-          {ready(spending) && ready(limits) && (limits.data.length === 0 ? (
-            <StatusMessage>No budget limits are set for this month.</StatusMessage>
-          ) : attention.length === 0 && unavailableBudgetCount > 0 ? (
-            <StatusMessage tone="warning">Budget attention is unavailable for {unavailableBudgetCount} {unavailableBudgetCount === 1 ? "limit" : "limits"} whose exact cents could not be verified.</StatusMessage>
-          ) : attention.length === 0 ? (
-            <StatusMessage>No limits are at or above 90% used.</StatusMessage>
-          ) : (
-            <>
-              <p className="muted">{attention.length} {attention.length === 1 ? "limit is" : "limits are"} at or above 90% used · {limits.data.length} {limits.data.length === 1 ? "limit" : "limits"} set</p>
-              <ul className="home-records">
-                {attention.slice(0, 3).map((comparison, index) => {
-                  const { limit, spent, parsedLimit, percentage } = comparison;
-                  return (
-                    <li key={limit.id ?? index}>
-                      <div className="home-record__line"><strong>{displayText(limit.category)}</strong><span>{percentage.toFixed(1)}% used</span></div>
-                      <p>{formatCents(spent.cents)} spent of {formatCents(parsedLimit.cents)}</p>
-                    </li>
-                  );
-                })}
-              </ul>
-              {unavailableBudgetCount > 0 && <p className="muted">{unavailableBudgetCount} additional {unavailableBudgetCount === 1 ? "limit needs" : "limits need"} review before budget attention can be calculated.</p>}
-            </>
-          ))}
-        </HomeModule>
-
-        <HomeModule id="home-commitments-heading" title="Active commitments" href="/commitments" linkText="All commitments">
-          <ReadStatus read={commitments} label="active commitments" />
-          {ready(commitments) && (activeCommitments.length === 0 ? (
-            <StatusMessage>No active commitments.</StatusMessage>
-          ) : (
-            <>
-              <p className="muted">{activeCommitments.length} active {activeCommitments.length === 1 ? "commitment" : "commitments"}</p>
-              <ul className="home-records">
-                {activeCommitments.slice(0, 3).map((commitment) => (
-                  <li key={commitment.id}>
-                    <div className="home-record__line"><strong>{commitment.name}</strong><strong>{commitment.amountMode === "fixed" ? formatMoney(commitment.expectedAmount) : `${formatMoney(commitment.expectedMinimumAmount)}–${formatMoney(commitment.expectedMaximumAmount)}`}</strong></div>
-                    <p>{displayText(commitment.cadence)}</p>
-                  </li>
-                ))}
-              </ul>
-            </>
-          ))}
-        </HomeModule>
-
-        <HomeModule id="home-spending-heading" title="Recent spending" href="/transactions" linkText="All spending">
-          <ReadStatus read={spending} label="spending" />
-          {ready(spending) && <>
-            <p className="muted">This month · Through {cashDateLabel(throughDate)}</p>
-            {recentSpending.length === 0 ? <StatusMessage>No spending recorded in this period.</StatusMessage> : (
-              <ul className="home-records">
-                {recentSpending.map((expense) => (
-                  <li key={expense.id}>
-                    <div className="home-record__line"><strong>{expense.description}</strong><strong>{formatExactMoney(expense.amount)}</strong></div>
-                    <p>{formatExpenseDate(expense.date)} · {displayText(expense.category)}</p>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </>}
-        </HomeModule>
+  return <div className="shell-page home-capture-page">
+    <header className="page-header"><div><h1>{t("page.title")}</h1><p className="muted">{t("page.intro")}</p></div></header>
+    <section className="home-capture" aria-labelledby="home-capture-heading">
+      <h2 id="home-capture-heading">{t("capture.heading")}</h2>
+      <div className="home-capture__actions">
+        <button type="button" ref={expenseButton} disabled={!canStart} aria-expanded={active === "expense"} onClick={startExpense}>{t("capture.addExpense")}</button>
+        <button type="button" ref={cashInButton} className="button-ghost" disabled={!canStart} aria-expanded={active === "cashIn"} onClick={startCashIn}>{t("capture.addCashIn")}</button>
       </div>
-    </div>
-  );
+      {active && <p className="muted">{t("capture.lock")}</p>}
+      <div hidden={active !== "expense"}>
+        <ExpenseForm loading={Boolean(recovery.source)} pending={expense.pending} onAdd={onExpenseSubmit}
+          onCancel={closeExpense} inputRef={expense.inputRef} newName={expense.draft.description}
+          setNewName={(value) => expense.updateDraft("description", value)} newAmount={expense.draft.amount}
+          setNewAmount={(value) => expense.updateDraft("amount", value)} newDate={expense.draft.date}
+          setNewDate={(value) => expense.updateDraft("date", value)} newCategory={expense.draft.category}
+          setNewCategory={(value) => expense.updateDraft("category", value)} customCategory={expense.draft.customCategory}
+          setCustomCategory={(value) => expense.updateDraft("customCategory", value)}
+          copy={{ ...t("capture.expense", { returnObjects: true }) }} />
+      </div>
+      <div hidden={active !== "cashIn"}>
+        {cashIn.task && <InflowForm draft={cashIn.task.draft} onChange={cashIn.updateDraft} onSubmit={onCashSubmit}
+          onCancel={closeCashIn} pending={cashIn.pending} disabled={Boolean(recovery.source)} fieldErrors={Object.fromEntries(Object.entries(cashIn.fieldErrors).map(([field, code]) => [field, t(`capture.cashIn.${code}`)]))}
+          copy={{ ...t("capture.cashIn", { returnObjects: true }) }} />}
+      </div>
+      {feedback && <div ref={feedback.source === "expense" ? expense.feedbackRef : cashIn.feedbackRef} tabIndex={-1} role="status" aria-live="polite"><StatusMessage tone={feedback.tone}>{feedback.refreshFailed
+        ? t(feedback.source === "expense" ? "capture.feedback.expenseSavedRefreshFailed" : "capture.feedback.cashInSavedRefreshFailed")
+          : t(feedback.outcome === "unknown" ? "capture.feedback.unknown" : feedback.outcome === "refreshed" ? "capture.feedback.refreshed"
+          : feedback.source === "expense" ? "capture.feedback.expenseSaved" : "capture.feedback.cashInSaved")}</StatusMessage></div>}
+      {recovery.source && <div className="home-recovery" role="alert" aria-labelledby="home-recovery-heading">
+        <h3 id="home-recovery-heading">{t("recovery.heading")}</h3>
+        <p>{t(recovery.source === "expense" ? "recovery.bodyExpense" : "recovery.bodyCashIn")}</p>
+        {recovery.volatile && <p>{t("recovery.storageVolatile")}</p>}
+        <Link ref={recoveryLink} className="button-link" to="/transactions">{t("recovery.openActivity")}</Link>
+      </div>}
+      {data.error && <StatusMessage tone="danger">{t("capture.feedback.refreshFailed")}</StatusMessage>}
+      {data.loading && <StatusMessage>{t("activity.loading")}</StatusMessage>}
+    </section>
+    <section className="home-recent" aria-labelledby="home-recent-heading" aria-busy={data.loading}>
+      <div className="home-recent__heading"><h2 id="home-recent-heading">{t("activity.heading")}</h2>
+        <Link to="/transactions">{t("activity.viewAll")}</Link></div>
+      {data.error && <div><StatusMessage tone="danger">{t("activity.requestUnavailable")}</StatusMessage>
+        <button type="button" className="button-ghost" onClick={refreshHome}>{t("activity.retry")}</button></div>}
+      {!data.loading && !data.error && data.data?.recentActivity.availability.state === "unavailable"
+        && <StatusMessage tone="warning">{t("activity.unavailable")}</StatusMessage>}
+      {!data.loading && !data.error && data.data?.recentActivity.availability.state === "available" && (rows.length ?
+        <ul className="home-recent__list">{rows.map((row) => <li key={`${row.kind}-${row.recordId}`}>
+          <span className="home-recent__kind">{t(row.kind === "expense" ? "activity.expense" : "activity.cashIn")}</span>
+          <div><strong>{row.description}</strong><p>{formatHomeDate(row.date, moneyLocale)}{row.category ? ` · ${row.category}` : ""}
+            {row.paycheck && <> · {t("activity.paycheckLinked")}</>}</p></div>
+          <strong className="home-recent__amount">{formatHomeAmount(row.amount, row.kind, moneyLocale) ?? t("activity.amountReview")}</strong>
+        </li>)}</ul> : <StatusMessage>{t("activity.empty")}</StatusMessage>)}
+    </section>
+    <footer className="home-low-prominence"><Link to="/analytics">{t("activity.viewInsights")}</Link></footer>
+  </div>;
 }

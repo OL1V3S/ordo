@@ -13,7 +13,8 @@ export function useExpenses() {
     setError(null);
     try {
       const res = await expensesApi.getAll();
-      setExpenses(res.data ?? []);
+      if (!Array.isArray(res?.data)) throw new Error("Invalid expense list response.");
+      setExpenses(res.data);
     } catch (requestError) {
       setExpenses([]);
       setError(requestError);
