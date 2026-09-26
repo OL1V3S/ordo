@@ -66,6 +66,29 @@
     "amountReview": "El monto requiere revisión",
     "dateUnknown": "Fecha no disponible"
   },
+  "comingUp": {
+    "heading": "Próximos pagos de nómina",
+    "qualifier": "Previsiones de nómina, separadas de la actividad registrada.",
+    "viewPaychecks": "Ver pagos de nómina",
+    "listLabel": "Previsiones de pagos de nómina",
+    "fixedAmount": "Monto previsto: {{amount}}",
+    "rangeAmount": "Rango previsto: {{minimum}}–{{maximum}}",
+    "expectedDate": "Previsto para el {{date}}",
+    "expectedWindow": "Ventana prevista: del {{start}} al {{end}}",
+    "cadence": "Frecuencia: {{cadence}}",
+    "cadences": {
+      "weekly": "Semanal",
+      "biweekly": "Cada dos semanas",
+      "semimonthly": "Dos veces al mes",
+      "monthly": "Mensual"
+    },
+    "itemLabel": "{{name}}. {{amount}}. {{cadence}}. {{window}}.",
+    "loading": "Cargando previsiones de nómina…",
+    "homeUnavailable": "Próximos pagos no está disponible porque no se pudo cargar Inicio.",
+    "empty": "No hay previsiones de nómina próximas para mostrar.",
+    "unavailable": "Las previsiones de nómina no están disponibles en este momento.",
+    "malformed": "No pudimos verificar las previsiones de nómina, así que no se muestran."
+  },
   "recovery": {
     "heading": "Revisa la lista completa de actividad",
     "bodyExpense": "No pudimos confirmar si se guardó el gasto. Inicio solo muestra algunos registros recientes y no puede verificarlo. Revisa todos los gastos en Actividad antes de decidir si lo intentas de nuevo.",

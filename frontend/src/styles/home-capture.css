@@ -1,5 +1,5 @@
 .home-capture-page { display: grid; gap: 1.5rem; }
-.home-capture, .home-recent { min-width: 0; }
+.home-capture, .home-recent, .home-coming-up { min-width: 0; }
 .home-capture__actions { display: flex; flex-wrap: wrap; gap: .75rem; margin: .75rem 0 1rem; }
 .home-recovery { border-inline-start: 4px solid var(--color-warning, #9a6700); padding: .5rem 1rem; margin-block: 1rem; }
 .home-recovery h3 { margin-block: .25rem .5rem; }
@@ -9,10 +9,24 @@
 .home-recent__kind { font-size: .875rem; }
 .home-recent__list p { margin: .25rem 0 0; color: var(--color-text-muted); }
 .home-recent__amount { white-space: nowrap; }
+.home-coming-up { border-top: 1px solid var(--color-divider, #ddd); padding-top: 1rem; }
+.home-coming-up__heading { display: flex; min-width: 0; flex-wrap: wrap; align-items: start; justify-content: space-between; gap: .75rem; }
+.home-coming-up__heading > div { min-width: 0; }
+.home-coming-up__heading h2 { margin-block: 0; }
+.home-coming-up__heading a { min-height: 44px; display: inline-flex; align-items: center; }
+.home-coming-up__qualifier { margin: .25rem 0 0; color: var(--color-text-muted); }
+.home-coming-up__list { list-style: none; margin: .5rem 0; padding: 0; }
+.home-coming-up__item { min-width: 0; padding: .875rem 0; border-bottom: 1px solid var(--color-divider, #ddd); }
+.home-coming-up__item:last-child { border-bottom: 0; }
+.home-coming-up__item-heading { display: flex; min-width: 0; flex-wrap: wrap; justify-content: space-between; gap: .25rem .75rem; }
+.home-coming-up__item-heading > * { min-width: 0; overflow-wrap: anywhere; }
+.home-coming-up__item p { margin: .25rem 0 0; color: var(--color-text-muted); overflow-wrap: anywhere; }
+.home-coming-up__item-heading > strong:last-child { font-variant-numeric: tabular-nums; }
 .home-low-prominence { font-size: .9rem; }
 @media (max-width: 600px) {
   .home-capture__actions { display: grid; grid-template-columns: 1fr; }
   .home-capture__actions button { min-height: 44px; }
   .home-recent__list li { grid-template-columns: 1fr auto; }
   .home-recent__kind { grid-column: 1 / -1; }
+  .home-coming-up__item-heading { display: grid; grid-template-columns: 1fr; }
 }

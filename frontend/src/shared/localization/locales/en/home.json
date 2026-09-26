@@ -66,6 +66,29 @@
     "amountReview": "Amount needs review",
     "dateUnknown": "Date unavailable"
   },
+  "comingUp": {
+    "heading": "Coming Up",
+    "qualifier": "Expected paycheck projections, separate from recorded activity.",
+    "viewPaychecks": "View paychecks",
+    "listLabel": "Expected paycheck projections",
+    "fixedAmount": "Expected amount: {{amount}}",
+    "rangeAmount": "Expected range: {{minimum}}–{{maximum}}",
+    "expectedDate": "Expected {{date}}",
+    "expectedWindow": "Expected window {{start}}–{{end}}",
+    "cadence": "Cadence: {{cadence}}",
+    "cadences": {
+      "weekly": "Weekly",
+      "biweekly": "Every two weeks",
+      "semimonthly": "Twice a month",
+      "monthly": "Monthly"
+    },
+    "itemLabel": "{{name}}. {{amount}}. {{cadence}}. {{window}}.",
+    "loading": "Loading expected paychecks…",
+    "homeUnavailable": "Coming Up is unavailable because Home could not be loaded.",
+    "empty": "No upcoming paycheck expectations to show.",
+    "unavailable": "Upcoming paycheck expectations are unavailable right now.",
+    "malformed": "Paycheck expectations could not be verified, so they are hidden."
+  },
   "recovery": {
     "heading": "Check the complete activity list",
     "bodyExpense": "We couldn’t confirm whether your expense was saved. Home shows only a few recent records, so it cannot verify this write. Review all expenses in Activity before deciding whether to try again.",
