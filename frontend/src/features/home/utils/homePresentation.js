@@ -3,6 +3,7 @@ import { parseExactMoney } from "../../expenses/utils/exactMoney";
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const DECIMAL_AMOUNT = /^(?:0|[1-9]\d*)\.\d{2}$/;
 const PROFILE_ID = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
+const EMPTY_PROFILE_ID = "00000000-0000-0000-0000-000000000000";
 const CADENCES = new Set(["weekly", "biweekly", "semimonthly", "monthly"]);
 
 function isDateOnly(value) {
@@ -71,6 +72,7 @@ function isUpcomingItem(value, horizon) {
   if (!value || typeof value !== "object"
       || value.kind !== "paycheck_projection"
       || typeof value.paycheckProfileId !== "string" || !PROFILE_ID.test(value.paycheckProfileId)
+      || value.paycheckProfileId.toLowerCase() === EMPTY_PROFILE_ID
       || typeof value.displayName !== "string" || value.displayName.trim().length === 0
       || !CADENCES.has(value.cadence)
       || !isDateOnly(value.anchorDate)

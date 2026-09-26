@@ -88,6 +88,7 @@ describe("Home presentation contract", () => {
       projection({ cadence: "quarterly" }),
       projection({ displayName: "  " }),
       projection({ paycheckProfileId: "not-a-guid" }),
+      projection({ paycheckProfileId: "00000000-0000-0000-0000-000000000000" }),
       projection({ earliestExpectedDate: "2026-10-02" }),
       projection({ earliestExpectedDate: "2026-10-07", anchorDate: "2026-10-08", latestExpectedDate: "2026-10-09" }),
       projection({ amount: { mode: "fixed", fixedAmount: "10000000000000000.00", minimumAmount: null, maximumAmount: null } }),
