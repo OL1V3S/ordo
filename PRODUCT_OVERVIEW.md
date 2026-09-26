@@ -22,10 +22,13 @@ silently treating every detected pattern as a financial fact.
 
 - **Home:** Capture an expense or cash-in record before reviewing a compact,
   server-ordered list of up to three recent expenses and inflows. Exact amounts,
-  posted dates, expense categories, and paycheck links are shown when available;
-  unavailable reads and empty activity have distinct states. Insights remains a
-  quieter link. If a save outcome is uncertain, Home directs you to review the
-  complete relevant Activity list before deciding whether to retry.
+  posted dates, expense categories, and paycheck links are shown when available.
+  A quiet Coming Up section shows up to two backend-ranked paycheck expectations
+  with exact fixed or range amounts and localized expected dates; these remain
+  separate from recorded activity. Unavailable reads and empty sections have
+  distinct states. Insights remains a quieter link. If a save outcome is
+  uncertain, Home directs you to review the complete relevant Activity list
+  before deciding whether to retry.
 - **Activity / Transactions:** Scan recorded spending first, search descriptions
   and categories, and expand date/category filters when needed. A separate Cash in
   section lists recorded incoming money with its own search. Add, edit, or delete

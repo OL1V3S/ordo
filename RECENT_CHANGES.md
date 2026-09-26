@@ -24,6 +24,18 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-09-25 — Coming Up paycheck expectations
+
+[PR #158](https://github.com/OL1V3S/ordo/pull/158) ·
+[Issue #157](https://github.com/OL1V3S/ordo/issues/157)
+
+- Added a quiet Home Coming Up section for up to two backend-ranked paycheck
+  expectations with exact fixed or range amounts and localized expected dates.
+- Kept projections distinct from recorded activity and made malformed or
+  unavailable Upcoming data fail closed without hiding valid Recent Activity.
+- Added English and Spanish copy, accessible responsive presentation, and
+  focused tests without adding Home network requests or changing the API.
+
 ### 2026-09-23 — Capture-first Home and mixed Recent Activity
 
 [PR #156](https://github.com/OL1V3S/ordo/pull/156) ·

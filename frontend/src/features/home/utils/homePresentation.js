@@ -2,6 +2,9 @@ import { parseExactMoney } from "../../expenses/utils/exactMoney";
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const DECIMAL_AMOUNT = /^(?:0|[1-9]\d*)\.\d{2}$/;
+const PROFILE_ID = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
+const EMPTY_PROFILE_ID = "00000000-0000-0000-0000-000000000000";
+const CADENCES = new Set(["weekly", "biweekly", "semimonthly", "monthly"]);
 
 function isDateOnly(value) {
   if (typeof value !== "string" || !ISO_DATE.test(value)) return false;
@@ -36,6 +39,63 @@ function isActivityItem(value) {
     && ["confirmation_evidence", "recorded_receipt"].includes(value.paycheck.relation));
 }
 
+function addCalendarDays(date, days) {
+  if (!isDateOnly(date)) return null;
+  const result = new Date(`${date}T00:00:00.000Z`);
+  result.setUTCDate(result.getUTCDate() + days);
+  const iso = result.toISOString();
+  return /^\d{4}-/.test(iso) ? iso.slice(0, 10) : null;
+}
+
+function parseCanonicalAmount(value) {
+  if (typeof value !== "string" || !DECIMAL_AMOUNT.test(value)) return null;
+  const parsed = parseExactMoney(value);
+  return parsed?.value === value ? parsed : null;
+}
+
+function isUpcomingAmount(value) {
+  if (!value || typeof value !== "object") return false;
+  if (value.mode === "fixed") {
+    return parseCanonicalAmount(value.fixedAmount) !== null
+      && value.minimumAmount === null && value.maximumAmount === null;
+  }
+  if (value.mode === "range") {
+    const minimum = parseCanonicalAmount(value.minimumAmount);
+    const maximum = parseCanonicalAmount(value.maximumAmount);
+    return value.fixedAmount === null && minimum !== null && maximum !== null
+      && minimum.cents < maximum.cents;
+  }
+  return false;
+}
+
+function isUpcomingItem(value, horizon) {
+  if (!value || typeof value !== "object"
+      || value.kind !== "paycheck_projection"
+      || typeof value.paycheckProfileId !== "string" || !PROFILE_ID.test(value.paycheckProfileId)
+      || value.paycheckProfileId.toLowerCase() === EMPTY_PROFILE_ID
+      || typeof value.displayName !== "string" || value.displayName.trim().length === 0
+      || !CADENCES.has(value.cadence)
+      || !isDateOnly(value.anchorDate)
+      || !isDateOnly(value.earliestExpectedDate)
+      || !isDateOnly(value.latestExpectedDate)
+      || value.earliestExpectedDate > value.anchorDate
+      || value.anchorDate > value.latestExpectedDate
+      || value.latestExpectedDate < horizon.from
+      || value.earliestExpectedDate > horizon.through
+      || !isUpcomingAmount(value.amount)) return false;
+  return true;
+}
+
+export function isHomeUpcomingSection(value, upcomingEvaluatedOn) {
+  if (!value || typeof value !== "object"
+      || !value.horizon || !isDateOnly(value.horizon.from) || !isDateOnly(value.horizon.through)
+      || value.horizon.from !== upcomingEvaluatedOn
+      || value.horizon.through !== addCalendarDays(upcomingEvaluatedOn, 13)
+      || !isAvailability(value, "items")) return false;
+  if (value.availability.state === "unavailable") return true;
+  return value.items.length <= 2 && value.items.every((item) => isUpcomingItem(item, value.horizon));
+}
+
 export function isHomeResponse(value) {
   if (!value || typeof value !== "object"
       || typeof value.generatedAt !== "string" || Number.isNaN(Date.parse(value.generatedAt))
@@ -57,6 +117,21 @@ export function formatHomeDate(date, locale) {
     day: "numeric",
     timeZone: "UTC",
   }).format(parsed);
+}
+
+export function formatHomeProjectionAmount(value, locale) {
+  const parsed = parseCanonicalAmount(value);
+  if (!parsed) return null;
+
+  const dollars = parsed.cents / 100n;
+  const fraction = String(parsed.cents % 100n).padStart(2, "0");
+  const parts = new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).formatToParts(dollars);
+  return parts.map((part) => part.type === "fraction" ? fraction : part.value).join("");
 }
 
 export function formatHomeAmount(value, kind, locale) {

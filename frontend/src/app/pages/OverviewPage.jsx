@@ -12,7 +12,12 @@ import StatusMessage from "../../shared/ui/StatusMessage";
 import { getSessionSnapshot } from "../../shared/auth/session";
 import { useHomeData } from "../../features/home/hooks/useHomeData";
 import { useCaptureRecovery } from "../../features/home/recovery/captureRecovery";
-import { formatHomeAmount, formatHomeDate } from "../../features/home/utils/homePresentation";
+import {
+  formatHomeAmount,
+  formatHomeDate,
+  formatHomeProjectionAmount,
+  isHomeUpcomingSection,
+} from "../../features/home/utils/homePresentation";
 import "../../styles/home-capture.css";
 
 export default function OverviewPage() {
@@ -83,6 +88,14 @@ export default function OverviewPage() {
   }
   const rows = data.data?.recentActivity?.availability?.state === "available"
     ? data.data.recentActivity.items.slice(0, 3) : [];
+  const upcoming = data.data?.upcoming;
+  const upcomingValid = data.data
+    && isHomeUpcomingSection(upcoming, data.data.evaluations.upcomingEvaluatedOn);
+  const upcomingState = data.loading ? "loading"
+    : data.error || !data.data ? "homeUnavailable"
+      : !upcomingValid ? "malformed"
+        : upcoming.availability.state === "unavailable" ? "unavailable"
+          : upcoming.items.length === 0 ? "empty" : "available";
 
   return <div className="shell-page home-capture-page">
     <header className="page-header"><div><h1>{t("page.title")}</h1><p className="muted">{t("page.intro")}</p></div></header>
@@ -135,6 +148,39 @@ export default function OverviewPage() {
             {row.paycheck && <> · {t("activity.paycheckLinked")}</>}</p></div>
           <strong className="home-recent__amount">{formatHomeAmount(row.amount, row.kind, moneyLocale) ?? t("activity.amountReview")}</strong>
         </li>)}</ul> : <StatusMessage>{t("activity.empty")}</StatusMessage>)}
+    </section>
+    <section className="home-coming-up" aria-labelledby="home-coming-up-heading" aria-busy={upcomingState === "loading"}>
+      <div className="home-coming-up__heading">
+        <div><h2 id="home-coming-up-heading">{t("comingUp.heading")}</h2>
+          <p className="home-coming-up__qualifier">{t("comingUp.qualifier")}</p></div>
+        <Link to="/paychecks">{t("comingUp.viewPaychecks")}</Link>
+      </div>
+      {upcomingState === "available" && <ul className="home-coming-up__list" aria-label={t("comingUp.listLabel")}>
+        {upcoming.items.map((item) => {
+          const windowLabel = item.earliestExpectedDate === item.latestExpectedDate
+            ? t("comingUp.expectedDate", { date: formatHomeDate(item.earliestExpectedDate, moneyLocale) })
+            : t("comingUp.expectedWindow", {
+              start: formatHomeDate(item.earliestExpectedDate, moneyLocale),
+              end: formatHomeDate(item.latestExpectedDate, moneyLocale),
+            });
+          const amountLabel = item.amount.mode === "fixed"
+            ? t("comingUp.fixedAmount", { amount: formatHomeProjectionAmount(item.amount.fixedAmount, moneyLocale) })
+            : t("comingUp.rangeAmount", {
+              minimum: formatHomeProjectionAmount(item.amount.minimumAmount, moneyLocale),
+              maximum: formatHomeProjectionAmount(item.amount.maximumAmount, moneyLocale),
+            });
+          const cadence = t(`comingUp.cadences.${item.cadence}`);
+          return <li key={item.paycheckProfileId} className="home-coming-up__item"
+            aria-label={t("comingUp.itemLabel", { name: item.displayName, amount: amountLabel, cadence: t("comingUp.cadence", { cadence }), window: windowLabel })}>
+            <div className="home-coming-up__item-heading"><strong>{item.displayName}</strong><strong>{amountLabel}</strong></div>
+            <p>{t("comingUp.cadence", { cadence })}</p>
+            <p>{windowLabel}</p>
+          </li>;
+        })}
+      </ul>}
+      {upcomingState !== "available" && <StatusMessage tone={upcomingState === "malformed" || upcomingState === "unavailable" ? "warning" : undefined}>
+        {t(`comingUp.${upcomingState}`)}
+      </StatusMessage>}
     </section>
     <footer className="home-low-prominence"><Link to="/analytics">{t("activity.viewInsights")}</Link></footer>
   </div>;
