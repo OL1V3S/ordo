@@ -24,6 +24,17 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-09-28 — Home commitment-change reviews
+
+[PR #160](https://github.com/OL1V3S/ordo/pull/160) ·
+[Issue #159](https://github.com/OL1V3S/ordo/issues/159)
+
+- Added the first Home Needs Attention family for authoritative pending
+  commitment-change reviews, grouped by commitment and linked to the existing
+  Commitments decision workflow.
+- Kept Home attention independently available, privacy-minimal, bilingual, and
+  read-only, with a compact two-group presentation and explicit review focus.
+
 ### 2026-09-25 — Coming Up paycheck expectations
 
 [PR #158](https://github.com/OL1V3S/ordo/pull/158) ·
