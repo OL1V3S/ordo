@@ -69,7 +69,9 @@ const historyHeading = (name) => screen.getByRole("heading", { level: 2, name: n
 const history = (name) => historyHeading(name).closest("details");
 
 function renderCommitmentsPage(initialEntries = ["/commitments"]) {
-  return render(<MemoryRouter initialEntries={initialEntries}><CommitmentsPage /></MemoryRouter>);
+  return render(<CommitmentsPage />, {
+    wrapper: ({ children }) => <MemoryRouter initialEntries={initialEntries}>{children}</MemoryRouter>,
+  });
 }
 
 beforeEach(() => useCommitments.mockReturnValue(state()));
