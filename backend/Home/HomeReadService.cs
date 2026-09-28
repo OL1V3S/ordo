@@ -32,7 +32,16 @@ public interface IHomeUpcomingReader
         CancellationToken cancellationToken);
 }
 
+public interface IHomeAttentionReader
+{
+    Task<HomeAttentionSectionResponse> ReadAsync(
+        string ownerId,
+        DateOnly evaluatedOn,
+        CancellationToken cancellationToken);
+}
+
 public sealed class HomeReadService(
+    IHomeAttentionReader attention,
     IHomeActivityReader activity,
     IHomeUpcomingReader upcoming,
     TimeProvider clock,
@@ -46,20 +55,39 @@ public sealed class HomeReadService(
         var generatedAt = clock.GetUtcNow();
         var upcomingEvaluatedOn = DateOnly.FromDateTime(generatedAt.UtcDateTime);
 
+        var needsAttention = await ReadAttentionAsync(ownerId, upcomingEvaluatedOn, cancellationToken);
         var recentActivity = await ReadActivityAsync(ownerId, activityThroughDate, cancellationToken);
         var comingUp = await ReadUpcomingAsync(ownerId, upcomingEvaluatedOn, cancellationToken);
 
-        if (recentActivity.Items is null && comingUp.Items is null)
+        if (needsAttention.Items is null && recentActivity.Items is null && comingUp.Items is null)
             return new HomeReadResult(null);
 
-        var available = new HomeSectionAvailabilityResponse("available", null);
         return new HomeReadResult(new HomeResponse(
             generatedAt,
             "USD",
             new HomeEvaluationsResponse(activityThroughDate, upcomingEvaluatedOn),
-            new HomeAttentionSectionResponse(available, [], []),
+            needsAttention,
             recentActivity,
             comingUp));
+    }
+
+    private async Task<HomeAttentionSectionResponse> ReadAttentionAsync(
+        string ownerId,
+        DateOnly evaluatedOn,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await attention.ReadAsync(ownerId, evaluatedOn, cancellationToken);
+        }
+        catch (Exception exception) when (IsRecoverable(exception))
+        {
+            logger.LogWarning(
+                "Home section {Section} is unavailable after {FailureType}.",
+                "attention",
+                exception.GetType().Name);
+            return new HomeAttentionSectionResponse(Unavailable(), [], null, evaluatedOn);
+        }
     }
 
     private async Task<HomeRecentActivitySectionResponse> ReadActivityAsync(

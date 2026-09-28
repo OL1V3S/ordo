@@ -53,6 +53,11 @@ public sealed class PostgreSqlHomeTests
         using var response = await owner.Client.GetAsync(Route);
         response.EnsureSuccessStatusCode();
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        var attention = body.GetProperty("attention");
+        Assert.Equal("available", attention.GetProperty("availability").GetProperty("state").GetString());
+        Assert.Equal(new[] { "commitment_change_review" }, attention.GetProperty("kindsEvaluated")
+            .EnumerateArray().Select(value => value.GetString()));
+        Assert.Empty(attention.GetProperty("items").EnumerateArray());
         var items = body.GetProperty("recentActivity").GetProperty("items").EnumerateArray().ToArray();
 
         Assert.Equal(2, items.Length);

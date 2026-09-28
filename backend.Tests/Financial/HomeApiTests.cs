@@ -54,7 +54,9 @@ public sealed class HomeApiTests
 
         var attention = body.GetProperty("attention");
         AssertAvailable(attention);
-        Assert.Empty(attention.GetProperty("kindsEvaluated").EnumerateArray());
+        Assert.Equal("2026-09-23", attention.GetProperty("evaluatedOn").GetString());
+        Assert.Equal(new[] { "commitment_change_review" }, attention.GetProperty("kindsEvaluated")
+            .EnumerateArray().Select(value => value.GetString()));
         Assert.Empty(attention.GetProperty("items").EnumerateArray());
 
         var activity = body.GetProperty("recentActivity");
@@ -135,6 +137,87 @@ public sealed class HomeApiTests
         Assert.Equal("2026-09-22", changedInflow.GetProperty("date").GetString());
         Assert.Equal("7.89", changedInflow.GetProperty("amount").GetString());
         Assert.Equal("recorded_receipt", changedInflow.GetProperty("paycheck").GetProperty("relation").GetString());
+    }
+
+    [Fact]
+    public async Task Attention_shows_only_pending_reviews_with_minimal_owner_scoped_contract()
+    {
+        var now = new DateTimeOffset(2026, 10, 29, 18, 0, 0, TimeSpan.Zero);
+        await using var app = new HomeTestApplication(now);
+        using var owner = await app.CreateAuthenticatedUserAsync("home-attention@example.com");
+        using var other = await app.CreateAuthenticatedUserAsync("home-attention-other@example.com");
+
+        var confirmation = new List<Expense>();
+        foreach (var date in new[] { new DateOnly(2026, 5, 10), new DateOnly(2026, 6, 10), new DateOnly(2026, 7, 10) })
+            confirmation.Add(await app.SeedExpenseAsync(owner.Id, "membership", 10m, date, "bills"));
+        foreach (var date in new[] { new DateOnly(2026, 8, 12), new DateOnly(2026, 9, 12), new DateOnly(2026, 10, 12) })
+            await app.SeedExpenseAsync(owner.Id, "membership", 12m, date, "bills");
+        await SeedHomeCommitmentAsync(app, owner.Id, confirmation, "Gym plan");
+
+        var foreignConfirmation = new List<Expense>();
+        foreach (var date in new[] { new DateOnly(2026, 5, 10), new DateOnly(2026, 6, 10), new DateOnly(2026, 7, 10) })
+            foreignConfirmation.Add(await app.SeedExpenseAsync(other.Id, "private membership", 10m, date, "private"));
+        foreach (var date in new[] { new DateOnly(2026, 8, 12), new DateOnly(2026, 9, 12), new DateOnly(2026, 10, 12) })
+            await app.SeedExpenseAsync(other.Id, "private membership", 12m, date, "private");
+        await SeedHomeCommitmentAsync(app, other.Id, foreignConfirmation, "Foreign secret name");
+
+        var body = await ReadAsync(owner.Client);
+        var attention = body.GetProperty("attention");
+        AssertAvailable(attention);
+        Assert.Equal("2026-10-29", attention.GetProperty("evaluatedOn").GetString());
+        Assert.Equal(new[] { "commitment_change_review" }, attention.GetProperty("kindsEvaluated")
+            .EnumerateArray().Select(value => value.GetString()));
+        var item = Assert.Single(attention.GetProperty("items").EnumerateArray());
+        Assert.Equal("commitment_change_review", item.GetProperty("kind").GetString());
+        Assert.Equal("Gym plan", item.GetProperty("commitmentName").GetString());
+        Assert.Equal(new[] { "amount", "timing" }, item.GetProperty("reviews").EnumerateArray()
+            .Select(value => value.GetProperty("dimension").GetString()));
+        Assert.All(item.GetProperty("reviews").EnumerateArray(), review =>
+            Assert.Equal("proposed_change", review.GetProperty("state").GetString()));
+        Assert.DoesNotContain("Foreign secret", body.GetRawText(), StringComparison.Ordinal);
+        Assert.DoesNotContain("fingerprint", body.GetRawText(), StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("algorithmVersion", body.GetRawText(), StringComparison.Ordinal);
+        Assert.DoesNotContain("observations", body.GetRawText(), StringComparison.Ordinal);
+        Assert.DoesNotContain("ownerId", body.GetRawText(), StringComparison.OrdinalIgnoreCase);
+
+        var changeRead = await owner.Client.GetFromJsonAsync<JsonElement>("/api/commitment-changes");
+        var amountFingerprint = Assert.Single(changeRead.GetProperty("changes").EnumerateArray())
+            .GetProperty("amount").GetProperty("fingerprint").GetString();
+        using var kept = await owner.Client.PostAsJsonAsync(
+            $"/api/commitment-changes/{item.GetProperty("commitmentId").GetGuid()}/amount/keep",
+            new { fingerprint = amountFingerprint });
+        Assert.Equal(HttpStatusCode.NoContent, kept.StatusCode);
+        var afterKeep = await ReadAsync(owner.Client);
+        var remainingReviews = Assert.Single(afterKeep.GetProperty("attention").GetProperty("items").EnumerateArray())
+            .GetProperty("reviews").EnumerateArray();
+        Assert.Equal(new[] { "timing" }, remainingReviews
+            .Select(value => value.GetProperty("dimension").GetString()));
+    }
+
+    [Fact]
+    public async Task Attention_failure_is_independent_and_all_three_sources_define_503_boundary()
+    {
+        await using var partial = new HomeTestApplication(
+            Now, attention: new ThrowingAttentionReader(new SyntheticDbException()));
+        using var owner = await partial.CreateAuthenticatedUserAsync("home-attention-partial@example.com");
+        var body = await ReadAsync(owner.Client);
+        AssertUnavailable(body.GetProperty("attention"));
+        Assert.Equal(JsonValueKind.Null, body.GetProperty("attention").GetProperty("items").ValueKind);
+        Assert.Empty(body.GetProperty("attention").GetProperty("kindsEvaluated").EnumerateArray());
+        AssertAvailable(body.GetProperty("recentActivity"));
+        AssertAvailable(body.GetProperty("upcoming"));
+
+        await using var attentionOnly = new HomeTestApplication(
+            Now,
+            new ThrowingActivityReader(new SyntheticDbException()),
+            new ThrowingUpcomingReader(new TimeoutException()));
+        using var otherOwner = await attentionOnly.CreateAuthenticatedUserAsync("home-attention-only@example.com");
+        using var response = await otherOwner.Client.GetAsync(Route);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var attentionOnlyBody = await response.Content.ReadFromJsonAsync<JsonElement>();
+        AssertAvailable(attentionOnlyBody.GetProperty("attention"));
+        AssertUnavailable(attentionOnlyBody.GetProperty("recentActivity"));
+        AssertUnavailable(attentionOnlyBody.GetProperty("upcoming"));
     }
 
     [Fact]
@@ -282,16 +365,18 @@ public sealed class HomeApiTests
         Assert.Equal(JsonValueKind.Null, activity.GetProperty("items").ValueKind);
         AssertAvailable(body.GetProperty("upcoming"));
         Assert.Empty(body.GetProperty("upcoming").GetProperty("items").EnumerateArray());
-        Assert.Empty(body.GetProperty("attention").GetProperty("items").EnumerateArray());
+        Assert.Equal(new[] { "commitment_change_review" }, body.GetProperty("attention").GetProperty("kindsEvaluated")
+            .EnumerateArray().Select(value => value.GetString()));
     }
 
     [Fact]
-    public async Task Both_source_sections_unavailable_returns_privacy_safe_503()
+    public async Task All_source_sections_unavailable_returns_privacy_safe_503()
     {
         await using var app = new HomeTestApplication(
             Now,
             new ThrowingActivityReader(new SyntheticDbException()),
-            new ThrowingUpcomingReader(new TimeoutException()));
+            new ThrowingUpcomingReader(new TimeoutException()),
+            new ThrowingAttentionReader(new SyntheticDbException()));
         using var owner = await app.CreateAuthenticatedUserAsync("home-unavailable@example.com");
 
         using var response = await owner.Client.GetAsync(Route);
@@ -305,8 +390,10 @@ public sealed class HomeApiTests
     public async Task Cancellation_and_programming_defects_are_not_converted_to_section_unavailability()
     {
         var canceled = new CancellationToken(canceled: true);
+        var attention = new RecordingAttentionReader();
         var upcoming = new RecordingUpcomingReader();
         var canceledService = new HomeReadService(
+            attention,
             new ThrowingActivityReader(new OperationCanceledException(canceled)),
             upcoming,
             new FrozenTimeProvider(Now),
@@ -314,9 +401,11 @@ public sealed class HomeApiTests
 
         await Assert.ThrowsAsync<OperationCanceledException>(() =>
             canceledService.GetAsync("owner", new(2026, 9, 22), canceled));
+        Assert.True(attention.Called);
         Assert.False(upcoming.Called);
 
         var defectiveService = new HomeReadService(
+            attention,
             new ThrowingActivityReader(new InvalidOperationException("synthetic defect")),
             upcoming,
             new FrozenTimeProvider(Now),
@@ -369,6 +458,31 @@ public sealed class HomeApiTests
         CreatedAt = Now.UtcDateTime,
         UpdatedAt = Now.UtcDateTime
     };
+
+    private static async Task SeedHomeCommitmentAsync(
+        FinancialApiTestApplicationBase app,
+        string ownerId,
+        IEnumerable<Expense> evidence,
+        string name)
+    {
+        using var scope = app.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<BudgetContext>();
+        var at = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        context.Commitments.Add(new Commitment
+        {
+            Id = Guid.NewGuid(), OwnerId = ownerId, Name = name, Category = "bills",
+            Lifecycle = CommitmentLifecycle.Active, Cadence = CommitmentCadence.Monthly,
+            TimingKind = CommitmentTimingKind.DayOfMonth, ExpectedDay = 10,
+            WindowBeforeDays = 0, WindowAfterDays = 0,
+            AmountMode = CommitmentAmountMode.Fixed, ExpectedAmount = 10m,
+            CreatedAt = at, UpdatedAt = at,
+            Occurrences = evidence.Select(expense => new CommitmentOccurrence
+            {
+                ExpenseId = expense.Id, Kind = CommitmentOccurrenceKind.ConfirmationEvidence, LinkedAt = at
+            }).ToList()
+        });
+        await context.SaveChangesAsync();
+    }
 
     private static PaycheckProfile RangeProfile(
         string ownerId,
@@ -426,7 +540,8 @@ public sealed class HomeApiTests
 internal sealed class HomeTestApplication(
     DateTimeOffset now,
     IHomeActivityReader? activity = null,
-    IHomeUpcomingReader? upcoming = null) : FinancialApiTestApplication
+    IHomeUpcomingReader? upcoming = null,
+    IHomeAttentionReader? attention = null) : FinancialApiTestApplication
 {
     protected override void ConfigureAdditionalServices(IServiceCollection services)
     {
@@ -441,6 +556,11 @@ internal sealed class HomeTestApplication(
         {
             services.RemoveAll<IHomeUpcomingReader>();
             services.AddSingleton(upcoming);
+        }
+        if (attention is not null)
+        {
+            services.RemoveAll<IHomeAttentionReader>();
+            services.AddSingleton<IHomeAttentionReader>(attention);
         }
     }
 }
@@ -457,6 +577,31 @@ internal sealed class ThrowingActivityReader(Exception exception) : IHomeActivit
         DateOnly throughDate,
         CancellationToken cancellationToken) =>
         Task.FromException<HomeRecentActivitySectionResponse>(exception);
+}
+
+internal sealed class ThrowingAttentionReader(Exception exception) : IHomeAttentionReader
+{
+    public Task<HomeAttentionSectionResponse> ReadAsync(
+        string ownerId,
+        DateOnly evaluatedOn,
+        CancellationToken cancellationToken) =>
+        Task.FromException<HomeAttentionSectionResponse>(exception);
+}
+
+internal sealed class RecordingAttentionReader : IHomeAttentionReader
+{
+    public bool Called { get; private set; }
+
+    public Task<HomeAttentionSectionResponse> ReadAsync(
+        string ownerId,
+        DateOnly evaluatedOn,
+        CancellationToken cancellationToken)
+    {
+        Called = true;
+        return Task.FromResult(new HomeAttentionSectionResponse(
+            new HomeSectionAvailabilityResponse("available", null),
+            ["commitment_change_review"], [], evaluatedOn));
+    }
 }
 
 internal sealed class ThrowingUpcomingReader(Exception exception) : IHomeUpcomingReader

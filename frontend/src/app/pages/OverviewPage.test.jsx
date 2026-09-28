@@ -22,10 +22,13 @@ const availableUpcoming = (items = []) => ({
   horizon: { from: "2026-09-01", through: "2026-09-14" },
   items,
 });
-const home = (items = [], upcoming = availableUpcoming()) => ({
+const home = (items = [], upcoming = availableUpcoming(), attention = {
+  availability: { state: "available", reasonCode: null },
+  kindsEvaluated: ["commitment_change_review"], items: [], evaluatedOn: "2026-09-01",
+}) => ({
   generatedAt: "2026-09-01T12:00:00Z", currencyCode: "USD",
   evaluations: { activityThroughDate: "2026-09-01", upcomingEvaluatedOn: "2026-09-01" },
-  attention: { availability: { state: "available", reasonCode: null }, items: [] },
+  attention,
   upcoming,
   recentActivity: { availability: { state: "available", reasonCode: null }, items },
 });
@@ -66,11 +69,56 @@ describe("capture-first Home", () => {
     expect(screen.getByText("+$12.34")).toBeInTheDocument();
     expect(screen.getByText("−$9,999,999,999,999,999.99")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Coming Up" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Needs Attention" })).toBeInTheDocument();
     expect(screen.getByText("No upcoming paycheck expectations to show.")).toBeInTheDocument();
     const headingOrder = screen.getAllByRole("heading").map((heading) => heading.textContent);
     expect(headingOrder.indexOf("Capture")).toBeLessThan(headingOrder.indexOf("Recent activity"));
+    expect(headingOrder.indexOf("Capture")).toBeLessThan(headingOrder.indexOf("Needs Attention"));
+    expect(headingOrder.indexOf("Needs Attention")).toBeLessThan(headingOrder.indexOf("Recent activity"));
     expect(headingOrder.indexOf("Recent activity")).toBeLessThan(headingOrder.indexOf("Coming Up"));
     expect(paychecksApi.getPaychecks).not.toHaveBeenCalled();
+  });
+
+  it("renders grouped pending reviews in server order and links beyond the two-group presentation bound", async () => {
+    const attention = {
+      availability: { state: "available", reasonCode: null },
+      kindsEvaluated: ["commitment_change_review"],
+      evaluatedOn: "2026-09-01",
+      items: ["a", "b", "c"].map((id, index) => ({
+        kind: "commitment_change_review", commitmentId: `b375a2a2-3f95-43b0-985e-a9360237b0${id}7`,
+        commitmentName: `Commitment ${index + 1}`,
+        reviews: [{ dimension: index === 0 ? "amount" : "missing", state: index === 0 ? "proposed_change" : "possibly_ended" }],
+      })),
+    };
+    homeApi.getHome.mockResolvedValue(response(home([], availableUpcoming(), attention)));
+    renderPage();
+    const list = await screen.findByRole("list", { name: "Commitment changes to review" });
+    expect(within(list).getByText("Commitment 1")).toBeInTheDocument();
+    expect(within(list).getByText("Commitment 2")).toBeInTheDocument();
+    expect(within(list).queryByText("Commitment 3")).not.toBeInTheDocument();
+    expect(within(list).getByText("Amount change to review")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "See all 3 reviews" })).toHaveAttribute("href", "/commitments#changes-review-heading");
+    expect(homeApi.getHome).toHaveBeenCalledTimes(1);
+    expect(paychecksApi.getPaychecks).not.toHaveBeenCalled();
+  });
+
+  it("localizes attention copy while preserving the user-entered commitment name", async () => {
+    await i18n.changeLanguage("es");
+    const attention = {
+      availability: { state: "available", reasonCode: null },
+      kindsEvaluated: ["commitment_change_review"], evaluatedOn: "2026-09-01",
+      items: [{
+        kind: "commitment_change_review", commitmentId: "b375a2a2-3f95-43b0-985e-a9360237b0b7",
+        commitmentName: "Mi Gimnasio", reviews: [{ dimension: "timing", state: "proposed_change" }],
+      }],
+    };
+    homeApi.getHome.mockResolvedValue(response(home([], availableUpcoming(), attention)));
+    renderPage();
+    expect(await screen.findByRole("heading", { name: "Requiere atención" })).toBeInTheDocument();
+    expect(screen.getByText("Mi Gimnasio")).toBeInTheDocument();
+    expect(screen.getByText("Cambio de fecha por revisar")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Abrir revisiones de compromisos" }))
+      .toHaveAttribute("href", "/commitments#changes-review-heading");
   });
 
   it("renders at most two server-ordered overlapping expectations with exact amounts and dates", async () => {

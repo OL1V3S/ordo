@@ -45,12 +45,15 @@ builder.Services.AddScoped<IImportPreviewService, ImportPreviewService>();
 builder.Services.AddSingleton<ICommitmentDetector, CommitmentDetector>();
 builder.Services.AddSingleton<ICommitmentChangeDetector, CommitmentChangeDetector>();
 builder.Services.AddScoped<ICommitmentService, CommitmentService>();
+builder.Services.AddScoped<ICommitmentChangeReadService>(services =>
+    (ICommitmentChangeReadService)services.GetRequiredService<ICommitmentService>());
 builder.Services.AddSingleton<PaycheckCandidateDetector>();
 builder.Services.AddSingleton<PaycheckProjector>();
 builder.Services.AddScoped<IPaycheckService, PaycheckService>();
 builder.Services.AddScoped<ICashFlowService, CashFlowService>();
 builder.Services.AddScoped<IHomeActivityReader, HomeActivityReader>();
 builder.Services.AddScoped<IHomeUpcomingReader, HomeUpcomingReader>();
+builder.Services.AddScoped<IHomeAttentionReader, HomeAttentionReader>();
 builder.Services.AddScoped<IHomeReadService, HomeReadService>();
 
 builder.Services

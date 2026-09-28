@@ -26,18 +26,52 @@ does not cache or return stale section data.
 
 ### Needs Attention
 
-V1 exposes only the coverage envelope:
+Needs Attention evaluates exactly one family, `commitment_change_review`, on
+the UTC calendar date of the response's captured `generatedAt`. Its envelope
+includes `evaluatedOn`, and a successful evaluation includes
+`kindsEvaluated: ["commitment_change_review"]`, even when there are no items.
+That empty available result means this family was evaluated and no pending
+review exists; it does not claim that other attention families were checked.
+
+Each item groups actionable pending dimensions for one commitment, in the
+commitment-change detector's stable commitment-ID order. Dimensions retain the
+existing amount, timing, missing order:
 
 ```json
 {
   "availability": { "state": "available", "reasonCode": null },
-  "kindsEvaluated": [],
-  "items": []
+  "kindsEvaluated": ["commitment_change_review"],
+  "items": [{
+    "kind": "commitment_change_review",
+    "commitmentId": "00000000-0000-0000-0000-000000000001",
+    "commitmentName": "Gym plan",
+    "reviews": [{ "dimension": "amount", "state": "proposed_change" }]
+  }],
+  "evaluatedOn": "2026-09-23"
 }
 ```
 
-This makes no claim that every possible attention family was evaluated. No
-attention inference is part of this slice.
+Only existing assessments with a non-null fingerprint and `decisionState` of
+`pending` are included: `proposed_change` for amount/timing and
+`not_seen_recently` or `possibly_ended` for missing. Kept, normal, isolated
+outlier, possible-change, matching-unavailable, and other non-actionable
+assessments are omitted. Home returns the complete set; its compact UI shows at
+most two commitment groups and links to the full Commitments review when more
+groups exist. The “See all” count is the number of pending dimension reviews,
+not the number of grouped commitments.
+
+The typed Home item intentionally omits proposed values, fingerprints, raw
+evidence, observations, category, algorithm version, and owner identifiers.
+The backend supplies structured language-neutral dimension/state codes, not
+localized prose. Home only links to the existing Commitments review workflow;
+it does not accept or dismiss decisions.
+
+The Home attention reader reuses the commitment service's existing dated
+evaluation/projection seam. The existing commitment-change endpoint keeps its
+own UTC date capture and request transaction behavior. Home passes its captured
+UTC date and owns a separate read-only repeatable-read relational transaction
+for attention, like the other Home source readers. Detector semantics are
+documented in `docs/commitment-intelligence.md`.
 
 ### Recent Activity
 
@@ -76,17 +110,18 @@ next-payment projection contract.
 
 ## Failure and consistency
 
-Recent Activity and Coming Up each use a separate read-only repeatable-read
-relational transaction. Queries are sequential on the scoped EF Core context,
-and a failed section transaction is disposed before the next section begins.
-Section-level coherence is required; one cross-section database snapshot is not.
+Needs Attention, Recent Activity, and Coming Up each use a separate read-only
+repeatable-read relational transaction. Queries are sequential on the scoped
+EF Core context, and a failed section transaction is disposed before the next
+section begins. Section-level coherence is required; one cross-section database
+snapshot is not.
 
 Known recoverable provider, timeout, or projection-availability failures make
 only that section unavailable. Cancellation and programming or contract defects
-propagate. HTTP `200` is returned when either source-backed section succeeds;
-when both fail, the endpoint returns privacy-safe `503` ProblemDetails with code
-`home_unavailable`. Authentication failures are never converted to partial
-responses.
+propagate. HTTP `200` is returned when any of the three source-backed sections
+succeeds; only when all three are unavailable does the endpoint return
+privacy-safe `503` ProblemDetails with code `home_unavailable`. Authentication
+failures are never converted to partial responses.
 
 All entity and relationship reads are scoped to the authenticated owner on
 every joined side, use no tracking, perform no writes, and return no owner ID,

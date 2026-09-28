@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useCommitments } from "../hooks/useCommitments";
 import CommitmentsPage from "./CommitmentsPage";
+import { MemoryRouter } from "react-router-dom";
 
 vi.mock("../hooks/useCommitments", () => ({ useCommitments: vi.fn() }));
 
@@ -67,16 +68,26 @@ const disclosure = (name) => screen.getByLabelText(`Details for ${name}`).closes
 const historyHeading = (name) => screen.getByRole("heading", { level: 2, name: new RegExp(`^${name} \\(\\d+\\)$`) });
 const history = (name) => historyHeading(name).closest("details");
 
+function renderCommitmentsPage(initialEntries = ["/commitments"]) {
+  return render(<MemoryRouter initialEntries={initialEntries}><CommitmentsPage /></MemoryRouter>);
+}
+
 beforeEach(() => useCommitments.mockReturnValue(state()));
 afterEach(() => document.documentElement.removeAttribute("data-theme"));
 
 describe("Commitments workspace", () => {
+  it("focuses the pending review heading when Home hands off through its hash target", async () => {
+    renderCommitmentsPage(["/commitments#changes-review-heading"]);
+    const heading = await screen.findByRole("heading", { name: "Changes to review" });
+    await waitFor(() => expect(document.activeElement).toBe(heading));
+  });
+
   it("puts active saved commitments and decision work before closed history while preserving every disclosure", async () => {
     const user = userEvent.setup();
     const paused = { ...commitment, id: "commitment-2", name: "Paused rent", lifecycle: "paused" };
     const ended = { ...commitment, id: "commitment-3", name: "Ended rent", lifecycle: "ended" };
     useCommitments.mockReturnValue(state({ commitments: [commitment, paused, ended], commitmentChanges: [commitmentChange] }));
-    render(<CommitmentsPage />);
+    renderCommitmentsPage();
 
     const headings = [
       screen.getByRole("heading", { level: 2, name: "Your commitments" }),
@@ -142,7 +153,7 @@ describe("Commitments workspace", () => {
     const monthEndCandidate = { ...candidate, timingKind: "monthend", expectedDay: null, windowBeforeDays: 2, windowAfterDays: 1 };
     const monthEndCommitment = { ...commitment, timingKind: "monthend", expectedDay: null, windowBeforeDays: 2, windowAfterDays: 1 };
     useCommitments.mockReturnValue(state({ candidates: [monthEndCandidate], commitments: [monthEndCommitment], dismissedCandidates: [] }));
-    render(<CommitmentsPage />);
+    renderCommitmentsPage();
 
     expect(within(card("Rent")).getByText("Month end, with a 2-day before / 1-day after window")).toBeVisible();
     const possible = within(card("Gym membership"));
@@ -155,7 +166,7 @@ describe("Commitments workspace", () => {
     const user = userEvent.setup();
     let current = state();
     useCommitments.mockImplementation(() => current);
-    const { rerender } = render(<CommitmentsPage />);
+    const { rerender } = renderCommitmentsPage();
     await user.click(screen.getByRole("button", { name: "Review and confirm Gym membership" }));
     const form = screen.getByRole("form", { name: "Confirm commitment" });
     const name = within(form).getByLabelText("Name");
@@ -198,7 +209,7 @@ describe("Commitments workspace", () => {
     const user = userEvent.setup();
     let current = state({ commitments: [{ ...commitment, lifecycle: "paused", name: "Paused rent" }], candidates: [] });
     useCommitments.mockImplementation(() => current);
-    const { rerender } = render(<CommitmentsPage />);
+    const { rerender } = renderCommitmentsPage();
     const pausedSummary = historyHeading("Paused commitments").closest("summary");
     await user.click(pausedSummary);
     await user.click(screen.getByRole("button", { name: "Edit Paused rent" }));
@@ -220,7 +231,7 @@ describe("Commitments workspace", () => {
     const user = userEvent.setup();
     let current = state({ candidates: [] });
     useCommitments.mockImplementation(() => current);
-    const { rerender } = render(<CommitmentsPage />);
+    const { rerender } = renderCommitmentsPage();
     await user.click(screen.getByRole("button", { name: "Edit Rent" }));
     const originalForm = screen.getByRole("form", { name: "Save changes" });
     await user.clear(within(originalForm).getByLabelText("Name"));
@@ -253,7 +264,7 @@ describe("Commitments workspace", () => {
     const user = userEvent.setup();
     const current = state();
     useCommitments.mockReturnValue(current);
-    render(<CommitmentsPage />);
+    renderCommitmentsPage();
     await user.click(screen.getByRole("button", { name: "Review and confirm Gym membership" }));
     const form = screen.getByRole("form", { name: "Confirm commitment" });
     const name = within(form).getByLabelText("Name");
@@ -274,7 +285,7 @@ describe("Commitments workspace", () => {
     const user = userEvent.setup();
     const current = state();
     useCommitments.mockReturnValue(current);
-    render(<CommitmentsPage />);
+    renderCommitmentsPage();
     await user.click(screen.getByRole("button", { name: "Edit Rent" }));
     expect(screen.getByLabelText("Name")).toHaveFocus();
     await user.click(screen.getByRole("button", { name: "Cancel" }));
@@ -297,7 +308,7 @@ describe("Commitments workspace", () => {
     const ended = { ...commitment, id: "commitment-3", name: "Ended rent", lifecycle: "ended" };
     const current = state({ commitments: [commitment, paused, ended], candidates: [] });
     useCommitments.mockReturnValue(current);
-    render(<CommitmentsPage />);
+    renderCommitmentsPage();
     await user.click(screen.getByRole("button", { name: "Pause Rent" }));
     expect(current.updateLifecycle).toHaveBeenLastCalledWith("commitment-1", "paused");
     await user.click(historyHeading("Paused commitments").closest("summary"));
@@ -319,7 +330,7 @@ describe("Commitments workspace", () => {
   it("locks competing actions during edit and restores the Details end trigger after cancellation", async () => {
     const user = userEvent.setup();
     useCommitments.mockReturnValue(state({ commitmentChanges: [commitmentChange] }));
-    render(<CommitmentsPage />);
+    renderCommitmentsPage();
     await user.click(screen.getByRole("button", { name: "Edit Rent" }));
     expect(screen.getByRole("button", { name: "Review and confirm Gym membership" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Dismiss Gym membership" })).toBeDisabled();
@@ -337,7 +348,7 @@ describe("Commitments workspace", () => {
     const user = userEvent.setup();
     const current = state();
     useCommitments.mockReturnValue(current);
-    render(<CommitmentsPage />);
+    renderCommitmentsPage();
     await user.click(screen.getByRole("button", { name: "Dismiss Gym membership" }));
     expect(current.dismissCandidate).toHaveBeenCalledExactlyOnceWith("fingerprint-1");
     expect(history("Dismissed possible commitments")).toHaveAttribute("open");
@@ -351,7 +362,7 @@ describe("Commitments workspace", () => {
     const user = userEvent.setup();
     let current = state();
     useCommitments.mockImplementation(() => current);
-    const { rerender } = render(<CommitmentsPage />);
+    const { rerender } = renderCommitmentsPage();
     await user.click(screen.getByRole("button", { name: "Review and confirm Gym membership" }));
     await user.clear(screen.getByLabelText("Name"));
     await user.type(screen.getByLabelText("Name"), "Stale draft");
@@ -368,7 +379,7 @@ describe("Commitments workspace", () => {
     const user = userEvent.setup();
     let current = state({ candidates: [], dismissedCandidates: [], commitments: [], commitmentChanges: [] });
     useCommitments.mockImplementation(() => current);
-    const { rerender } = render(<CommitmentsPage />);
+    const { rerender } = renderCommitmentsPage();
     expect(screen.getByText("No commitments confirmed yet.")).toBeInTheDocument();
     expect(screen.getByText("No commitment changes need your review.")).toBeInTheDocument();
     expect(screen.getByText("No possible commitments need your review.")).toBeInTheDocument();
@@ -392,7 +403,7 @@ describe("Commitments workspace", () => {
   it("shows initial loading and a retryable initial error without false empty content", async () => {
     const refresh = vi.fn();
     useCommitments.mockReturnValue(state({ loading: true, candidates: [], dismissedCandidates: [], commitments: [], refresh }));
-    const { rerender } = render(<CommitmentsPage />);
+    const { rerender } = renderCommitmentsPage();
     expect(screen.getByRole("status")).toHaveTextContent("Loading commitments");
     expect(screen.queryByRole("heading", { name: "Your commitments" })).not.toBeInTheDocument();
     useCommitments.mockReturnValue(state({ loading: false, loadError: "Something went wrong. Try again.", candidates: [], dismissedCandidates: [], commitments: [], refresh }));
