@@ -203,8 +203,11 @@ Agent authority:
 
 No separate implementation approval is required unless the task reveals unexpected risk.
 
-The human owner performs the final merge for LOW work. Selecting a LOW task
-alone does not delegate merge or deployment authority.
+After a LOW task is explicitly selected, ChatGPT/command-center tooling may
+execute its merge only after required CI succeeds on the actual final PR head,
+independent command-center PASS review is recorded, and no unresolved blocking
+findings remain. Selecting a LOW task alone does not authorize merge or
+deployment. Codex must never self-approve or self-merge.
 
 ### MEDIUM
 
@@ -260,10 +263,12 @@ Never perform a production migration or destructive production action merely bec
 ## Approved delivery authority
 
 The human remains the product owner and approval authority for product priority,
-scope, MEDIUM/HIGH plans, and exceptional production operations. Once explicit
-owner approval of a MEDIUM/HIGH plan is durably recorded on the governing GitHub
-Issue, it authorizes that exact approved slice through the steps below. Explicit
-limits or exclusions in the issue or owner approval remain binding.
+scope, MEDIUM/HIGH plans, and exceptional production operations. An exact
+MEDIUM/HIGH plan with durable owner approval on the governing GitHub Issue
+authorizes that slice through the delivery steps below. Explicit limits or
+exclusions in the issue or owner approval remain binding. For explicitly
+selected LOW work, only the gated merge permission in the LOW section applies;
+it does not add deployment authority.
 
 The approved delivery steps are:
 
@@ -271,7 +276,9 @@ The approved delivery steps are:
 - required local and CI verification;
 - independent review of the actual PR, diff, discussion, and CI evidence;
 - bounded review corrections and affected verification;
-- merge after required checks succeed and blocking review findings are resolved;
+- merge after required checks succeed on the actual final PR head, independent
+  command-center PASS review is recorded, and no unresolved blocking findings
+  remain;
 - ordinary non-destructive application deployment when available authorized
   tooling supports it and deployment introduces no new authority decision.
 
@@ -282,10 +289,13 @@ them. Privacy, security, financial invariants, and issue/plan scope remain
 mandatory. This section governs delivery authority; supporting verification
 documents continue to govern required evidence.
 
-ChatGPT/command-center tooling may merge within that approved authority after
-the gates succeed. Codex must not self-approve or merge pull requests, including
-by invoking command-center tooling to merge its own PR. The command-center
-review must be independent of the implementing Codex agent.
+For explicitly selected LOW work, ChatGPT/command-center tooling may execute
+only the gated merge step described in the LOW section. For an approved
+MEDIUM/HIGH slice, ChatGPT/command-center tooling may merge within that approved
+delivery authority after its applicable gates succeed. The command-center
+review must be independent of the implementing Codex agent. Codex must not
+self-approve or merge pull requests, including by invoking command-center
+tooling to merge its own PR.
 
 Separate explicit owner authorization remains required for:
 
@@ -302,11 +312,13 @@ applying it to production. Ordinary deployment must respect existing schema and
 release prerequisites; a missing prerequisite that requires an exceptional
 operation returns to the separate authorization gate above.
 
-After authorized merge, Codex or command-center tooling may perform an ordinary
-non-destructive application deployment within this authority. If available
-authorized tooling cannot perform it, report **deployment handoff required**
-with the merged revision, verified delivery state, and exact remaining steps.
-Do not claim deployment or full delivery is complete without verified evidence.
+After authorized merge of an approved MEDIUM/HIGH slice, Codex or
+command-center tooling may perform an ordinary non-destructive application
+deployment within this authority. LOW task selection and its gated merge do not
+authorize deployment. If available authorized tooling cannot perform an
+authorized deployment, report **deployment handoff required** with the merged
+revision, verified delivery state, and exact remaining steps. Do not claim
+deployment or full delivery is complete without verified evidence.
 
 Governance changes take effect only after merge under the previously effective
 policy. An unmerged governance edit cannot grant authority for its own merge or
@@ -426,9 +438,11 @@ PRs should include:
 
 Codex must not self-approve or merge pull requests.
 
-For an approved MEDIUM/HIGH slice, ChatGPT/command-center tooling may merge after
-required CI and independent review succeed and blocking findings are resolved,
-under the approved delivery authority above.
+For explicitly selected LOW work or an approved MEDIUM/HIGH slice,
+ChatGPT/command-center tooling may merge only after required CI succeeds on the
+actual final PR head, independent command-center PASS review is recorded, and no
+unresolved blocking findings remain, under the approved delivery authority
+above.
 
 ## Review and correction
 
@@ -663,7 +677,8 @@ local Codex checkout
 -> independent GitHub CI
 -> ChatGPT review of actual PR + CI
 -> authorized human or ChatGPT/command-center merge
--> ordinary non-destructive application deployment, or deployment handoff
+-> ordinary non-destructive application deployment only when authorized,
+   or deployment handoff
 ```
 
 Codex must never push directly to `main`, self-approve, or merge a pull request.
