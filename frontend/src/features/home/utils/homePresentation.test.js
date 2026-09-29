@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatHomeAmount, formatHomeDate, formatHomeProjectionAmount, isHomeResponse, isHomeUpcomingSection } from "./homePresentation";
+import { formatHomeAmount, formatHomeDate, formatHomeProjectionAmount, isHomeAttentionSection, isHomeResponse, isHomeUpcomingSection } from "./homePresentation";
 
 const item = {
   kind: "expense",
@@ -56,10 +56,19 @@ describe("Home presentation contract", () => {
       commitmentName: "Gym plan",
       reviews: [{ dimension: "amount", state: "proposed_change" }],
     };
-    expect(isHomeResponse({ ...response, attention: { ...response.attention, items: [item] } })).toBe(true);
-    expect(isHomeResponse({ ...response, attention: { ...response.attention, kindsEvaluated: [], items: [] } })).toBe(false);
-    expect(isHomeResponse({ ...response, attention: { ...response.attention, items: [{ ...item, reviews: [{ dimension: "amount", state: "possible_change" }] }] } })).toBe(false);
-    expect(isHomeResponse({ ...response, attention: { availability: { state: "unavailable", reasonCode: "source_unavailable" }, kindsEvaluated: [], items: null, evaluatedOn: "2026-09-23" } })).toBe(true);
+    expect(isHomeAttentionSection({ ...response.attention, items: [item] }, "2026-09-23")).toBe(true);
+    expect(isHomeAttentionSection({ ...response.attention, kindsEvaluated: [], items: [] }, "2026-09-23")).toBe(false);
+    expect(isHomeAttentionSection({ ...response.attention, items: [{ ...item, reviews: [{ dimension: "amount", state: "possible_change" }] }] }, "2026-09-23")).toBe(false);
+    expect(isHomeAttentionSection({ availability: { state: "unavailable", reasonCode: "source_unavailable" }, kindsEvaluated: [], items: null, evaluatedOn: "2026-09-23" }, "2026-09-23")).toBe(true);
+  });
+
+  it("keeps legacy or malformed attention data out of whole-Home response validation", () => {
+    const legacyAttention = {
+      availability: { state: "available", reasonCode: null },
+      kindsEvaluated: [],
+      items: [],
+    };
+    expect(isHomeResponse({ ...response, attention: legacyAttention })).toBe(true);
   });
 
   it("rejects malformed and noncanonical financial values", () => {

@@ -69,6 +69,7 @@
   "attention": {
     "heading": "Requiere atención",
     "listLabel": "Cambios de compromisos por revisar",
+    "loading": "Cargando revisiones de compromisos…",
     "empty": "No hay cambios de compromisos que requieran tu revisión.",
     "unavailable": "Las revisiones de compromisos no están disponibles en este momento.",
     "homeUnavailable": "Las revisiones de compromisos no están disponibles porque no se pudo cargar Inicio.",

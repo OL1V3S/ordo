@@ -189,6 +189,23 @@ describe("capture-first Home", () => {
     expect(screen.getByText("Paycheck expectations could not be verified, so they are hidden.")).toBeInTheDocument();
   });
 
+  it("keeps valid Home sections available when the attention envelope is from an older backend", async () => {
+    homeApi.getHome.mockResolvedValue(response(home([
+      { kind: "expense", recordId: 12, date: "2026-09-01", amount: "13.00", description: "Activity survives version skew", category: "food", paycheck: null },
+    ], availableUpcoming([projection()]), {
+      availability: { state: "available", reasonCode: null },
+      kindsEvaluated: [],
+      items: [],
+    })));
+
+    renderPage();
+
+    expect(await screen.findByText("Activity survives version skew")).toBeInTheDocument();
+    expect(screen.getByText("Commitment reviews could not be verified, so they are hidden.")).toBeInTheDocument();
+    expect(screen.getByRole("list", { name: "Expected paycheck projections" })).toBeInTheDocument();
+    expect(screen.getByText("Primary paycheck")).toBeInTheDocument();
+  });
+
   it("localizes expected money, dates, section labels, and accessible rows in Spanish", async () => {
     await i18n.changeLanguage("es");
     homeApi.getHome.mockResolvedValue(response(home([], availableUpcoming([projection({
@@ -208,6 +225,7 @@ describe("capture-first Home", () => {
     homeApi.getHome.mockReturnValue(new Promise((resolve) => { resolveHome = resolve; }));
     const view = renderPage();
     expect(screen.getByText("Loading expected paychecks…")).toBeInTheDocument();
+    expect(screen.getByText("Loading commitment reviews…")).toBeInTheDocument();
     expect(screen.queryByRole("list", { name: "Expected paycheck projections" })).not.toBeInTheDocument();
     resolveHome(response(home()));
     await screen.findByText("No upcoming paycheck expectations to show.");

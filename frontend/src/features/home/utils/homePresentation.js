@@ -133,7 +133,6 @@ export function isHomeResponse(value) {
       || value.currencyCode !== "USD"
       || !value.evaluations || !isDateOnly(value.evaluations.activityThroughDate)
       || !isDateOnly(value.evaluations.upcomingEvaluatedOn)
-      || !isHomeAttentionSection(value.attention, value.evaluations.upcomingEvaluatedOn)
       || !isAvailability(value.recentActivity, "items")) return false;
 
   return value.recentActivity.availability.state === "unavailable"

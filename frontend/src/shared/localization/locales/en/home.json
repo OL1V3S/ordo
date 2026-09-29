@@ -69,6 +69,7 @@
   "attention": {
     "heading": "Needs Attention",
     "listLabel": "Commitment changes to review",
+    "loading": "Loading commitment reviews…",
     "empty": "No commitment changes need your review.",
     "unavailable": "Commitment reviews are unavailable right now.",
     "homeUnavailable": "Commitment reviews are unavailable because Home could not be loaded.",
