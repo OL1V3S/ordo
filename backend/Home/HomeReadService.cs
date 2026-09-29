@@ -37,6 +37,7 @@ public interface IHomeAttentionReader
     Task<HomeAttentionSectionResponse> ReadAsync(
         string ownerId,
         DateOnly evaluatedOn,
+        DateOnly activityThroughDate,
         CancellationToken cancellationToken);
 }
 
@@ -55,11 +56,13 @@ public sealed class HomeReadService(
         var generatedAt = clock.GetUtcNow();
         var upcomingEvaluatedOn = DateOnly.FromDateTime(generatedAt.UtcDateTime);
 
-        var needsAttention = await ReadAttentionAsync(ownerId, upcomingEvaluatedOn, cancellationToken);
+        var needsAttention = await ReadAttentionAsync(
+            ownerId, upcomingEvaluatedOn, activityThroughDate, cancellationToken);
         var recentActivity = await ReadActivityAsync(ownerId, activityThroughDate, cancellationToken);
         var comingUp = await ReadUpcomingAsync(ownerId, upcomingEvaluatedOn, cancellationToken);
 
-        if (needsAttention.Items is null && recentActivity.Items is null && comingUp.Items is null)
+        if (needsAttention.Availability.State == "unavailable"
+            && recentActivity.Items is null && comingUp.Items is null)
             return new HomeReadResult(null);
 
         return new HomeReadResult(new HomeResponse(
@@ -74,11 +77,12 @@ public sealed class HomeReadService(
     private async Task<HomeAttentionSectionResponse> ReadAttentionAsync(
         string ownerId,
         DateOnly evaluatedOn,
+        DateOnly activityThroughDate,
         CancellationToken cancellationToken)
     {
         try
         {
-            return await attention.ReadAsync(ownerId, evaluatedOn, cancellationToken);
+            return await attention.ReadAsync(ownerId, evaluatedOn, activityThroughDate, cancellationToken);
         }
         catch (Exception exception) when (IsRecoverable(exception))
         {
@@ -86,7 +90,7 @@ public sealed class HomeReadService(
                 "Home section {Section} is unavailable after {FailureType}.",
                 "attention",
                 exception.GetType().Name);
-            return new HomeAttentionSectionResponse(Unavailable(), [], null, evaluatedOn);
+            return HomeAttentionSectionResponse.Unavailable(evaluatedOn);
         }
     }
 

@@ -15,7 +15,16 @@ const response = {
   generatedAt: "2026-09-23T12:00:00Z",
   currencyCode: "USD",
   evaluations: { activityThroughDate: "2026-09-23", upcomingEvaluatedOn: "2026-09-23" },
-  attention: { availability: { state: "available", reasonCode: null }, kindsEvaluated: ["commitment_change_review"], items: [], evaluatedOn: "2026-09-23" },
+  attention: {
+    availability: { state: "available", reasonCode: null },
+    kindsEvaluated: ["commitment_change_review", "budget_attention"],
+    items: [], budgetItems: [],
+    familyAvailability: {
+      commitment_change_review: { state: "available", reasonCode: null },
+      budget_attention: { state: "available", reasonCode: null },
+    },
+    evaluatedOn: "2026-09-23",
+  },
   recentActivity: { availability: { state: "available", reasonCode: null }, items: [item] },
   upcoming: { availability: { state: "available", reasonCode: null }, horizon: { from: "2026-09-23", through: "2026-10-06" }, items: [] },
 };
@@ -59,7 +68,90 @@ describe("Home presentation contract", () => {
     expect(isHomeAttentionSection({ ...response.attention, items: [item] }, "2026-09-23")).toBe(true);
     expect(isHomeAttentionSection({ ...response.attention, kindsEvaluated: [], items: [] }, "2026-09-23")).toBe(false);
     expect(isHomeAttentionSection({ ...response.attention, items: [{ ...item, reviews: [{ dimension: "amount", state: "possible_change" }] }] }, "2026-09-23")).toBe(false);
-    expect(isHomeAttentionSection({ availability: { state: "unavailable", reasonCode: "source_unavailable" }, kindsEvaluated: [], items: null, evaluatedOn: "2026-09-23" }, "2026-09-23")).toBe(true);
+    expect(isHomeAttentionSection({
+      availability: { state: "unavailable", reasonCode: "source_unavailable" },
+      kindsEvaluated: [], items: null, budgetItems: null,
+      familyAvailability: {
+        commitment_change_review: { state: "unavailable", reasonCode: "source_unavailable" },
+        budget_attention: { state: "unavailable", reasonCode: "source_unavailable" },
+      },
+      evaluatedOn: "2026-09-23",
+    }, "2026-09-23")).toBe(true);
+  });
+
+  it("distinguishes quiet and unavailable attention families in every combination", () => {
+    const budgetItem = {
+      kind: "budget_attention", category: "food", state: "over_limit",
+      spentAmount: "101.25", limitAmount: "100.00",
+    };
+    const commitmentItem = {
+      kind: "commitment_change_review",
+      commitmentId: "b375a2a2-3f95-43b0-985e-a9360237b0b7",
+      commitmentName: "Gym plan", reviews: [{ dimension: "amount", state: "proposed_change" }],
+    };
+    const attention = (commitmentState, budgetState, items, budgetItems) => {
+      const anyAvailable = commitmentState === "available" || budgetState === "available";
+      const kindsEvaluated = [
+        ...(commitmentState === "available" ? ["commitment_change_review"] : []),
+        ...(budgetState === "available" ? ["budget_attention"] : []),
+      ];
+      return {
+        ...response.attention,
+        availability: { state: anyAvailable ? "available" : "unavailable", reasonCode: anyAvailable ? null : "source_unavailable" },
+        kindsEvaluated, items, budgetItems,
+        familyAvailability: {
+          commitment_change_review: { state: commitmentState, reasonCode: commitmentState === "available" ? null : "source_unavailable" },
+          budget_attention: { state: budgetState, reasonCode: budgetState === "available" ? null : "source_unavailable" },
+        },
+      };
+    };
+
+    expect(isHomeAttentionSection(attention("available", "available", [commitmentItem], [budgetItem]), "2026-09-23")).toBe(true);
+    expect(isHomeAttentionSection(attention("available", "unavailable", [commitmentItem], null), "2026-09-23")).toBe(true);
+    expect(isHomeAttentionSection(attention("unavailable", "available", null, [budgetItem]), "2026-09-23")).toBe(true);
+    expect(isHomeAttentionSection(attention("unavailable", "unavailable", null, null), "2026-09-23")).toBe(true);
+    expect(isHomeAttentionSection(attention("available", "unavailable", [], []), "2026-09-23")).toBe(false);
+  });
+
+  it("accepts the approved mixed ranking contract", () => {
+    const mixed = {
+      ...response.attention,
+      items: ["a", "b", "c"].map((id, index) => ({
+        kind: "commitment_change_review",
+        commitmentId: `c375a2a2-3f95-43b0-985e-a9360237b0${id}7`,
+        commitmentName: `Commitment ${index + 1}`,
+        reviews: [{ dimension: "amount", state: "proposed_change" }],
+      })),
+      budgetItems: [
+        { kind: "budget_attention", category: "Groceries", state: "over_limit", spentAmount: "110.00", limitAmount: "100.00" },
+        { kind: "budget_attention", category: "Food", state: "at_limit", spentAmount: "50.00", limitAmount: "50.00" },
+      ],
+    };
+    expect(isHomeAttentionSection(mixed, "2026-09-23")).toBe(true);
+  });
+
+  it("fails closed for malformed budget states, exact amounts, and ranking", () => {
+    const budgetItem = {
+      kind: "budget_attention", category: "food", state: "over_limit",
+      spentAmount: "101.25", limitAmount: "100.00",
+    };
+    const invalid = [
+      { ...budgetItem, state: "near_limit" },
+      { ...budgetItem, spentAmount: "100.00" },
+      { ...budgetItem, spentAmount: "1.001" },
+      { ...budgetItem, limitAmount: "0.00" },
+      { ...budgetItem, kind: "commitment_change_review" },
+    ];
+    for (const item of invalid) {
+      expect(isHomeAttentionSection({ ...response.attention, budgetItems: [item] }, "2026-09-23")).toBe(false);
+    }
+    expect(isHomeAttentionSection({
+      ...response.attention,
+      budgetItems: [
+        { ...budgetItem, category: "food", spentAmount: "101.00" },
+        { ...budgetItem, category: "rent", spentAmount: "102.00" },
+      ],
+    }, "2026-09-23")).toBe(false);
   });
 
   it("keeps legacy or malformed attention data out of whole-Home response validation", () => {

@@ -280,8 +280,11 @@ composes existing owner-scoped facts without creating or reclassifying financial
 records. Recent Activity contains bounded current Expenses and AccountInflows;
 a paycheck-linked inflow appears once with relationship metadata. Coming Up
 contains only bounded active paycheck projections and remains structurally
-separate from actual activity. V1 evaluates no attention family and says so
-through an explicit empty coverage envelope.
+separate from actual activity. Needs Attention evaluates pending commitment
+change reviews and recorded-spending-versus-budget conditions independently.
+Each family's availability distinguishes a successful quiet result from an
+unavailable evaluation; failure in one family does not erase a trustworthy
+result from the other.
 
 Actual and expected monetary values are fixed-two-decimal strings. The caller's
 local calendar cutoff for stored date-only activity and the projector's UTC
@@ -357,6 +360,31 @@ optimistic concurrency. Duplicate cleanup has **not** been authorized. Existing
 duplicates and category-normalization collisions must be inspected and a
 resolution policy separately approved before a uniqueness migration. No row
 may be selected, merged, or deleted automatically.
+
+### Home budget attention
+
+Budget attention uses only owner-scoped persisted Expenses in the calendar
+month containing Home's `activityThroughDate`, from month start through that
+date inclusive. The supplied caller-local calendar date is used directly; it
+does not undergo timezone conversion. Expenses after the cutoff and Expenses
+from other months are excluded. Categories match by exact persisted string;
+this read path adds no normalization, case folding, aliases, or fuzzy matching.
+
+For an exact category/month budget, a positive limit is quiet while spending is
+below it, `at_limit` when spending equals it, and `over_limit` when spending
+exceeds it. A zero limit is quiet at zero spending and emits
+`zero_limit_spending` when spending is positive. An absent budget is quiet.
+The existing UI-only 90% near-limit state is not an authoritative Home
+attention state. Forecasts, pacing, expected paychecks, balance, and
+Safe-to-Spend semantics are excluded.
+
+All comparison and aggregation uses exact cents. Duplicate rows for the same
+owner, exact category, and month, a negative budget, any zero or negative
+Expense in the evaluated period, invalid precision/range, or total overflow
+makes only the budget attention family unavailable. No such row is silently
+omitted, combined, repaired, normalized, deleted, or rewritten. A budget
+family failure must not hide valid commitment-change attention, and vice versa.
+The full response contract is documented in [`home-read-model.md`](home-read-model.md).
 
 ## Ownership and API boundary
 

@@ -2,6 +2,8 @@ using System.Data.Common;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using BudgetPlanner.Commitments;
+using BudgetPlanner.Contracts.Commitments;
 using BudgetPlanner.Contracts.Home;
 using BudgetPlanner.Data;
 using BudgetPlanner.Home;
@@ -55,9 +57,12 @@ public sealed class HomeApiTests
         var attention = body.GetProperty("attention");
         AssertAvailable(attention);
         Assert.Equal("2026-09-23", attention.GetProperty("evaluatedOn").GetString());
-        Assert.Equal(new[] { "commitment_change_review" }, attention.GetProperty("kindsEvaluated")
+        Assert.Equal(new[] { "commitment_change_review", "budget_attention" }, attention.GetProperty("kindsEvaluated")
             .EnumerateArray().Select(value => value.GetString()));
         Assert.Empty(attention.GetProperty("items").EnumerateArray());
+        Assert.Empty(attention.GetProperty("budgetItems").EnumerateArray());
+        Assert.Equal("available", attention.GetProperty("familyAvailability")
+            .GetProperty("budget_attention").GetProperty("state").GetString());
 
         var activity = body.GetProperty("recentActivity");
         AssertAvailable(activity);
@@ -165,7 +170,7 @@ public sealed class HomeApiTests
         var attention = body.GetProperty("attention");
         AssertAvailable(attention);
         Assert.Equal("2026-10-29", attention.GetProperty("evaluatedOn").GetString());
-        Assert.Equal(new[] { "commitment_change_review" }, attention.GetProperty("kindsEvaluated")
+        Assert.Equal(new[] { "commitment_change_review", "budget_attention" }, attention.GetProperty("kindsEvaluated")
             .EnumerateArray().Select(value => value.GetString()));
         var item = Assert.Single(attention.GetProperty("items").EnumerateArray());
         Assert.Equal("commitment_change_review", item.GetProperty("kind").GetString());
@@ -192,6 +197,146 @@ public sealed class HomeApiTests
             .GetProperty("reviews").EnumerateArray();
         Assert.Equal(new[] { "timing" }, remainingReviews
             .Select(value => value.GetProperty("dimension").GetString()));
+    }
+
+    [Fact]
+    public async Task Budget_attention_uses_exact_categories_owner_month_cutoff_and_state_ranking()
+    {
+        await using var app = new HomeTestApplication(Now);
+        using var owner = await app.CreateAuthenticatedUserAsync("home-budget-owner@example.com");
+        using var other = await app.CreateAuthenticatedUserAsync("home-budget-other@example.com");
+        var month = new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        await app.SeedBudgetLimitAsync(owner.Id, "food", 10m, month);
+        await app.SeedBudgetLimitAsync(owner.Id, "rent", 100m, month);
+        await app.SeedBudgetLimitAsync(owner.Id, "zero", 0m, month);
+        await app.SeedBudgetLimitAsync(owner.Id, "zero-quiet", 0m, month);
+        await app.SeedBudgetLimitAsync(owner.Id, "quiet", 20m, month);
+        await app.SeedBudgetLimitAsync(owner.Id, "Custom", 50m, month);
+        await app.SeedBudgetLimitAsync(other.Id, "foreign", 1m, month);
+
+        await app.SeedExpenseAsync(owner.Id, "Food start", 5m, new(2026, 9, 1), "food");
+        await app.SeedExpenseAsync(owner.Id, "Food cutoff", 5m, new(2026, 9, 22), "food");
+        await app.SeedExpenseAsync(owner.Id, "Food after cutoff", 100m, new(2026, 9, 23), "food");
+        await app.SeedExpenseAsync(owner.Id, "Invalid after cutoff", 0m, new(2026, 9, 23), "food");
+        await app.SeedExpenseAsync(owner.Id, "Food prior month", 100m, new(2026, 8, 31), "food");
+        await app.SeedExpenseAsync(owner.Id, "Zero spending", 0.01m, new(2026, 9, 10), "zero");
+        await app.SeedExpenseAsync(owner.Id, "Quiet spending", 19.99m, new(2026, 9, 10), "quiet");
+        await app.SeedExpenseAsync(owner.Id, "Different category case", 500m, new(2026, 9, 10), "custom");
+        await app.SeedExpenseAsync(owner.Id, "No configured limit", 500m, new(2026, 9, 10), "unbudgeted");
+        await app.SeedExpenseAsync(other.Id, "Foreign food", 500m, new(2026, 9, 10), "food");
+        await app.SeedExpenseAsync(other.Id, "Foreign category", 500m, new(2026, 9, 10), "foreign");
+
+        var body = await ReadAsync(owner.Client);
+        var attention = body.GetProperty("attention");
+        var items = attention.GetProperty("budgetItems").EnumerateArray().ToArray();
+
+        Assert.Equal(new[] { "zero_limit_spending", "at_limit" },
+            items.Select(item => item.GetProperty("state").GetString()));
+        Assert.Equal("zero", items[0].GetProperty("category").GetString());
+        Assert.Equal("0.01", items[0].GetProperty("spentAmount").GetString());
+        Assert.Equal("0.00", items[0].GetProperty("limitAmount").GetString());
+        Assert.Equal("food", items[1].GetProperty("category").GetString());
+        Assert.Equal("10.00", items[1].GetProperty("spentAmount").GetString());
+        Assert.Equal("10.00", items[1].GetProperty("limitAmount").GetString());
+        Assert.Equal(new[] { "commitment_change_review", "budget_attention" },
+            attention.GetProperty("kindsEvaluated").EnumerateArray().Select(item => item.GetString()));
+        Assert.DoesNotContain("foreign", attention.GetRawText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Budget_attention_preserves_pending_commitment_reviews_when_legacy_expense_is_invalid()
+    {
+        await using var app = new HomeTestApplication(new DateTimeOffset(2026, 10, 29, 18, 0, 0, TimeSpan.Zero));
+        using var owner = await app.CreateAuthenticatedUserAsync("home-budget-invalid-expense@example.com");
+        var confirmation = new List<Expense>();
+        foreach (var date in new[] { new DateOnly(2026, 5, 10), new DateOnly(2026, 6, 10), new DateOnly(2026, 7, 10) })
+            confirmation.Add(await app.SeedExpenseAsync(owner.Id, "membership", 10m, date, "bills"));
+        foreach (var date in new[] { new DateOnly(2026, 8, 12), new DateOnly(2026, 9, 12), new DateOnly(2026, 10, 12) })
+            await app.SeedExpenseAsync(owner.Id, "membership", 12m, date, "bills");
+        await SeedHomeCommitmentAsync(app, owner.Id, confirmation, "Gym plan");
+        await app.SeedExpenseAsync(owner.Id, "Legacy zero expense", 0m, new(2026, 9, 15), "legacy");
+
+        var body = await ReadAsync(owner.Client);
+        var attention = body.GetProperty("attention");
+
+        AssertAvailable(attention);
+        Assert.Equal("available", attention.GetProperty("familyAvailability")
+            .GetProperty("commitment_change_review").GetProperty("state").GetString());
+        Assert.Equal("unavailable", attention.GetProperty("familyAvailability")
+            .GetProperty("budget_attention").GetProperty("state").GetString());
+        Assert.Equal(new[] { "commitment_change_review" }, attention.GetProperty("kindsEvaluated")
+            .EnumerateArray().Select(item => item.GetString()));
+        Assert.Single(attention.GetProperty("items").EnumerateArray());
+        Assert.Equal(JsonValueKind.Null, attention.GetProperty("budgetItems").ValueKind);
+    }
+
+    [Fact]
+    public async Task Budget_attention_remains_available_when_commitment_family_fails()
+    {
+        await using var app = new HomeTestApplication(
+            Now,
+            commitmentChanges: new ThrowingCommitmentChangeReadService(new TimeoutException()));
+        using var owner = await app.CreateAuthenticatedUserAsync("home-budget-commitment-failure@example.com");
+        await app.SeedBudgetLimitAsync(owner.Id, "food", 10m, new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc));
+        await app.SeedExpenseAsync(owner.Id, "Over budget", 10.01m, new(2026, 9, 22), "food");
+
+        var attention = (await ReadAsync(owner.Client)).GetProperty("attention");
+
+        AssertAvailable(attention);
+        Assert.Equal("unavailable", attention.GetProperty("familyAvailability")
+            .GetProperty("commitment_change_review").GetProperty("state").GetString());
+        Assert.Equal("available", attention.GetProperty("familyAvailability")
+            .GetProperty("budget_attention").GetProperty("state").GetString());
+        Assert.Equal(new[] { "budget_attention" }, attention.GetProperty("kindsEvaluated")
+            .EnumerateArray().Select(item => item.GetString()));
+        Assert.Equal("over_limit", Assert.Single(attention.GetProperty("budgetItems").EnumerateArray())
+            .GetProperty("state").GetString());
+        Assert.Equal(JsonValueKind.Null, attention.GetProperty("items").ValueKind);
+    }
+
+    [Theory]
+    [InlineData("negative_budget")]
+    [InlineData("duplicate_budget")]
+    [InlineData("negative_expense")]
+    [InlineData("zero_expense")]
+    [InlineData("invalid_precision")]
+    [InlineData("out_of_range")]
+    [InlineData("sum_overflow")]
+    public async Task Budget_attention_fails_closed_for_unsafe_legacy_rows(string rowKind)
+    {
+        await using var app = new HomeTestApplication(Now);
+        using var owner = await app.CreateAuthenticatedUserAsync($"home-budget-{rowKind}@example.com");
+        var month = new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc);
+        if (rowKind == "negative_budget")
+            await app.SeedBudgetLimitAsync(owner.Id, "food", -1m, month);
+        else
+            await app.SeedBudgetLimitAsync(owner.Id, "food", 10m, month);
+
+        if (rowKind == "duplicate_budget")
+            await app.SeedBudgetLimitAsync(owner.Id, "food", 20m, month);
+        if (rowKind == "negative_expense")
+            await app.SeedExpenseAsync(owner.Id, "Legacy negative", -1m, new(2026, 9, 10), "food");
+        if (rowKind == "zero_expense")
+            await app.SeedExpenseAsync(owner.Id, "Legacy zero", 0m, new(2026, 9, 10), "food");
+        if (rowKind == "invalid_precision")
+            await app.SeedExpenseAsync(owner.Id, "Invalid precision", 1.001m, new(2026, 9, 10), "food");
+        if (rowKind == "out_of_range")
+            await app.SeedExpenseAsync(owner.Id, "Out of range", 10_000_000_000_000_000m, new(2026, 9, 10), "food");
+        if (rowKind == "sum_overflow")
+        {
+            await app.SeedExpenseAsync(owner.Id, "Maximum amount", 9_999_999_999_999_999.99m, new(2026, 9, 10), "food");
+            await app.SeedExpenseAsync(owner.Id, "Overflow cent", 0.01m, new(2026, 9, 11), "food");
+        }
+
+        var attention = (await ReadAsync(owner.Client)).GetProperty("attention");
+
+        AssertAvailable(attention);
+        Assert.Equal("available", attention.GetProperty("familyAvailability")
+            .GetProperty("commitment_change_review").GetProperty("state").GetString());
+        Assert.Equal("unavailable", attention.GetProperty("familyAvailability")
+            .GetProperty("budget_attention").GetProperty("state").GetString());
+        Assert.Equal(JsonValueKind.Null, attention.GetProperty("budgetItems").ValueKind);
     }
 
     [Fact]
@@ -365,7 +510,7 @@ public sealed class HomeApiTests
         Assert.Equal(JsonValueKind.Null, activity.GetProperty("items").ValueKind);
         AssertAvailable(body.GetProperty("upcoming"));
         Assert.Empty(body.GetProperty("upcoming").GetProperty("items").EnumerateArray());
-        Assert.Equal(new[] { "commitment_change_review" }, body.GetProperty("attention").GetProperty("kindsEvaluated")
+        Assert.Equal(new[] { "commitment_change_review", "budget_attention" }, body.GetProperty("attention").GetProperty("kindsEvaluated")
             .EnumerateArray().Select(value => value.GetString()));
     }
 
@@ -541,7 +686,8 @@ internal sealed class HomeTestApplication(
     DateTimeOffset now,
     IHomeActivityReader? activity = null,
     IHomeUpcomingReader? upcoming = null,
-    IHomeAttentionReader? attention = null) : FinancialApiTestApplication
+    IHomeAttentionReader? attention = null,
+    ICommitmentChangeReadService? commitmentChanges = null) : FinancialApiTestApplication
 {
     protected override void ConfigureAdditionalServices(IServiceCollection services)
     {
@@ -561,6 +707,11 @@ internal sealed class HomeTestApplication(
         {
             services.RemoveAll<IHomeAttentionReader>();
             services.AddSingleton<IHomeAttentionReader>(attention);
+        }
+        if (commitmentChanges is not null)
+        {
+            services.RemoveAll<ICommitmentChangeReadService>();
+            services.AddSingleton(commitmentChanges);
         }
     }
 }
@@ -584,6 +735,7 @@ internal sealed class ThrowingAttentionReader(Exception exception) : IHomeAttent
     public Task<HomeAttentionSectionResponse> ReadAsync(
         string ownerId,
         DateOnly evaluatedOn,
+        DateOnly activityThroughDate,
         CancellationToken cancellationToken) =>
         Task.FromException<HomeAttentionSectionResponse>(exception);
 }
@@ -595,13 +747,29 @@ internal sealed class RecordingAttentionReader : IHomeAttentionReader
     public Task<HomeAttentionSectionResponse> ReadAsync(
         string ownerId,
         DateOnly evaluatedOn,
+        DateOnly activityThroughDate,
         CancellationToken cancellationToken)
     {
         Called = true;
         return Task.FromResult(new HomeAttentionSectionResponse(
             new HomeSectionAvailabilityResponse("available", null),
-            ["commitment_change_review"], [], evaluatedOn));
+            ["commitment_change_review"], [], [],
+            new Dictionary<string, HomeSectionAvailabilityResponse>
+            {
+                ["commitment_change_review"] = new("available", null),
+                ["budget_attention"] = new("available", null)
+            },
+            evaluatedOn));
     }
+}
+
+internal sealed class ThrowingCommitmentChangeReadService(Exception exception) : ICommitmentChangeReadService
+{
+    public Task<CommitmentChangesResponse> EvaluateChangesAsync(
+        string ownerId,
+        DateOnly evaluatedOn,
+        CancellationToken cancellationToken) =>
+        Task.FromException<CommitmentChangesResponse>(exception);
 }
 
 internal sealed class ThrowingUpcomingReader(Exception exception) : IHomeUpcomingReader

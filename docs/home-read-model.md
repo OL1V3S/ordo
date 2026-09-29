@@ -21,57 +21,102 @@ availability is either:
 - `available` with `reasonCode: null` and an array that may be empty; or
 - `unavailable` with `reasonCode: source_unavailable` and `items: null`.
 
-An empty available array is not interchangeable with an unavailable read. V1
+An empty available array is not interchangeable with an unavailable read. Home
 does not cache or return stale section data.
 
 ### Needs Attention
 
-Needs Attention evaluates exactly one family, `commitment_change_review`, on
-the UTC calendar date of the response's captured `generatedAt`. Its envelope
-includes `evaluatedOn`, and a successful evaluation includes
-`kindsEvaluated: ["commitment_change_review"]`, even when there are no items.
-That empty available result means this family was evaluated and no pending
-review exists; it does not claim that other attention families were checked.
+Needs Attention evaluates two independent families. Commitment changes are
+evaluated on the UTC calendar date of the response's captured `generatedAt`.
+Budget attention uses Expenses in the month containing `activityThroughDate`,
+through that caller-local date inclusive. The envelope keeps the existing
+`evaluatedOn` value for commitment changes. `kindsEvaluated` lists only
+families whose evaluation succeeded, in commitment-then-budget order.
 
-Each item groups actionable pending dimensions for one commitment, in the
+`familyAvailability` always includes both family keys. Each family has an
+availability state and its own nullable item array: an available empty array
+means successfully evaluated and quiet; an unavailable family has
+`source_unavailable` and a null item array. This represents all mixed outcomes
+without allowing one failure to erase the other family's trustworthy items.
+The enclosing attention section is available when either family is available,
+and unavailable only when both fail. For example:
+
+Commitment items group actionable pending dimensions for one commitment, in the
 commitment-change detector's stable commitment-ID order. Dimensions retain the
 existing amount, timing, missing order:
 
 ```json
 {
   "availability": { "state": "available", "reasonCode": null },
-  "kindsEvaluated": ["commitment_change_review"],
+  "kindsEvaluated": ["commitment_change_review", "budget_attention"],
+  "familyAvailability": {
+    "commitment_change_review": { "state": "available", "reasonCode": null },
+    "budget_attention": { "state": "available", "reasonCode": null }
+  },
   "items": [{
     "kind": "commitment_change_review",
     "commitmentId": "00000000-0000-0000-0000-000000000001",
     "commitmentName": "Gym plan",
     "reviews": [{ "dimension": "amount", "state": "proposed_change" }]
   }],
+  "budgetItems": [{
+    "kind": "budget_attention",
+    "category": "food",
+    "state": "over_limit",
+    "spentAmount": "125.00",
+    "limitAmount": "100.00"
+  }],
   "evaluatedOn": "2026-09-23"
 }
 ```
+
+If only commitment evaluation succeeds, `items` is an array,
+`budgetItems` is null, and only `commitment_change_review` appears in
+`kindsEvaluated`. If only budget evaluation succeeds, the reverse applies. If
+both fail, both item arrays are null, `kindsEvaluated` is empty, and attention
+is unavailable. An available empty `budgetItems` array means no configured
+budget condition deserves attention.
 
 Only existing assessments with a non-null fingerprint and `decisionState` of
 `pending` are included: `proposed_change` for amount/timing and
 `not_seen_recently` or `possibly_ended` for missing. Kept, normal, isolated
 outlier, possible-change, matching-unavailable, and other non-actionable
-assessments are omitted. Home returns the complete set; its compact UI shows at
-most two commitment groups and links to the full Commitments review when more
-groups exist. The “See all” count is the number of pending dimension reviews,
-not the number of grouped commitments.
+assessments are omitted. Home returns the complete commitment set. Its compact
+UI combines budget and commitment items and shows at most two rows; the existing
+Commitments link and “See all” review count remain available when commitment
+groups need review.
 
-The typed Home item intentionally omits proposed values, fingerprints, raw
+The typed commitment Home item intentionally omits proposed values, fingerprints, raw
 evidence, observations, category, algorithm version, and owner identifiers.
 The backend supplies structured language-neutral dimension/state codes, not
-localized prose. Home only links to the existing Commitments review workflow;
-it does not accept or dismiss decisions.
+localized prose. Commitment items link to the existing Commitments review
+workflow; budget items link to `/budgets`. Home does not accept or dismiss
+commitment decisions.
 
-The Home attention reader reuses the commitment service's existing dated
+Budget states use exact persisted category strings and actual Expenses only.
+Positive limits are quiet below the limit, `at_limit` at equality, and
+`over_limit` above it. Zero limits are quiet at zero spending and emit
+`zero_limit_spending` for positive spending; absent budgets are quiet. No V1
+near-limit, pacing, forecast, balance, or Safe-to-Spend semantics are used.
+Duplicate category/month budgets, negative budgets, zero or negative Expenses
+in the evaluated period, invalid monetary precision/range, or exact-sum
+overflow make only the budget family unavailable. These values are not
+silently omitted or repaired. Full approved semantics are in
+[`financial-domain-invariants.md`](financial-domain-invariants.md).
+
+The backend returns at most two budget items: actionable
+`over_limit`/`zero_limit_spending` items rank by exact excess/spending
+descending, then category ordinally; `at_limit` follows in category order. The
+Home UI uses the existing two-row cap and orders actionable budget items,
+commitment items in their existing order, then `at_limit` items.
+
+The commitment reader reuses the commitment service's existing dated
 evaluation/projection seam. The existing commitment-change endpoint keeps its
-own UTC date capture and request transaction behavior. Home passes its captured
-UTC date and owns a separate read-only repeatable-read relational transaction
-for attention, like the other Home source readers. Detector semantics are
-documented in `docs/commitment-intelligence.md`.
+own UTC date capture and request transaction behavior. Home evaluates each
+attention family sequentially in its own read-only repeatable-read relational
+transaction, so a recoverable failure in one family does not suppress the
+other. Detector semantics are documented in
+[`commitment-intelligence.md`](commitment-intelligence.md).
 
 ### Recent Activity
 
@@ -110,16 +155,17 @@ next-payment projection contract.
 
 ## Failure and consistency
 
-Needs Attention, Recent Activity, and Coming Up each use a separate read-only
-repeatable-read relational transaction. Queries are sequential on the scoped
-EF Core context, and a failed section transaction is disposed before the next
-section begins. Section-level coherence is required; one cross-section database
-snapshot is not.
+Each attention family, Recent Activity, and Coming Up use separate read-only
+repeatable-read relational transactions. Queries are sequential on the scoped
+EF Core context, and a failed family or section transaction is disposed before
+the next begins. Family/section-level coherence is required; one cross-family
+or cross-section database snapshot is not.
 
 Known recoverable provider, timeout, or projection-availability failures make
-only that section unavailable. Cancellation and programming or contract defects
-propagate. HTTP `200` is returned when any of the three source-backed sections
-succeeds; only when all three are unavailable does the endpoint return
+only that family or section unavailable. Cancellation and programming or
+contract defects propagate. HTTP `200` is returned when either attention
+family or another Home section succeeds; only when both attention families,
+Recent Activity, and Coming Up are unavailable does the endpoint return
 privacy-safe `503` ProblemDetails with code `home_unavailable`. Authentication
 failures are never converted to partial responses.
 

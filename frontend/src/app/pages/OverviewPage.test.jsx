@@ -8,6 +8,7 @@ import { homeApi } from "../../features/home/api/homeApi";
 import { paychecksApi } from "../../features/paychecks/api/paychecksApi";
 import { expensesApi } from "../../features/expenses/api/expensesApi";
 import { inflowsApi } from "../../features/inflows/api/inflowsApi";
+import { isHomeAttentionSection } from "../../features/home/utils/homePresentation";
 import { clearSession, establishSession } from "../../shared/auth/session";
 import i18n from "../../shared/localization/i18n";
 
@@ -22,10 +23,17 @@ const availableUpcoming = (items = []) => ({
   horizon: { from: "2026-09-01", through: "2026-09-14" },
   items,
 });
-const home = (items = [], upcoming = availableUpcoming(), attention = {
+const availableAttention = (items = [], budgetItems = []) => ({
   availability: { state: "available", reasonCode: null },
-  kindsEvaluated: ["commitment_change_review"], items: [], evaluatedOn: "2026-09-01",
-}) => ({
+  kindsEvaluated: ["commitment_change_review", "budget_attention"],
+  items, budgetItems,
+  familyAvailability: {
+    commitment_change_review: { state: "available", reasonCode: null },
+    budget_attention: { state: "available", reasonCode: null },
+  },
+  evaluatedOn: "2026-09-01",
+});
+const home = (items = [], upcoming = availableUpcoming(), attention = availableAttention()) => ({
   generatedAt: "2026-09-01T12:00:00Z", currencyCode: "USD",
   evaluations: { activityThroughDate: "2026-09-01", upcomingEvaluatedOn: "2026-09-01" },
   attention,
@@ -80,19 +88,14 @@ describe("capture-first Home", () => {
   });
 
   it("renders grouped pending reviews in server order and links beyond the two-group presentation bound", async () => {
-    const attention = {
-      availability: { state: "available", reasonCode: null },
-      kindsEvaluated: ["commitment_change_review"],
-      evaluatedOn: "2026-09-01",
-      items: ["a", "b", "c"].map((id, index) => ({
+    const attention = availableAttention(["a", "b", "c"].map((id, index) => ({
         kind: "commitment_change_review", commitmentId: `b375a2a2-3f95-43b0-985e-a9360237b0${id}7`,
         commitmentName: `Commitment ${index + 1}`,
         reviews: [{ dimension: index === 0 ? "amount" : "missing", state: index === 0 ? "proposed_change" : "possibly_ended" }],
-      })),
-    };
+      })));
     homeApi.getHome.mockResolvedValue(response(home([], availableUpcoming(), attention)));
     renderPage();
-    const list = await screen.findByRole("list", { name: "Commitment changes to review" });
+    const list = await screen.findByRole("list", { name: "Items needing attention" });
     expect(within(list).getByText("Commitment 1")).toBeInTheDocument();
     expect(within(list).getByText("Commitment 2")).toBeInTheDocument();
     expect(within(list).queryByText("Commitment 3")).not.toBeInTheDocument();
@@ -104,14 +107,10 @@ describe("capture-first Home", () => {
 
   it("localizes attention copy while preserving the user-entered commitment name", async () => {
     await i18n.changeLanguage("es");
-    const attention = {
-      availability: { state: "available", reasonCode: null },
-      kindsEvaluated: ["commitment_change_review"], evaluatedOn: "2026-09-01",
-      items: [{
+    const attention = availableAttention([{
         kind: "commitment_change_review", commitmentId: "b375a2a2-3f95-43b0-985e-a9360237b0b7",
         commitmentName: "Mi Gimnasio", reviews: [{ dimension: "timing", state: "proposed_change" }],
-      }],
-    };
+      }]);
     homeApi.getHome.mockResolvedValue(response(home([], availableUpcoming(), attention)));
     renderPage();
     expect(await screen.findByRole("heading", { name: "Requiere atención" })).toBeInTheDocument();
@@ -119,6 +118,82 @@ describe("capture-first Home", () => {
     expect(screen.getByText("Cambio de fecha por revisar")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Abrir revisiones de compromisos" }))
       .toHaveAttribute("href", "/commitments#changes-review-heading");
+  });
+
+  it("orders budget alerts with commitment reviews and applies the shared two-row cap", async () => {
+    const attention = availableAttention(
+      ["a", "b", "c"].map((id, index) => ({
+        kind: "commitment_change_review", commitmentId: `c375a2a2-3f95-43b0-985e-a9360237b0${id}7`,
+        commitmentName: `Commitment ${index + 1}`,
+        reviews: [{ dimension: "amount", state: "proposed_change" }],
+      })),
+      [
+        { kind: "budget_attention", category: "Groceries", state: "over_limit", spentAmount: "110.00", limitAmount: "100.00" },
+        { kind: "budget_attention", category: "Food", state: "at_limit", spentAmount: "50.00", limitAmount: "50.00" },
+      ],
+    );
+    homeApi.getHome.mockResolvedValue(response(home([], availableUpcoming(), attention)));
+
+    renderPage();
+
+    const list = await screen.findByRole("list", { name: "Items needing attention" });
+    expect(within(list).getAllByRole("listitem")).toHaveLength(2);
+    expect(within(list).getByText("Groceries")).toBeInTheDocument();
+    expect(within(list).getByText("Over limit: $110.00 spent against $100.00.")).toBeInTheDocument();
+    expect(within(list).getByText("Commitment 1")).toBeInTheDocument();
+    expect(within(list).queryByText("Commitment 2")).not.toBeInTheDocument();
+    expect(within(list).queryByText("Food")).not.toBeInTheDocument();
+    expect(within(list).getByRole("link", { name: "Open Groceries budget" })).toHaveAttribute("href", "/budgets");
+    expect(screen.getByRole("link", { name: "See all 3 reviews" }))
+      .toHaveAttribute("href", "/commitments#changes-review-heading");
+  });
+
+  it("shows trustworthy commitment reviews and a partial warning when budget attention is unavailable", async () => {
+    const attention = {
+      ...availableAttention([{
+        kind: "commitment_change_review", commitmentId: "b375a2a2-3f95-43b0-985e-a9360237b0b7",
+        commitmentName: "Gym plan", reviews: [{ dimension: "timing", state: "proposed_change" }],
+      }]),
+      kindsEvaluated: ["commitment_change_review"],
+      budgetItems: null,
+      familyAvailability: {
+        commitment_change_review: { state: "available", reasonCode: null },
+        budget_attention: { state: "unavailable", reasonCode: "source_unavailable" },
+      },
+    };
+    expect(isHomeAttentionSection(attention, "2026-09-01")).toBe(true);
+    homeApi.getHome.mockResolvedValue(response(home([], availableUpcoming(), attention)));
+
+    renderPage();
+
+    expect(await screen.findByText("Gym plan")).toBeInTheDocument();
+    expect(screen.getByText("Some attention items could not be checked. Available items are shown.")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /budget/i })).not.toBeInTheDocument();
+  });
+
+  it("shows budget attention when commitment evaluation fails and localizes its action in Spanish", async () => {
+    await i18n.changeLanguage("es");
+    const attention = {
+      ...availableAttention(null, [{
+        kind: "budget_attention", category: "Salud", state: "zero_limit_spending",
+        spentAmount: "1.25", limitAmount: "0.00",
+      }]),
+      kindsEvaluated: ["budget_attention"],
+      items: null,
+      familyAvailability: {
+        commitment_change_review: { state: "unavailable", reasonCode: "source_unavailable" },
+        budget_attention: { state: "available", reasonCode: null },
+      },
+    };
+    expect(isHomeAttentionSection(attention, "2026-09-01")).toBe(true);
+    homeApi.getHome.mockResolvedValue(response(home([], availableUpcoming(), attention)));
+
+    renderPage();
+
+    const list = await screen.findByRole("list", { name: "Elementos que requieren atención" });
+    expect(within(list).getByText("Se gastaron $1.25 con un límite de cero.")).toBeInTheDocument();
+    expect(within(list).getByRole("link", { name: "Abrir el presupuesto de Salud" })).toHaveAttribute("href", "/budgets");
+    expect(screen.getByText("No se pudieron revisar algunos elementos. Se muestran los que están disponibles.")).toBeInTheDocument();
   });
 
   it("renders at most two server-ordered overlapping expectations with exact amounts and dates", async () => {
@@ -201,7 +276,7 @@ describe("capture-first Home", () => {
     renderPage();
 
     expect(await screen.findByText("Activity survives version skew")).toBeInTheDocument();
-    expect(screen.getByText("Commitment reviews could not be verified, so they are hidden.")).toBeInTheDocument();
+    expect(screen.getByText("Attention items could not be verified, so they are hidden.")).toBeInTheDocument();
     expect(screen.getByRole("list", { name: "Expected paycheck projections" })).toBeInTheDocument();
     expect(screen.getByText("Primary paycheck")).toBeInTheDocument();
   });
@@ -225,7 +300,7 @@ describe("capture-first Home", () => {
     homeApi.getHome.mockReturnValue(new Promise((resolve) => { resolveHome = resolve; }));
     const view = renderPage();
     expect(screen.getByText("Loading expected paychecks…")).toBeInTheDocument();
-    expect(screen.getByText("Loading commitment reviews…")).toBeInTheDocument();
+    expect(screen.getByText("Loading attention items…")).toBeInTheDocument();
     expect(screen.queryByRole("list", { name: "Expected paycheck projections" })).not.toBeInTheDocument();
     resolveHome(response(home()));
     await screen.findByText("No upcoming paycheck expectations to show.");

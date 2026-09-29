@@ -47,9 +47,9 @@ function addCalendarDays(date, days) {
   return /^\d{4}-/.test(iso) ? iso.slice(0, 10) : null;
 }
 
-function parseCanonicalAmount(value) {
+function parseCanonicalAmount(value, allowZero = false) {
   if (typeof value !== "string" || !DECIMAL_AMOUNT.test(value)) return null;
-  const parsed = parseExactMoney(value);
+  const parsed = parseExactMoney(value, { allowZero });
   return parsed?.value === value ? parsed : null;
 }
 
@@ -98,6 +98,8 @@ export function isHomeUpcomingSection(value, upcomingEvaluatedOn) {
 
 const ATTENTION_DIMENSIONS = new Set(["amount", "timing", "missing"]);
 const ATTENTION_STATES = new Set(["proposed_change", "not_seen_recently", "possibly_ended"]);
+const ATTENTION_FAMILIES = ["commitment_change_review", "budget_attention"];
+const BUDGET_ATTENTION_STATES = new Set(["at_limit", "over_limit", "zero_limit_spending"]);
 
 function isHomeAttentionItem(value) {
   return Boolean(value && typeof value === "object"
@@ -113,18 +115,76 @@ function isHomeAttentionItem(value) {
         : ["not_seen_recently", "possibly_ended"].includes(review.state))));
 }
 
+function isHomeBudgetAttentionItem(value) {
+  if (!value || typeof value !== "object"
+      || value.kind !== "budget_attention"
+      || typeof value.category !== "string" || value.category.length === 0
+      || !BUDGET_ATTENTION_STATES.has(value.state)) return false;
+
+  const spent = parseCanonicalAmount(value.spentAmount);
+  const limit = parseCanonicalAmount(value.limitAmount, true);
+  if (!spent || !limit) return false;
+  if (value.state === "zero_limit_spending") return limit.cents === 0n && spent.cents > 0n;
+  if (limit.cents === 0n) return false;
+  return value.state === "at_limit"
+    ? spent.cents === limit.cents
+    : spent.cents > limit.cents;
+}
+
+function isFamilyAvailability(value) {
+  return Boolean(value && typeof value === "object"
+    && ((value.state === "available" && value.reasonCode === null)
+      || (value.state === "unavailable" && value.reasonCode === "source_unavailable")));
+}
+
+function hasExpectedKinds(kindsEvaluated, familyAvailability) {
+  const expected = ATTENTION_FAMILIES.filter((family) => familyAvailability[family].state === "available");
+  return kindsEvaluated.length === expected.length
+    && kindsEvaluated.every((kind, index) => kind === expected[index]);
+}
+
 export function isHomeAttentionSection(value, evaluatedOn) {
   if (!value || typeof value !== "object" || value.evaluatedOn !== evaluatedOn
       || !Array.isArray(value.kindsEvaluated)
-      || !isAvailability(value, "items")) return false;
-  if (value.availability.state === "unavailable")
-    return value.items === null && value.kindsEvaluated.length === 0;
-  return value.kindsEvaluated.length === 1
-    && value.kindsEvaluated[0] === "commitment_change_review"
-    && value.items.every(isHomeAttentionItem)
-    && new Set(value.items.map((item) => item.commitmentId)).size === value.items.length
-    && value.items.every((item, index, items) => index === 0
-      || items[index - 1].commitmentId < item.commitmentId);
+      || !isDateOnly(value.evaluatedOn)
+      || !value.familyAvailability || typeof value.familyAvailability !== "object") return false;
+
+  const familyAvailability = value.familyAvailability;
+  if (Object.keys(familyAvailability).length !== ATTENTION_FAMILIES.length
+      || !ATTENTION_FAMILIES.every((family) => isFamilyAvailability(familyAvailability[family]))) return false;
+
+  const commitmentAvailable = familyAvailability.commitment_change_review.state === "available";
+  const budgetAvailable = familyAvailability.budget_attention.state === "available";
+  const anyAvailable = commitmentAvailable || budgetAvailable;
+  if (!isFamilyAvailability(value.availability)
+      || value.availability.state !== (anyAvailable ? "available" : "unavailable")
+      || !hasExpectedKinds(value.kindsEvaluated, familyAvailability)
+      || (commitmentAvailable ? !Array.isArray(value.items) : value.items !== null)
+      || (budgetAvailable ? !Array.isArray(value.budgetItems) : value.budgetItems !== null)) return false;
+
+  if (!anyAvailable) return value.items === null && value.budgetItems === null;
+
+  if (commitmentAvailable && (!value.items.every(isHomeAttentionItem)
+      || new Set(value.items.map((item) => item.commitmentId)).size !== value.items.length
+      || !value.items.every((item, index, items) => index === 0
+        || items[index - 1].commitmentId < item.commitmentId))) return false;
+
+  if (!budgetAvailable) return true;
+  if (value.budgetItems.length > 2 || !value.budgetItems.every(isHomeBudgetAttentionItem)
+      || new Set(value.budgetItems.map((item) => item.category)).size !== value.budgetItems.length) return false;
+
+  const rank = (item) => item.state === "over_limit"
+    ? parseCanonicalAmount(item.spentAmount).cents - parseCanonicalAmount(item.limitAmount, true).cents
+    : item.state === "zero_limit_spending" ? parseCanonicalAmount(item.spentAmount).cents : 0n;
+  return value.budgetItems.every((item, index, items) => {
+    if (index === 0) return true;
+    const previous = items[index - 1];
+    const previousActionable = previous.state !== "at_limit";
+    const currentActionable = item.state !== "at_limit";
+    if (previousActionable !== currentActionable) return previousActionable;
+    if (previousActionable && rank(previous) !== rank(item)) return rank(previous) > rank(item);
+    return previous.category <= item.category;
+  });
 }
 
 export function isHomeResponse(value) {
