@@ -96,6 +96,37 @@ export function isHomeUpcomingSection(value, upcomingEvaluatedOn) {
   return value.items.length <= 2 && value.items.every((item) => isUpcomingItem(item, value.horizon));
 }
 
+const ATTENTION_DIMENSIONS = new Set(["amount", "timing", "missing"]);
+const ATTENTION_STATES = new Set(["proposed_change", "not_seen_recently", "possibly_ended"]);
+
+function isHomeAttentionItem(value) {
+  return Boolean(value && typeof value === "object"
+    && value.kind === "commitment_change_review"
+    && typeof value.commitmentId === "string" && PROFILE_ID.test(value.commitmentId)
+    && value.commitmentId.toLowerCase() !== EMPTY_PROFILE_ID
+    && typeof value.commitmentName === "string" && value.commitmentName.trim().length > 0
+    && Array.isArray(value.reviews) && value.reviews.length > 0
+    && value.reviews.every((review) => review && ATTENTION_DIMENSIONS.has(review.dimension)
+      && ATTENTION_STATES.has(review.state)
+      && ((review.dimension === "amount" || review.dimension === "timing")
+        ? review.state === "proposed_change"
+        : ["not_seen_recently", "possibly_ended"].includes(review.state))));
+}
+
+export function isHomeAttentionSection(value, evaluatedOn) {
+  if (!value || typeof value !== "object" || value.evaluatedOn !== evaluatedOn
+      || !Array.isArray(value.kindsEvaluated)
+      || !isAvailability(value, "items")) return false;
+  if (value.availability.state === "unavailable")
+    return value.items === null && value.kindsEvaluated.length === 0;
+  return value.kindsEvaluated.length === 1
+    && value.kindsEvaluated[0] === "commitment_change_review"
+    && value.items.every(isHomeAttentionItem)
+    && new Set(value.items.map((item) => item.commitmentId)).size === value.items.length
+    && value.items.every((item, index, items) => index === 0
+      || items[index - 1].commitmentId < item.commitmentId);
+}
+
 export function isHomeResponse(value) {
   if (!value || typeof value !== "object"
       || typeof value.generatedAt !== "string" || Number.isNaN(Date.parse(value.generatedAt))

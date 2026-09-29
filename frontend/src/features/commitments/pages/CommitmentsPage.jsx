@@ -8,6 +8,7 @@ import { useCommitments } from "../hooks/useCommitments";
 import { formatDate, formatDerivedMoney, formatMoney } from "../utils/formatCommitments";
 import groupCommitmentChanges from "../utils/groupCommitmentChanges";
 import { displayText } from "../../../utils/text";
+import { useLocation } from "react-router-dom";
 
 const EVIDENCE_RULES = {
   consecutive_calendar_months: "Consecutive calendar months",
@@ -139,6 +140,7 @@ function ConfirmedCommitmentCard({ commitment, state, task, disabled, onOpen, on
 }
 
 export default function CommitmentsPage() {
+  const location = useLocation();
   const state = useCommitments();
   const [hasLoaded, setHasLoaded] = useState(false);
   const [activeTask, setActiveTask] = useState(null);
@@ -153,6 +155,11 @@ export default function CommitmentsPage() {
   useEffect(() => {
     if (!state.loading && !state.loadError) setHasLoaded(true);
   }, [state.loading, state.loadError]);
+
+  useEffect(() => {
+    if (location.hash === "#changes-review-heading" && hasLoaded)
+      focusDestination("changes-review-heading", false);
+  }, [location.hash, hasLoaded]);
 
   useEffect(() => {
     if (!activeTask || activeTask.mode === "change-end") return;

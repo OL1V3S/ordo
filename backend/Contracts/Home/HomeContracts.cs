@@ -11,7 +11,18 @@ public sealed record HomeEvaluationsResponse(
 public sealed record HomeAttentionSectionResponse(
     HomeSectionAvailabilityResponse Availability,
     IReadOnlyList<string> KindsEvaluated,
-    IReadOnlyList<object>? Items);
+    IReadOnlyList<HomeAttentionItemResponse>? Items,
+    DateOnly EvaluatedOn);
+
+public sealed record HomeAttentionItemResponse(
+    string Kind,
+    Guid CommitmentId,
+    string CommitmentName,
+    IReadOnlyList<HomeCommitmentReviewResponse> Reviews);
+
+public sealed record HomeCommitmentReviewResponse(
+    string Dimension,
+    string State);
 
 public sealed record HomePaycheckRelationResponse(
     Guid ProfileId,

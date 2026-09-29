@@ -43,11 +43,19 @@ public interface ICommitmentService
     Task<CommitmentOperation<CommitmentResponse>> UpdateLifecycleAsync(string ownerId, Guid id, UpdateCommitmentLifecycleRequest request, CancellationToken cancellationToken);
 }
 
+public interface ICommitmentChangeReadService
+{
+    Task<CommitmentChangesResponse> EvaluateChangesAsync(
+        string ownerId,
+        DateOnly evaluatedOn,
+        CancellationToken cancellationToken);
+}
+
 public sealed class CommitmentService(
     BudgetContext context,
     ICommitmentDetector detector,
     ICommitmentChangeDetector changeDetector,
-    TimeProvider clock) : ICommitmentService
+    TimeProvider clock) : ICommitmentService, ICommitmentChangeReadService
 {
     public async Task<CommitmentCandidatesResponse> GetCandidatesAsync(
         string ownerId,
@@ -270,6 +278,14 @@ public sealed class CommitmentService(
         CancellationToken cancellationToken)
     {
         var evaluatedOn = DateOnly.FromDateTime(clock.GetUtcNow().UtcDateTime);
+        return await EvaluateChangesAsync(ownerId, evaluatedOn, cancellationToken);
+    }
+
+    public async Task<CommitmentChangesResponse> EvaluateChangesAsync(
+        string ownerId,
+        DateOnly evaluatedOn,
+        CancellationToken cancellationToken)
+    {
         var state = await LoadChangeStateAsync(ownerId, evaluatedOn, cancellationToken);
         var commitmentsById = state.Commitments.ToDictionary(value => value.Id);
         return new CommitmentChangesResponse(

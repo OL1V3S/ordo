@@ -66,6 +66,24 @@
     "amountReview": "El monto requiere revisión",
     "dateUnknown": "Fecha no disponible"
   },
+  "attention": {
+    "heading": "Requiere atención",
+    "listLabel": "Cambios de compromisos por revisar",
+    "loading": "Cargando revisiones de compromisos…",
+    "empty": "No hay cambios de compromisos que requieran tu revisión.",
+    "unavailable": "Las revisiones de compromisos no están disponibles en este momento.",
+    "homeUnavailable": "Las revisiones de compromisos no están disponibles porque no se pudo cargar Inicio.",
+    "malformed": "No pudimos verificar las revisiones de compromisos, así que no se muestran.",
+    "openReviews": "Abrir revisiones de compromisos",
+    "viewAll_one": "Ver {{count}} revisión",
+    "viewAll_other": "Ver las {{count}} revisiones",
+    "reasonSeparator": "; ",
+    "dimensions": {
+      "amount": "Cambio de monto por revisar",
+      "timing": "Cambio de fecha por revisar",
+      "missing": "Estado del compromiso por revisar"
+    }
+  },
   "comingUp": {
     "heading": "Próximos pagos de nómina",
     "qualifier": "Previsiones de nómina, separadas de la actividad registrada.",

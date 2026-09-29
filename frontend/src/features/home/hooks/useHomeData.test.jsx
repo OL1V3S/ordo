@@ -10,7 +10,10 @@ const validHome = {
   generatedAt: "2026-09-23T12:00:00Z",
   currencyCode: "USD",
   evaluations: { activityThroughDate: "2026-09-23", upcomingEvaluatedOn: "2026-09-23" },
-  attention: { availability: { state: "available", reasonCode: null }, kindsEvaluated: [], items: [] },
+  attention: {
+    availability: { state: "available", reasonCode: null },
+    kindsEvaluated: ["commitment_change_review"], items: [], evaluatedOn: "2026-09-23",
+  },
   recentActivity: { availability: { state: "available", reasonCode: null }, items: [] },
   upcoming: { availability: { state: "available", reasonCode: null }, horizon: { from: "2026-09-23", through: "2026-10-06" }, items: [] },
 };

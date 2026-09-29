@@ -16,6 +16,7 @@ import {
   formatHomeAmount,
   formatHomeDate,
   formatHomeProjectionAmount,
+  isHomeAttentionSection,
   isHomeUpcomingSection,
 } from "../../features/home/utils/homePresentation";
 import "../../styles/home-capture.css";
@@ -96,6 +97,17 @@ export default function OverviewPage() {
       : !upcomingValid ? "malformed"
         : upcoming.availability.state === "unavailable" ? "unavailable"
           : upcoming.items.length === 0 ? "empty" : "available";
+  const attention = data.data?.attention;
+  const attentionValid = data.data
+    && isHomeAttentionSection(attention, data.data.evaluations.upcomingEvaluatedOn);
+  const attentionState = data.loading ? "loading"
+    : data.error || !data.data ? "homeUnavailable"
+      : !attentionValid ? "malformed"
+        : attention.availability.state === "unavailable" ? "unavailable"
+          : attention.items.length === 0 ? "empty" : "available";
+  const visibleAttention = attentionState === "available" ? attention.items.slice(0, 2) : [];
+  const reviewCount = attentionState === "available"
+    ? attention.items.reduce((total, item) => total + item.reviews.length, 0) : 0;
 
   return <div className="shell-page home-capture-page">
     <header className="page-header"><div><h1>{t("page.title")}</h1><p className="muted">{t("page.intro")}</p></div></header>
@@ -133,6 +145,30 @@ export default function OverviewPage() {
       </div>}
       {data.error && <StatusMessage tone="danger">{t("capture.feedback.refreshFailed")}</StatusMessage>}
       {data.loading && <StatusMessage>{t("activity.loading")}</StatusMessage>}
+    </section>
+    <section className="home-attention" aria-labelledby="home-attention-heading" aria-busy={attentionState === "loading"}>
+      <div className="home-attention__heading">
+        <h2 id="home-attention-heading">{t("attention.heading")}</h2>
+        {attentionState === "available" && attention.items.length > 0
+          && <Link to="/commitments#changes-review-heading">{attention.items.length > visibleAttention.length
+            ? t("attention.viewAll", { count: reviewCount }) : t("attention.openReviews")}</Link>}
+      </div>
+      {attentionState === "available" && <ul className="home-attention__list" aria-label={t("attention.listLabel")}>
+        {visibleAttention.map((item) => {
+          const reasons = item.reviews.map(({ dimension }) => t(`attention.dimensions.${dimension}`));
+          return <li key={item.commitmentId} className="home-attention__item">
+            <strong>{item.commitmentName}</strong>
+            <p>{reasons.join(t("attention.reasonSeparator"))}</p>
+          </li>;
+        })}
+      </ul>}
+      {attentionState === "empty"
+        && <StatusMessage>{t("attention.empty")}</StatusMessage>}
+      {!["available", "empty"].includes(attentionState) && <StatusMessage tone={attentionState === "unavailable" || attentionState === "malformed" ? "warning" : undefined}>
+        {t(`attention.${attentionState}`)}
+      </StatusMessage>}
+      {!["available", "empty", "loading"].includes(attentionState)
+        && <Link to="/commitments#changes-review-heading">{t("attention.openReviews")}</Link>}
     </section>
     <section className="home-recent" aria-labelledby="home-recent-heading" aria-busy={data.loading}>
       <div className="home-recent__heading"><h2 id="home-recent-heading">{t("activity.heading")}</h2>

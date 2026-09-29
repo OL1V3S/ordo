@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatHomeAmount, formatHomeDate, formatHomeProjectionAmount, isHomeResponse, isHomeUpcomingSection } from "./homePresentation";
+import { formatHomeAmount, formatHomeDate, formatHomeProjectionAmount, isHomeAttentionSection, isHomeResponse, isHomeUpcomingSection } from "./homePresentation";
 
 const item = {
   kind: "expense",
@@ -15,7 +15,7 @@ const response = {
   generatedAt: "2026-09-23T12:00:00Z",
   currencyCode: "USD",
   evaluations: { activityThroughDate: "2026-09-23", upcomingEvaluatedOn: "2026-09-23" },
-  attention: { availability: { state: "available", reasonCode: null }, kindsEvaluated: [], items: [] },
+  attention: { availability: { state: "available", reasonCode: null }, kindsEvaluated: ["commitment_change_review"], items: [], evaluatedOn: "2026-09-23" },
   recentActivity: { availability: { state: "available", reasonCode: null }, items: [item] },
   upcoming: { availability: { state: "available", reasonCode: null }, horizon: { from: "2026-09-23", through: "2026-10-06" }, items: [] },
 };
@@ -47,6 +47,28 @@ describe("Home presentation contract", () => {
       ...response,
       recentActivity: { availability: { state: "available", reasonCode: null }, items: null },
     })).toBe(false);
+  });
+
+  it("requires a truthful attention evaluation envelope and actionable structured items", () => {
+    const item = {
+      kind: "commitment_change_review",
+      commitmentId: "b375a2a2-3f95-43b0-985e-a9360237b0b7",
+      commitmentName: "Gym plan",
+      reviews: [{ dimension: "amount", state: "proposed_change" }],
+    };
+    expect(isHomeAttentionSection({ ...response.attention, items: [item] }, "2026-09-23")).toBe(true);
+    expect(isHomeAttentionSection({ ...response.attention, kindsEvaluated: [], items: [] }, "2026-09-23")).toBe(false);
+    expect(isHomeAttentionSection({ ...response.attention, items: [{ ...item, reviews: [{ dimension: "amount", state: "possible_change" }] }] }, "2026-09-23")).toBe(false);
+    expect(isHomeAttentionSection({ availability: { state: "unavailable", reasonCode: "source_unavailable" }, kindsEvaluated: [], items: null, evaluatedOn: "2026-09-23" }, "2026-09-23")).toBe(true);
+  });
+
+  it("keeps legacy or malformed attention data out of whole-Home response validation", () => {
+    const legacyAttention = {
+      availability: { state: "available", reasonCode: null },
+      kindsEvaluated: [],
+      items: [],
+    };
+    expect(isHomeResponse({ ...response, attention: legacyAttention })).toBe(true);
   });
 
   it("rejects malformed and noncanonical financial values", () => {

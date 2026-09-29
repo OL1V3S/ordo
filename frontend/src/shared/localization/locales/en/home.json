@@ -66,6 +66,24 @@
     "amountReview": "Amount needs review",
     "dateUnknown": "Date unavailable"
   },
+  "attention": {
+    "heading": "Needs Attention",
+    "listLabel": "Commitment changes to review",
+    "loading": "Loading commitment reviews…",
+    "empty": "No commitment changes need your review.",
+    "unavailable": "Commitment reviews are unavailable right now.",
+    "homeUnavailable": "Commitment reviews are unavailable because Home could not be loaded.",
+    "malformed": "Commitment reviews could not be verified, so they are hidden.",
+    "openReviews": "Open commitment reviews",
+    "viewAll_one": "See all {{count}} review",
+    "viewAll_other": "See all {{count}} reviews",
+    "reasonSeparator": "; ",
+    "dimensions": {
+      "amount": "Amount change to review",
+      "timing": "Timing change to review",
+      "missing": "Commitment status to review"
+    }
+  },
   "comingUp": {
     "heading": "Coming Up",
     "qualifier": "Expected paycheck projections, separate from recorded activity.",
