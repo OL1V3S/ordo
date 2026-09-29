@@ -6,7 +6,8 @@ Use this guide to locate the smallest failing layer in a local or preview Ordo
 workflow. Debugging and smoke checks provide focused evidence; they do not
 replace the full verification and CI requirements in
 [`verification.md`](verification.md), the authority rules in
-[`../AGENTS.md`](../AGENTS.md), independent review, or human merge authority.
+[`../AGENTS.md`](../AGENTS.md), independent review, or the gated merge authority
+defined there.
 
 ## Privacy-safe evidence
 
