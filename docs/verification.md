@@ -172,8 +172,8 @@ The supported split workflow is:
 agent implementation + clean local commit
 -> human GitHub Desktop/web publication
 -> required CI evidence
--> independent review
--> human merge
+-> independent command-center PASS review
+-> authorized command-center merge after all gates succeed
 ```
 
 A local commit is durable implementation evidence. It is not evidence that the
@@ -190,7 +190,7 @@ desktop app, operating on a local Git checkout under the authority described in
 `AGENTS.md` and the governing GitHub Issue.
 
 Local Codex output is development evidence. It is not an independent substitute
-for GitHub CI, PR review, or human merge authority.
+for GitHub CI, PR review, or the merge authority defined in `AGENTS.md`.
 
 ### Task/authority evidence
 
@@ -257,13 +257,17 @@ local Codex implementation
 -> draft pull request
 -> applicable GitHub CI
 -> ChatGPT independent PR/diff/CI review
--> human merge
+-> authorized command-center merge after all gates succeed
 ```
 
 If local Codex can authenticate safely to GitHub, it may push the approved
 feature/PR branch and create the draft PR. If not, use the existing
 **publication handoff required** fallback with GitHub Desktop/web. Neither path
-allows a direct push to `main` or automatic merge.
+allows a direct push to `main` or automatic merge. ChatGPT/command-center
+tooling may merge explicitly selected LOW work or an approved MEDIUM/HIGH slice
+only after required CI succeeds on the actual final PR head, independent
+command-center PASS review is recorded, and no unresolved blocking findings
+remain, as defined in `AGENTS.md`.
 
 The resulting draft PR requires **Frontend test, lint, and build**, **Backend
 build and tests**, and **PostgreSQL financial integration** to succeed. Vercel
@@ -301,4 +305,5 @@ A draft PR is review-ready only when:
 - the complete diff has been inspected for scope and unintended changes; and
 - MEDIUM/HIGH approvals and all other `AGENTS.md` gates are satisfied.
 
-Human review and merge authority remain unchanged.
+Human approval authority, required CI, and independent review remain mandatory.
+Authorized command-center merge follows the gated authority in `AGENTS.md`.
