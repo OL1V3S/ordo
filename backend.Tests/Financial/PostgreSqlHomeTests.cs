@@ -1,10 +1,12 @@
 using System.Net.Http.Json;
 using System.Text.Json;
+using BudgetPlanner.Commitments;
 using BudgetPlanner.Data;
 using BudgetPlanner.Models;
 using BudgetPlanner.Paychecks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Xunit;
 
 namespace BudgetPlanner.Tests.Financial;
@@ -14,6 +16,93 @@ namespace BudgetPlanner.Tests.Financial;
 public sealed class PostgreSqlHomeTests
 {
     private const string Route = "/api/home?activityThroughDate=2026-09-22";
+
+    [PostgreSqlFact]
+    public async Task Budget_attention_is_owner_scoped_cutoff_exact_and_read_only()
+    {
+        await using var app = new PostgreSqlFinancialApiTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("postgres-home-budget-owner@example.com");
+        using var other = await app.CreateAuthenticatedUserAsync("postgres-home-budget-other@example.com");
+        var month = new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        await app.SeedBudgetLimitAsync(owner.Id, "food", 100m, month);
+        await app.SeedBudgetLimitAsync(other.Id, "foreign", 1m, month);
+        await app.SeedExpenseAsync(owner.Id, "Owner cutoff expense", 100.01m, new(2026, 9, 22), "food");
+        await app.SeedExpenseAsync(owner.Id, "After cutoff expense", 500m, new(2026, 9, 23), "food");
+        await app.SeedExpenseAsync(other.Id, "Foreign expense", 999m, new(2026, 9, 22), "foreign");
+        var before = await StateAsync(app);
+
+        using var response = await owner.Client.GetAsync(Route);
+        response.EnsureSuccessStatusCode();
+        var attention = (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("attention");
+        var item = Assert.Single(attention.GetProperty("budgetItems").EnumerateArray());
+
+        Assert.Equal("available", attention.GetProperty("familyAvailability")
+            .GetProperty("budget_attention").GetProperty("state").GetString());
+        Assert.Equal("over_limit", item.GetProperty("state").GetString());
+        Assert.Equal("food", item.GetProperty("category").GetString());
+        Assert.Equal("100.01", item.GetProperty("spentAmount").GetString());
+        Assert.Equal("100.00", item.GetProperty("limitAmount").GetString());
+        Assert.DoesNotContain("Foreign", attention.GetRawText(), StringComparison.Ordinal);
+        Assert.Equal(before, await StateAsync(app));
+    }
+
+    [PostgreSqlFact]
+    public async Task Duplicate_budget_rows_make_only_budget_family_unavailable()
+    {
+        await using var app = new PostgreSqlFinancialApiTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("postgres-home-budget-duplicate@example.com");
+        var month = new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc);
+        await app.SeedBudgetLimitAsync(owner.Id, "food", 100m, month);
+        await app.SeedBudgetLimitAsync(owner.Id, "food", 200m, month);
+        await app.SeedExpenseAsync(owner.Id, "Food expense", 150m, new(2026, 9, 22), "food");
+
+        using var response = await owner.Client.GetAsync(Route);
+        response.EnsureSuccessStatusCode();
+        var attention = (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("attention");
+
+        Assert.Equal("available", attention.GetProperty("availability").GetProperty("state").GetString());
+        Assert.Equal("available", attention.GetProperty("familyAvailability")
+            .GetProperty("commitment_change_review").GetProperty("state").GetString());
+        Assert.Equal("unavailable", attention.GetProperty("familyAvailability")
+            .GetProperty("budget_attention").GetProperty("state").GetString());
+        Assert.Equal(new[] { "commitment_change_review" }, attention.GetProperty("kindsEvaluated")
+            .EnumerateArray().Select(value => value.GetString()));
+        Assert.Equal(JsonValueKind.Null, attention.GetProperty("budgetItems").ValueKind);
+    }
+
+    [Theory]
+    [InlineData("negative_budget")]
+    [InlineData("zero_expense")]
+    public async Task Representable_legacy_numeric_rows_fail_only_budget_family(string rowKind)
+    {
+        await using var app = new FrozenPostgreSqlHomeApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync($"postgres-home-budget-{rowKind}@example.com");
+
+        if (rowKind == "negative_budget")
+            await app.SeedBudgetLimitAsync(owner.Id, "food", -1m, new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc));
+        else
+        {
+            await app.SeedBudgetLimitAsync(owner.Id, "food", 10m, new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc));
+            await app.SeedExpenseAsync(owner.Id, "Legacy zero expense", 0m, new(2026, 9, 10), "food");
+        }
+        await SeedPendingCommitmentAsync(app, owner.Id);
+
+        using var response = await owner.Client.GetAsync(Route);
+        response.EnsureSuccessStatusCode();
+        var attention = (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("attention");
+
+        Assert.Equal("available", attention.GetProperty("availability").GetProperty("state").GetString());
+        Assert.Equal("available", attention.GetProperty("familyAvailability")
+            .GetProperty("commitment_change_review").GetProperty("state").GetString());
+        Assert.Equal("unavailable", attention.GetProperty("familyAvailability")
+            .GetProperty("budget_attention").GetProperty("state").GetString());
+        Assert.Equal(new[] { "commitment_change_review" }, attention.GetProperty("kindsEvaluated")
+            .EnumerateArray().Select(value => value.GetString()));
+        Assert.Equal("Gym plan", Assert.Single(attention.GetProperty("items").EnumerateArray())
+            .GetProperty("commitmentName").GetString());
+        Assert.Equal(JsonValueKind.Null, attention.GetProperty("budgetItems").ValueKind);
+    }
 
     [PostgreSqlFact]
     public async Task Read_is_exact_owner_scoped_read_only_and_keeps_linked_cash_single()
@@ -55,9 +144,10 @@ public sealed class PostgreSqlHomeTests
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
         var attention = body.GetProperty("attention");
         Assert.Equal("available", attention.GetProperty("availability").GetProperty("state").GetString());
-        Assert.Equal(new[] { "commitment_change_review" }, attention.GetProperty("kindsEvaluated")
+        Assert.Equal(new[] { "commitment_change_review", "budget_attention" }, attention.GetProperty("kindsEvaluated")
             .EnumerateArray().Select(value => value.GetString()));
         Assert.Empty(attention.GetProperty("items").EnumerateArray());
+        Assert.Empty(attention.GetProperty("budgetItems").EnumerateArray());
         var items = body.GetProperty("recentActivity").GetProperty("items").EnumerateArray().ToArray();
 
         Assert.Equal(2, items.Length);
@@ -71,7 +161,7 @@ public sealed class PostgreSqlHomeTests
         Assert.Equal(before, await StateAsync(app));
     }
 
-    private static async Task<(int Expenses, int Inflows, int Profiles, int Occurrences)> StateAsync(
+    private static async Task<(int Expenses, int Inflows, int Profiles, int Occurrences, int Budgets)> StateAsync(
         FinancialApiTestApplicationBase app)
     {
         using var scope = app.Services.CreateScope();
@@ -80,6 +170,46 @@ public sealed class PostgreSqlHomeTests
             await db.Expenses.CountAsync(),
             await db.AccountInflows.CountAsync(),
             await db.PaycheckProfiles.CountAsync(),
-            await db.PaycheckOccurrences.CountAsync());
+            await db.PaycheckOccurrences.CountAsync(),
+            await db.BudgetLimits.CountAsync());
+    }
+
+    private static async Task SeedPendingCommitmentAsync(
+        PostgreSqlFinancialApiTestApplication app,
+        string ownerId)
+    {
+        var evidence = new List<Expense>();
+        foreach (var date in new[] { new DateOnly(2026, 5, 10), new DateOnly(2026, 6, 10), new DateOnly(2026, 7, 10) })
+            evidence.Add(await app.SeedExpenseAsync(ownerId, "membership", 10m, date, "bills"));
+        foreach (var date in new[] { new DateOnly(2026, 8, 12), new DateOnly(2026, 9, 12), new DateOnly(2026, 10, 12) })
+            await app.SeedExpenseAsync(ownerId, "membership", 12m, date, "bills");
+
+        using var scope = app.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<BudgetContext>();
+        var at = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        context.Commitments.Add(new Commitment
+        {
+            Id = Guid.NewGuid(), OwnerId = ownerId, Name = "Gym plan", Category = "bills",
+            Lifecycle = CommitmentLifecycle.Active, Cadence = CommitmentCadence.Monthly,
+            TimingKind = CommitmentTimingKind.DayOfMonth, ExpectedDay = 10,
+            WindowBeforeDays = 0, WindowAfterDays = 0,
+            AmountMode = CommitmentAmountMode.Fixed, ExpectedAmount = 10m,
+            CreatedAt = at, UpdatedAt = at,
+            Occurrences = evidence.Select(expense => new CommitmentOccurrence
+            {
+                ExpenseId = expense.Id, Kind = CommitmentOccurrenceKind.ConfirmationEvidence, LinkedAt = at
+            }).ToList()
+        });
+        await context.SaveChangesAsync();
+    }
+
+    private sealed class FrozenPostgreSqlHomeApplication : PostgreSqlFinancialApiTestApplication
+    {
+        protected override void ConfigureAdditionalServices(IServiceCollection services)
+        {
+            services.RemoveAll<TimeProvider>();
+            services.AddSingleton<TimeProvider>(new FrozenTimeProvider(
+                new DateTimeOffset(2026, 10, 29, 18, 0, 0, TimeSpan.Zero)));
+        }
     }
 }

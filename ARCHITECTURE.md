@@ -182,11 +182,14 @@ date-only cutoff preserves the Analytics browser-local calendar convention.
 paycheck projector's UTC evaluation date, returns exact string money, and
 composes at most three current Expenses/AccountInflows plus two active paycheck
 projections. Linked inflows remain one actual row with relationship metadata.
-Recent Activity and Coming Up use sequential, independent read-only
-repeatable-read transactions so one recoverable source failure can be represented
-without guessing another section. V1 exposes an explicit empty attention
-coverage envelope and performs no writes, caching, schema changes, balance
-semantics, commitment projection, or localized presentation. See
+Needs Attention evaluates commitment reviews and recorded-spending budget
+conditions independently, each in a read-only repeatable-read transaction.
+Explicit family availability preserves a trustworthy result when the sibling
+family fails. Recent Activity and Coming Up also use independent read-only
+repeatable-read transactions so one recoverable source failure can be
+represented without guessing another section. Home performs no writes, caching,
+schema changes, balance semantics, commitment projection, or localized backend
+presentation. See
 [`docs/home-read-model.md`](docs/home-read-model.md).
 
 ### Authentication and ownership boundaries

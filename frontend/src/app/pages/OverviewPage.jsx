@@ -100,14 +100,27 @@ export default function OverviewPage() {
   const attention = data.data?.attention;
   const attentionValid = data.data
     && isHomeAttentionSection(attention, data.data.evaluations.upcomingEvaluatedOn);
+  const commitmentAvailable = attentionValid
+    && attention.familyAvailability.commitment_change_review.state === "available";
+  const budgetAvailable = attentionValid
+    && attention.familyAvailability.budget_attention.state === "available";
+  const commitmentItems = commitmentAvailable ? attention.items : [];
+  const budgetItems = budgetAvailable ? attention.budgetItems : [];
+  const orderedAttentionItems = [
+    ...budgetItems.filter((item) => item.state !== "at_limit").map((item) => ({ type: "budget", item })),
+    ...commitmentItems.map((item) => ({ type: "commitment", item })),
+    ...budgetItems.filter((item) => item.state === "at_limit").map((item) => ({ type: "budget", item })),
+  ];
   const attentionState = data.loading ? "loading"
     : data.error || !data.data ? "homeUnavailable"
       : !attentionValid ? "malformed"
         : attention.availability.state === "unavailable" ? "unavailable"
-          : attention.items.length === 0 ? "empty" : "available";
-  const visibleAttention = attentionState === "available" ? attention.items.slice(0, 2) : [];
-  const reviewCount = attentionState === "available"
-    ? attention.items.reduce((total, item) => total + item.reviews.length, 0) : 0;
+          : !commitmentAvailable || !budgetAvailable ? "partial"
+            : orderedAttentionItems.length === 0 ? "empty" : "available";
+  const visibleAttention = ["available", "partial"].includes(attentionState)
+    ? orderedAttentionItems.slice(0, 2) : [];
+  const visibleCommitmentCount = visibleAttention.filter((entry) => entry.type === "commitment").length;
+  const reviewCount = commitmentItems.reduce((total, item) => total + item.reviews.length, 0);
 
   return <div className="shell-page home-capture-page">
     <header className="page-header"><div><h1>{t("page.title")}</h1><p className="muted">{t("page.intro")}</p></div></header>
@@ -149,12 +162,24 @@ export default function OverviewPage() {
     <section className="home-attention" aria-labelledby="home-attention-heading" aria-busy={attentionState === "loading"}>
       <div className="home-attention__heading">
         <h2 id="home-attention-heading">{t("attention.heading")}</h2>
-        {attentionState === "available" && attention.items.length > 0
-          && <Link to="/commitments#changes-review-heading">{attention.items.length > visibleAttention.length
+        {["available", "partial"].includes(attentionState) && commitmentItems.length > 0
+          && <Link to="/commitments#changes-review-heading">{commitmentItems.length > visibleCommitmentCount
             ? t("attention.viewAll", { count: reviewCount }) : t("attention.openReviews")}</Link>}
       </div>
-      {attentionState === "available" && <ul className="home-attention__list" aria-label={t("attention.listLabel")}>
-        {visibleAttention.map((item) => {
+      {["available", "partial"].includes(attentionState) && visibleAttention.length > 0
+        && <ul className="home-attention__list" aria-label={t("attention.listLabel")}>
+        {visibleAttention.map(({ type, item }) => {
+          if (type === "budget") {
+            const spent = formatHomeProjectionAmount(item.spentAmount, moneyLocale);
+            const limit = formatHomeProjectionAmount(item.limitAmount, moneyLocale);
+            return <li key={`budget-${item.category}`} className="home-attention__item">
+              <strong>{item.category}</strong>
+              <p>{t(`attention.budgetStates.${item.state}`, { category: item.category, spent, limit })}</p>
+              <Link to="/budgets" aria-label={t("attention.openBudgetForCategory", { category: item.category })}>
+                {t("attention.openBudgets")}
+              </Link>
+            </li>;
+          }
           const reasons = item.reviews.map(({ dimension }) => t(`attention.dimensions.${dimension}`));
           return <li key={item.commitmentId} className="home-attention__item">
             <strong>{item.commitmentName}</strong>
@@ -164,10 +189,12 @@ export default function OverviewPage() {
       </ul>}
       {attentionState === "empty"
         && <StatusMessage>{t("attention.empty")}</StatusMessage>}
-      {!["available", "empty"].includes(attentionState) && <StatusMessage tone={attentionState === "unavailable" || attentionState === "malformed" ? "warning" : undefined}>
+      {attentionState === "partial"
+        && <StatusMessage tone="warning">{t("attention.partialUnavailable")}</StatusMessage>}
+      {!["available", "partial", "empty"].includes(attentionState) && <StatusMessage tone={attentionState === "unavailable" || attentionState === "malformed" ? "warning" : undefined}>
         {t(`attention.${attentionState}`)}
       </StatusMessage>}
-      {!["available", "empty", "loading"].includes(attentionState)
+      {!["available", "partial", "empty", "loading"].includes(attentionState)
         && <Link to="/commitments#changes-review-heading">{t("attention.openReviews")}</Link>}
     </section>
     <section className="home-recent" aria-labelledby="home-recent-heading" aria-busy={data.loading}>

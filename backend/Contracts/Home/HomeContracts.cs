@@ -12,7 +12,22 @@ public sealed record HomeAttentionSectionResponse(
     HomeSectionAvailabilityResponse Availability,
     IReadOnlyList<string> KindsEvaluated,
     IReadOnlyList<HomeAttentionItemResponse>? Items,
-    DateOnly EvaluatedOn);
+    IReadOnlyList<HomeBudgetAttentionItemResponse>? BudgetItems,
+    IReadOnlyDictionary<string, HomeSectionAvailabilityResponse> FamilyAvailability,
+    DateOnly EvaluatedOn)
+{
+    public static HomeAttentionSectionResponse Unavailable(DateOnly evaluatedOn) => new(
+        new HomeSectionAvailabilityResponse("unavailable", "source_unavailable"),
+        [],
+        null,
+        null,
+        new Dictionary<string, HomeSectionAvailabilityResponse>
+        {
+            ["commitment_change_review"] = new("unavailable", "source_unavailable"),
+            ["budget_attention"] = new("unavailable", "source_unavailable")
+        },
+        evaluatedOn);
+}
 
 public sealed record HomeAttentionItemResponse(
     string Kind,
@@ -23,6 +38,13 @@ public sealed record HomeAttentionItemResponse(
 public sealed record HomeCommitmentReviewResponse(
     string Dimension,
     string State);
+
+public sealed record HomeBudgetAttentionItemResponse(
+    string Kind,
+    string Category,
+    string State,
+    string SpentAmount,
+    string LimitAmount);
 
 public sealed record HomePaycheckRelationResponse(
     Guid ProfileId,

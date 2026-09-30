@@ -24,6 +24,17 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-09-29 — Home budget attention
+
+[PR #167](https://github.com/OL1V3S/ordo/pull/167) ·
+[Issue #166](https://github.com/OL1V3S/ordo/issues/166)
+
+- Added selective Home alerts for recorded category spending at or above an
+  explicit monthly budget, with exact-cents classification and deterministic
+  ranking.
+- Kept budget and commitment attention independently available, read-only, and
+  bilingual, within Home's existing two-row limit.
+
 ### 2026-09-28 — Home commitment-change reviews
 
 [PR #160](https://github.com/OL1V3S/ordo/pull/160) ·

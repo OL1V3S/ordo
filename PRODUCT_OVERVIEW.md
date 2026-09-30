@@ -23,8 +23,9 @@ silently treating every detected pattern as a financial fact.
 - **Home:** Capture an expense or cash-in record before reviewing a compact,
   server-ordered list of up to three recent expenses and inflows. Exact amounts,
   posted dates, expense categories, and paycheck links are shown when available.
-  Needs Attention shows up to two groups of pending commitment-change reviews
-  and links to the existing Commitments decision workflow. A quiet Coming Up
+  Needs Attention shows up to two selected items across pending commitment
+  reviews and recorded spending against explicit monthly budgets, with links to
+  the existing review and Budgets workflows. A quiet Coming Up
   section shows up to two backend-ranked paycheck expectations with exact fixed
   or range amounts and localized expected dates; these remain separate from
   recorded activity. Unavailable reads and empty sections have distinct states.
