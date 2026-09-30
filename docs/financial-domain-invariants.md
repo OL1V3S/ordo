@@ -380,10 +380,12 @@ Safe-to-Spend semantics are excluded.
 
 All comparison and aggregation uses exact cents. Duplicate rows for the same
 owner, exact category, and month, a negative budget, any zero or negative
-Expense in the evaluated period, invalid precision/range, or total overflow
+Expense in the evaluated period, a null/blank/whitespace-only category in an
+evaluated budget or Expense row, invalid precision/range, or total overflow
 makes only the budget attention family unavailable. No such row is silently
-omitted, combined, repaired, normalized, deleted, or rewritten. A budget
-family failure must not hide valid commitment-change attention, and vice versa.
+omitted, combined, repaired, normalized, deleted, or rewritten. Nonblank
+category strings are still matched exactly. A budget family failure must not
+hide valid commitment-change attention, and vice versa.
 The full response contract is documented in [`home-read-model.md`](home-read-model.md).
 
 ## Ownership and API boundary

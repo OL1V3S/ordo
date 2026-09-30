@@ -122,7 +122,7 @@ public sealed class HomeAttentionReader(
         var limitsByCategory = new Dictionary<string, long>(StringComparer.Ordinal);
         foreach (var limit in limits)
         {
-            if (limit.Category is null)
+            if (string.IsNullOrWhiteSpace(limit.Category))
                 throw InvalidBudgetData("A budget category is unavailable.");
             if (limit.LimitAmount < 0)
                 throw InvalidBudgetData("A budget amount is negative.");
@@ -135,7 +135,7 @@ public sealed class HomeAttentionReader(
         var spentByCategory = new Dictionary<string, long>(StringComparer.Ordinal);
         foreach (var expense in expenses)
         {
-            if (expense.Category is null)
+            if (string.IsNullOrWhiteSpace(expense.Category))
                 throw InvalidBudgetData("An expense category is unavailable.");
             if (expense.Amount <= 0)
                 throw InvalidBudgetData("A recorded expense amount is not positive.");

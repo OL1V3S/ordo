@@ -339,6 +339,54 @@ public sealed class HomeApiTests
         Assert.Equal(JsonValueKind.Null, attention.GetProperty("budgetItems").ValueKind);
     }
 
+    [Theory]
+    [InlineData("budget", "")]
+    [InlineData("budget", "   ")]
+    [InlineData("expense", "")]
+    [InlineData("expense", "   ")]
+    public async Task Blank_legacy_categories_fail_only_budget_attention_and_keep_commitment_reviews(
+        string rowKind,
+        string category)
+    {
+        var now = new DateTimeOffset(2026, 10, 29, 18, 0, 0, TimeSpan.Zero);
+        await using var app = new HomeTestApplication(now);
+        using var owner = await app.CreateAuthenticatedUserAsync(
+            $"home-budget-blank-category-{rowKind}-{(category.Length == 0 ? "empty" : "spaces")}@example.com");
+
+        var month = new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc);
+        await app.SeedBudgetLimitAsync(owner.Id, "food", 10m, month);
+        await app.SeedExpenseAsync(owner.Id, "Over budget", 20m, new(2026, 9, 10), "food");
+        if (rowKind == "budget")
+        {
+            await app.SeedBudgetLimitAsync(owner.Id, category, 10m, month);
+            await app.SeedExpenseAsync(owner.Id, "Blank category", 20m, new(2026, 9, 11), category);
+        }
+        else
+        {
+            await app.SeedExpenseAsync(owner.Id, "Blank category", 1m, new(2026, 9, 11), category);
+        }
+
+        var confirmation = new List<Expense>();
+        foreach (var date in new[] { new DateOnly(2026, 5, 10), new DateOnly(2026, 6, 10), new DateOnly(2026, 7, 10) })
+            confirmation.Add(await app.SeedExpenseAsync(owner.Id, "membership", 10m, date, "bills"));
+        foreach (var date in new[] { new DateOnly(2026, 8, 12), new DateOnly(2026, 9, 12), new DateOnly(2026, 10, 12) })
+            await app.SeedExpenseAsync(owner.Id, "membership", 12m, date, "bills");
+        await SeedHomeCommitmentAsync(app, owner.Id, confirmation, "Gym plan");
+
+        var attention = (await ReadAsync(owner.Client)).GetProperty("attention");
+
+        AssertAvailable(attention);
+        Assert.Equal("available", attention.GetProperty("familyAvailability")
+            .GetProperty("commitment_change_review").GetProperty("state").GetString());
+        Assert.Equal("unavailable", attention.GetProperty("familyAvailability")
+            .GetProperty("budget_attention").GetProperty("state").GetString());
+        Assert.Equal(new[] { "commitment_change_review" }, attention.GetProperty("kindsEvaluated")
+            .EnumerateArray().Select(value => value.GetString()));
+        Assert.Equal("Gym plan", Assert.Single(attention.GetProperty("items").EnumerateArray())
+            .GetProperty("commitmentName").GetString());
+        Assert.Equal(JsonValueKind.Null, attention.GetProperty("budgetItems").ValueKind);
+    }
+
     [Fact]
     public async Task Attention_failure_is_independent_and_all_three_sources_define_503_boundary()
     {

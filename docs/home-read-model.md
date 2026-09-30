@@ -99,9 +99,11 @@ Positive limits are quiet below the limit, `at_limit` at equality, and
 `zero_limit_spending` for positive spending; absent budgets are quiet. No V1
 near-limit, pacing, forecast, balance, or Safe-to-Spend semantics are used.
 Duplicate category/month budgets, negative budgets, zero or negative Expenses
-in the evaluated period, invalid monetary precision/range, or exact-sum
-overflow make only the budget family unavailable. These values are not
-silently omitted or repaired. Full approved semantics are in
+in the evaluated period, a null/blank/whitespace-only category on an evaluated
+budget or Expense row, invalid monetary precision/range, or exact-sum overflow
+make only the budget family unavailable. These values are not silently omitted
+or repaired; other nonblank category strings remain exact matches. Full
+approved semantics are in
 [`financial-domain-invariants.md`](financial-domain-invariants.md).
 
 The backend returns at most two budget items: actionable

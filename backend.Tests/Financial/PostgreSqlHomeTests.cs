@@ -1,10 +1,12 @@
 using System.Net.Http.Json;
 using System.Text.Json;
+using BudgetPlanner.Commitments;
 using BudgetPlanner.Data;
 using BudgetPlanner.Models;
 using BudgetPlanner.Paychecks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Xunit;
 
 namespace BudgetPlanner.Tests.Financial;
@@ -66,6 +68,39 @@ public sealed class PostgreSqlHomeTests
             .GetProperty("budget_attention").GetProperty("state").GetString());
         Assert.Equal(new[] { "commitment_change_review" }, attention.GetProperty("kindsEvaluated")
             .EnumerateArray().Select(value => value.GetString()));
+        Assert.Equal(JsonValueKind.Null, attention.GetProperty("budgetItems").ValueKind);
+    }
+
+    [Theory]
+    [InlineData("negative_budget")]
+    [InlineData("zero_expense")]
+    public async Task Representable_legacy_numeric_rows_fail_only_budget_family(string rowKind)
+    {
+        await using var app = new FrozenPostgreSqlHomeApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync($"postgres-home-budget-{rowKind}@example.com");
+
+        if (rowKind == "negative_budget")
+            await app.SeedBudgetLimitAsync(owner.Id, "food", -1m, new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc));
+        else
+        {
+            await app.SeedBudgetLimitAsync(owner.Id, "food", 10m, new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc));
+            await app.SeedExpenseAsync(owner.Id, "Legacy zero expense", 0m, new(2026, 9, 10), "food");
+        }
+        await SeedPendingCommitmentAsync(app, owner.Id);
+
+        using var response = await owner.Client.GetAsync(Route);
+        response.EnsureSuccessStatusCode();
+        var attention = (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("attention");
+
+        Assert.Equal("available", attention.GetProperty("availability").GetProperty("state").GetString());
+        Assert.Equal("available", attention.GetProperty("familyAvailability")
+            .GetProperty("commitment_change_review").GetProperty("state").GetString());
+        Assert.Equal("unavailable", attention.GetProperty("familyAvailability")
+            .GetProperty("budget_attention").GetProperty("state").GetString());
+        Assert.Equal(new[] { "commitment_change_review" }, attention.GetProperty("kindsEvaluated")
+            .EnumerateArray().Select(value => value.GetString()));
+        Assert.Equal("Gym plan", Assert.Single(attention.GetProperty("items").EnumerateArray())
+            .GetProperty("commitmentName").GetString());
         Assert.Equal(JsonValueKind.Null, attention.GetProperty("budgetItems").ValueKind);
     }
 
@@ -137,5 +172,44 @@ public sealed class PostgreSqlHomeTests
             await db.PaycheckProfiles.CountAsync(),
             await db.PaycheckOccurrences.CountAsync(),
             await db.BudgetLimits.CountAsync());
+    }
+
+    private static async Task SeedPendingCommitmentAsync(
+        PostgreSqlFinancialApiTestApplication app,
+        string ownerId)
+    {
+        var evidence = new List<Expense>();
+        foreach (var date in new[] { new DateOnly(2026, 5, 10), new DateOnly(2026, 6, 10), new DateOnly(2026, 7, 10) })
+            evidence.Add(await app.SeedExpenseAsync(ownerId, "membership", 10m, date, "bills"));
+        foreach (var date in new[] { new DateOnly(2026, 8, 12), new DateOnly(2026, 9, 12), new DateOnly(2026, 10, 12) })
+            await app.SeedExpenseAsync(ownerId, "membership", 12m, date, "bills");
+
+        using var scope = app.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<BudgetContext>();
+        var at = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        context.Commitments.Add(new Commitment
+        {
+            Id = Guid.NewGuid(), OwnerId = ownerId, Name = "Gym plan", Category = "bills",
+            Lifecycle = CommitmentLifecycle.Active, Cadence = CommitmentCadence.Monthly,
+            TimingKind = CommitmentTimingKind.DayOfMonth, ExpectedDay = 10,
+            WindowBeforeDays = 0, WindowAfterDays = 0,
+            AmountMode = CommitmentAmountMode.Fixed, ExpectedAmount = 10m,
+            CreatedAt = at, UpdatedAt = at,
+            Occurrences = evidence.Select(expense => new CommitmentOccurrence
+            {
+                ExpenseId = expense.Id, Kind = CommitmentOccurrenceKind.ConfirmationEvidence, LinkedAt = at
+            }).ToList()
+        });
+        await context.SaveChangesAsync();
+    }
+
+    private sealed class FrozenPostgreSqlHomeApplication : PostgreSqlFinancialApiTestApplication
+    {
+        protected override void ConfigureAdditionalServices(IServiceCollection services)
+        {
+            services.RemoveAll<TimeProvider>();
+            services.AddSingleton<TimeProvider>(new FrozenTimeProvider(
+                new DateTimeOffset(2026, 10, 29, 18, 0, 0, TimeSpan.Zero)));
+        }
     }
 }
