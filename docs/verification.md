@@ -183,36 +183,33 @@ A draft PR may be published with disclosed local gaps when `AGENTS.md` permits
 it. Missing local tools do not weaken the verification requirement and must
 never be recorded as a pass.
 
-## Local Codex execution evidence
+## Agent execution evidence
 
-Ordo's normal AI implementation agent is local Codex in the ChatGPT
-desktop app, operating on a local Git checkout under the authority described in
-`AGENTS.md` and the governing GitHub Issue.
+Implementation agents operate on a local Git checkout under the authority
+in `AGENTS.md` and the governing GitHub Issue. Their output is development
+evidence, not an independent substitute for GitHub CI, final PR review, or merge
+authority.
 
-Local Codex output is development evidence. It is not an independent substitute
-for GitHub CI, PR review, or the merge authority defined in `AGENTS.md`.
-
-### Task/authority evidence
+### Task and authority evidence
 
 Before implementation, establish and record:
 
 - the governing GitHub Issue and its current scope/acceptance criteria;
-- the risk classification;
+- risk classification;
 - the exact current base branch/commit used for new work;
-- the applicable canonical authority documents;
+- applicable canonical authority documents; and
 - any MEDIUM/HIGH plan and explicit human approval required by `AGENTS.md`.
 
-For MEDIUM/HIGH work coordinated through ChatGPT, the plan and human approval
-should be recorded durably on the governing issue before implementation begins.
-A materially changed plan, broadened scope, changed financial/security semantic,
-or stale/changed prerequisite does not silently inherit an earlier approval.
+For MEDIUM/HIGH work, the plan and owner approval must be recorded durably on
+the governing issue before implementation begins. A materially changed plan,
+broadened scope, changed financial/security semantic, or stale/changed
+prerequisite does not silently inherit earlier approval.
 
 ### Context-pruning evidence
 
-Local Codex has access to a full checkout, but repository inspection remains
-**pruned by default, expand only with a concrete reason**.
-
-When useful, Codex may generate the lightweight structural map with:
+Repository inspection remains **pruned by default, expand only with a concrete
+reason**, even when an agent has a full checkout. When useful, generate the
+lightweight structural map with:
 
 ```bash
 python3 .github/scripts/build_repo_map.py --root . --output /tmp/ordo-repo-map.txt
@@ -222,7 +219,7 @@ The expected inspection sequence is:
 
 1. `AGENTS.md` + governing issue + task-relevant canonical authority docs;
 2. structural map when useful for navigation;
-3. exact targeted files/symbols owning the requested behavior;
+3. exact targeted files/symbols owning the requested behavior; and
 4. the smallest additional paths required by concrete dependencies discovered
    during inspection/implementation.
 
@@ -240,59 +237,68 @@ For implementation or bounded review correction, report:
 - required commands that could not run locally and why;
 - material context expansions beyond the initially targeted area;
 - resulting local commit SHA when a commit was created;
-- remaining risks/gaps;
+- remaining risks/gaps; and
 - whether the branch was pushed and whether a draft PR was actually created.
 
-Never record Codex's statement that tests passed unless the corresponding
-command was actually executed successfully in the prepared local environment.
+Never claim tests passed unless the corresponding command actually completed
+successfully in the prepared local environment.
 
 ### GitHub publication and independent proof
 
 The intended path is:
 
 ```text
-local Codex implementation
--> feature/PR branch + commit
+implementation agent on feature/PR branch + commit
 -> push to GitHub
 -> draft pull request
 -> applicable GitHub CI
--> ChatGPT independent PR/diff/CI review
+-> fresh independent command-center PR/diff/CI review
 -> authorized command-center merge after all gates succeed
 ```
 
-If local Codex can authenticate safely to GitHub, it may push the approved
-feature/PR branch and create the draft PR. If not, use the existing
+If an implementation agent can authenticate safely to GitHub, it may push the
+approved feature/PR branch and create the draft PR. If not, use the existing
 **publication handoff required** fallback with GitHub Desktop/web. Neither path
-allows a direct push to `main` or automatic merge. ChatGPT/command-center
-tooling may merge explicitly selected LOW work or an approved MEDIUM/HIGH slice
-only after required CI succeeds on the actual final PR head, independent
-command-center PASS review is recorded, and no unresolved blocking findings
-remain, as defined in `AGENTS.md`.
+allows a direct push to `main` or automatic merge. Command-center tooling may
+merge explicitly selected LOW work or an approved MEDIUM/HIGH slice only after
+required CI succeeds on the actual final PR head, independent command-center
+PASS review is recorded, and no unresolved blocking findings remain, as
+`AGENTS.md` defines.
 
 The resulting draft PR requires **Frontend test, lint, and build**, **Backend
 build and tests**, and **PostgreSQL financial integration** to succeed. Vercel
 and Vercel Preview Comments are non-blocking preview/deployment evidence; record
 them when relevant to frontend or deployment review, but do not treat them as
-canonical test gates. Local Codex results support iteration but never replace
+canonical test gates. Local agent results support iteration but never replace
 independent checks.
 
-After CI succeeds, ChatGPT should inspect the actual PR diff, review discussion,
-and current CI state. A Codex-generated summary is not sufficient proof of the
-final branch contents.
+After CI succeeds, the command center must inspect the actual PR head, full diff,
+review discussion, and current CI state. A generated implementation summary is
+not sufficient proof of the final branch contents.
 
 ### Review corrections
 
 For a bounded review finding, remain on the existing PR branch, make the
 smallest correction, rerun affected verification, push the updated branch, and
 re-check CI. Scope-expanding corrections return to normal task planning and
-approval.
+approval. Start a fresh worker context for the correction and final review;
+GitHub is the durable handoff between phases.
 
 ### Credential boundary
 
-The local-Codex workflow does not require repository `OPENAI_API_KEY` or a
-publisher GitHub App. Never commit ChatGPT credentials, Codex auth state, API
-keys, GitHub tokens, private keys, or other secrets. Local authentication state
-must remain outside the repository.
+Repository engineering does not require a checked-in API key, publisher GitHub
+App, or provider credential. Never commit provider credentials, API keys, GitHub
+tokens, private keys, or other secrets. Local authentication state must remain
+outside the repository.
+
+For Claude Code specifically, the owner-facing `/next` cockpit should default
+to Sonnet; fresh Haiku subagents may handle bounded discovery, fresh Sonnet
+subagents routine implementation/corrections, and explicit per-invocation Opus
+subagents nontrivial MEDIUM/HIGH planning and independent review. Verify the
+resolved model and reviewer read-only isolation. If the active parent permission
+mode prevents that isolation, use a separate fresh reviewer session with
+read-only/manual permissions or report the capability gap. Model selection does
+not alter Ordo authority.
 
 ## Full review-ready criteria
 

@@ -203,11 +203,11 @@ Agent authority:
 
 No separate implementation approval is required unless the task reveals unexpected risk.
 
-After a LOW task is explicitly selected, ChatGPT/command-center tooling may
+After a LOW task is explicitly selected, command-center tooling may
 execute its merge only after required CI succeeds on the actual final PR head,
 independent command-center PASS review is recorded, and no unresolved blocking
 findings remain. Selecting a LOW task alone does not authorize merge or
-deployment. Codex must never self-approve or self-merge.
+deployment. An implementation agent must never self-approve or self-merge.
 
 ### MEDIUM
 
@@ -284,18 +284,18 @@ The approved delivery steps are:
 
 No additional approval is needed merely to advance between those delivery
 steps. Required CI and independent review must succeed on the final changes
-before merge; local Codex results or an implementation summary cannot replace
+before merge; implementation-agent results or summaries cannot replace
 them. Privacy, security, financial invariants, and issue/plan scope remain
 mandatory. This section governs delivery authority; supporting verification
 documents continue to govern required evidence.
 
-For explicitly selected LOW work, ChatGPT/command-center tooling may execute
+For explicitly selected LOW work, command-center tooling may execute
 only the gated merge step described in the LOW section. For an approved
-MEDIUM/HIGH slice, ChatGPT/command-center tooling may merge within that approved
+MEDIUM/HIGH slice, command-center tooling may merge within that approved
 delivery authority after its applicable gates succeed. The command-center
-review must be independent of the implementing Codex agent. Codex must not
-self-approve or merge pull requests, including by invoking command-center
-tooling to merge its own PR.
+review must be independent of the implementing agent. An implementation agent
+must not self-approve or merge pull requests, including by invoking
+command-center tooling to merge its own PR.
 
 Separate explicit owner authorization remains required for:
 
@@ -312,11 +312,11 @@ applying it to production. Ordinary deployment must respect existing schema and
 release prerequisites; a missing prerequisite that requires an exceptional
 operation returns to the separate authorization gate above.
 
-After authorized merge of an approved MEDIUM/HIGH slice, Codex or
-command-center tooling may perform an ordinary non-destructive application
-deployment within this authority. LOW task selection and its gated merge do not
-authorize deployment. If available authorized tooling cannot perform an
-authorized deployment, report **deployment handoff required** with the merged
+After authorized merge of an approved MEDIUM/HIGH slice, the implementation
+agent or command-center tooling may perform an ordinary non-destructive
+application deployment within this authority. LOW task selection and its gated
+merge do not authorize deployment. If available authorized tooling cannot
+perform an authorized deployment, report **deployment handoff required** with the merged
 revision, verified delivery state, and exact remaining steps. Do not claim
 deployment or full delivery is complete without verified evidence.
 
@@ -436,10 +436,10 @@ PRs should include:
 - explicit scope boundaries;
 - migration/API/dependency impact if applicable.
 
-Codex must not self-approve or merge pull requests.
+An implementation agent must not self-approve or merge pull requests.
 
 For explicitly selected LOW work or an approved MEDIUM/HIGH slice,
-ChatGPT/command-center tooling may merge only after required CI succeeds on the
+command-center tooling may merge only after required CI succeeds on the
 actual final PR head, independent command-center PASS review is recorded, and no
 unresolved blocking findings remain, under the approved delivery authority
 above.
@@ -469,245 +469,169 @@ If implementation requires work outside the authorized issue:
 
 Do not silently expand into adjacent roadmap work.
 
-## ChatGPT command center and local Codex execution
+## Command center, implementation agents, and independent review
 
-The normal Ordo engineering workflow uses **local Codex in the
-ChatGPT desktop app**, authenticated with the repository owner's ChatGPT
-account, as the repository execution agent. GitHub remains the durable source
-of truth for task scope, pull requests, CI evidence, and merge state.
+Ordo separates owner authority, command-center coordination, implementation,
+and independent review. Human ownership and durable GitHub/repository authority
+do not depend on a particular AI provider. The human owner retains product
+priority, scope, acceptance criteria, risk classification, and approval
+authority. GitHub issues, this file, canonical repository documents, PRs, and CI
+remain the durable source of truth; chat/session memory is not authority.
 
-Do not assume that an API-key GitHub Actions Codex bridge is the normal
-execution path. Repository engineering should not require `OPENAI_API_KEY` or a
-publisher GitHub App unless a future issue explicitly authorizes a different
-integration.
+The command center owns:
 
-The human and ChatGPT are the product/engineering command center. They own:
+- reconstructing live repository/GitHub state and helping the owner select or
+  create the governing issue;
+- product discussion, scope, acceptance criteria, and risk classification with
+  the owner;
+- independent MEDIUM/HIGH plan review, durable recording of blocking plan
+  corrections, and recording the exact owner approval on the issue;
+- independent review of the actual final PR head, full diff, changed files,
+  required CI, discussion, and scope;
+- recording bounded review findings and final PASS, and marking a PR ready or
+  merging only when existing authority and gates permit;
+- verifying live `main`, recording delivery state, and closing the issue;
+- returning to owner-led planning when no issue or PR selects executable work.
 
-- product discussion and priority;
-- selecting or creating the governing GitHub Issue;
-- resolving ambiguity and defining acceptance criteria;
-- risk classification and obtaining required human approvals;
-- recording durable plan/approval state when MEDIUM/HIGH gates require it;
-- independent review of the resulting GitHub PR and CI evidence;
-- merge and ordinary non-destructive deployment within approved delivery
-  authority, using available authorized tooling.
+The command center must not choose roadmap work automatically. In Claude Code,
+one owner-facing `/next` cockpit may route these phases to fresh role-specific
+worker contexts. Other supported environments use the same separation and
+durable handoffs.
 
-Codex owns repository engineering execution after that authority is established:
+Implementation agents own repository execution only within established
+authority: targeted inspection, risk-appropriate plan preparation, approved
+implementation, available verification, intentional commits, feature-branch
+publication and draft PR creation, and bounded corrections on the existing PR
+branch. They must never push directly to `main`, approve or independently review
+their own implementation, mark their own PR ready, or merge it. An implementation
+summary cannot substitute for independent review or CI evidence.
 
-- inspect the local checkout;
-- plan when the risk gate requires a plan;
-- implement within the authorized scope;
-- run available verification;
-- create intentional commits;
-- push the feature/PR branch and open a draft PR when publication tooling is
-  available;
-- address bounded review corrections on the existing PR branch;
-- after authorized merge, perform ordinary non-destructive application
-  deployment when covered by the approved plan and available authorized tooling,
-  or report a deployment handoff.
+Independent reviewers inspect the durable issue/approval and actual GitHub PR
+state afresh. They do not rely on implementation-agent conclusions. For Claude
+Code, use a fresh read-oriented reviewer context with mutation tools denied and
+read-only permissions where the active parent mode permits. If that isolation
+cannot be verified, stop and use a separate fresh reviewer session with
+appropriate read-only/manual permissions. The reviewer reports findings; only
+the command center may record PASS or perform an authorized GitHub mutation
+after re-checking current state.
 
-The human retains approval authority. ChatGPT/command-center tooling may execute
-an authorized merge after the independent gates; Codex cannot self-approve or
-merge its own work.
+The human should not act as a message bus between agents. Product decisions,
+constraints, acceptance criteria, and approvals belong on the governing issue
+and canonical repository documents. A short issue-reference handoff is
+sufficient only when the agent can retrieve that durable state. If the issue or
+required authority cannot be retrieved, stop and report the access gap rather
+than guessing.
 
-### Minimal human handoff
+### Repository context pruning
 
-The human should not act as a prompt/message bus between ChatGPT and Codex.
-Product decisions, constraints, acceptance criteria, and approvals belong in the
-GitHub Issue and canonical repository documents so Codex can retrieve them from
-durable state.
+Use **pruned by default, expand only with a concrete reason**. At the start of
+inspection/planning:
 
-For an already-authorized task, the normal Codex handoff should be no more than
-an issue reference, for example:
-
-```text
-Work on Ordo issue #57. Follow AGENTS.md and the issue exactly.
-```
-
-For MEDIUM/HIGH work that has not yet passed its approval gate, use the same
-issue-reference handoff for inspection/planning only. After the human approves
-the plan and ChatGPT records that approval durably on the governing issue, the
-implementation handoff may be similarly short, for example:
-
-```text
-Implement the approved plan for Ordo issue #57. Follow AGENTS.md and the issue exactly.
-```
-
-That approval covers the exact slice through the approved delivery process;
-the human need not separately authorize each routine step or manually perform
-each merge. Exceptional operations and scope changes retain their separate gates.
-
-If Codex cannot retrieve the governing issue or required authority document,
-stop and report that access gap rather than asking the human to reconstruct the
-task from memory or guessing the missing scope.
-
-### Repository Context Pruning
-
-Use **pruned by default, expand only with a concrete reason** even though local
-Codex has a full repository checkout.
-
-At the start of inspection/planning:
-
-1. read `AGENTS.md`, the governing issue, and only the canonical authority docs
-   relevant to that task;
-2. use `.github/scripts/build_repo_map.py` when a structural overview would help
-   locate the narrow implementation boundary without reading raw files broadly;
-3. inspect the exact files/symbols most likely to own the requested behavior;
-4. expand to additional files only when a concrete dependency, contract, call
-   path, test boundary, security rule, or financial invariant requires it;
+1. read `AGENTS.md`, the governing issue, and only task-relevant canonical
+   authority docs;
+2. use `.github/scripts/build_repo_map.py` when a structural overview would
+   locate the narrow implementation boundary without broad raw-file reading;
+3. inspect the exact files/symbols most likely to own the behavior;
+4. expand only for a concrete dependency, contract, call path, test boundary,
+   security rule, or financial invariant; and
 5. record material context expansions and their reasons in the plan/final report.
 
-Do not perform broad raw-repository scans merely for convenience. Do not read
-large generated files or lockfiles unless the task specifically requires them.
-If the targeted context is insufficient, request or inspect the smallest
-specific additional path/symbol needed rather than silently broadening scope.
-
-A lightweight structural map can be generated locally with:
-
-```bash
-python3 .github/scripts/build_repo_map.py --root . --output /tmp/ordo-repo-map.txt
-```
-
-The map is navigation context only; canonical repository files and executable
+Do not scan the raw repository broadly for convenience or read generated files
+and lockfiles without a task-specific reason. If targeted context is
+insufficient, inspect the smallest specific additional path/symbol needed.
+The repository map is navigation context; canonical files and executable
 behavior remain authoritative.
 
-### Credit-aware execution
+### Credit-aware model routing
 
-When the active Codex environment exposes a choice of agent, model, subagent,
-or reasoning level, start with the least expensive option reasonably capable
-of the task and escalate deliberately when the work demonstrates a need for
-more capability. Use lighter execution for narrow discovery, repository
-navigation, mechanical edits, formatting, simple tests, and bounded
-verification. Apply context pruning, targeted searches, repository maps, and
-durable task artifacts before increasing capability merely to compensate for
-oversized or repeatedly replayed context.
+Match model capability to task risk and ambiguity. Use the cheapest adequate
+model for bounded discovery, metadata, mechanical checks, simple test/log
+summaries, and straightforward LOW work. Use a balanced model such as Sonnet
+for routine orchestration, implementation, debugging, publication preparation,
+and bounded corrections. Escalate selectively for nontrivial MEDIUM/HIGH plan
+synthesis/review, difficult architecture or cross-boundary reasoning, financial,
+security, migration or production-configuration reasoning, and repeated failure
+that demonstrates a need. Fable/`best` or other premium long-horizon models are
+exceptional, not defaults.
 
-Match capability to risk and ambiguity, not only task size:
+In Claude Code, the owner-facing cockpit defaults to Sonnet; use fresh project
+subagents with `haiku`, `sonnet`, or an explicit per-invocation `opus` override
+for appropriately scoped tasks. Do not pin the general `/next` skill to
+`opusplan`, force every subagent to one model, or use model choice to change
+authority. Verify the resolved model when relevant and disclose unavailable or
+substituted routing. Start a new worker context for each authority/review phase;
+GitHub is the handoff. Do not reuse old conclusions as approval or evidence.
 
-- LOW mechanical work should default to cheaper adequate execution;
-- MEDIUM work may begin with a balanced option, but architectural ambiguity,
-  cross-boundary reasoning, or repeated uncertainty should trigger escalation
-  for planning and synthesis; and
-- HIGH work involving security, authentication, financial semantics,
-  migrations, production configuration, destructive operations, or deployment
-  must prioritize correctness and use the strongest appropriate available
-  capability when a choice exists.
+When the environment cannot select a model/agent, do not claim a switch
+occurred. Use concise prompts, pruned context, durable GitHub/repository state,
+and targeted verification instead. One bounded retry or correction may be
+reasonable for an incidental failure; when failure demonstrates a capability
+or ambiguity limit, escalate instead of repeatedly retrying. Record material
+escalations. Credit efficiency never weakens issue scope, approval gates,
+privacy/security/financial invariants, required tests/CI, independent review,
+exceptional-operation approval, or separation of implementation from review and
+merge.
 
-When supported safely, delegate bounded search, test, mechanical, or
-verification subtasks to cheaper adequate subagents. Reserve stronger
-capability for synthesis, architecture, difficult debugging, security and
-financial reasoning, approval-gate plans, and final integration or review when
-warranted. Delegation never broadens repository context, issue scope, or
-authority.
+### Risk approvals and durable plans
 
-One bounded retry or correction may be reasonable for an incidental failure.
-When failure instead demonstrates a capability or ambiguity limit, escalate to
-a stronger appropriate option rather than repeatedly retrying an inadequate
-one. Record material escalations and their reasons in the plan or final report
-when they materially affected execution.
+LOW work may proceed after explicit task selection under the authority above.
+For MEDIUM work, an implementation agent inspects and prepares the concise plan;
+for HIGH work it inspects only and prepares the plan, risks, rollback
+considerations, and verification plan. The command center independently reviews
+the plan, records blocking corrections, and publishes the final plan as a
+top-level comment on the governing issue when publication is available. Stop
+for explicit owner approval unless that exact plan and approval are already
+durably recorded. HIGH work also retains separate authorization for exceptional
+production operations.
 
-Credit efficiency never weakens issue scope, context pruning, MEDIUM/HIGH
-approval gates, security/privacy/financial invariants, required tests or CI,
-independent PR review, migration/deployment/production-operation approvals, or
-the separation of implementation from approval and merge. Correctness and those
-controls always take precedence.
+The owner approval applies only to the exact issue/plan slice through the
+approved delivery process. Publishing a plan does not authorize implementation,
+branch creation, commit, push, PR, migration, production access/action,
+deployment, or merge. A materially changed plan, broadened scope, or changed
+financial/security/production semantics requires renewed approval.
 
-If the environment cannot programmatically select an agent, model, subagent, or
-reasoning level, do not claim a switch occurred and do not treat the missing
-control as a blocker. Apply the controllable parts of this policy instead:
-pruned context, concise prompts, bounded delegation where available, targeted
-verification, durable GitHub and repository artifacts, and avoidance of
-redundant retries.
+If issue-comment publication is unavailable, stop and report a
+**planning-publication capability gap**, naming the issue and missing
+capability. Do not leave the workflow appearing ready, substitute a local
+implementation artifact, or ask the human to relay the plan.
 
-### Risk approvals in the local-Codex workflow
+### Local execution, publication, and independent proof
 
-LOW work may proceed after the task is explicitly selected under the LOW
-authority above.
-
-For MEDIUM work, Codex must inspect and produce the concise plan required by the
-risk gate, then stop unless explicit owner approval of that plan is already
-durably recorded. That approval authorizes the exact slice through the approved
-delivery process above.
-
-For HIGH work, Codex must inspect only and provide the required plan, risks,
-rollback considerations, and verification plan, then stop unless explicit owner
-approval of that plan is already durably recorded. Do not request the same
-approval again when it already exists. The approved delivery process then
-applies, with separate explicit authorization for the exceptional production
-operations listed above.
-
-For every MEDIUM/HIGH planning-only run, Codex must publish the completed plan
-as a top-level comment on the governing GitHub Issue before stopping for
-approval when issue-comment publication is available. The comment must include
-the information required by the applicable risk gate and issue, such as the
-implementation and verification plans, material context expansions, risks,
-rollback considerations, and requested human decisions.
-
-The planning comment is a durable planning artifact, not implementation
-authority. Publishing it does not authorize repository edits, branch creation,
-commits, pushes, pull requests, migrations, production access or operations,
-deployment, or merge. Implementation still requires the existing explicit
-owner approval to be durably recorded; a handoff carries that authority and
-does not create another approval gate.
-
-If issue-comment publication is unavailable, Codex must stop and report a
-**planning-publication capability gap**, identifying the governing issue and
-the unavailable capability. It must not silently leave the workflow appearing
-ready, create an implementation artifact as a substitute, or ask the human to
-relay the full plan manually. The command center may then restore direct
-publication capability or deliberately select the smallest explicit fallback.
-
-When ChatGPT is acting as command center, it should record the approved plan and
-human approval on the governing GitHub Issue before sending the short
-implementation handoff. A materially changed plan, changed financial/security
-semantics, or broadened scope requires renewed approval rather than inheriting
-an earlier approval by implication.
-
-### Local execution and GitHub publication
-
-Local execution does not make the work local-only. The intended publication
-path is:
+The intended path is:
 
 ```text
-local Codex checkout
--> feature/PR branch
--> intentional commit(s)
--> push branch to GitHub
--> draft pull request
--> independent GitHub CI
--> ChatGPT review of actual PR + CI
--> authorized human or ChatGPT/command-center merge
+selected issue + durable authority
+-> implementation-agent checkout on an up-to-date feature branch
+-> implementation + local verification + intentional commit(s)
+-> push branch + draft PR (or disclosed publication handoff)
+-> required GitHub CI on the PR head
+-> fresh independent command-center review of actual PR + CI
+-> authorized merge after every gate succeeds
 -> ordinary non-destructive application deployment only when authorized,
    or deployment handoff
 ```
 
-Codex must never push directly to `main`, self-approve, or merge a pull request.
-Ordinary non-destructive application deployment follows the approved delivery
-authority above. Production migrations and other exceptional operations require
-their own explicit authorization; approval of implementation or merge is not
-that authorization.
+The implementation agent may push only its approved feature/PR branch, never
+`main`. If local GitHub publication tooling/authentication is unavailable but
+safe local Git works, stop at a clean local commit and report **publication
+handoff required** with branch, SHA, files, verification evidence/gaps, and
+remaining steps. Human publication through GitHub Desktop/web is an acceptable
+fallback; it does not weaken CI, independent review, or merge gates.
 
-If Codex can safely authenticate to GitHub, it may push the approved branch and
-open the draft PR itself. If push or PR tooling is unavailable, stop at a clean
-local commit and use the existing **publication handoff required** fallback.
-GitHub Desktop/web publication is an acceptable fallback; it does not weaken CI,
-review, or merge requirements.
+For bounded review findings, remain on the existing PR branch, make the smallest
+correction, rerun affected verification, push, and re-check CI. Scope-expanding
+corrections return to planning and approval. Independent review and successful
+required CI on the actual final head gate authorized command-center merge.
+Existing exceptional production-operation approvals remain separate. Following
+authorized MEDIUM/HIGH merge, ordinary non-destructive deployment is permitted
+only within the approved delivery authority and when prerequisites are met.
 
-### Independent review and corrections
+Implementation-agent local tests/builds are development evidence. Required
+Frontend, Backend, PostgreSQL, Vercel, and other applicable checks retain the
+evidence requirements in `docs/verification.md`; independent review inspects the
+actual PR diff, discussion and current CI rather than accepting an implementer
+summary. Never fabricate branch, PR, CI, review, merge or deployment state.
 
-Codex's local test/build results are development evidence, not the independent
-proof layer. Existing applicable Frontend, Backend, PostgreSQL, Vercel, and
-other repository CI checks remain authoritative for review-ready status.
-
-After the draft PR exists and required CI succeeds, ChatGPT should inspect the
-actual PR diff, review discussion, and CI state rather than accepting Codex's
-summary as proof.
-
-If ChatGPT or another reviewer finds a bounded defect, Codex should remain on
-the existing PR branch and make only the smallest correction required. The
-short handoff may reference the PR/review finding instead of restating the
-entire task. Scope-expanding corrections return to normal planning and approval.
-
-Independent review and successful required CI gate authorized command-center
-merge. Human approval authority, exceptional-operation gates, and the prohibition
-on Codex self-approval and self-merge remain mandatory.
+Provider-specific adapters, including Codex and Claude Code, must follow this
+shared role/authority model. Never commit provider authentication state, API
+keys, GitHub tokens, private keys, or other secrets.

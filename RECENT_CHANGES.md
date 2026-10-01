@@ -24,6 +24,16 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-01 — Claude Code command-center workflow
+
+[PR #169](https://github.com/OL1V3S/ordo/pull/169) ·
+[Issue #168](https://github.com/OL1V3S/ordo/issues/168)
+
+- Recast command-center, implementation-agent, and independent-reviewer
+  governance in provider-neutral roles while retaining existing Ordo gates.
+- Added a single Claude `/next` cockpit with fresh role-separated workers,
+  task-specific model routing, and a read-only review fallback.
+
 ### 2026-09-29 — Home budget attention
 
 [PR #167](https://github.com/OL1V3S/ordo/pull/167) ·
