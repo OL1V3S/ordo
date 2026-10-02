@@ -269,7 +269,7 @@ public sealed class ActivityTimelineApiTests
             other.Client, $"?limit=100&cursor={Uri.EscapeDataString(ownerCursor)}");
 
         var descriptions = otherRead.GetProperty("items").EnumerateArray()
-            .Select(value => value.GetProperty("description").GetString()).ToArray();
+            .Select(value => value.GetProperty("description").GetString()!).ToArray();
         Assert.Equal(["Other private 2", "Other private 1"], descriptions);
         Assert.DoesNotContain("Owner private", otherRead.GetRawText(), StringComparison.Ordinal);
     }
