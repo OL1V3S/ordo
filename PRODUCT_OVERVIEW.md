@@ -32,8 +32,11 @@ silently treating every detected pattern as a financial fact.
   Insights remains a quieter link. If a save outcome is
   uncertain, Home directs you to review the complete relevant Activity list
   before deciding whether to retry.
-- **Activity / Transactions:** Scan recorded spending first, search descriptions
-  and categories, and expand date/category filters when needed. A separate Cash in
+- **Activity / Transactions:** An Activity timeline lists recorded expenses and
+  cash in together, newest first, with exact signed amounts and older activity
+  loaded on request; it is read-only and shows no totals or balance. Below it,
+  scan recorded spending, search descriptions and categories, and expand
+  date/category filters when needed. A separate Cash in
   section lists recorded incoming money with its own search. Add, edit, or delete
   expenses and cash in, or open Import statement. Cash-in edits and deletions can
   affect imported records and supporting paycheck links; visible warnings explain

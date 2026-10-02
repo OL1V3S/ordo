@@ -192,6 +192,16 @@ schema changes, balance semantics, commitment projection, or localized backend
 presentation. See
 [`docs/home-read-model.md`](docs/home-read-model.md).
 
+`backend/ActivityTimeline/` owns the shared activity feed reader that Home recent
+activity and the authenticated, read-only `/api/activity/timeline` endpoint both
+use, so the date, expense-before-cash-in, record-ID ordering rule, the
+owner-scoped paycheck-membership join, and exact two-decimal formatting exist
+once. The endpoint pages by opaque position-only keyset cursor in one read-only
+repeatable-read transaction, returns stored amounts unaltered, and adds no
+schema, totals, or balance. The `activity` frontend feature renders it on the
+Activity page independently of the per-type lists. See
+[`docs/activity-timeline.md`](docs/activity-timeline.md).
+
 ### Authentication and ownership boundaries
 
 ASP.NET Core Identity manages users, JWT bearer authentication establishes the
