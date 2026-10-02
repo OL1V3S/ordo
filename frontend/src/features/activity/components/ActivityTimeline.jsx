@@ -1,0 +1,92 @@
+import { useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
+import { useLocale } from "../../../shared/localization/useLocale";
+import StatusMessage from "../../../shared/ui/StatusMessage";
+import { formatTimelineAmount, formatTimelineDate, timelineItemKey } from "../utils/timelinePresentation";
+
+export default function ActivityTimeline({ timeline, uncertain = false }) {
+  const { t } = useTranslation(["activity", "home"]);
+  const { locale } = useLocale();
+  const moneyLocale = locale === "es" ? "es-US" : "en-US";
+  const headingRef = useRef(null);
+  const moreButtonRef = useRef(null);
+  const moreRequested = useRef(false);
+  const {
+    items, hasMore, loading, error, refreshFailed, malformed, loadingMore, loadMoreFailed, loadMore, refresh,
+  } = timeline;
+
+  // After "Show older activity" finishes, focus stays on the button while more pages remain
+  // and moves to the heading once the oldest record has been loaded.
+  useEffect(() => {
+    if (!moreRequested.current || loadingMore) return;
+    moreRequested.current = false;
+    (hasMore ? moreButtonRef : headingRef).current?.focus();
+  }, [hasMore, loadingMore, items]);
+
+  function showOlder() {
+    if (loadingMore) return;
+    moreRequested.current = true;
+    Promise.resolve(loadMore()).then((result) => {
+      if (result?.stale) moreRequested.current = false;
+    });
+  }
+
+  const showRows = items.length > 0 && !malformed;
+  const settled = !loading && !error && !malformed;
+
+  return (
+    <section id="activity-timeline" className="activity-timeline" aria-labelledby="activity-timeline-heading"
+      aria-busy={loading || loadingMore}>
+      <h2 id="activity-timeline-heading" ref={headingRef} tabIndex={-1}>{t("activity:timeline.heading")}</h2>
+      <p className="muted">{t("activity:timeline.intro")}</p>
+      {loading && <StatusMessage>{t(showRows ? "activity:timeline.refreshing" : "activity:timeline.loading")}</StatusMessage>}
+      {error && <div className="activity-timeline__notice">
+        <StatusMessage tone="danger">{t("activity:timeline.unavailable")}</StatusMessage>
+        <button type="button" onClick={() => void refresh()}>{t("activity:timeline.retry")}</button>
+      </div>}
+      {malformed && <div className="activity-timeline__notice">
+        <StatusMessage tone="danger">{t("activity:timeline.malformed")}</StatusMessage>
+        <button type="button" onClick={() => void refresh()}>{t("activity:timeline.retry")}</button>
+      </div>}
+      {refreshFailed && <div className="activity-timeline__notice">
+        <StatusMessage tone="warning">{t("activity:timeline.refreshFailed")}</StatusMessage>
+        <button type="button" onClick={() => void refresh()}>{t("activity:timeline.retry")}</button>
+      </div>}
+      {uncertain && <p className="status-message status-message--warning" aria-live="polite">{t("activity:timeline.maybeStale")}</p>}
+      {settled && !refreshFailed && items.length === 0 && <p className="muted">{t("activity:timeline.empty")}</p>}
+      {showRows && <ul className="activity-timeline__list" aria-label={t("activity:timeline.listLabel")}>
+        {items.map((item) => {
+          const amount = formatTimelineAmount(item.amount, item.kind, moneyLocale);
+          const date = formatTimelineDate(item.date, moneyLocale);
+          return (
+            <li key={timelineItemKey(item)} className={`activity-timeline__row activity-timeline__row--${item.kind}`}>
+              <div className="activity-timeline__main">
+                <span className="activity-timeline__kind">
+                  {t(item.kind === "expense" ? "home:activity.expense" : "home:activity.cashIn")}
+                </span>
+                <strong className="activity-timeline__description">{item.description}</strong>
+                <p className="activity-timeline__meta">
+                  {date ? <time dateTime={item.date}>{date}</time> : t("home:activity.dateUnknown")}
+                  {item.kind === "expense" && item.category && <> · {item.category}</>}
+                  {item.paycheck && <> · {t("home:activity.paycheckLinked")}</>}
+                </p>
+              </div>
+              <div className="activity-timeline__amount">
+                {amount ? <strong>{amount}</strong> : <>
+                  <strong>{t("home:activity.amountReview")}</strong>
+                  <span className="activity-timeline__stored-amount">{item.amount}</span>
+                </>}
+              </div>
+            </li>
+          );
+        })}
+      </ul>}
+      {showRows && loadMoreFailed && <StatusMessage tone="warning">{t("activity:timeline.loadMoreFailed")}</StatusMessage>}
+      {showRows && hasMore && <button type="button" ref={moreButtonRef} className="button-ghost"
+        aria-disabled={loadingMore || undefined} onClick={showOlder}>
+        {t(loadingMore ? "activity:timeline.loadingMore" : loadMoreFailed ? "activity:timeline.retryMore" : "activity:timeline.showOlder")}
+      </button>}
+      {showRows && !hasMore && settled && <p className="muted">{t("activity:timeline.end")}</p>}
+    </section>
+  );
+}

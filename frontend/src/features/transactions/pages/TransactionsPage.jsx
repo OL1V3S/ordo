@@ -16,6 +16,8 @@ import InflowList from "../../inflows/components/InflowList";
 import { isUnsafeAmount, formatInflowDate } from "../../inflows/utils/inflowForm";
 import { useCaptureRecovery } from "../../home/recovery/captureRecovery";
 import { useTranslation } from "react-i18next";
+import { useActivityTimeline } from "../../activity/hooks/useActivityTimeline";
+import ActivityTimeline from "../../activity/components/ActivityTimeline";
 import { parseExpenseAmount } from "../../expenses/utils/exactMoney";
 import StatusMessage from "../../../shared/ui/StatusMessage";
 import "../../../styles/activity.css";
@@ -24,6 +26,11 @@ import "../../../styles/inflows.css";
 const ENTRIES_PER_PAGE = 10;
 function focusAfterRender(target) {
   window.requestAnimationFrame(() => target()?.focus());
+}
+// The timeline is read-only and recovers independently of the per-type lists, so a refresh
+// request never throws into, delays, or changes the outcome of a write or list refresh.
+function requestTimelineRefresh(refresh) {
+  try { Promise.resolve(refresh?.()).catch(() => {}); } catch { /* Timeline failures never affect the lists. */ }
 }
 
 const INFLOW_FIELD_MESSAGES = {
@@ -69,7 +76,20 @@ function inflowFeedbackMessage(feedback) {
 
 export default function TransactionsPage() {
   const { t } = useTranslation("home");
+  const { t: ta } = useTranslation("activity");
   const captureRecovery = useCaptureRecovery();
+  const timelineEnabled = !captureRecovery.source;
+  const timeline = useActivityTimeline({ enabled: timelineEnabled });
+  const timelineRefresh = useRef(timeline.refresh);
+  timelineRefresh.current = timeline.refresh;
+  const withTimelineRefresh = (write) => async (...args) => {
+    const result = await write(...args);
+    if (!result?.stale) requestTimelineRefresh(timelineRefresh.current);
+    return result;
+  };
+  const withTimelineReadRefresh = (read) => async (...args) => {
+    try { return await read(...args); } finally { requestTimelineRefresh(timelineRefresh.current); }
+  };
   const [recoveryAcknowledged, setRecoveryAcknowledged] = useState(false);
   const importState = useImportPreview();
   const cash = useInflows();
@@ -97,9 +117,11 @@ export default function TransactionsPage() {
   const editButton = useRef(null);
   const activityHeading = useRef(null);
   const recoveryRegion = useRef(null);
+  const updateExpenseAndTimeline = withTimelineRefresh(updateExpense);
+  const deleteExpenseAndTimeline = withTimelineRefresh(deleteExpense);
   const expenseCapture = useExpenseCapture({
-    createExpense: addExpense,
-    refresh: refreshExpenses,
+    createExpense: withTimelineRefresh(addExpense),
+    refresh: withTimelineReadRefresh(refreshExpenses),
     readUnavailable: expensesLoading || Boolean(expensesError),
     isExternallyBlocked: () => cashLock.current || Boolean(captureRecovery.source),
   });
@@ -107,12 +129,19 @@ export default function TransactionsPage() {
     records: cash.inflows,
     loading: cash.loading,
     error: cash.error,
-    refresh: cash.refresh,
-    createInflow: cash.createInflow,
-    updateInflow: cash.updateInflow,
-    deleteInflow: cash.deleteInflow,
+    refresh: withTimelineReadRefresh(cash.refresh),
+    createInflow: withTimelineRefresh(cash.createInflow),
+    updateInflow: withTimelineRefresh(cash.updateInflow),
+    deleteInflow: withTimelineRefresh(cash.deleteInflow),
     isExternallyBlocked: () => legacyLock.current || Boolean(captureRecovery.source),
   });
+  // An unknown in-page write outcome may or may not have changed the records: re-read the
+  // timeline and tell the user it may be out of date while that uncertainty is unresolved.
+  const timelineUncertain = expenseCapture.recoveryRequired
+    || inflowCapture.gate === "unknown" || inflowCapture.gate === "refresh";
+  useEffect(() => {
+    if (timelineUncertain) requestTimelineRefresh(timelineRefresh.current);
+  }, [timelineUncertain]);
 
   const filters = useMemo(() => ({
     dateFilter, customStartDate, customEndDate, categoryFilter, searchTerm,
@@ -179,6 +208,7 @@ export default function TransactionsPage() {
     inflowCapture.openTask(type, record, opener);
   }
   async function refreshImportedActivity(result) {
+    if (result.importedExpenseCount > 0 || result.importedInflowCount > 0) requestTimelineRefresh(timelineRefresh.current);
     const requests = [];
     if (result.importedExpenseCount > 0) requests.push({ name: "expenses", request: refreshExpenses() });
     if (result.importedInflowCount > 0) requests.push({ name: "cash in", request: cash.refresh() });
@@ -219,7 +249,7 @@ export default function TransactionsPage() {
     const finalCategory = editingExpenseData.category === "other"
       ? normalizeText(editingExpenseData.customCategory || "uncategorized")
       : normalizeText(editingExpenseData.category);
-    await expenseCapture.runMutation(() => updateExpense(id, {
+    await expenseCapture.runMutation(() => updateExpenseAndTimeline(id, {
       id, description: normalizeText(editingExpenseData.description),
       amount: amount.value,
       date: editingExpenseData.date, category: finalCategory,
@@ -227,7 +257,7 @@ export default function TransactionsPage() {
   }
   async function handleDeleteExpense(id) {
     if (cashLock.current || expenseCapture.isWriteInFlight() || !window.confirm("Delete this expense?")) return;
-    await expenseCapture.runMutation(() => deleteExpense(id), "delete");
+    await expenseCapture.runMutation(() => deleteExpenseAndTimeline(id), "delete");
   }
 
   return (
@@ -247,8 +277,9 @@ export default function TransactionsPage() {
           </button>
         </div>
       </header>
-      <nav className="activity-section-links" aria-label="Activity sections">
-        <a href="#spending-activity-heading">Spending</a><a href="#cash-in-heading">Cash in</a>
+      <nav className="activity-section-links" aria-label={ta("nav.label")}>
+        {timelineEnabled && <a href="#activity-timeline-heading">{ta("nav.timeline")}</a>}
+        <a href="#spending-activity-heading">{ta("nav.spending")}</a><a href="#cash-in-heading">{ta("nav.cashIn")}</a>
       </nav>
       {captureRecovery.source && <section ref={recoveryRegion} tabIndex={-1} className="card home-recovery" role="region" aria-labelledby="capture-recovery-heading">
         <h2 id="capture-recovery-heading">{t("recovery.heading")}</h2>
@@ -281,6 +312,7 @@ export default function TransactionsPage() {
           setImportOpen(false); focusAfterRender(() => importButton.current);
         }}>Close import</button>}
       </div>
+      {timelineEnabled && <ActivityTimeline timeline={timeline} uncertain={timelineUncertain} />}
       <section className="activity-spending" aria-labelledby="spending-activity-heading">
         <div className="activity-spending__header">
           <h2 id="spending-activity-heading" ref={activityHeading} tabIndex={-1}>Spending activity</h2>

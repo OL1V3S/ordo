@@ -4,7 +4,10 @@ Ordo's browser frontend supports English and broadly neutral U.S./Latin
 American Spanish as an incremental product capability. The authenticated shell,
 primary navigation, Plan and More hubs, and Settings are the first localized
 surfaces. Feature pages and public account-access pages remain English until a
-separately scoped adoption issue moves their complete copy into catalogs.
+separately scoped adoption issue moves their complete copy into catalogs. The
+Activity timeline and the Activity section-links navigation are localized through
+the `activity` namespace; the rest of the Activity page stays English, so the
+Spanish Activity page is intentionally mixed-language until that adoption issue.
 
 ## Runtime boundary
 

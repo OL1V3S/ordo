@@ -8,11 +8,13 @@ import navigationEs from "./locales/es/navigation.json";
 import settingsEs from "./locales/es/settings.json";
 import homeEn from "./locales/en/home.json";
 import homeEs from "./locales/es/home.json";
+import activityEn from "./locales/en/activity.json";
+import activityEs from "./locales/es/activity.json";
 import { applyDocumentLocale, getStoredLocale } from "./locale";
 
 export const resources = {
-  en: { common: commonEn, navigation: navigationEn, settings: settingsEn, home: homeEn },
-  es: { common: commonEs, navigation: navigationEs, settings: settingsEs, home: homeEs },
+  en: { common: commonEn, navigation: navigationEn, settings: settingsEn, home: homeEn, activity: activityEn },
+  es: { common: commonEs, navigation: navigationEs, settings: settingsEs, home: homeEs, activity: activityEs },
 };
 
 const initialLocale = getStoredLocale();
@@ -24,7 +26,7 @@ i18n.use(initReactI18next).init({
   fallbackLng: "en",
   supportedLngs: ["en", "es"],
   load: "languageOnly",
-  ns: ["common", "navigation", "settings", "home"],
+  ns: ["common", "navigation", "settings", "home", "activity"],
   defaultNS: "common",
   interpolation: { escapeValue: false },
   initAsync: false,

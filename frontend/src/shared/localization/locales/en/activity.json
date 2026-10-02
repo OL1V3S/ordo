@@ -1,0 +1,26 @@
+{
+  "nav": {
+    "label": "Activity sections",
+    "timeline": "Timeline",
+    "spending": "Spending",
+    "cashIn": "Cash in"
+  },
+  "timeline": {
+    "heading": "Activity timeline",
+    "intro": "Everything you have recorded, newest first. These records also appear in the lists below.",
+    "listLabel": "Recorded activity, newest first",
+    "loading": "Loading the activity timeline…",
+    "refreshing": "Refreshing the activity timeline…",
+    "empty": "No recorded activity yet.",
+    "unavailable": "We couldn’t load the activity timeline.",
+    "malformed": "The activity timeline could not be verified, so it is hidden.",
+    "refreshFailed": "The activity timeline could not be refreshed. Showing the records loaded earlier.",
+    "maybeStale": "The activity timeline may be out of date. Check the lists below before trying again.",
+    "retry": "Try again",
+    "showOlder": "Show older activity",
+    "loadingMore": "Loading older activity…",
+    "loadMoreFailed": "We couldn’t load older activity.",
+    "retryMore": "Try loading older activity again",
+    "end": "That is all of your recorded activity."
+  }
+}

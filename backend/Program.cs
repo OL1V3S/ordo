@@ -16,6 +16,7 @@ using BudgetPlanner.Import.Sunflower;
 using BudgetPlanner.Commitments;
 using BudgetPlanner.Paychecks;
 using BudgetPlanner.Analytics;
+using BudgetPlanner.ActivityTimeline;
 using BudgetPlanner.Home;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -51,6 +52,7 @@ builder.Services.AddSingleton<PaycheckCandidateDetector>();
 builder.Services.AddSingleton<PaycheckProjector>();
 builder.Services.AddScoped<IPaycheckService, PaycheckService>();
 builder.Services.AddScoped<ICashFlowService, CashFlowService>();
+builder.Services.AddScoped<IActivityFeedReader, ActivityFeedReader>();
 builder.Services.AddScoped<IHomeActivityReader, HomeActivityReader>();
 builder.Services.AddScoped<IHomeUpcomingReader, HomeUpcomingReader>();
 builder.Services.AddScoped<IHomeAttentionReader, HomeAttentionReader>();

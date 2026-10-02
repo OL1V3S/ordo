@@ -5,6 +5,7 @@ import TransactionsPage from "./TransactionsPage";
 import { useExpenses } from "../../expenses/hooks/useExpenses";
 import { useInflows } from "../../inflows/hooks/useInflows";
 import { useImportPreview } from "../../importPreview/hooks/useImportPreview";
+import { useActivityTimeline } from "../../activity/hooks/useActivityTimeline";
 import { clearSession, establishSession } from "../../../shared/auth/session";
 import { markCaptureRecovery } from "../../home/recovery/captureRecovery";
 import i18n from "../../../shared/localization/i18n";
@@ -12,6 +13,8 @@ import i18n from "../../../shared/localization/i18n";
 vi.mock("../../expenses/hooks/useExpenses", () => ({ useExpenses: vi.fn() }));
 vi.mock("../../inflows/hooks/useInflows", () => ({ useInflows: vi.fn() }));
 vi.mock("../../importPreview/hooks/useImportPreview", () => ({ useImportPreview: vi.fn() }));
+vi.mock("../../activity/hooks/useActivityTimeline", () => ({ useActivityTimeline: vi.fn() }));
+const idleTimeline = { items: [], hasMore: false, loading: false, error: false, refreshFailed: false, malformed: false, loadingMore: false, loadMoreFailed: false, loadMore: vi.fn(), refresh: vi.fn().mockResolvedValue({ stale: false }) };
 
 const expenses = Array.from({ length: 12 }, (_, index) => ({
   id: index + 1, description: `Expense ${index + 1}`, category: "food", amount: "1.00", date: "2026-09-01",
@@ -27,6 +30,7 @@ function renderPage() {
 beforeEach(() => {
   sessionStorage.clear(); establishSession("token", "owner@example.test");
   useExpenses.mockReturnValue({ expenses, loading: false, error: null, refresh: expenseRefresh, addExpense: vi.fn(), updateExpense: vi.fn(), deleteExpense: vi.fn() });
+  useActivityTimeline.mockReturnValue(idleTimeline);
   useInflows.mockReturnValue({ inflows: [], loading: false, error: null, refresh: vi.fn(), createInflow: vi.fn(), updateInflow: vi.fn(), deleteInflow: vi.fn() });
   useImportPreview.mockReturnValue({ preview: null, sourceType: "", loading: false, processing: false, error: "", confirming: false,
     confirmation: null, confirmationIssue: null, selectedCount: 0, selectSource: vi.fn(), upload: vi.fn(), cancel: vi.fn(), updateRow: vi.fn(),

@@ -5,9 +5,13 @@ import TransactionsPage from './TransactionsPage'
 import { useInflows } from '../../inflows/hooks/useInflows'
 import { useExpenses } from '../../expenses/hooks/useExpenses'
 import { useImportPreview } from '../../importPreview/hooks/useImportPreview'
+import { useActivityTimeline } from '../../activity/hooks/useActivityTimeline'
 vi.mock('../../inflows/hooks/useInflows', () => ({ useInflows: vi.fn() }))
 vi.mock('../../expenses/hooks/useExpenses', () => ({ useExpenses: vi.fn() }))
 vi.mock('../../importPreview/hooks/useImportPreview', () => ({ useImportPreview: vi.fn() }))
+vi.mock('../../activity/hooks/useActivityTimeline', () => ({ useActivityTimeline: vi.fn() }))
+const idleTimeline = { items: [], hasMore: false, loading: false, error: false, refreshFailed: false, malformed: false, loadingMore: false, loadMoreFailed: false, loadMore: vi.fn(), refresh: vi.fn().mockResolvedValue({ stale: false }) }
+beforeEach(() => { useActivityTimeline.mockReturnValue(idleTimeline) })
 const record = { id: 1, description: 'Transfer from Savings', amount: 24.15, date: '2026-09-01' }
 let cash, expenses, importing
 beforeEach(() => {

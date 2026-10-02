@@ -1,0 +1,26 @@
+{
+  "nav": {
+    "label": "Secciones de actividad",
+    "timeline": "Cronología",
+    "spending": "Gastos",
+    "cashIn": "Entradas de dinero"
+  },
+  "timeline": {
+    "heading": "Cronología de actividad",
+    "intro": "Todo lo que has registrado, de lo más reciente a lo más antiguo. Estos registros también aparecen en las listas de más abajo.",
+    "listLabel": "Actividad registrada, de lo más reciente a lo más antiguo",
+    "loading": "Cargando la cronología de actividad…",
+    "refreshing": "Actualizando la cronología de actividad…",
+    "empty": "Todavía no hay actividad registrada.",
+    "unavailable": "No pudimos cargar la cronología de actividad.",
+    "malformed": "No se pudo verificar la cronología de actividad, por lo que está oculta.",
+    "refreshFailed": "No se pudo actualizar la cronología de actividad. Se muestran los registros cargados antes.",
+    "maybeStale": "Es posible que la cronología de actividad esté desactualizada. Revisa las listas de más abajo antes de intentarlo de nuevo.",
+    "retry": "Intentar de nuevo",
+    "showOlder": "Mostrar actividad anterior",
+    "loadingMore": "Cargando actividad anterior…",
+    "loadMoreFailed": "No pudimos cargar la actividad anterior.",
+    "retryMore": "Intentar cargar la actividad anterior de nuevo",
+    "end": "Esa es toda tu actividad registrada."
+  }
+}

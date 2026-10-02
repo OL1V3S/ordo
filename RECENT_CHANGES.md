@@ -24,6 +24,18 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-02 — Unified Activity timeline
+
+[PR #171](https://github.com/OL1V3S/ordo/pull/171) ·
+[Issue #170](https://github.com/OL1V3S/ordo/issues/170)
+
+- Added a read-only, newest-first Activity timeline of recorded expenses and cash
+  in, with exact signed amounts and "Show older activity" keyset paging, above the
+  existing per-type lists on Activity.
+- Home recent activity and the timeline now share one backend feed reader so the
+  ordering rule exists once; Home's output is unchanged.
+- Localized the timeline and the Activity section links in English and Spanish;
+  the rest of the Activity page stays English until umbrella item 10.
 ### 2026-10-01 — Claude Code command-center workflow
 
 [PR #169](https://github.com/OL1V3S/ordo/pull/169) ·
