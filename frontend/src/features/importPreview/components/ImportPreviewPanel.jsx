@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Trans, useTranslation } from "react-i18next";
 import { DEFAULT_CATEGORIES } from "../../../shared/constants/categories";
 import Card from "../../../shared/ui/Card";
 import { isDefaultCategory, normalizeText } from "../../../utils/text";
@@ -28,20 +29,30 @@ function isDraftDirty(draft, row) {
     || categoryFromDraft(draft) !== (row.category ?? "");
 }
 
-function formatConfirmationTime(value) {
+function parseConfirmationTime(value) {
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "an unavailable time" : date.toLocaleString();
+  return Number.isNaN(date.getTime()) ? null : date.toLocaleString();
 }
 
-function formatSelectionCounts(expenseCount, inflowCount) {
-  return `${expenseCount} ${expenseCount === 1 ? "expense" : "expenses"} and ${inflowCount} ${inflowCount === 1 ? "incoming deposit" : "incoming deposits"}`;
+function formatSelectionCounts(t, expenseCount, inflowCount) {
+  return t("selection.summary", {
+    expenses: t("selection.expenses", { count: expenseCount }),
+    deposits: t("selection.deposits", { count: inflowCount }),
+  });
 }
 
-function issueTitle(code) {
-  if (code === "duplicate_review_required") return "Review new duplicate warnings";
-  if (code === "preview_expired") return "Preview expired";
-  if (code === "preview_unavailable") return "Preview unavailable";
-  return "Statement was not confirmed";
+function issueTitle(t, code) {
+  const known = ["duplicate_review_required", "preview_expired", "preview_unavailable"];
+  return t(`panel.issueTitle.${known.includes(code) ? code : "default"}`);
+}
+
+function completionMessage(t, confirmation) {
+  const summary = formatSelectionCounts(t, confirmation.importedExpenseCount, confirmation.importedInflowCount);
+  const time = parseConfirmationTime(confirmation.confirmedAt);
+  const prefix = confirmation.status === "already_confirmed" ? "alreadySaved" : "saved";
+  return time === null
+    ? t(`completion.${prefix}UnavailableTime`, { summary })
+    : t(`completion.${prefix}`, { summary, time });
 }
 
 function focusAfterRender(ref) {
@@ -51,6 +62,7 @@ function focusAfterRender(ref) {
 }
 
 export default function ImportPreviewPanel({ importState, onImportConfirmed = async () => {}, externalLocked = false, isExternallyLocked = () => false }) {
+  const { t } = useTranslation("importPreview");
   const externallyBlocked = () => externalLocked || isExternallyLocked();
   const {
     preview,
@@ -237,25 +249,25 @@ export default function ImportPreviewPanel({ importState, onImportConfirmed = as
     try {
       if (result.importedExpenseCount > 0 || result.importedInflowCount > 0) {
         const refreshed = await onImportConfirmed(result);
-        const failed = refreshed?.failedLists?.filter((name) => ["expenses", "cash in"].includes(name)) ?? [];
-        if (failed.length) setRefreshError(`The import succeeded, but Activity could not be refreshed for ${failed.join(" and ")}. Use the affected list’s refresh action to see the saved records.`);
+        const failed = refreshed?.failedLists?.filter((name) => ["expenses", "cashIn"].includes(name)) ?? [];
+        if (failed.length) setRefreshError(t(`completion.refreshFailed.${failed.length > 1 ? "both" : failed[0]}`));
       }
     } catch {
-      setRefreshError("The import succeeded, but Activity could not be refreshed. Reload this page to see imported records.");
+      setRefreshError(t("completion.refreshFailed.generic"));
     }
   }
 
   const selectedExpenseCount = preview?.rows.filter((row) => row.isEligible && row.selectedForImport).length ?? 0;
   const selectedInflowCount = preview?.rows.filter((row) => row.isInflowEligible && row.selectedForInflow).length ?? 0;
-  const selectedItemsLabel = formatSelectionCounts(selectedExpenseCount, selectedInflowCount);
+  const selectedItemsLabel = formatSelectionCounts(t, selectedExpenseCount, selectedInflowCount);
 
   function confirmationGuidance() {
-    if (externalLocked) return "Finish the cash-in task before changing the statement.";
-    if (confirmationNeedsRefresh) return "Refresh this page to load the authoritative duplicate review before confirming.";
-    if (hasPendingRows) return "Wait for every row update to finish before confirming.";
-    if (hasDirtyRows) return "Save every row with unsaved changes before confirming.";
-    if (selectedCount === 0) return "Select at least one eligible row to import.";
-    return "Review the selected records, then save them together.";
+    if (externalLocked) return t("results.guidance.externalLocked");
+    if (confirmationNeedsRefresh) return t("results.guidance.needsRefresh");
+    if (hasPendingRows) return t("results.guidance.pending");
+    if (hasDirtyRows) return t("results.guidance.dirty");
+    if (selectedCount === 0) return t("results.guidance.noneSelected");
+    return t("results.guidance.ready");
   }
 
   function confirmationCodesFor(rowId) {
@@ -282,10 +294,10 @@ export default function ImportPreviewPanel({ importState, onImportConfirmed = as
       <div className="section__header import-preview__header">
         <div>
           <p className="page-header__eyebrow">
-            {confirmation ? "Import complete" : preview ? "Review and confirm" : "Bank statement import"}
+            {confirmation ? t("panel.eyebrow.complete") : preview ? t("panel.eyebrow.review") : t("panel.eyebrow.idle")}
           </p>
-          <h2 className="h2" id="import-preview-title">Import bank statement</h2>
-          <p className="muted">Choose the bank, then upload a text-extractable PDF up to 10 MiB. Scanned statements are not supported.</p>
+          <h2 className="h2" id="import-preview-title">{t("panel.title")}</h2>
+          <p className="muted">{t("panel.intro")}</p>
         </div>
         {preview && (
           <button
@@ -294,36 +306,30 @@ export default function ImportPreviewPanel({ importState, onImportConfirmed = as
             disabled={externalLocked || confirming || hasPendingRows || hasDirtyRows}
             onClick={() => { if (!externallyBlocked()) clearForReupload(); }}
           >
-            Choose another statement
+            {t("panel.chooseAnother")}
           </button>
         )}
       </div>
 
       {!confirmation && (
         <div className="status-message status-message--info">
-          Review and save any edits before confirming. Expenses and explicitly selected incoming deposits are created only after confirmation.
+          {t("panel.notice")}
         </div>
       )}
 
       {confirmation && (
         <div className="status-message status-message--success import-completion" role="status" aria-live="polite">
           <h3 className="h3" ref={completionHeading} tabIndex="-1">
-            {confirmation.status === "already_confirmed" ? "Statement already imported" : "Import complete"}
+            {confirmation.status === "already_confirmed" ? t("completion.alreadyTitle") : t("completion.title")}
           </h3>
-          <p>
-            {confirmation.importedExpenseCount} {confirmation.importedExpenseCount === 1 ? "expense" : "expenses"}
-            {" and "}
-            {confirmation.importedInflowCount} {confirmation.importedInflowCount === 1 ? "incoming deposit" : "incoming deposits"}
-            {confirmation.status === "already_confirmed" ? " were already saved" : " saved"}
-            {` at ${formatConfirmationTime(confirmation.confirmedAt)}.`}
-          </p>
+          <p>{completionMessage(t, confirmation)}</p>
         </div>
       )}
 
       {refreshError && <div className="status-message status-message--danger" role="alert">{refreshError}</div>}
 
       <div className="import-source-control">
-        <label htmlFor="statement-source">Bank</label>
+        <label htmlFor="statement-source">{t("source.label")}</label>
         <select
           id="statement-source"
           required
@@ -335,23 +341,23 @@ export default function ImportPreviewPanel({ importState, onImportConfirmed = as
             selectSource(event.target.value);
           }}
         >
-          <option value="">Choose a bank</option>
-          <option value="sunflower_pdf">Sunflower Bank</option>
+          <option value="">{t("source.placeholder")}</option>
+          <option value="sunflower_pdf">{t("source.sunflower")}</option>
         </select>
-        {!sourceType && <p className="muted">Choose a bank to enable PDF upload.</p>}
+        {!sourceType && <p className="muted">{t("source.hint")}</p>}
       </div>
 
       {error && <div className="status-message status-message--danger" role="alert">{error}</div>}
       {confirmationIssue && (
         <div className="status-message status-message--danger" role="alert">
-          <h3 className="h3" ref={issueHeading} tabIndex="-1">{issueTitle(confirmationIssue.code)}</h3>
+          <h3 className="h3" ref={issueHeading} tabIndex="-1">{issueTitle(t, confirmationIssue.code)}</h3>
           <p>{confirmationIssue.message}</p>
         </div>
       )}
       {(loading || processing) && (
         <div className="import-processing" role="status" aria-live="polite">
-          <span>{loading ? "Looking for an unfinished preview…" : "Processing the statement safely…"}</span>
-          {processing && <button type="button" className="button-ghost" disabled={externalLocked} onClick={() => { if (!externallyBlocked()) cancel(); }}>Cancel</button>}
+          <span>{loading ? t("panel.loadingPreview") : t("panel.processing")}</span>
+          {processing && <button type="button" className="button-ghost" disabled={externalLocked} onClick={() => { if (!externallyBlocked()) cancel(); }}>{t("panel.cancel")}</button>}
         </div>
       )}
 
@@ -363,7 +369,7 @@ export default function ImportPreviewPanel({ importState, onImportConfirmed = as
           onDragLeave={() => setDragging(false)}
           onDrop={drop}
         >
-          <label className="sr-only" htmlFor="sunflower-statement-file">Sunflower statement PDF</label>
+          <label className="sr-only" htmlFor="sunflower-statement-file">{t("dropzone.fileLabel")}</label>
           <input
             className="sr-only"
             ref={fileInput}
@@ -373,8 +379,8 @@ export default function ImportPreviewPanel({ importState, onImportConfirmed = as
             disabled={externalLocked || !sourceType}
             onChange={(event) => submitFile(event.target.files?.[0])}
           />
-          <p><strong>Drop a statement PDF here</strong> or choose it from your device.</p>
-          <button type="button" disabled={externalLocked || !sourceType} onClick={() => { if (!externallyBlocked()) fileInput.current?.click(); }}>Choose PDF</button>
+          <p><Trans t={t} i18nKey="dropzone.prompt" components={{ strong: <strong /> }} /></p>
+          <button type="button" disabled={externalLocked || !sourceType} onClick={() => { if (!externallyBlocked()) fileInput.current?.click(); }}>{t("dropzone.choosePdf")}</button>
         </div>
       )}
 
@@ -382,12 +388,12 @@ export default function ImportPreviewPanel({ importState, onImportConfirmed = as
         <div className="import-results">
           <div className="import-results__summary">
             <div>
-              <h3 className="h3" ref={resultsHeading} tabIndex="-1">Review statement</h3>
-              <p className="muted">{preview.rows.length} rows · available until {new Date(preview.expiresAt).toLocaleString()}</p>
+              <h3 className="h3" ref={resultsHeading} tabIndex="-1">{t("results.heading")}</h3>
+              <p className="muted">{t("results.meta", { rows: preview.rows.length, expires: new Date(preview.expiresAt).toLocaleString() })}</p>
             </div>
             <div className="import-confirmation-actions">
               <p className="import-confirmation-actions__selection">
-                <strong>{selectedItemsLabel}</strong> selected to save.
+                <Trans t={t} i18nKey="results.selected" values={{ items: selectedItemsLabel }} components={{ strong: <strong /> }} />
               </p>
               <p id="import-confirmation-guidance" className="muted" role="status" aria-live="polite">
                 {confirmationGuidance()}
@@ -400,15 +406,15 @@ export default function ImportPreviewPanel({ importState, onImportConfirmed = as
                 onClick={handleConfirm}
               >
                 {confirming
-                  ? `Saving ${selectedItemsLabel}…`
-                  : `Save ${selectedItemsLabel}`}
+                  ? t("results.saving", { items: selectedItemsLabel })
+                  : t("results.save", { items: selectedItemsLabel })}
               </button>
             </div>
           </div>
-          <div className="table-wrapper import-preview-table" role="region" aria-label="Statement import preview" tabIndex="0">
+          <div className="table-wrapper import-preview-table" role="region" aria-label={t("results.regionLabel")} tabIndex="0">
             <table className="data-table">
-              <caption>Sunflower Bank statement rows</caption>
-              <thead><tr><th>Transaction</th><th>Status</th><th>Selection</th><th>Expense fields</th></tr></thead>
+              <caption>{t("results.caption")}</caption>
+              <thead><tr><th>{t("columns.transaction")}</th><th>{t("columns.status")}</th><th>{t("columns.selection")}</th><th>{t("columns.fields")}</th></tr></thead>
               <tbody>{preview.rows.map((row) => renderRow(row))}</tbody>
             </table>
           </div>
