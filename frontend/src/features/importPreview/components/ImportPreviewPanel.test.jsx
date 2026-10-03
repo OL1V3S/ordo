@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import ImportPreviewPanel from './ImportPreviewPanel'
+import '../../../shared/localization/i18n'
 
 const row = {
   rowId: 'row-1',
@@ -488,7 +489,7 @@ describe('ImportPreviewPanel confirmation safety', () => {
       importedExpenseCount: 1,
       importedInflowCount: 1,
     }
-    const onImportConfirmed = vi.fn().mockResolvedValue({ failedLists: ['cash in'] })
+    const onImportConfirmed = vi.fn().mockResolvedValue({ failedLists: ['cashIn'] })
     const state = importState({ confirm: vi.fn().mockResolvedValue(result) })
     const { rerender } = render(
       <ImportPreviewPanel importState={state} onImportConfirmed={onImportConfirmed} />,

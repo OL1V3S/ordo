@@ -207,7 +207,7 @@ export default function TransactionsPage() {
     if (result.importedExpenseCount > 0 || result.importedInflowCount > 0) requestTimelineRefresh(timelineRefresh.current);
     const requests = [];
     if (result.importedExpenseCount > 0) requests.push({ name: "expenses", request: refreshExpenses() });
-    if (result.importedInflowCount > 0) requests.push({ name: "cash in", request: cash.refresh() });
+    if (result.importedInflowCount > 0) requests.push({ name: "cashIn", request: cash.refresh() });
     const outcomes = await Promise.allSettled(requests.map(({ request }) => request));
     return { failedLists: requests.filter((_, index) => outcomes[index].status === "rejected").map(({ name }) => name) };
   }

@@ -24,6 +24,21 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-03 — Spanish import preview
+
+[PR #175](https://github.com/OL1V3S/ordo/pull/175) ·
+[Issue #174](https://github.com/OL1V3S/ordo/issues/174)
+
+- Localized the Activity statement import preview (panel, rows, upload and
+  confirmation messages, and row issue, warning, and duplicate text) in English
+  and Spanish through a new `importPreview` catalog namespace.
+- Duplicate and review warnings keep their meaning in Spanish; unknown backend
+  codes still show a readable fallback. English wording, duplicate-safety and
+  confirmation logic, row selection, payloads, and focus behavior are unchanged.
+- The import preview no longer stays English on the Spanish Activity page.
+  User-entered and parsed statement data and browser-formatted timestamps are
+  shown as before.
+
 ### 2026-10-03 — Spanish Activity spending and cash in
 
 [PR #173](https://github.com/OL1V3S/ordo/pull/173) ·

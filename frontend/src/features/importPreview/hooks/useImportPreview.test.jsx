@@ -2,6 +2,7 @@ import { act, renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { importPreviewApi } from '../api/importPreviewApi'
 import { useImportPreview } from './useImportPreview'
+import '../../../shared/localization/i18n'
 
 vi.mock('../api/importPreviewApi', () => ({ importPreviewApi: {
   getOpen: vi.fn(), getById: vi.fn(), upload: vi.fn(), updateRow: vi.fn(), confirm: vi.fn(),

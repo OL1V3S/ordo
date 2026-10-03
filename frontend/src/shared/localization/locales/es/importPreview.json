@@ -1,0 +1,198 @@
+{
+  "errors": {
+    "upload_too_large": "Elige un PDF de 10 MiB o menos.",
+    "invalid_pdf": "Este archivo no es un PDF compatible válido.",
+    "encrypted_pdf": "No se admiten PDF cifrados ni protegidos con contraseña.",
+    "image_only_pdf": "Este PDF no tiene texto que se pueda extraer. Los estados de cuenta escaneados aún no son compatibles.",
+    "unsupported_statement_source": "La fuente del estado de cuenta seleccionada no es compatible.",
+    "source_required": "Elige un banco compatible antes de cargar el archivo.",
+    "unsupported_statement_format": "Este formato de estado de cuenta de Sunflower no es compatible.",
+    "candidate_row_limit_exceeded": "Este estado de cuenta contiene más de 1,000 filas de transacciones.",
+    "processing_timed_out": "Se agotó el tiempo de procesamiento del estado de cuenta. Intenta cargar el archivo de nuevo.",
+    "processing_cancelled": "Se canceló el procesamiento del estado de cuenta.",
+    "import_in_progress": "Ya se está procesando otro estado de cuenta.",
+    "already_imported": "Este estado de cuenta ya se importó. No se crearon registros financieros duplicados.",
+    "row_not_selectable": "Esa fila no se puede seleccionar para importar.",
+    "row_validation_failed": "Revisa los detalles de la fila e inténtalo de nuevo."
+  },
+  "fallbackErrors": {
+    "load": "No se pudo cargar la vista previa de importación guardada.",
+    "upload": "No se pudo procesar el estado de cuenta de forma segura.",
+    "update": "No se pudo actualizar la fila de la vista previa."
+  },
+  "confirmation": {
+    "no_rows_selected": "Selecciona al menos una fila elegible antes de confirmar.",
+    "duplicate_review_required": "Se encontraron posibles duplicados nuevos. Revisa las filas afectadas y selecciona de forma explícita cualquier fila que aún quieras importar.",
+    "confirmation_validation_failed": "Una o más filas seleccionadas requieren atención antes de poder confirmar la importación.",
+    "confirmation_conflict": "No se pudo confirmar el estado de cuenta porque cambió el estado de su importación. Revisa la vista previa e inténtalo de nuevo.",
+    "confirmation_failed": "No se pudo confirmar el estado de cuenta de forma segura. No se informa que se haya importado nada; puedes intentarlo de nuevo.",
+    "preview_expired": "Esta vista previa venció. Vuelve a cargar el estado de cuenta para crear una nueva revisión.",
+    "preview_unavailable": "Esta vista previa de importación no está disponible. Elige el banco y carga el estado de cuenta de nuevo.",
+    "duplicateRefreshFailed": "Se guardaron las nuevas advertencias de duplicados, pero no se pudo cargar la vista previa más reciente. Actualiza esta página antes de confirmar."
+  },
+  "panel": {
+    "eyebrow": {
+      "complete": "Importación completada",
+      "review": "Revisar y confirmar",
+      "idle": "Importación de estado de cuenta bancario"
+    },
+    "title": "Importar estado de cuenta bancario",
+    "intro": "Elige el banco y luego carga un PDF con texto extraíble de hasta 10 MiB. Los estados de cuenta escaneados no son compatibles.",
+    "chooseAnother": "Elegir otro estado de cuenta",
+    "notice": "Revisa y guarda cualquier edición antes de confirmar. Los gastos y los depósitos entrantes seleccionados de forma explícita solo se crean después de la confirmación.",
+    "cancel": "Cancelar",
+    "loadingPreview": "Buscando una vista previa sin terminar…",
+    "processing": "Procesando el estado de cuenta de forma segura…",
+    "issueTitle": {
+      "duplicate_review_required": "Revisa las nuevas advertencias de duplicados",
+      "preview_expired": "La vista previa venció",
+      "preview_unavailable": "Vista previa no disponible",
+      "default": "El estado de cuenta no se confirmó"
+    }
+  },
+  "selection": {
+    "expenses_one": "{{count}} gasto",
+    "expenses_other": "{{count}} gastos",
+    "deposits_one": "{{count}} depósito entrante",
+    "deposits_other": "{{count}} depósitos entrantes",
+    "summary": "{{expenses}} y {{deposits}}"
+  },
+  "completion": {
+    "title": "Importación completada",
+    "alreadyTitle": "Estado de cuenta ya importado",
+    "saved": "Se guardaron {{summary}} el {{time}}.",
+    "savedUnavailableTime": "Se guardaron {{summary}} en un momento no disponible.",
+    "alreadySaved": "Ya se habían guardado {{summary}} el {{time}}.",
+    "alreadySavedUnavailableTime": "Ya se habían guardado {{summary}} en un momento no disponible.",
+    "refreshFailed": {
+      "expenses": "La importación se realizó correctamente, pero no se pudo actualizar la actividad de gastos. Usa la acción de actualizar de la lista afectada para ver los registros guardados.",
+      "cashIn": "La importación se realizó correctamente, pero no se pudo actualizar la actividad de entradas de dinero. Usa la acción de actualizar de la lista afectada para ver los registros guardados.",
+      "both": "La importación se realizó correctamente, pero no se pudo actualizar la actividad de gastos ni de entradas de dinero. Usa la acción de actualizar de la lista afectada para ver los registros guardados.",
+      "generic": "La importación se realizó correctamente, pero no se pudo actualizar la actividad. Vuelve a cargar esta página para ver los registros importados."
+    }
+  },
+  "source": {
+    "label": "Banco",
+    "placeholder": "Elige un banco",
+    "sunflower": "Sunflower Bank",
+    "hint": "Elige un banco para habilitar la carga de PDF."
+  },
+  "dropzone": {
+    "fileLabel": "PDF del estado de cuenta de Sunflower",
+    "prompt": "<strong>Suelta aquí un PDF de estado de cuenta</strong> o elígelo desde tu dispositivo.",
+    "choosePdf": "Elegir PDF"
+  },
+  "results": {
+    "heading": "Revisar estado de cuenta",
+    "meta": "{{rows}} filas · disponible hasta {{expires}}",
+    "selected": "<strong>{{items}}</strong> seleccionados para guardar.",
+    "save": "Guardar {{items}}",
+    "saving": "Guardando {{items}}…",
+    "regionLabel": "Vista previa de la importación del estado de cuenta",
+    "caption": "Filas del estado de cuenta de Sunflower Bank",
+    "guidance": {
+      "externalLocked": "Termina la tarea de entrada de dinero antes de cambiar el estado de cuenta.",
+      "needsRefresh": "Actualiza esta página para cargar la revisión de duplicados vigente antes de confirmar.",
+      "pending": "Espera a que termine la actualización de todas las filas antes de confirmar.",
+      "dirty": "Guarda todas las filas con cambios sin guardar antes de confirmar.",
+      "noneSelected": "Selecciona al menos una fila elegible para importar.",
+      "ready": "Revisa los registros seleccionados y luego guárdalos juntos."
+    }
+  },
+  "columns": {
+    "transaction": "Transacción",
+    "status": "Estado",
+    "selection": "Selección",
+    "fields": "Campos del gasto"
+  },
+  "row": {
+    "statusLabels": {
+      "expense_candidate": "Gasto por revisar",
+      "non_expense": "Depósito entrante",
+      "needs_review": "Requiere revisión",
+      "invalid": "Fila no válida",
+      "default": "Revisión requerida"
+    },
+    "possibleDuplicate": "Posible duplicado — revisa antes de seleccionar",
+    "possibleInflowDuplicate": "Posible duplicado de depósito entrante — revisa antes de guardar",
+    "issue": "Problema: {{detail}}",
+    "warning": "Advertencia: {{detail}}",
+    "errorCodes": {
+      "invalid_transaction_date": "fecha de transacción no válida",
+      "invalid_transaction_amount": "monto de transacción no válido",
+      "invalid_transaction_description": "descripción de transacción no válida",
+      "unsupported_transaction_direction": "dirección de transacción no compatible",
+      "unsupported_transaction_row": "fila de transacción no compatible",
+      "source_description_too_long": "descripción de origen demasiado larga",
+      "date_required": "falta la fecha",
+      "amount_must_be_positive": "el monto debe ser positivo",
+      "amount_out_of_range": "monto fuera del rango admitido",
+      "amount_precision_invalid": "el monto debe tener como máximo dos decimales",
+      "description_required": "falta la descripción",
+      "description_too_long": "descripción demasiado larga",
+      "category_required": "falta la categoría",
+      "category_too_long": "categoría demasiado larga",
+      "category_reserved": "categoría reservada"
+    },
+    "confirmationCodes": {
+      "possible_duplicate": "Nuevo posible duplicado — revisa esta fila y vuelve a seleccionarla de forma explícita si debe importarse.",
+      "possible_inflow_duplicate": "Nuevo posible duplicado de depósito entrante — revisa esta fila y vuelve a seleccionarla de forma explícita si debe guardarse.",
+      "row_not_selectable": "Esta fila no es elegible para la selección de importación solicitada.",
+      "date_required": "Se requiere una fecha de transacción.",
+      "amount_must_be_positive": "El monto del gasto debe ser positivo.",
+      "amount_out_of_range": "El monto del gasto está fuera del rango admitido.",
+      "amount_precision_invalid": "El monto del gasto debe tener como máximo dos decimales.",
+      "description_required": "Se requiere una descripción.",
+      "description_too_long": "La descripción es demasiado larga.",
+      "category_required": "Se requiere una categoría de gasto.",
+      "category_too_long": "La categoría de gasto es demasiado larga.",
+      "category_reserved": "Elige una categoría distinta de “Otra”."
+    },
+    "unavailable": "No disponible",
+    "unknownDate": "fecha desconocida",
+    "context": "{{description}}, {{date}}, fila {{ordinal}} del estado de cuenta",
+    "selectLabel": "Seleccionar para importar",
+    "selectAria": "Seleccionar para importar: {{context}}",
+    "depositLabel": "Guardar depósito entrante",
+    "depositAria": "Guardar depósito entrante: {{context}}",
+    "notSelectableLabel": "No seleccionable",
+    "notSelectableAria": "No seleccionable: {{context}}",
+    "facts": {
+      "date": "Fecha",
+      "amount": "Monto",
+      "direction": "Dirección"
+    },
+    "directions": {
+      "debit": "Débito",
+      "credit": "Crédito"
+    },
+    "qualification": "Guardar este depósito registra evidencia de una entrada de dinero en la cuenta. No lo clasifica como ingreso ni como pago de nómina.",
+    "sourceDetails": {
+      "summary": "Detalles del origen",
+      "aria": "Detalles del origen: {{context}}",
+      "row": "Fila del estado de cuenta",
+      "section": "Sección del estado de cuenta"
+    },
+    "sections": {
+      "electronic_transactions": "Transacciones electrónicas",
+      "deposits": "Depósitos"
+    },
+    "fields": {
+      "notEditable": "No editable",
+      "saving": "Guardando…",
+      "saveFailedDirty": "No se pudo guardar. Los cambios siguen sin guardarse.",
+      "saveFailed": "No se pudo actualizar la fila. Inténtalo de nuevo.",
+      "unsaved": "Cambios sin guardar",
+      "saved": "Guardado",
+      "description": "Descripción del gasto",
+      "descriptionAria": "Descripción del gasto: {{context}}",
+      "category": "Categoría",
+      "categoryAria": "Categoría: {{context}}",
+      "uncategorized": "Sin categoría",
+      "customCategory": "Categoría personalizada",
+      "customCategoryAria": "Categoría personalizada: {{context}}",
+      "saveRow": "Guardar fila",
+      "saveRowAria": "Guardar fila: {{context}}"
+    }
+  }
+}

@@ -1,33 +1,34 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import axios from "axios";
+import { useTranslation } from "react-i18next";
 import { importPreviewApi } from "../api/importPreviewApi";
 
-const SAFE_ERRORS = {
-  upload_too_large: "Choose a PDF that is 10 MiB or smaller.",
-  invalid_pdf: "This file is not a valid supported PDF.",
-  encrypted_pdf: "Encrypted or password-protected PDFs are not supported.",
-  image_only_pdf: "This PDF has no extractable text. Scanned statements are not supported yet.",
-  unsupported_statement_source: "The selected statement source is not supported.",
-  source_required: "Choose a supported bank before uploading.",
-  unsupported_statement_format: "This Sunflower statement format is not supported.",
-  candidate_row_limit_exceeded: "This statement contains more than 1,000 transaction rows.",
-  processing_timed_out: "Statement processing timed out. Try the upload again.",
-  processing_cancelled: "Statement processing was cancelled.",
-  import_in_progress: "Another statement is already being processed.",
-  already_imported: "This statement was already imported. No duplicate financial records were created.",
-  row_not_selectable: "That row cannot be selected for import.",
-  row_validation_failed: "Check the row details, then try again.",
-};
+const SAFE_ERROR_CODES = new Set([
+  "upload_too_large",
+  "invalid_pdf",
+  "encrypted_pdf",
+  "image_only_pdf",
+  "unsupported_statement_source",
+  "source_required",
+  "unsupported_statement_format",
+  "candidate_row_limit_exceeded",
+  "processing_timed_out",
+  "processing_cancelled",
+  "import_in_progress",
+  "already_imported",
+  "row_not_selectable",
+  "row_validation_failed",
+]);
 
-const CONFIRMATION_MESSAGES = {
-  no_rows_selected: "Select at least one eligible row before confirming.",
-  duplicate_review_required: "New possible duplicates were found. Review the affected rows and explicitly select any row you still want to import.",
-  confirmation_validation_failed: "One or more selected rows need attention before the import can be confirmed.",
-  confirmation_conflict: "The statement could not be confirmed because its import state changed. Review the preview and try again.",
-  confirmation_failed: "The statement could not be confirmed safely. Nothing is being reported as imported; you can try again.",
-  preview_expired: "This preview expired. Re-upload the statement to create a new review.",
-  preview_unavailable: "This import preview is unavailable. Choose the bank and upload the statement again.",
-};
+const CONFIRMATION_MESSAGE_CODES = new Set([
+  "no_rows_selected",
+  "duplicate_review_required",
+  "confirmation_validation_failed",
+  "confirmation_conflict",
+  "confirmation_failed",
+  "preview_expired",
+  "preview_unavailable",
+]);
 
 const SAFE_CONFIRMATION_ROW_CODES = new Set([
   "possible_duplicate",
@@ -44,9 +45,11 @@ const SAFE_CONFIRMATION_ROW_CODES = new Set([
   "category_reserved",
 ]);
 
-function safeError(error, fallback) {
+function safeError(t, error, fallbackKey) {
   const code = error?.response?.data?.code;
-  return SAFE_ERRORS[code] ?? fallback;
+  return typeof code === "string" && SAFE_ERROR_CODES.has(code)
+    ? t(`errors.${code}`)
+    : t(`fallbackErrors.${fallbackKey}`);
 }
 
 function safeConfirmationRows(rows) {
@@ -58,18 +61,18 @@ function safeConfirmationRows(rows) {
   });
 }
 
-function safeConfirmationIssue(error) {
+function safeConfirmationIssue(t, error) {
   const status = error?.response?.status;
   const responseData = error?.response?.data;
   const responseCode = typeof responseData?.code === "string" ? responseData.code : "";
   const code = status === 404
     ? "preview_unavailable"
-    : Object.hasOwn(CONFIRMATION_MESSAGES, responseCode)
+    : CONFIRMATION_MESSAGE_CODES.has(responseCode)
       ? responseCode
       : "confirmation_failed";
   return {
     code,
-    message: CONFIRMATION_MESSAGES[code],
+    message: t(`confirmation.${code}`),
     rows: safeConfirmationRows(responseData?.rows),
     requiresPreviewRefresh: false,
   };
@@ -103,6 +106,11 @@ function forgetBatch() {
 }
 
 export function useImportPreview() {
+  const { t } = useTranslation("importPreview");
+  // Messages are resolved when an outcome is recorded. Keep the latest `t` in a ref so the
+  // stable callbacks (and the resume effect) never re-run just because the language changed.
+  const translate = useRef(t);
+  useEffect(() => { translate.current = t; }, [t]);
   const [preview, setPreview] = useState(null);
   const [sourceType, setSourceType] = useState("");
   const [loading, setLoading] = useState(true);
@@ -130,9 +138,9 @@ export function useImportPreview() {
         if (!axios.isCancel(requestError)) {
           if (requestError?.response?.status === 404) {
             forgetBatch();
-            setError(CONFIRMATION_MESSAGES.preview_unavailable);
+            setError(translate.current("confirmation.preview_unavailable"));
           } else {
-            setError(safeError(requestError, "The saved import preview could not be loaded."));
+            setError(safeError(translate.current, requestError, "load"));
           }
         }
       } finally {
@@ -171,7 +179,7 @@ export function useImportPreview() {
       return null;
     } catch (requestError) {
       if (!axios.isCancel(requestError)) {
-        setError(safeError(requestError, "The saved import preview could not be loaded."));
+        setError(safeError(translate.current, requestError, "load"));
       }
       return null;
     } finally {
@@ -195,7 +203,7 @@ export function useImportPreview() {
       return response.data;
     } catch (requestError) {
       if (!axios.isCancel(requestError)) {
-        setError(safeError(requestError, "The statement could not be processed safely."));
+        setError(safeError(translate.current, requestError, "upload"));
       }
       return null;
     } finally {
@@ -229,7 +237,7 @@ export function useImportPreview() {
       });
       return response.data;
     } catch (requestError) {
-      setError(safeError(requestError, "The preview row could not be updated."));
+      setError(safeError(translate.current, requestError, "update"));
       return null;
     }
   }, [preview]);
@@ -246,7 +254,7 @@ export function useImportPreview() {
       if (!isConfirmationResponse(response.data, batchId)) {
         setConfirmationIssue({
           code: "confirmation_failed",
-          message: CONFIRMATION_MESSAGES.confirmation_failed,
+          message: translate.current("confirmation.confirmation_failed"),
           rows: [],
           requiresPreviewRefresh: false,
         });
@@ -258,7 +266,7 @@ export function useImportPreview() {
       forgetBatch();
       return response.data;
     } catch (requestError) {
-      const issue = safeConfirmationIssue(requestError);
+      const issue = safeConfirmationIssue(translate.current, requestError);
       if (issue.code === "duplicate_review_required") {
         try {
           const refreshed = await importPreviewApi.getById(batchId);
@@ -266,7 +274,7 @@ export function useImportPreview() {
           setPreview(refreshed.data);
         } catch {
           issue.requiresPreviewRefresh = true;
-          issue.message = "New duplicate warnings were saved, but the latest preview could not be loaded. Refresh this page before confirming.";
+          issue.message = translate.current("confirmation.duplicateRefreshFailed");
         }
       } else if (issue.code === "preview_unavailable" || issue.code === "preview_expired") {
         setPreview(null);
