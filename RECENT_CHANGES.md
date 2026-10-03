@@ -24,6 +24,19 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-03 — Spanish Activity spending and cash in
+
+[PR #173](https://github.com/OL1V3S/ordo/pull/173) ·
+[Issue #172](https://github.com/OL1V3S/ordo/issues/172)
+
+- Localized the Activity page header, spending area (expense form, filters, list,
+  row editing, delete confirmation), and cash-in area (form, list, delete
+  confirmation) with their feedback and error messages in English and Spanish.
+- English wording, validation, payloads, focus behavior, and money and date
+  display are unchanged; only message text moved into the `activity` catalogs.
+- The import preview panel stays English until a later slice, so the Spanish
+  Activity page is still partly English.
+
 ### 2026-10-02 — Unified Activity timeline
 
 [PR #171](https://github.com/OL1V3S/ordo/pull/171) ·

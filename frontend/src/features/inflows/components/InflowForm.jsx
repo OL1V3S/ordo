@@ -1,7 +1,6 @@
 import { useEffect, useId, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import FormField from "../../../shared/ui/FormField";
-
-const EDIT_WARNING = "Changes update recorded cash flow. If this entry supports a saved paycheck, that link stays and its recorded details update; the saved paycheck expectation stays unchanged.";
 
 export default function InflowForm({
   draft,
@@ -15,11 +14,12 @@ export default function InflowForm({
   amountNeedsReview = false,
   copy = {},
 }) {
+  const { t } = useTranslation("activity");
   const generatedId = useId();
   const formRef = useRef(null);
   const previousErrors = useRef("");
-  const formLabel = mode === "edit" ? "Edit cash in" : (copy.title ?? "Add cash in");
-  const submitLabel = mode === "edit" ? "Save changes" : (copy.save ?? "Add cash in");
+  const formLabel = mode === "edit" ? t("cashIn.form.editTitle") : (copy.title ?? t("cashIn.form.title"));
+  const submitLabel = mode === "edit" ? t("cashIn.form.saveChanges") : (copy.save ?? t("cashIn.form.save"));
   const errorSignature = ["description", "amount", "date"]
     .filter((name) => fieldErrors[name])
     .map((name) => `${name}:${fieldErrors[name]}`)
@@ -72,26 +72,26 @@ export default function InflowForm({
 
   return (
     <form ref={formRef} className="inflow-form" aria-label={formLabel} aria-busy={pending} onSubmit={handleSubmit} noValidate>
-      {mode === "edit" && <p className="inflow-form__warning">{EDIT_WARNING}</p>}
+      {mode === "edit" && <p className="inflow-form__warning">{t("cashIn.form.editWarning")}</p>}
       {amountNeedsReview && (
         <p className="inflow-form__warning">
-          <strong>Amount needs review.</strong> Enter the exact amount again before saving.
+          <strong>{t("cashIn.form.amountReviewTitle")}</strong>{" "}{t("cashIn.form.amountReviewBody")}
         </p>
       )}
-      {errorSignature && <p className="inflow-form__error" role="alert">{copy.checkFields ?? "Check the highlighted fields."}</p>}
+      {errorSignature && <p className="inflow-form__error" role="alert">{copy.checkFields ?? t("cashIn.form.checkFields")}</p>}
 
       <fieldset className="inflow-form__fields" disabled={pending}>
-        <legend className="sr-only">{copy.detailsLegend ?? "Cash-in details"}</legend>
+        <legend className="sr-only">{copy.detailsLegend ?? t("cashIn.form.detailsLegend")}</legend>
         <div className="inflow-form__grid">
-          {field("description", copy.description ?? "Description")}
-          {field("amount", copy.amount ?? "Amount", { inputMode: "decimal", autoComplete: "off" })}
-          {field("date", copy.date ?? "Date", { type: "date", min: "0001-01-01", max: "9999-12-31" })}
+          {field("description", copy.description ?? t("cashIn.form.description"))}
+          {field("amount", copy.amount ?? t("cashIn.form.amount"), { inputMode: "decimal", autoComplete: "off" })}
+          {field("date", copy.date ?? t("cashIn.form.date"), { type: "date", min: "0001-01-01", max: "9999-12-31" })}
         </div>
       </fieldset>
 
       <div className="inflow-form__actions inline-actions">
-        <button type="submit" disabled={pending || disabled}>{pending ? (copy.saving ?? "Saving…") : submitLabel}</button>
-        <button type="button" className="button-ghost" disabled={pending} onClick={onCancel}>{copy.cancel ?? "Cancel"}</button>
+        <button type="submit" disabled={pending || disabled}>{pending ? (copy.saving ?? t("cashIn.form.saving")) : submitLabel}</button>
+        <button type="button" className="button-ghost" disabled={pending} onClick={onCancel}>{copy.cancel ?? t("cashIn.form.cancel")}</button>
       </div>
     </form>
   );

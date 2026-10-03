@@ -2,6 +2,7 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import InflowList from "./InflowList";
+import "../../../shared/localization/i18n";
 
 const first = { id: 7, description: "Client Deposit", amount: 1250.5, date: "2026-08-14" };
 const duplicate = { id: 8, description: "Client Deposit", amount: 1250.5, date: "2026-08-14" };
