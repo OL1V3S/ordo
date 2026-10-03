@@ -1,70 +1,59 @@
+import { useTranslation } from "react-i18next";
 import { DEFAULT_CATEGORIES } from "../../../shared/constants/categories";
 import { displayText } from "../../../utils/text";
 
-const STATUS_LABELS = {
-  expense_candidate: "Expense to review",
-  non_expense: "Incoming deposit",
-  needs_review: "Needs review",
-  invalid: "Invalid row",
-};
+const STATUS_CODES = ["expense_candidate", "non_expense", "needs_review", "invalid"];
+const DUPLICATE_CODES = ["possible_duplicate", "possible_inflow_duplicate"];
 
-const CONFIRMATION_CODE_MESSAGES = {
-  possible_duplicate: "New possible duplicate — review this row and explicitly select it again if it should be imported.",
-  possible_inflow_duplicate: "New possible incoming-deposit duplicate — review this row and explicitly select it again if it should be saved.",
-  row_not_selectable: "This row is not eligible for the requested import selection.",
-  date_required: "A transaction date is required.",
-  amount_must_be_positive: "The expense amount must be positive.",
-  amount_out_of_range: "The expense amount is outside the supported range.",
-  amount_precision_invalid: "The expense amount must use no more than two decimal places.",
-  description_required: "A description is required.",
-  description_too_long: "The description is too long.",
-  category_required: "An expense category is required.",
-  category_too_long: "The expense category is too long.",
-  category_reserved: "Choose a category other than Other.",
-};
+// Known codes use catalog text; anything else falls back to a readable form of the raw code.
+function codeText(t, group, code) {
+  return t(`row.${group}.${code}`, { defaultValue: code.replaceAll("_", " ") });
+}
 
 function RowFields({ row, rowContext, draft, disabled, onDraftChange, onSave }) {
-  if (!row.isEligible) return <span className="muted">Not editable</span>;
+  const { t } = useTranslation("importPreview");
+  const { t: ta } = useTranslation("activity");
+  if (!row.isEligible) return <span className="muted">{t("row.fields.notEditable")}</span>;
 
   const saveStatus = draft.pending
-    ? "Saving…"
+    ? t("row.fields.saving")
     : draft.outcome === "error"
-      ? draft.dirty ? "Save failed. Changes remain unsaved." : "The row update failed. Try again."
+      ? draft.dirty ? t("row.fields.saveFailedDirty") : t("row.fields.saveFailed")
       : draft.dirty
-        ? "Unsaved changes"
-        : draft.outcome === "saved" ? "Saved" : "";
+        ? t("row.fields.unsaved")
+        : draft.outcome === "saved" ? t("row.fields.saved") : "";
 
   return (
     <div className="import-row-fields">
       <label>
-        <span>Expense description</span>
+        <span>{t("row.fields.description")}</span>
         <input
-          aria-label={`Expense description for ${rowContext}`}
+          aria-label={t("row.fields.descriptionAria", { context: rowContext })}
           value={draft.description}
           disabled={disabled || draft.pending}
           onChange={(event) => onDraftChange({ description: event.target.value })}
         />
       </label>
       <label>
-        <span>Category</span>
+        <span>{t("row.fields.category")}</span>
         <select
-          aria-label={`Category for ${rowContext}`}
+          aria-label={t("row.fields.categoryAria", { context: rowContext })}
           value={draft.categoryChoice}
           disabled={disabled || draft.pending}
           onChange={(event) => onDraftChange({ categoryChoice: event.target.value })}
         >
           {DEFAULT_CATEGORIES.map((category) => (
-            <option key={category} value={category.toLowerCase()}>{displayText(category)}</option>
+            <option key={category} value={category.toLowerCase()}>{ta(`categories.${category.toLowerCase()}`)}</option>
           ))}
-          <option value="uncategorized">Uncategorized</option>
-          <option value="other">Other</option>
+          <option value="uncategorized">{t("row.fields.uncategorized")}</option>
+          <option value="other">{ta("categories.other")}</option>
         </select>
       </label>
       {draft.categoryChoice === "other" && (
         <label>
-          <span>Custom category</span>
+          <span>{t("row.fields.customCategory")}</span>
           <input
-            aria-label={`Custom category for ${rowContext}`}
+            aria-label={t("row.fields.customCategoryAria", { context: rowContext })}
             value={draft.customCategory}
             disabled={disabled || draft.pending}
             onChange={(event) => onDraftChange({ customCategory: event.target.value })}
@@ -74,11 +63,11 @@ function RowFields({ row, rowContext, draft, disabled, onDraftChange, onSave }) 
       <button
         type="button"
         className="button-ghost"
-        aria-label={`Save row for ${rowContext}`}
+        aria-label={t("row.fields.saveRowAria", { context: rowContext })}
         disabled={disabled || draft.pending || !draft.dirty}
         onClick={onSave}
       >
-        {draft.pending ? "Saving…" : "Save row"}
+        {draft.pending ? t("row.fields.saving") : t("row.fields.saveRow")}
       </button>
       {saveStatus && (
         <span
@@ -94,30 +83,30 @@ function RowFields({ row, rowContext, draft, disabled, onDraftChange, onSave }) 
 }
 
 function RowStatus({ row, confirmationCodes }) {
+  const { t } = useTranslation("importPreview");
   return (
     <div className="import-row-status">
       <span className={`import-status import-status--${row.classification}`}>
-        {STATUS_LABELS[row.classification] ?? "Review required"}
+        {t(`row.statusLabels.${STATUS_CODES.includes(row.classification) ? row.classification : "default"}`)}
       </span>
       {row.isPossibleDuplicate && (
-        <span className="import-warning">Possible duplicate — review before selecting</span>
+        <span className="import-warning">{t("row.possibleDuplicate")}</span>
       )}
       {row.isPossibleInflowDuplicate && (
-        <span className="import-warning">Possible incoming-deposit duplicate — review before saving</span>
+        <span className="import-warning">{t("row.possibleInflowDuplicate")}</span>
       )}
-      {row.errors.map((code) => <span className="import-error" key={code}>Issue: {code.replaceAll("_", " ")}</span>)}
-      {row.warnings.filter((code) =>
-        code !== "possible_duplicate" && code !== "possible_inflow_duplicate").map((code) => (
-        <span className="import-warning" key={code}>Warning: {code.replaceAll("_", " ")}</span>
+      {row.errors.map((code) => <span className="import-error" key={code}>{t("row.issue", { detail: codeText(t, "errorCodes", code) })}</span>)}
+      {row.warnings.filter((code) => !DUPLICATE_CODES.includes(code)).map((code) => (
+        <span className="import-warning" key={code}>{t("row.warning", { detail: code.replaceAll("_", " ") })}</span>
       ))}
       {confirmationCodes.map((code) => (
         <span
-          className={code === "possible_duplicate" || code === "possible_inflow_duplicate"
+          className={DUPLICATE_CODES.includes(code)
             ? "import-warning"
             : "import-error"}
           key={`confirmation-${code}`}
         >
-          {CONFIRMATION_CODE_MESSAGES[code]}
+          {t(`row.confirmationCodes.${code}`, { defaultValue: t("row.issue", { detail: code.replaceAll("_", " ") }) })}
         </span>
       ))}
     </div>
@@ -133,30 +122,28 @@ export default function ImportPreviewRow({
   onSave,
   onSelectionChange,
 }) {
+  const { t } = useTranslation("importPreview");
   const isInflow = row.isInflowEligible;
   const isSelectable = row.isEligible || isInflow;
   const isSelected = row.isEligible ? row.selectedForImport : row.selectedForInflow;
-  const sourceDescription = row.sourceDescription || "Unavailable";
-  const rowContext = `${sourceDescription} on ${row.postedDate ?? "unknown date"}, statement row ${row.sourceRowOrdinal}`;
-  const sourceDetailsLabel = `Source details for ${rowContext}`;
+  const sourceDescription = row.sourceDescription || t("row.unavailable");
+  const rowContext = t("row.context", {
+    description: sourceDescription,
+    date: row.postedDate ?? t("row.unknownDate"),
+    ordinal: row.sourceRowOrdinal,
+  });
+  const sourceDetailsLabel = t("row.sourceDetails.aria", { context: rowContext });
+  const selectionKind = row.isEligible ? "select" : isInflow ? "deposit" : "notSelectable";
   const selection = (
     <label className="import-selection">
       <input
         type="checkbox"
-        aria-label={`${row.isEligible
-          ? "Select for import"
-          : isInflow
-            ? "Save incoming deposit"
-            : "Not selectable"} for ${rowContext}`}
+        aria-label={t(`row.${selectionKind}Aria`, { context: rowContext })}
         checked={Boolean(isSelected)}
         disabled={!isSelectable || disabled || draft.pending}
         onChange={(event) => onSelectionChange(event.target.checked)}
       />
-      <span>{row.isEligible
-        ? "Select for import"
-        : isInflow
-          ? "Save incoming deposit"
-          : "Not selectable"}</span>
+      <span>{t(`row.${selectionKind}Label`)}</span>
     </label>
   );
 
@@ -164,31 +151,31 @@ export default function ImportPreviewRow({
     <div className="import-row-transaction">
       <strong className="import-row-transaction__description">{sourceDescription}</strong>
       <div className="import-row-transaction__facts">
-        <div><span className="import-field-label">Date</span>{row.postedDate ?? "Unavailable"}</div>
-        <div><span className="import-field-label">Amount</span>{row.amount == null ? "Unavailable" : `$${Number(row.amount).toFixed(2)}`}</div>
-        <div><span className="import-field-label">Direction</span>{displayText(row.direction)}</div>
+        <div><span className="import-field-label">{t("row.facts.date")}</span>{row.postedDate ?? t("row.unavailable")}</div>
+        <div><span className="import-field-label">{t("row.facts.amount")}</span>{row.amount == null ? t("row.unavailable") : `$${Number(row.amount).toFixed(2)}`}</div>
+        <div><span className="import-field-label">{t("row.facts.direction")}</span>{row.direction ? t(`row.directions.${row.direction}`, { defaultValue: displayText(row.direction) }) : ""}</div>
       </div>
       {isInflow && (
         <p className="muted import-row-transaction__qualification">
-          Saving this deposit records account inflow evidence. It does not classify it as income or a paycheck.
+          {t("row.qualification")}
         </p>
       )}
       <details className="import-row-source-details">
-        <summary aria-label={sourceDetailsLabel}>Source details</summary>
-        <div><span className="import-field-label">Statement row</span>{row.sourceRowOrdinal}</div>
-        <div><span className="import-field-label">Statement section</span>{displayText(row.sourceSection?.replaceAll("_", " "))}</div>
+        <summary aria-label={sourceDetailsLabel}>{t("row.sourceDetails.summary")}</summary>
+        <div><span className="import-field-label">{t("row.sourceDetails.row")}</span>{row.sourceRowOrdinal}</div>
+        <div><span className="import-field-label">{t("row.sourceDetails.section")}</span>{row.sourceSection ? t(`row.sections.${row.sourceSection}`, { defaultValue: displayText(row.sourceSection.replaceAll("_", " ")) }) : ""}</div>
       </details>
     </div>
   );
 
   return (
     <tr className="import-preview-row">
-      <td className="import-preview-row__transaction" data-label="Transaction">{transaction}</td>
-      <td className="import-preview-row__status" data-label="Status">
+      <td className="import-preview-row__transaction" data-label={t("columns.transaction")}>{transaction}</td>
+      <td className="import-preview-row__status" data-label={t("columns.status")}>
         <RowStatus row={row} confirmationCodes={confirmationCodes} />
       </td>
-      <td className="import-preview-row__selection" data-label="Selection">{selection}</td>
-      <td className="import-preview-row__fields" data-label="Expense fields">
+      <td className="import-preview-row__selection" data-label={t("columns.selection")}>{selection}</td>
+      <td className="import-preview-row__fields" data-label={t("columns.fields")}>
         <RowFields
           row={row}
           rowContext={rowContext}

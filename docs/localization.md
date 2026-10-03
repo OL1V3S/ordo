@@ -8,12 +8,14 @@ until a separately scoped adoption issue moves their complete copy into catalogs
 The Activity page is localized through the `activity` namespace: the timeline, the
 section links, the page header and actions, the spending area (expense form,
 filters, list, and row editing), and the cash-in area (form, list, and delete
-confirmation), including their feedback and error messages. The import preview
-panel and its rows (`importPreview/*`) remain English, so the Spanish Activity
-page is intentionally still partly English until a later slice. The shared
-cash-in form is also used to record a paycheck receipt on the Paychecks page; it
-follows the selected language there while the rest of that page, including its
-validation messages, stays English until Paychecks is adopted.
+confirmation), including their feedback and error messages. The statement import
+preview is localized through the `importPreview` namespace: the import panel, its
+rows, and the safe upload, confirmation, and row-warning messages that the hook
+maps from stable backend codes, so the import preview no longer stays English on
+the Spanish Activity page. The shared cash-in form is also used
+to record a paycheck receipt on the Paychecks page; it follows the selected
+language there while the rest of that page, including its validation messages,
+stays English until Paychecks is adopted.
 
 ## Runtime boundary
 
@@ -55,6 +57,18 @@ import/export them, but the runtime must not depend on a translation service.
   `food`) is shown as stored and text search matches the stored value.
   Localizing displayed values would change search semantics and needs a separate
   decision.
+- Import preview messages are keyed by backend code (`errors.*`, `confirmation.*`,
+  `row.errorCodes.*`, `row.confirmationCodes.*`) and never by raw server text. A code
+  without a catalog entry shows a readable fallback (the code with underscores
+  replaced by spaces, or the generic fallback error) instead of a blank message.
+  The import hook resolves its message when an outcome is recorded; the panel passes
+  stable list identifiers (`expenses`, `cashIn`), not English names, for failed
+  Activity refreshes and maps them to complete localized messages.
+- The import preview keeps row data as the statement parser produced it (source
+  descriptions, `YYYY-MM-DD` dates, `$` amounts, and the stored category value) and
+  keeps the browser-formatted expiry and confirmation timestamps in both languages
+  until formatters adopt the direction below. Row counts are shown as `N rows` in
+  English, as they were before localization.
 - Activity spending and cash-in lists keep their existing `$` amounts and
   `MM/DD/YYYY` dates in both languages until formatters adopt the direction below.
 
@@ -107,5 +121,7 @@ unchanged. Generic cash-in wording must not imply earned income.
 | Posted date | Fecha de contabilización | Cash-in date used by reports |
 | Paycheck expectation | Previsión de nómina | Saved expected paycheck |
 | Statement | Estado de cuenta | Bank statement import |
+| Incoming deposit | Depósito entrante | Imported statement credit; not classified as income |
+| Possible duplicate | Posible duplicado | Review before selecting or saving |
 
 Language option names are autonyms: `English` and `Español` in both catalogs.
