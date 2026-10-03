@@ -90,6 +90,14 @@ describe("inflow form contracts", () => {
     expect(formatInflowDate("2026-02-29")).toBe("Unknown date");
   });
 
+  it("returns caller-supplied fallback labels for unreviewable money and unknown dates", () => {
+    expect(formatInflowMoney(null, "El monto requiere revisión")).toBe("El monto requiere revisión");
+    expect(formatInflowMoney(Number("70368744177664.01"), "El monto requiere revisión")).toBe("El monto requiere revisión");
+    expect(formatInflowMoney(1234.56, "El monto requiere revisión")).toBe("$1,234.56");
+    expect(formatInflowDate("2026-02-29", "Fecha desconocida")).toBe("Fecha desconocida");
+    expect(formatInflowDate("2026-03-08", "Fecha desconocida")).toBe("03/08/2026");
+  });
+
   it("handles malformed non-string drafts and display inputs without throwing", () => {
     expect(() => validateInflow({ description: {}, amount: {}, date: {} })).not.toThrow();
     expect(validateInflow(null).payload).toBeNull();

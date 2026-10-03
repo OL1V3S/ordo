@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import ExpenseItem from "./ExpenseItem";
 import Card from "../../../shared/ui/Card";
 
@@ -19,27 +20,28 @@ export default function ExpenseList({
   taskLocked = false,
   readUnavailable = false,
 }) {
+  const { t } = useTranslation("activity");
   if (!expenses || expenses.length === 0) {
     const hasRecordedExpenses = typeof totalCount === "number" && totalCount > 0;
     return (
       <p className="empty-state expense-list__empty">
-        {hasRecordedExpenses ? "No expenses match these filters." : "No expenses recorded yet."}
+        {hasRecordedExpenses ? t("expenseList.noMatches") : t("expenseList.none")}
       </p>
     );
   }
 
   return (
     <Card className="section expense-list">
-      <div className="table-wrapper expense-list__table-wrapper" role="region" aria-label="Expenses table" tabIndex="0">
+      <div className="table-wrapper expense-list__table-wrapper" role="region" aria-label={t("expenseList.tableLabel")} tabIndex="0">
         <table className="data-table expense-table">
-          <caption className="sr-only">Expenses</caption>
+          <caption className="sr-only">{t("expenseList.caption")}</caption>
           <thead>
             <tr>
-              <th>Description</th>
-              <th>Amount ($)</th>
-              <th>Date</th>
-              <th>Category</th>
-              <th>Actions</th>
+              <th>{t("expenseList.columns.description")}</th>
+              <th>{t("expenseList.columns.amount")}</th>
+              <th>{t("expenseList.columns.date")}</th>
+              <th>{t("expenseList.columns.category")}</th>
+              <th>{t("expenseList.columns.actions")}</th>
             </tr>
           </thead>
 
@@ -67,7 +69,7 @@ export default function ExpenseList({
 
       {!showAll && filteredCount > entriesPerPage && (
         <button type="button" className="mt-2 expense-list__show-more" onClick={onShowAll} disabled={busy}>
-          Show More
+          {t("expenseList.showMore")}
         </button>
       )}
     </Card>

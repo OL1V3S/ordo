@@ -33,45 +33,41 @@ function requestTimelineRefresh(refresh) {
   try { Promise.resolve(refresh?.()).catch(() => {}); } catch { /* Timeline failures never affect the lists. */ }
 }
 
-const INFLOW_FIELD_MESSAGES = {
-  description_invalid: "Enter a description of 1 to 500 characters.",
-  amount_invalid: "Enter a positive amount with at most two decimals, up to 9999999999999999.99.",
-  date_invalid: "Enter a valid calendar date.",
+const INFLOW_FIELD_MESSAGE_KEYS = {
+  description_invalid: "cashIn.fieldErrors.description",
+  amount_invalid: "cashIn.fieldErrors.amount",
+  date_invalid: "cashIn.fieldErrors.date",
+};
+const EXPENSE_COMPLETED_KEYS = { create: "created", update: "updated", delete: "deleted" };
+const INFLOW_COMPLETED_KEYS = { create: "created", edit: "updated", delete: "deleted" };
+const INFLOW_OUTCOME_KEYS = {
+  validation: "validation",
+  unauthorized: "unauthorized",
+  forbidden: "forbidden",
+  missing: "missing",
+  unknown: "unknown",
+  unknown_checked: "unknownChecked",
+  refreshed: "refreshed",
+  retry_available: "retryAvailable",
+  blocked: "blocked",
 };
 
-function expenseFeedbackMessage(feedback) {
+function expenseFeedbackMessage(feedback, t) {
   if (!feedback) return "";
-  if (feedback.outcome === "unknown") return "We couldn’t confirm the change. Refresh activity and check the records before trying again.";
-  if (feedback.outcome === "refreshed") return "Activity refreshed. Check the records before retrying your change.";
-  const completed = { create: "Expense saved.", update: "Expense updated.", delete: "Expense deleted." }[feedback.kind];
-  return feedback.refreshFailed
-    ? `${completed} Activity could not be refreshed. Refresh the list before making another change.`
-    : completed;
+  if (feedback.outcome === "unknown") return t("spending.feedback.unknown");
+  if (feedback.outcome === "refreshed") return t("spending.feedback.refreshed");
+  const completed = EXPENSE_COMPLETED_KEYS[feedback.kind];
+  return t(`spending.feedback.${completed}${feedback.refreshFailed ? "RefreshFailed" : ""}`);
 }
 
-function inflowFeedbackMessage(feedback) {
+function inflowFeedbackMessage(feedback, t) {
   if (!feedback) return "";
   if (feedback.outcome === "completed") {
-    const completed = {
-      create: "Cash in saved. Reports use this entry’s posted date.",
-      edit: "Cash in updated. Reports use this entry’s posted date.",
-      delete: "Cash in deleted. Recorded reports will reflect its removal.",
-    }[feedback.kind];
-    return feedback.refreshFailed
-      ? `${completed} The cash-in list could not be refreshed. Refresh cash in before another change.`
-      : completed;
+    const completed = INFLOW_COMPLETED_KEYS[feedback.kind];
+    return t(`cashIn.feedback.${completed}${feedback.refreshFailed ? "RefreshFailed" : ""}`);
   }
-  return {
-    validation: "Cash in was not saved. Check the details and try again.",
-    unauthorized: "Your session ended. Sign in again.",
-    forbidden: "You do not have permission to change this cash-in record.",
-    missing: "This cash-in record is unavailable. Refresh cash in before making another change.",
-    unknown: "We couldn’t confirm the change. Refresh cash in and check the records before trying again.",
-    unknown_checked: "Cash in refreshed. Check whether the change was saved before allowing another attempt.",
-    refreshed: "Cash in refreshed. Check the current records before making another change.",
-    retry_available: "You checked the records. Another attempt is now available; it will not run automatically.",
-    blocked: "Finish or close the open expense or import task before changing cash in.",
-  }[feedback.outcome];
+  const key = INFLOW_OUTCOME_KEYS[feedback.outcome];
+  return key ? t(`cashIn.feedback.${key}`) : undefined;
 }
 
 export default function TransactionsPage() {
@@ -171,7 +167,7 @@ export default function TransactionsPage() {
   const cashPinned = inflowCapture.task?.record && !visibleCash.some((record) => record.id === inflowCapture.task.record.id);
   const cashRows = cashPinned ? [inflowCapture.task.record, ...visibleCash] : visibleCash;
   const inflowFieldErrors = Object.fromEntries(Object.entries(inflowCapture.fieldErrors)
-    .map(([field, code]) => [field, INFLOW_FIELD_MESSAGES[code] ?? code]));
+    .map(([field, code]) => [field, INFLOW_FIELD_MESSAGE_KEYS[code] ? ta(INFLOW_FIELD_MESSAGE_KEYS[code]) : code]));
   useEffect(() => { setCashShowAll(false); }, [cashSearch]);
   const recoveryReady = recoveringExpenses ? !expensesLoading && !expensesError
     : recoveringCashIn ? !cash.loading && !cash.error : false;
@@ -200,7 +196,7 @@ export default function TransactionsPage() {
     if (legacyLock.current) {
       inflowCapture.setBlockedFeedback?.();
       focusAfterRender(() => expenseCapture.open ? expenseCapture.inputRef.current : editingExpense
-        ? document.querySelector('[aria-label="Edit description"]') : importRegion.current);
+        ? document.querySelector(`[aria-label="${ta("expenseItem.editDescription")}"]`) : importRegion.current);
       return;
     }
     if (cashReadUnavailable) return;
@@ -256,24 +252,24 @@ export default function TransactionsPage() {
     }), "update", cancelEditExpense);
   }
   async function handleDeleteExpense(id) {
-    if (cashLock.current || expenseCapture.isWriteInFlight() || !window.confirm("Delete this expense?")) return;
+    if (cashLock.current || expenseCapture.isWriteInFlight() || !window.confirm(ta("spending.deleteConfirm"))) return;
     await expenseCapture.runMutation(() => deleteExpenseAndTimeline(id), "delete");
   }
 
   return (
     <div className="container activity-page">
       <header className="page-header">
-        <div><h1>Activity</h1><p className="muted">Review recorded spending and incoming money.</p></div>
+        <div><h1>{ta("page.title")}</h1><p className="muted">{ta("page.intro")}</p></div>
         <div className="inline-actions activity-task-openers">
           <button type="button" ref={addButton} disabled={Boolean(captureRecovery.source)} aria-expanded={expenseCapture.open} aria-controls="add-expense-task" onClick={openAdd}>
-            Add expense
+            {ta("page.addExpense")}
           </button>
           <button type="button" ref={cashAddButton} aria-expanded={inflowCapture.task?.type === "create"} aria-controls="cash-in-task"
             disabled={cashReadUnavailable || inflowCapture.pending || Boolean(inflowCapture.gate) || Boolean(captureRecovery.source)}
-            onClick={(event) => openCashTask("create", null, event.currentTarget)}>Add cash in</button>
+            onClick={(event) => openCashTask("create", null, event.currentTarget)}>{ta("page.addCashIn")}</button>
           <button type="button" className="button-ghost" ref={importButton} disabled={Boolean(captureRecovery.source)} aria-expanded={showImport} aria-controls="statement-import-task"
             onClick={() => { if (cashLock.current) { inflowCapture.focusTask(); return; } legacyLock.current = true; setImportOpen(true); focusAfterRender(() => importRegion.current); }}>
-            Import statement
+            {ta("page.importStatement")}
           </button>
         </div>
       </header>
@@ -291,9 +287,9 @@ export default function TransactionsPage() {
         <button type="button" disabled={!recoveryReady} onClick={acknowledgeRecovery}>{t("recovery.acknowledge")}</button>
       </section>}
       {recoveryAcknowledged && <StatusMessage tone="info">{t("recovery.acknowledged")}</StatusMessage>}
-      {cashLocked && <p className="muted">Finish the cash-in task or its refresh check before starting an expense or import task.</p>}
+      {cashLocked && <p className="muted">{ta("page.cashTaskLock")}</p>}
       <div ref={expenseCapture.feedbackRef} tabIndex={-1} className="activity-feedback">
-        {expenseCapture.feedback && <StatusMessage tone={expenseCapture.feedback.tone}>{expenseFeedbackMessage(expenseCapture.feedback)}</StatusMessage>}
+        {expenseCapture.feedback && <StatusMessage tone={expenseCapture.feedback.tone}>{expenseFeedbackMessage(expenseCapture.feedback, ta)}</StatusMessage>}
       </div>
       <div id="add-expense-task" hidden={!expenseCapture.open}>
         <ExpenseForm loading={cashLocked || expensesLoading || Boolean(expensesError) || expenseCapture.recoveryRequired}
@@ -310,24 +306,24 @@ export default function TransactionsPage() {
           isExternallyLocked={() => cashLock.current || Boolean(captureRecovery.source)} />
         {!importMustStayVisible && <button type="button" className="button-ghost" onClick={() => {
           setImportOpen(false); focusAfterRender(() => importButton.current);
-        }}>Close import</button>}
+        }}>{ta("page.closeImport")}</button>}
       </div>
       {timelineEnabled && <ActivityTimeline timeline={timeline} uncertain={timelineUncertain} />}
       <section className="activity-spending" aria-labelledby="spending-activity-heading">
         <div className="activity-spending__header">
-          <h2 id="spending-activity-heading" ref={activityHeading} tabIndex={-1}>Spending activity</h2>
+          <h2 id="spending-activity-heading" ref={activityHeading} tabIndex={-1}>{ta("spending.heading")}</h2>
           <button type="button" className="button-ghost" disabled={expensesLoading || expenseCapture.pending}
-            onClick={expenseCapture.refreshRecovery}>Refresh activity</button>
+            onClick={expenseCapture.refreshRecovery}>{ta("spending.refresh")}</button>
         </div>
         {!recoveringExpenses && <ExpenseFilters searchTerm={searchTerm} setSearchTerm={setSearchTerm} dateFilter={dateFilter} setDateFilter={setDateFilter}
           customStartDate={customStartDate} setCustomStartDate={setCustomStartDate} customEndDate={customEndDate} setCustomEndDate={setCustomEndDate}
           categoryFilter={categoryFilter} setCategoryFilter={setCategoryFilter} />}
-        {expensesLoading && <StatusMessage>{expenses.length ? "Refreshing expenses…" : "Loading expenses..."}</StatusMessage>}
+        {expensesLoading && <StatusMessage>{expenses.length ? ta("spending.refreshing") : ta("spending.loading")}</StatusMessage>}
         {expensesError && <div>
-          <StatusMessage tone="danger">We couldn’t load your expenses.</StatusMessage>
-          <button type="button" disabled={expensesLoading || expenseCapture.pending} onClick={expenseCapture.refreshRecovery}>Try again</button>
+          <StatusMessage tone="danger">{ta("spending.loadError")}</StatusMessage>
+          <button type="button" disabled={expensesLoading || expenseCapture.pending} onClick={expenseCapture.refreshRecovery}>{ta("spending.retry")}</button>
         </div>}
-        {editIsPinned && <StatusMessage>Your open edit stays here while the list changes.</StatusMessage>}
+        {editIsPinned && <StatusMessage>{ta("spending.pinnedEdit")}</StatusMessage>}
         {((!expensesLoading && !expensesError) || expensesToShow.length > 0) && <ExpenseList
           expenses={expensesToShow} totalCount={expenses.length} filteredCount={recoveringExpenses ? expenses.length : filteredExpenses.length}
           entriesPerPage={ENTRIES_PER_PAGE} showAll={recoveringExpenses || showAll} onShowAll={() => setShowAll(true)}
@@ -338,17 +334,17 @@ export default function TransactionsPage() {
       </section>
       <section className="activity-cash-in" aria-labelledby="cash-in-heading">
         <div className="activity-spending__header">
-          <h2 id="cash-in-heading" ref={inflowCapture.fallbackFocusRef} tabIndex={-1}>Cash in</h2>
-          <button type="button" className="button-ghost" disabled={cash.loading || inflowCapture.pending} onClick={inflowCapture.refreshRecovery}>Refresh cash in</button>
+          <h2 id="cash-in-heading" ref={inflowCapture.fallbackFocusRef} tabIndex={-1}>{ta("cashIn.heading")}</h2>
+          <button type="button" className="button-ghost" disabled={cash.loading || inflowCapture.pending} onClick={inflowCapture.refreshRecovery}>{ta("cashIn.refresh")}</button>
         </div>
-        <p className="muted">Recorded incoming money, including transfers and refunds. A cash-in record is not automatically income or a paycheck.</p>
+        <p className="muted">{ta("cashIn.intro")}</p>
         <div ref={inflowCapture.feedbackRef} tabIndex={-1} className="activity-feedback">
-          {inflowCapture.feedback && <StatusMessage tone={inflowCapture.feedback.tone}>{inflowFeedbackMessage(inflowCapture.feedback)}</StatusMessage>}
-          {inflowCapture.feedback?.saved && <a href="/analytics">View Insights</a>}
+          {inflowCapture.feedback && <StatusMessage tone={inflowCapture.feedback.tone}>{inflowFeedbackMessage(inflowCapture.feedback, ta)}</StatusMessage>}
+          {inflowCapture.feedback?.saved && <a href="/analytics">{ta("cashIn.viewInsights")}</a>}
         </div>
         {inflowCapture.gate === "unknown" && <button type="button" className="button-ghost"
           disabled={!inflowCapture.checkedRead || cashReadUnavailable || inflowCapture.pending}
-          onClick={inflowCapture.acknowledgeUnknown}>I checked cash in</button>}
+          onClick={inflowCapture.acknowledgeUnknown}>{ta("cashIn.checked")}</button>}
         <div id="cash-in-task" ref={inflowCapture.taskRef} hidden={!inflowCapture.task}>
           {inflowCapture.task && inflowCapture.task.type !== "delete" && <InflowForm mode={inflowCapture.task.type} draft={inflowCapture.task.draft}
             onChange={inflowCapture.updateDraft}
@@ -356,22 +352,25 @@ export default function TransactionsPage() {
             disabled={cashReadUnavailable || Boolean(inflowCapture.gate) || legacyBlocked || inflowCapture.targetMissing}
             amountNeedsReview={inflowCapture.task.type === "edit" && isUnsafeAmount(inflowCapture.task.record.amount)} />}
           {inflowCapture.task?.type === "delete" && <div className="inflow-delete-confirmation" role="group" aria-labelledby="cash-in-delete-heading">
-            <h3 id="cash-in-delete-heading">Delete cash in: {inflowCapture.task.record.description} ({formatInflowDate(inflowCapture.task.record.date)})?</h3>
-            <p>This removes the record from cash-flow history. Any supporting paycheck link is removed; the saved paycheck expectation remains.</p>
-            <p>If this entry was imported, importing the same confirmed statement again will not restore it.</p>
+            <h3 id="cash-in-delete-heading">{ta("cashIn.delete.heading", {
+              description: inflowCapture.task.record.description,
+              date: formatInflowDate(inflowCapture.task.record.date, ta("cashIn.list.unknownDate")),
+            })}</h3>
+            <p>{ta("cashIn.delete.body")}</p>
+            <p>{ta("cashIn.delete.imported")}</p>
             <div className="inline-actions">
               <button type="button" ref={inflowCapture.deleteButtonRef} className="button-danger"
                 disabled={inflowCapture.pending || cashReadUnavailable || Boolean(inflowCapture.gate) || legacyBlocked || inflowCapture.targetMissing}
-                onClick={inflowCapture.deleteTask}>{inflowCapture.pending ? "Deleting…" : "Confirm delete cash in"}</button>
-              <button type="button" className="button-ghost" disabled={inflowCapture.pending} onClick={inflowCapture.cancelTask}>Cancel</button>
+                onClick={inflowCapture.deleteTask}>{inflowCapture.pending ? ta("cashIn.delete.deleting") : ta("cashIn.delete.confirm")}</button>
+              <button type="button" className="button-ghost" disabled={inflowCapture.pending} onClick={inflowCapture.cancelTask}>{ta("cashIn.delete.cancel")}</button>
             </div>
           </div>}
-          {inflowCapture.targetMissing && <StatusMessage>This entry is no longer in the current list. Cancel this task to choose another record.</StatusMessage>}
+          {inflowCapture.targetMissing && <StatusMessage>{ta("cashIn.targetMissing")}</StatusMessage>}
         </div>
-        {!recoveringCashIn && <label className="field">Search cash in<input type="search" value={cashSearch} onChange={(event) => setCashSearch(event.target.value)} /></label>}
-        {cash.loading && <StatusMessage>{cash.inflows.length ? "Refreshing cash in…" : "Loading cash in…"}</StatusMessage>}
-        {cash.error && <StatusMessage tone="danger">We couldn’t load cash in. Refresh cash in to try again.</StatusMessage>}
-        {cashPinned && <StatusMessage>Your open cash-in record stays visible while the list changes.</StatusMessage>}
+        {!recoveringCashIn && <label className="field">{ta("cashIn.search")}<input type="search" value={cashSearch} onChange={(event) => setCashSearch(event.target.value)} /></label>}
+        {cash.loading && <StatusMessage>{cash.inflows.length ? ta("cashIn.refreshing") : ta("cashIn.loading")}</StatusMessage>}
+        {cash.error && <StatusMessage tone="danger">{ta("cashIn.loadError")}</StatusMessage>}
+        {cashPinned && <StatusMessage>{ta("cashIn.pinned")}</StatusMessage>}
         {(!cashReadUnavailable || cashRows.length > 0) && <InflowList inflows={cashRows} totalCount={cash.inflows.length}
           filteredCount={filteredCash.length} showAll={recoveringCashIn || cashShowAll} onShowAll={() => setCashShowAll(true)}
           onEdit={(record, opener) => openCashTask("edit", record, opener)} onDelete={(record, opener) => openCashTask("delete", record, opener)}

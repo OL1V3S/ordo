@@ -1,8 +1,5 @@
+import { useTranslation } from "react-i18next";
 import { formatInflowDate, formatInflowMoney } from "../utils/inflowForm";
-
-function actionName(action, inflow, formattedDate) {
-  return `${action} cash in ${inflow.description} from ${formattedDate}, record ${inflow.id}`;
-}
 
 export default function InflowList({
   inflows,
@@ -16,11 +13,12 @@ export default function InflowList({
   readUnavailable = false,
   taskRecordId = null,
 }) {
+  const { t } = useTranslation("activity");
   if (!inflows || inflows.length === 0) {
     const hasRecordedInflows = typeof totalCount === "number" && totalCount > 0;
     return (
       <p className="empty-state inflow-list__empty">
-        {hasRecordedInflows ? "No cash in matches this search." : "No cash in recorded yet."}
+        {hasRecordedInflows ? t("cashIn.list.noMatches") : t("cashIn.list.none")}
       </p>
     );
   }
@@ -29,45 +27,46 @@ export default function InflowList({
 
   return (
     <div className="inflow-list">
-      <div className="table-wrapper inflow-list__table-wrapper" role="region" aria-label="Cash in table" tabIndex="0">
+      <div className="table-wrapper inflow-list__table-wrapper" role="region" aria-label={t("cashIn.list.tableLabel")} tabIndex="0">
         <table className="data-table inflow-table">
-          <caption className="sr-only">Cash in</caption>
+          <caption className="sr-only">{t("cashIn.list.caption")}</caption>
           <thead>
             <tr>
-              <th>Description</th>
-              <th>Amount</th>
-              <th>Date</th>
-              <th>Actions</th>
+              <th>{t("cashIn.list.columns.description")}</th>
+              <th>{t("cashIn.list.columns.amount")}</th>
+              <th>{t("cashIn.list.columns.date")}</th>
+              <th>{t("cashIn.list.columns.actions")}</th>
             </tr>
           </thead>
           <tbody>
             {inflows.map((inflow) => {
-              const formattedDate = formatInflowDate(inflow.date);
+              const formattedDate = formatInflowDate(inflow.date, t("cashIn.list.unknownDate"));
+              const labelValues = { description: inflow.description, date: formattedDate, id: inflow.id };
               const isTaskRecord = taskRecordId === inflow.id;
               return (
                 <tr key={inflow.id} className={`inflow-row${isTaskRecord ? " inflow-row--task" : ""}`} aria-current={isTaskRecord ? "true" : undefined}>
-                  <td className="inflow-cell inflow-cell--description" data-label="Description">{inflow.description}</td>
-                  <td className="inflow-cell inflow-cell--amount" data-label="Amount">{formatInflowMoney(inflow.amount)}</td>
-                  <td className="inflow-cell inflow-cell--date" data-label="Date">{formattedDate}</td>
-                  <td className="inflow-cell inflow-cell--actions" data-label="Actions">
+                  <td className="inflow-cell inflow-cell--description" data-label={t("cashIn.list.columns.description")}>{inflow.description}</td>
+                  <td className="inflow-cell inflow-cell--amount" data-label={t("cashIn.list.columns.amount")}>{formatInflowMoney(inflow.amount, t("cashIn.list.amountReview"))}</td>
+                  <td className="inflow-cell inflow-cell--date" data-label={t("cashIn.list.columns.date")}>{formattedDate}</td>
+                  <td className="inflow-cell inflow-cell--actions" data-label={t("cashIn.list.columns.actions")}>
                     <div className="inline-actions inflow-row__actions">
                       <button
                         type="button"
                         className="button-ghost"
                         disabled={actionsDisabled}
-                        aria-label={actionName("Edit", inflow, formattedDate)}
+                        aria-label={t("cashIn.list.editLabel", labelValues)}
                         onClick={(event) => onEdit(inflow, event.currentTarget)}
                       >
-                        Edit
+                        {t("cashIn.list.edit")}
                       </button>
                       <button
                         type="button"
                         className="button-ghost"
                         disabled={actionsDisabled}
-                        aria-label={actionName("Delete", inflow, formattedDate)}
+                        aria-label={t("cashIn.list.deleteLabel", labelValues)}
                         onClick={(event) => onDelete(inflow, event.currentTarget)}
                       >
-                        Delete
+                        {t("cashIn.list.delete")}
                       </button>
                     </div>
                   </td>
@@ -80,7 +79,7 @@ export default function InflowList({
 
       {!showAll && filteredCount > 10 && (
         <button type="button" className="button-ghost inflow-list__show-all" onClick={onShowAll} disabled={disabled}>
-          Show all cash in
+          {t("cashIn.list.showAll")}
         </button>
       )}
     </div>

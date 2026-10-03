@@ -94,7 +94,7 @@ describe("Activity timeline on the Activity page", () => {
     expect(screen.getByRole("heading", { name: "Cash in" })).toBeInTheDocument();
   });
 
-  it("localizes the section links in Spanish while the rest of the page stays English", async () => {
+  it("localizes the section links in Spanish", async () => {
     await i18n.changeLanguage("es");
     try {
       renderPage();
@@ -103,7 +103,7 @@ describe("Activity timeline on the Activity page", () => {
       expect(within(nav).getByRole("link", { name: "Cronología" })).toBeInTheDocument();
       expect(within(nav).getByRole("link", { name: "Gastos" })).toBeInTheDocument();
       expect(within(nav).getByRole("link", { name: "Entradas de dinero" })).toBeInTheDocument();
-      expect(screen.getByRole("heading", { name: "Spending activity" })).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "Actividad de gastos" })).toBeInTheDocument();
     } finally {
       await i18n.changeLanguage("en");
     }

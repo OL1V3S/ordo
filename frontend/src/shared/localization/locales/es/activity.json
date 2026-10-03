@@ -5,6 +5,15 @@
     "spending": "Gastos",
     "cashIn": "Entradas de dinero"
   },
+  "page": {
+    "title": "Actividad",
+    "intro": "Revisa los gastos registrados y el dinero que entra.",
+    "addExpense": "Agregar gasto",
+    "addCashIn": "Agregar entrada de dinero",
+    "importStatement": "Importar estado de cuenta",
+    "closeImport": "Cerrar importación",
+    "cashTaskLock": "Termina la tarea de entrada de dinero o su revisión de actualización antes de iniciar una tarea de gasto o de importación."
+  },
   "timeline": {
     "heading": "Cronología de actividad",
     "intro": "Todo lo que has registrado, de lo más reciente a lo más antiguo. Estos registros también aparecen en las listas de más abajo.",
@@ -22,5 +31,187 @@
     "loadMoreFailed": "No pudimos cargar la actividad anterior.",
     "retryMore": "Intentar cargar la actividad anterior de nuevo",
     "end": "Esa es toda tu actividad registrada."
+  },
+  "categories": {
+    "food": "Comida",
+    "transport": "Transporte",
+    "bills": "Facturas",
+    "entertainment": "Entretenimiento",
+    "other": "Otra"
+  },
+  "spending": {
+    "heading": "Actividad de gastos",
+    "refresh": "Actualizar actividad",
+    "loading": "Cargando gastos...",
+    "refreshing": "Actualizando gastos…",
+    "loadError": "No pudimos cargar tus gastos.",
+    "retry": "Intentar de nuevo",
+    "pinnedEdit": "Tu edición abierta se mantiene aquí mientras cambia la lista.",
+    "deleteConfirm": "¿Eliminar este gasto?",
+    "feedback": {
+      "unknown": "No pudimos confirmar el cambio. Actualiza la actividad y revisa los registros antes de intentarlo de nuevo.",
+      "refreshed": "Actividad actualizada. Revisa los registros antes de volver a intentar tu cambio.",
+      "created": "Gasto guardado.",
+      "updated": "Gasto actualizado.",
+      "deleted": "Gasto eliminado.",
+      "createdRefreshFailed": "Gasto guardado. No se pudo actualizar la actividad. Actualiza la lista antes de hacer otro cambio.",
+      "updatedRefreshFailed": "Gasto actualizado. No se pudo actualizar la actividad. Actualiza la lista antes de hacer otro cambio.",
+      "deletedRefreshFailed": "Gasto eliminado. No se pudo actualizar la actividad. Actualiza la lista antes de hacer otro cambio."
+    }
+  },
+  "expenseForm": {
+    "title": "Agregar gasto",
+    "legend": "Nuevo gasto",
+    "fieldsRequired": "Completa los campos obligatorios del gasto.",
+    "amountInvalid": "Ingresa un monto positivo con hasta dos decimales, hasta 9999999999999999.99.",
+    "description": "Descripción",
+    "descriptionPlaceholder": "Descripción",
+    "amount": "Monto",
+    "amountPlaceholder": "Monto",
+    "date": "Fecha",
+    "category": "Categoría",
+    "categoryPlaceholder": "Categoría",
+    "customCategory": "Categoría personalizada",
+    "customCategoryPlaceholder": "Categoría personalizada",
+    "save": "Guardar gasto",
+    "saving": "Guardando…",
+    "cancel": "Cancelar"
+  },
+  "expenseFilters": {
+    "searchLabel": "Buscar gastos",
+    "searchPlaceholder": "Buscar por descripción o categoría...",
+    "clear": "Borrar filtros",
+    "activeFilters": "Filtros activos:",
+    "disclosure": "Filtrar por fecha o categoría",
+    "dateRange": "Rango de fechas",
+    "startDate": "Fecha de inicio",
+    "endDate": "Fecha de fin",
+    "category": "Categoría",
+    "allCategories": "Todas",
+    "dateOptions": {
+      "all": "Todo el tiempo",
+      "last7": "Últimos 7 días",
+      "last30": "Últimos 30 días",
+      "thisMonth": "Este mes",
+      "custom": "Rango personalizado"
+    },
+    "summary": {
+      "last7": "Últimos 7 días",
+      "last30": "Últimos 30 días",
+      "thisMonth": "Este mes",
+      "custom": "Rango personalizado",
+      "customWithRange": "Rango personalizado: {{range}}",
+      "search": "Búsqueda: “{{term}}”",
+      "category": "Categoría: {{category}}"
+    }
+  },
+  "expenseList": {
+    "noMatches": "Ningún gasto coincide con estos filtros.",
+    "none": "Todavía no hay gastos registrados.",
+    "tableLabel": "Tabla de gastos",
+    "caption": "Gastos",
+    "showMore": "Mostrar más",
+    "columns": {
+      "description": "Descripción",
+      "amount": "Monto ($)",
+      "date": "Fecha",
+      "category": "Categoría",
+      "actions": "Acciones"
+    }
+  },
+  "expenseItem": {
+    "editDescription": "Editar descripción",
+    "editAmount": "Editar monto",
+    "editDate": "Editar fecha",
+    "editCategory": "Editar categoría",
+    "editCustomCategory": "Editar categoría personalizada",
+    "amountInvalid": "Ingresa un monto exacto válido.",
+    "amountReview": "El monto requiere revisión",
+    "categoryPlaceholder": "Categoría",
+    "customCategoryPlaceholder": "Categoría personalizada",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "editLabel": "Editar gasto {{description}} del {{date}}, fila {{row}}",
+    "deleteLabel": "Eliminar gasto {{description}} del {{date}}, fila {{row}}"
+  },
+  "cashIn": {
+    "heading": "Entradas de dinero",
+    "refresh": "Actualizar entradas de dinero",
+    "intro": "Dinero entrante registrado, incluidas transferencias y reembolsos. Una entrada de dinero no es automáticamente un ingreso ni un pago de nómina.",
+    "viewInsights": "Ver Análisis",
+    "checked": "Revisé las entradas de dinero",
+    "search": "Buscar entradas de dinero",
+    "loading": "Cargando entradas de dinero…",
+    "refreshing": "Actualizando entradas de dinero…",
+    "loadError": "No pudimos cargar las entradas de dinero. Actualízalas para intentarlo de nuevo.",
+    "pinned": "Tu entrada de dinero abierta sigue visible mientras cambia la lista.",
+    "targetMissing": "Esta entrada ya no está en la lista actual. Cancela esta tarea para elegir otro registro.",
+    "delete": {
+      "heading": "¿Eliminar entrada de dinero: {{description}} ({{date}})?",
+      "body": "Esto elimina el registro del historial de flujo de efectivo. Se quita cualquier vínculo de respaldo con un pago de nómina; la previsión de nómina guardada se mantiene.",
+      "imported": "Si esta entrada se importó, volver a importar el mismo estado de cuenta confirmado no la restaurará.",
+      "confirm": "Confirmar eliminación de la entrada de dinero",
+      "deleting": "Eliminando…",
+      "cancel": "Cancelar"
+    },
+    "feedback": {
+      "created": "Entrada de dinero guardada. Los informes usan la fecha de contabilización de esta entrada.",
+      "updated": "Entrada de dinero actualizada. Los informes usan la fecha de contabilización de esta entrada.",
+      "deleted": "Entrada de dinero eliminada. Los informes registrados reflejarán su eliminación.",
+      "createdRefreshFailed": "Entrada de dinero guardada. Los informes usan la fecha de contabilización de esta entrada. No se pudo actualizar la lista de entradas de dinero. Actualízala antes de hacer otro cambio.",
+      "updatedRefreshFailed": "Entrada de dinero actualizada. Los informes usan la fecha de contabilización de esta entrada. No se pudo actualizar la lista de entradas de dinero. Actualízala antes de hacer otro cambio.",
+      "deletedRefreshFailed": "Entrada de dinero eliminada. Los informes registrados reflejarán su eliminación. No se pudo actualizar la lista de entradas de dinero. Actualízala antes de hacer otro cambio.",
+      "validation": "No se guardó la entrada de dinero. Revisa los detalles e inténtalo de nuevo.",
+      "unauthorized": "Tu sesión terminó. Inicia sesión de nuevo.",
+      "forbidden": "No tienes permiso para cambiar este registro de entrada de dinero.",
+      "missing": "Este registro de entrada de dinero no está disponible. Actualiza las entradas de dinero antes de hacer otro cambio.",
+      "unknown": "No pudimos confirmar el cambio. Actualiza las entradas de dinero y revisa los registros antes de intentarlo de nuevo.",
+      "unknownChecked": "Entradas de dinero actualizadas. Verifica si se guardó el cambio antes de permitir otro intento.",
+      "refreshed": "Entradas de dinero actualizadas. Revisa los registros actuales antes de hacer otro cambio.",
+      "retryAvailable": "Revisaste los registros. Ya está disponible otro intento; no se ejecutará automáticamente.",
+      "blocked": "Termina o cierra la tarea de gasto o de importación abierta antes de cambiar las entradas de dinero."
+    },
+    "fieldErrors": {
+      "description": "Ingresa una descripción de 1 a 500 caracteres.",
+      "amount": "Ingresa un monto positivo con hasta dos decimales, hasta 9999999999999999.99.",
+      "date": "Ingresa una fecha de calendario válida."
+    },
+    "form": {
+      "title": "Agregar entrada de dinero",
+      "editTitle": "Editar entrada de dinero",
+      "save": "Agregar entrada de dinero",
+      "saveChanges": "Guardar cambios",
+      "editWarning": "Los cambios actualizan el flujo de efectivo registrado. Si esta entrada respalda un pago de nómina guardado, ese vínculo se mantiene y sus detalles registrados se actualizan; la previsión de nómina guardada no cambia.",
+      "amountReviewTitle": "El monto requiere revisión.",
+      "amountReviewBody": "Ingresa de nuevo el monto exacto antes de guardar.",
+      "checkFields": "Revisa los campos marcados.",
+      "detailsLegend": "Detalles de la entrada de dinero",
+      "description": "Descripción",
+      "amount": "Monto",
+      "date": "Fecha",
+      "saving": "Guardando…",
+      "cancel": "Cancelar"
+    },
+    "list": {
+      "noMatches": "Ninguna entrada de dinero coincide con esta búsqueda.",
+      "none": "Todavía no hay entradas de dinero registradas.",
+      "tableLabel": "Tabla de entradas de dinero",
+      "caption": "Entradas de dinero",
+      "showAll": "Mostrar todas las entradas de dinero",
+      "edit": "Editar",
+      "delete": "Eliminar",
+      "editLabel": "Editar entrada de dinero {{description}} del {{date}}, registro {{id}}",
+      "deleteLabel": "Eliminar entrada de dinero {{description}} del {{date}}, registro {{id}}",
+      "amountReview": "El monto requiere revisión",
+      "unknownDate": "Fecha desconocida",
+      "columns": {
+        "description": "Descripción",
+        "amount": "Monto",
+        "date": "Fecha",
+        "actions": "Acciones"
+      }
+    }
   }
 }

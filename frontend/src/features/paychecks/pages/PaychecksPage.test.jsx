@@ -2,6 +2,7 @@ import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import PaychecksPage from "./PaychecksPage";
+import "../../../shared/localization/i18n";
 import { paychecksApi } from "../api/paychecksApi";
 import { inflowsApi } from "../../inflows/api/inflowsApi";
 import { makeCandidate, makeCandidateResponse, makePaycheck, makePaychecksResponse } from "../test/paycheckFixtures";

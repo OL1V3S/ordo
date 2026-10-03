@@ -5,6 +5,15 @@
     "spending": "Spending",
     "cashIn": "Cash in"
   },
+  "page": {
+    "title": "Activity",
+    "intro": "Review recorded spending and incoming money.",
+    "addExpense": "Add expense",
+    "addCashIn": "Add cash in",
+    "importStatement": "Import statement",
+    "closeImport": "Close import",
+    "cashTaskLock": "Finish the cash-in task or its refresh check before starting an expense or import task."
+  },
   "timeline": {
     "heading": "Activity timeline",
     "intro": "Everything you have recorded, newest first. These records also appear in the lists below.",
@@ -22,5 +31,187 @@
     "loadMoreFailed": "We couldn’t load older activity.",
     "retryMore": "Try loading older activity again",
     "end": "That is all of your recorded activity."
+  },
+  "categories": {
+    "food": "Food",
+    "transport": "Transport",
+    "bills": "Bills",
+    "entertainment": "Entertainment",
+    "other": "Other"
+  },
+  "spending": {
+    "heading": "Spending activity",
+    "refresh": "Refresh activity",
+    "loading": "Loading expenses...",
+    "refreshing": "Refreshing expenses…",
+    "loadError": "We couldn’t load your expenses.",
+    "retry": "Try again",
+    "pinnedEdit": "Your open edit stays here while the list changes.",
+    "deleteConfirm": "Delete this expense?",
+    "feedback": {
+      "unknown": "We couldn’t confirm the change. Refresh activity and check the records before trying again.",
+      "refreshed": "Activity refreshed. Check the records before retrying your change.",
+      "created": "Expense saved.",
+      "updated": "Expense updated.",
+      "deleted": "Expense deleted.",
+      "createdRefreshFailed": "Expense saved. Activity could not be refreshed. Refresh the list before making another change.",
+      "updatedRefreshFailed": "Expense updated. Activity could not be refreshed. Refresh the list before making another change.",
+      "deletedRefreshFailed": "Expense deleted. Activity could not be refreshed. Refresh the list before making another change."
+    }
+  },
+  "expenseForm": {
+    "title": "Add expense",
+    "legend": "New expense",
+    "fieldsRequired": "Complete the required expense fields.",
+    "amountInvalid": "Enter a positive amount with at most two decimals, up to 9999999999999999.99.",
+    "description": "Description",
+    "descriptionPlaceholder": "Description",
+    "amount": "Amount",
+    "amountPlaceholder": "Amount",
+    "date": "Date",
+    "category": "Category",
+    "categoryPlaceholder": "Category",
+    "customCategory": "Custom category",
+    "customCategoryPlaceholder": "Custom Category",
+    "save": "Save expense",
+    "saving": "Saving…",
+    "cancel": "Cancel"
+  },
+  "expenseFilters": {
+    "searchLabel": "Search expenses",
+    "searchPlaceholder": "Search description or category...",
+    "clear": "Clear filters",
+    "activeFilters": "Active filters:",
+    "disclosure": "Filter by date or category",
+    "dateRange": "Date range",
+    "startDate": "Start date",
+    "endDate": "End date",
+    "category": "Category",
+    "allCategories": "All",
+    "dateOptions": {
+      "all": "All Time",
+      "last7": "Last 7 Days",
+      "last30": "Last 30 Days",
+      "thisMonth": "This Month",
+      "custom": "Custom Range"
+    },
+    "summary": {
+      "last7": "Last 7 days",
+      "last30": "Last 30 days",
+      "thisMonth": "This month",
+      "custom": "Custom range",
+      "customWithRange": "Custom range: {{range}}",
+      "search": "Search: “{{term}}”",
+      "category": "Category: {{category}}"
+    }
+  },
+  "expenseList": {
+    "noMatches": "No expenses match these filters.",
+    "none": "No expenses recorded yet.",
+    "tableLabel": "Expenses table",
+    "caption": "Expenses",
+    "showMore": "Show More",
+    "columns": {
+      "description": "Description",
+      "amount": "Amount ($)",
+      "date": "Date",
+      "category": "Category",
+      "actions": "Actions"
+    }
+  },
+  "expenseItem": {
+    "editDescription": "Edit description",
+    "editAmount": "Edit amount",
+    "editDate": "Edit date",
+    "editCategory": "Edit category",
+    "editCustomCategory": "Edit custom category",
+    "amountInvalid": "Enter a valid exact amount.",
+    "amountReview": "Amount needs review",
+    "categoryPlaceholder": "Category",
+    "customCategoryPlaceholder": "Custom Category",
+    "save": "Save",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "delete": "Delete",
+    "editLabel": "Edit expense {{description}} from {{date}}, row {{row}}",
+    "deleteLabel": "Delete expense {{description}} from {{date}}, row {{row}}"
+  },
+  "cashIn": {
+    "heading": "Cash in",
+    "refresh": "Refresh cash in",
+    "intro": "Recorded incoming money, including transfers and refunds. A cash-in record is not automatically income or a paycheck.",
+    "viewInsights": "View Insights",
+    "checked": "I checked cash in",
+    "search": "Search cash in",
+    "loading": "Loading cash in…",
+    "refreshing": "Refreshing cash in…",
+    "loadError": "We couldn’t load cash in. Refresh cash in to try again.",
+    "pinned": "Your open cash-in record stays visible while the list changes.",
+    "targetMissing": "This entry is no longer in the current list. Cancel this task to choose another record.",
+    "delete": {
+      "heading": "Delete cash in: {{description}} ({{date}})?",
+      "body": "This removes the record from cash-flow history. Any supporting paycheck link is removed; the saved paycheck expectation remains.",
+      "imported": "If this entry was imported, importing the same confirmed statement again will not restore it.",
+      "confirm": "Confirm delete cash in",
+      "deleting": "Deleting…",
+      "cancel": "Cancel"
+    },
+    "feedback": {
+      "created": "Cash in saved. Reports use this entry’s posted date.",
+      "updated": "Cash in updated. Reports use this entry’s posted date.",
+      "deleted": "Cash in deleted. Recorded reports will reflect its removal.",
+      "createdRefreshFailed": "Cash in saved. Reports use this entry’s posted date. The cash-in list could not be refreshed. Refresh cash in before another change.",
+      "updatedRefreshFailed": "Cash in updated. Reports use this entry’s posted date. The cash-in list could not be refreshed. Refresh cash in before another change.",
+      "deletedRefreshFailed": "Cash in deleted. Recorded reports will reflect its removal. The cash-in list could not be refreshed. Refresh cash in before another change.",
+      "validation": "Cash in was not saved. Check the details and try again.",
+      "unauthorized": "Your session ended. Sign in again.",
+      "forbidden": "You do not have permission to change this cash-in record.",
+      "missing": "This cash-in record is unavailable. Refresh cash in before making another change.",
+      "unknown": "We couldn’t confirm the change. Refresh cash in and check the records before trying again.",
+      "unknownChecked": "Cash in refreshed. Check whether the change was saved before allowing another attempt.",
+      "refreshed": "Cash in refreshed. Check the current records before making another change.",
+      "retryAvailable": "You checked the records. Another attempt is now available; it will not run automatically.",
+      "blocked": "Finish or close the open expense or import task before changing cash in."
+    },
+    "fieldErrors": {
+      "description": "Enter a description of 1 to 500 characters.",
+      "amount": "Enter a positive amount with at most two decimals, up to 9999999999999999.99.",
+      "date": "Enter a valid calendar date."
+    },
+    "form": {
+      "title": "Add cash in",
+      "editTitle": "Edit cash in",
+      "save": "Add cash in",
+      "saveChanges": "Save changes",
+      "editWarning": "Changes update recorded cash flow. If this entry supports a saved paycheck, that link stays and its recorded details update; the saved paycheck expectation stays unchanged.",
+      "amountReviewTitle": "Amount needs review.",
+      "amountReviewBody": "Enter the exact amount again before saving.",
+      "checkFields": "Check the highlighted fields.",
+      "detailsLegend": "Cash-in details",
+      "description": "Description",
+      "amount": "Amount",
+      "date": "Date",
+      "saving": "Saving…",
+      "cancel": "Cancel"
+    },
+    "list": {
+      "noMatches": "No cash in matches this search.",
+      "none": "No cash in recorded yet.",
+      "tableLabel": "Cash in table",
+      "caption": "Cash in",
+      "showAll": "Show all cash in",
+      "edit": "Edit",
+      "delete": "Delete",
+      "editLabel": "Edit cash in {{description}} from {{date}}, record {{id}}",
+      "deleteLabel": "Delete cash in {{description}} from {{date}}, record {{id}}",
+      "amountReview": "Amount needs review",
+      "unknownDate": "Unknown date",
+      "columns": {
+        "description": "Description",
+        "amount": "Amount",
+        "date": "Date",
+        "actions": "Actions"
+      }
+    }
   }
 }

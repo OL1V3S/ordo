@@ -2,6 +2,7 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import ExpenseList from "./ExpenseList";
+import "../../../shared/localization/i18n";
 
 const expense = {
   id: 7,

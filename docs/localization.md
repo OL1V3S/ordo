@@ -3,11 +3,17 @@
 Ordo's browser frontend supports English and broadly neutral U.S./Latin
 American Spanish as an incremental product capability. The authenticated shell,
 primary navigation, Plan and More hubs, and Settings are the first localized
-surfaces. Feature pages and public account-access pages remain English until a
-separately scoped adoption issue moves their complete copy into catalogs. The
-Activity timeline and the Activity section-links navigation are localized through
-the `activity` namespace; the rest of the Activity page stays English, so the
-Spanish Activity page is intentionally mixed-language until that adoption issue.
+surfaces. Other feature pages and public account-access pages remain English
+until a separately scoped adoption issue moves their complete copy into catalogs.
+The Activity page is localized through the `activity` namespace: the timeline, the
+section links, the page header and actions, the spending area (expense form,
+filters, list, and row editing), and the cash-in area (form, list, and delete
+confirmation), including their feedback and error messages. The import preview
+panel and its rows (`importPreview/*`) remain English, so the Spanish Activity
+page is intentionally still partly English until a later slice. The shared
+cash-in form is also used to record a paycheck receipt on the Paychecks page; it
+follows the selected language there while the rest of that page, including its
+validation messages, stays English until Paychecks is adopted.
 
 ## Runtime boundary
 
@@ -37,6 +43,20 @@ import/export them, but the runtime must not depend on a translation service.
   stay stable.
 - Map future localized failures from stable client/backend error codes. Do not
   parse or translate raw server sentences.
+- Pure helpers that return display fallbacks (for example `formatInflowMoney` and
+  `formatInflowDate`) take the localized label from the caller and keep an English
+  default for callers that are not localized yet. Validation text that is never
+  rendered (the cash-in capture hook maps `validateInflow` results to stable
+  `*_invalid` codes) stays in the helper; the page maps those codes to catalog
+  messages.
+- Do not look up DOM nodes by visible English text. Where code must locate a
+  control by its label, build the selector from the same catalog string.
+- Category option labels are localized, but a stored category value (for example
+  `food`) is shown as stored and text search matches the stored value.
+  Localizing displayed values would change search semantics and needs a separate
+  decision.
+- Activity spending and cash-in lists keep their existing `$` amounts and
+  `MM/DD/YYYY` dates in both languages until formatters adopt the direction below.
 
 ## Formatting direction
 
@@ -83,5 +103,9 @@ unchanged. Generic cash-in wording must not imply earned income.
 | System / Light / Dark | Sistema / Claro / Oscuro | Theme options |
 | Language | Idioma | |
 | Logout | Cerrar sesión | |
+| Delete | Eliminar | Expense and cash-in removal |
+| Posted date | Fecha de contabilización | Cash-in date used by reports |
+| Paycheck expectation | Previsión de nómina | Saved expected paycheck |
+| Statement | Estado de cuenta | Bank statement import |
 
 Language option names are autonyms: `English` and `Español` in both catalogs.

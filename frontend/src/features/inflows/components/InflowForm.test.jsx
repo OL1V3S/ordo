@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import InflowForm from "./InflowForm";
+import "../../../shared/localization/i18n";
 
 const draft = { description: "Client payment", amount: "1250.50", date: "2026-08-14" };
 
