@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import ExpenseFilters from "./ExpenseFilters";
+import "../../../shared/localization/i18n";
 
 function filterProps(overrides = {}) {
   return {

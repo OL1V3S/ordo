@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { DEFAULT_CATEGORIES } from "../../../shared/constants/categories";
 import { displayText } from "../../../utils/text";
 import { formatExpenseDate } from "../utils/calendarDate";
@@ -18,9 +19,10 @@ export default function ExpenseItem({
   taskLocked = false,
   readUnavailable = false,
 }) {
+  const { t } = useTranslation("activity");
   const selectedCategory = editingData.category || "";
   const descriptionInputRef = useRef(null);
-  const expenseLabel = `${displayText(expense.description)} from ${formatExpenseDate(expense.date)}, row ${rowNumber}`;
+  const labelValues = { description: displayText(expense.description), date: formatExpenseDate(expense.date), row: rowNumber };
   const amountIsExact = Boolean(parseExpenseAmount(expense.amount));
   const editingAmountIsValid = Boolean(parseExpenseAmount(editingData.amount));
 
@@ -30,12 +32,12 @@ export default function ExpenseItem({
 
   return (
     <tr className={`expense-row${isEditing ? " expense-row--editing" : ""}`}>
-      <td className="expense-cell expense-cell--description" data-label="Description">
+      <td className="expense-cell expense-cell--description" data-label={t("expenseList.columns.description")}>
         {isEditing ? (
           <input
             ref={descriptionInputRef}
             disabled={busy}
-            aria-label="Edit description"
+            aria-label={t("expenseItem.editDescription")}
             value={editingData.description || ""}
             onChange={(e) =>
               setEditingData((prev) => ({
@@ -49,12 +51,12 @@ export default function ExpenseItem({
         )}
       </td>
 
-      <td className="expense-cell expense-cell--amount" data-label="Amount ($)">
+      <td className="expense-cell expense-cell--amount" data-label={t("expenseList.columns.amount")}>
         {isEditing ? (
           <>
             <input
               disabled={busy}
-              aria-label="Edit amount"
+              aria-label={t("expenseItem.editAmount")}
               aria-invalid={!editingAmountIsValid}
               type="text"
               inputMode="decimal"
@@ -66,18 +68,18 @@ export default function ExpenseItem({
                 }))
               }
             />
-            {!editingAmountIsValid && <span className="status-message status-message--danger">Enter a valid exact amount.</span>}
+            {!editingAmountIsValid && <span className="status-message status-message--danger">{t("expenseItem.amountInvalid")}</span>}
           </>
         ) : (
-          formatExactMoney(expense.amount).replace(/^\$/, "")
+          amountIsExact ? formatExactMoney(expense.amount).replace(/^\$/, "") : t("expenseItem.amountReview")
         )}
       </td>
 
-      <td className="expense-cell expense-cell--date" data-label="Date">
+      <td className="expense-cell expense-cell--date" data-label={t("expenseList.columns.date")}>
         {isEditing ? (
           <input
             disabled={busy}
-            aria-label="Edit date"
+            aria-label={t("expenseItem.editDate")}
             type="date"
             value={editingData.date || ""}
             onChange={(e) =>
@@ -92,12 +94,12 @@ export default function ExpenseItem({
         )}
       </td>
 
-      <td className="expense-cell expense-cell--category" data-label="Category">
+      <td className="expense-cell expense-cell--category" data-label={t("expenseList.columns.category")}>
         {isEditing ? (
           <>
             <select
               disabled={busy}
-            aria-label="Edit category"
+            aria-label={t("expenseItem.editCategory")}
               value={selectedCategory}
               onChange={(e) =>
                 setEditingData((prev) => ({
@@ -106,21 +108,21 @@ export default function ExpenseItem({
                 }))
               }
             >
-              <option value="">Category</option>
+              <option value="">{t("expenseItem.categoryPlaceholder")}</option>
               {DEFAULT_CATEGORIES.map((c) => (
                 <option key={c} value={c.toLowerCase()}>
-                  {displayText(c)}
+                  {t(`categories.${c.toLowerCase()}`)}
                 </option>
               ))}
-              <option value="other">Other</option>
+              <option value="other">{t("categories.other")}</option>
             </select>
 
             {selectedCategory === "other" && (
               <input
                 disabled={busy}
-            aria-label="Edit custom category"
+            aria-label={t("expenseItem.editCustomCategory")}
                 type="text"
-                placeholder="Custom Category"
+                placeholder={t("expenseItem.customCategoryPlaceholder")}
                 value={editingData.customCategory || ""}
                 onChange={(e) =>
                   setEditingData((prev) => ({
@@ -136,32 +138,32 @@ export default function ExpenseItem({
         )}
       </td>
 
-      <td className="expense-cell expense-cell--actions" data-label="Actions">
+      <td className="expense-cell expense-cell--actions" data-label={t("expenseList.columns.actions")}>
         {isEditing ? (
           <div className="inline-actions">
-            <button type="button" onClick={() => onSave(expense.id)} disabled={busy || readUnavailable || !editingAmountIsValid}>Save</button>
+            <button type="button" onClick={() => onSave(expense.id)} disabled={busy || readUnavailable || !editingAmountIsValid}>{t("expenseItem.save")}</button>
             <button type="button" className="button-ghost" onClick={onCancel} disabled={busy}>
-              Cancel
+              {t("expenseItem.cancel")}
             </button>
           </div>
         ) : (
           <div className="inline-actions">
             <button
               type="button"
-              aria-label={`Edit expense ${expenseLabel}`}
+              aria-label={t("expenseItem.editLabel", labelValues)}
               onClick={(event) => onStartEdit(expense, event.currentTarget)}
               disabled={busy || taskLocked || readUnavailable || !amountIsExact}
             >
-              Edit
+              {t("expenseItem.edit")}
             </button>
             <button
               type="button"
               className="button-danger"
-              aria-label={`Delete expense ${expenseLabel}`}
+              aria-label={t("expenseItem.deleteLabel", labelValues)}
               onClick={() => onDelete(expense.id)}
               disabled={busy || taskLocked || readUnavailable}
             >
-              Delete
+              {t("expenseItem.delete")}
             </button>
           </div>
         )}

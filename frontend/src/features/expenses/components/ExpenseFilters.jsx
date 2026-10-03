@@ -1,11 +1,12 @@
+import { useTranslation } from "react-i18next";
 import { DEFAULT_CATEGORIES } from "../../../shared/constants/categories";
 import Card from "../../../shared/ui/Card";
 import FormField from "../../../shared/ui/FormField";
 
-const DATE_FILTER_LABELS = {
-  last7: "Last 7 days",
-  last30: "Last 30 days",
-  thisMonth: "This month",
+const DATE_FILTER_SUMMARY_KEYS = {
+  last7: "expenseFilters.summary.last7",
+  last30: "expenseFilters.summary.last30",
+  thisMonth: "expenseFilters.summary.thisMonth",
 };
 
 export default function ExpenseFilters({
@@ -20,15 +21,18 @@ export default function ExpenseFilters({
   categoryFilter,
   setCategoryFilter,
 }) {
+  const { t } = useTranslation("activity");
   const trimmedSearchTerm = searchTerm.trim();
   const customDateLabel = [customStartDate, customEndDate].filter(Boolean).join(" – ");
-  const dateFilterLabel = dateFilter === "custom"
-    ? `Custom range${customDateLabel ? `: ${customDateLabel}` : ""}`
-    : DATE_FILTER_LABELS[dateFilter];
+  const categoryLabel = (value) => t(`categories.${value.toLowerCase()}`, { defaultValue: value });
+  const dateFilterLabel = dateFilter === "all" ? ""
+    : dateFilter === "custom"
+      ? (customDateLabel ? t("expenseFilters.summary.customWithRange", { range: customDateLabel }) : t("expenseFilters.summary.custom"))
+      : t(DATE_FILTER_SUMMARY_KEYS[dateFilter]);
   const activeFilters = [
-    trimmedSearchTerm ? `Search: “${trimmedSearchTerm}”` : "",
+    trimmedSearchTerm ? t("expenseFilters.summary.search", { term: trimmedSearchTerm }) : "",
     dateFilter !== "all" ? dateFilterLabel : "",
-    categoryFilter ? `Category: ${categoryFilter}` : "",
+    categoryFilter ? t("expenseFilters.summary.category", { category: categoryLabel(categoryFilter) }) : "",
   ].filter(Boolean);
 
   function clearFilters() {
@@ -42,12 +46,12 @@ export default function ExpenseFilters({
   return (
     <Card className="section card--subtle expense-filters">
       <div className="expense-filters__primary">
-        <FormField label="Search expenses" className="expense-filters__search">
+        <FormField label={t("expenseFilters.searchLabel")} className="expense-filters__search">
           {(id) => (
             <input
               id={id}
               type="search"
-              placeholder="Search description or category..."
+              placeholder={t("expenseFilters.searchPlaceholder")}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -55,36 +59,36 @@ export default function ExpenseFilters({
         </FormField>
         {activeFilters.length > 0 ? (
           <button type="button" className="button-ghost expense-filters__clear" onClick={clearFilters}>
-            Clear filters
+            {t("expenseFilters.clear")}
           </button>
         ) : null}
       </div>
 
       {activeFilters.length > 0 ? (
         <p className="expense-filters__summary" aria-live="polite">
-          <span className="sr-only">Active filters: </span>
+          <span className="sr-only">{t("expenseFilters.activeFilters")}{" "}</span>
           {activeFilters.join(" · ")}
         </p>
       ) : null}
 
       <details className="filter-disclosure">
-        <summary>Filter by date or category</summary>
+        <summary>{t("expenseFilters.disclosure")}</summary>
         <div className="filters filter-disclosure__content">
-          <FormField label="Date range">
+          <FormField label={t("expenseFilters.dateRange")}>
             {(id) => (
               <select id={id} value={dateFilter} onChange={(e) => setDateFilter(e.target.value)}>
-                <option value="all">All Time</option>
-                <option value="last7">Last 7 Days</option>
-                <option value="last30">Last 30 Days</option>
-                <option value="thisMonth">This Month</option>
-                <option value="custom">Custom Range</option>
+                <option value="all">{t("expenseFilters.dateOptions.all")}</option>
+                <option value="last7">{t("expenseFilters.dateOptions.last7")}</option>
+                <option value="last30">{t("expenseFilters.dateOptions.last30")}</option>
+                <option value="thisMonth">{t("expenseFilters.dateOptions.thisMonth")}</option>
+                <option value="custom">{t("expenseFilters.dateOptions.custom")}</option>
               </select>
             )}
           </FormField>
 
           {dateFilter === "custom" ? (
             <>
-              <FormField label="Start date">
+              <FormField label={t("expenseFilters.startDate")}>
                 {(id) => (
                   <input
                     id={id}
@@ -94,7 +98,7 @@ export default function ExpenseFilters({
                   />
                 )}
               </FormField>
-              <FormField label="End date">
+              <FormField label={t("expenseFilters.endDate")}>
                 {(id) => (
                   <input
                     id={id}
@@ -107,14 +111,14 @@ export default function ExpenseFilters({
             </>
           ) : null}
 
-          <FormField label="Category">
+          <FormField label={t("expenseFilters.category")}>
             {(id) => (
               <select id={id} value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
-                <option value="">All</option>
+                <option value="">{t("expenseFilters.allCategories")}</option>
                 {DEFAULT_CATEGORIES.map((category) => (
-                  <option key={category} value={category}>{category}</option>
+                  <option key={category} value={category}>{categoryLabel(category)}</option>
                 ))}
-                <option value="Other">Other</option>
+                <option value="Other">{t("categories.other")}</option>
               </select>
             )}
           </FormField>

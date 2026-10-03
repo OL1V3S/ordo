@@ -74,17 +74,17 @@ export function validateInflow(draft) {
   };
 }
 
-export function formatInflowMoney(value) {
-  if (isUnsafeAmount(value)) return "Amount needs review";
+export function formatInflowMoney(value, reviewLabel = "Amount needs review") {
+  if (isUnsafeAmount(value)) return reviewLabel;
   const parsed = parseAmount(value);
-  if (!parsed) return "Amount needs review";
+  if (!parsed) return reviewLabel;
   const [whole] = parsed.value.split(".");
   const grouped = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   return `$${grouped}.${parsed.fraction.padEnd(2, "0")}`;
 }
 
-export function formatInflowDate(value) {
-  if (!isCalendarDate(value)) return "Unknown date";
+export function formatInflowDate(value, unknownLabel = "Unknown date") {
+  if (!isCalendarDate(value)) return unknownLabel;
   const [year, month, day] = value.split("-");
   return `${month}/${day}/${year}`;
 }
