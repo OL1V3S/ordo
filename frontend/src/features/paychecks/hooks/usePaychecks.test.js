@@ -1,5 +1,6 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import "../../../shared/localization/i18n";
 import { paychecksApi } from "../api/paychecksApi";
 import { getPaycheckErrorMessage, usePaychecks } from "./usePaychecks";
 

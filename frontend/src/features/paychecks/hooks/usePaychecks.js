@@ -1,49 +1,39 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { paychecksApi } from "../api/paychecksApi";
+import { englishT } from "../utils/formatPaychecks";
 
-const ERROR_MESSAGES = {
-  authentication_required: "Your session has expired. Sign in again to manage paychecks.",
-  paycheck_not_found: "That paycheck is no longer available. Review the current profiles.",
-  candidate_changed: "This candidate changed or is no longer available. Review the latest evidence before trying again.",
-  candidate_dismissed: "This candidate was dismissed. Reconsider it before confirming.",
-  confirmation_conflict: "The evidence changed during confirmation. Review the latest evidence before trying again.",
-  candidate_schedule_mismatch: "The candidate schedule cannot be changed. Review it again or create a manual paycheck.",
-  fingerprint_invalid: "This candidate can no longer be reviewed. Refresh the candidates.",
-  algorithm_version_invalid: "This candidate version is invalid. Refresh the candidates.",
-  name_invalid: "Enter a nonblank paycheck name of 500 characters or fewer.",
-  cadence_invalid: "Choose a valid paycheck cadence.",
-  schedule_invalid: "Enter a complete, valid paycheck schedule.",
-  timing_invalid: "Enter whole timing windows from zero to three days.",
-  amount_invalid: "Enter a positive fixed amount or increasing range, with at most two decimal places.",
-  lifecycle_invalid: "Choose active, paused, or ended.",
-  paycheck_not_active: "Only an active paycheck can record a new receipt.",
-  receipt_slot_invalid: "Choose an available paycheck date.",
-  receipt_slot_unavailable: "That paycheck date is no longer available. Review the refreshed profile.",
-  receipt_source_invalid: "Choose either new cash in or an existing cash-in record.",
-  receipt_inflow_invalid: "Enter a valid description, positive amount, and date.",
-  receipt_inflow_unavailable: "That cash-in record is unavailable or already linked. Review the refreshed records.",
-  receipt_conflict: "That receipt changed or was claimed. Review the refreshed paycheck.",
-  receipt_link_protected: "Confirmation-history links cannot be removed here.",
-  receipt_date_invalid: "The observed date is too far from the selected paycheck date.",
-  request_invalid: "Check the form fields and try again.",
-  request_failed: "The request could not be completed. Try again.",
-};
+// Stable backend/client codes with a localized message at `feedback.errors.<code>` in the
+// paychecks catalog. Anything else shows the generic `request_failed` message.
+const ERROR_CODES = new Set([
+  "authentication_required", "paycheck_not_found", "candidate_changed", "candidate_dismissed",
+  "confirmation_conflict", "candidate_schedule_mismatch", "fingerprint_invalid", "algorithm_version_invalid",
+  "name_invalid", "cadence_invalid", "schedule_invalid", "timing_invalid", "amount_invalid", "lifecycle_invalid",
+  "paycheck_not_active", "receipt_slot_invalid", "receipt_slot_unavailable", "receipt_source_invalid",
+  "receipt_inflow_invalid", "receipt_inflow_unavailable", "receipt_conflict", "receipt_link_protected",
+  "receipt_date_invalid", "request_invalid", "request_failed",
+]);
 const REFRESH_ERRORS = new Set(["candidate_changed", "candidate_dismissed", "confirmation_conflict", "paycheck_not_found"]);
-const UNCERTAIN_CREATE_MESSAGE = "We could not confirm whether the paycheck was created. Refresh and check the saved profiles before intentionally trying again.";
-const UNCERTAIN_WRITE_MESSAGE = "We could not confirm the outcome of this action. Refresh and check the current state before trying again.";
+// State holds catalog keys and the hook resolves them to the selected language when it
+// returns them, so a displayed message follows a language change.
+const UNCERTAIN_CREATE_MESSAGE = "feedback.uncertainCreate";
+const UNCERTAIN_WRITE_MESSAGE = "feedback.uncertainWrite";
 
 function errorCode(error) {
   if (error?.response?.status === 401) return "authentication_required";
   if (error?.response?.status === 404) return "paycheck_not_found";
   const code = error?.response?.data?.code;
-  return Object.hasOwn(ERROR_MESSAGES, code) ? code : "request_failed";
+  return ERROR_CODES.has(code) ? code : "request_failed";
 }
 
-export function getPaycheckErrorMessage(error) {
-  return ERROR_MESSAGES[errorCode(error)];
+const errorKey = (code) => `feedback.errors.${code}`;
+
+export function getPaycheckErrorMessage(error, t = englishT) {
+  return t(errorKey(errorCode(error)));
 }
 
 export function usePaychecks() {
+  const { t } = useTranslation("paychecks");
   const [candidates, setCandidates] = useState([]);
   const [dismissedCandidates, setDismissedCandidates] = useState([]);
   const [paychecks, setPaychecks] = useState([]);
@@ -86,19 +76,19 @@ export function usePaychecks() {
         uncertainCreateRef.current = false;
         setUncertainCreate(false);
         setActionError((previous) => previous === UNCERTAIN_CREATE_MESSAGE ? null : previous);
-        setNotice("Paychecks loaded. Check the saved profiles before intentionally trying to create another paycheck.");
+        setNotice("feedback.uncertainCreateLoaded");
       }
       if (uncertainReceiptRef.current) {
         uncertainReceiptRef.current = false;
         setUncertainReceipt(false);
         setActionError((previous) => previous === UNCERTAIN_WRITE_MESSAGE ? null : previous);
-        setNotice("Paychecks loaded. Check the linked deposits before intentionally recording another receipt.");
+        setNotice("feedback.uncertainReceiptLoaded");
       }
       return true;
     } catch (error) {
       if (current()) setLoadError(errorCode(error) === "authentication_required"
-        ? ERROR_MESSAGES.authentication_required
-        : "Paychecks could not be loaded. Refresh to try again; the displayed information may be out of date.");
+        ? errorKey("authentication_required")
+        : "feedback.loadFailed");
       return false;
     } finally {
       if (current()) {
@@ -162,7 +152,7 @@ export function usePaychecks() {
           : uncertaintyKind === "receipt" ? "receipt_uncertain" : "write_uncertain", uncertain: true };
       }
       const code = errorCode(error);
-      setActionError(ERROR_MESSAGES[code]);
+      setActionError(errorKey(code));
       if (REFRESH_ERRORS.has(code) || error.response.status === 409) {
         const refreshOk = await load();
         return { ok: false, code, refreshOk };
@@ -192,22 +182,23 @@ export function usePaychecks() {
 
   return {
     candidates, dismissedCandidates, paychecks, candidatesEvaluatedOn, paychecksEvaluatedOn,
-    loading, refreshing, loadError, actionError, notice, busyKey, uncertainCreate, uncertainReceipt,
+    loading, refreshing, loadError: loadError && t(loadError), actionError: actionError && t(actionError),
+    notice: notice && t(notice), busyKey, uncertainCreate, uncertainReceipt,
     refresh, clearMessages, acknowledgeUncertainCreate,
     confirmCandidate: (payload) => perform(`confirm:${payload.fingerprint}`,
-      () => paychecksApi.confirmCandidate(payload), "Paycheck confirmed."),
+      () => paychecksApi.confirmCandidate(payload), "feedback.notices.confirmed"),
     dismissCandidate: (tuple) => perform(`dismiss:${tuple.fingerprint}`,
-      () => paychecksApi.dismissCandidate(tuple), "Candidate dismissed. You can reconsider it below."),
+      () => paychecksApi.dismissCandidate(tuple), "feedback.notices.dismissed"),
     reconsiderCandidate: (tuple) => perform(`reconsider:${tuple.fingerprint}`,
-      () => paychecksApi.reconsiderCandidate(tuple), "Candidate reconsidered."),
-    createPaycheck: (payload) => perform("create", () => paychecksApi.createPaycheck(payload), "Paycheck created.", "create"),
+      () => paychecksApi.reconsiderCandidate(tuple), "feedback.notices.reconsidered"),
+    createPaycheck: (payload) => perform("create", () => paychecksApi.createPaycheck(payload), "feedback.notices.created", "create"),
     updatePaycheck: (id, payload) => perform(`update:${id}`,
-      () => paychecksApi.updatePaycheck(id, payload), "Paycheck updated."),
+      () => paychecksApi.updatePaycheck(id, payload), "feedback.notices.updated"),
     updateLifecycle: (id, lifecycle) => perform(`lifecycle:${id}`,
-      () => paychecksApi.updateLifecycle(id, lifecycle), "Paycheck status updated."),
+      () => paychecksApi.updateLifecycle(id, lifecycle), "feedback.notices.lifecycle"),
     recordReceipt: (id, payload) => perform(`receipt:${id}`,
-      () => paychecksApi.recordReceipt(id, payload), "Paycheck received. Actual cash in is now linked.", "receipt"),
+      () => paychecksApi.recordReceipt(id, payload), "feedback.notices.receiptRecorded", "receipt"),
     removeReceipt: (id, accountInflowId) => perform(`unlink:${id}:${accountInflowId}`,
-      () => paychecksApi.removeReceipt(id, accountInflowId), "Paycheck link removed. The cash-in record remains in Activity."),
+      () => paychecksApi.removeReceipt(id, accountInflowId), "feedback.notices.receiptRemoved"),
   };
 }

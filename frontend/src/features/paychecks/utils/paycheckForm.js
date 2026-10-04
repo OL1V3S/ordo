@@ -62,51 +62,53 @@ function integerInRange(value, minimum, maximum) {
   return /^\d+$/.test(value) && Number(value) >= minimum && Number(value) <= maximum;
 }
 
+// Field errors are stable codes (`form.errors.<code>` in the paychecks catalog), not
+// display text; the form maps each code to the selected language.
 export function validatePaycheckForm(form, mode, model) {
   const errors = {};
   const name = form.displayName.trim();
-  if (!name || name.length > 500) errors.displayName = "Enter a display name of 1 to 500 characters.";
+  if (!name || name.length > 500) errors.displayName = "display_name_invalid";
   let schedule;
   if (mode === "manual") {
-    if (!CADENCES.includes(form.cadence)) errors.cadence = "Choose a supported cadence.";
+    if (!CADENCES.includes(form.cadence)) errors.cadence = "cadence_invalid";
     const interval = form.cadence === "weekly" || form.cadence === "biweekly";
     const readAnchor = (prefix) => {
       if (form[`${prefix}AnchorKind`] === "month_end") return { kind: "month_end", day: null };
       if (form[`${prefix}AnchorKind`] !== "day_of_month") {
-        errors[`${prefix}AnchorKind`] = "Choose a day of month or month end.";
+        errors[`${prefix}AnchorKind`] = "anchor_kind_invalid";
       } else if (!integerInRange(form[`${prefix}AnchorDay`], 1, 30)) {
-        errors[`${prefix}AnchorDay`] = "Enter a whole day from 1 to 30, or choose month end.";
+        errors[`${prefix}AnchorDay`] = "anchor_day_invalid";
       }
       return { kind: "day_of_month", day: Number(form[`${prefix}AnchorDay`]) };
     };
     if (interval && !isCalendarDate(form.referenceAnchorDate))
-      errors.referenceAnchorDate = "Enter a valid reference anchor date.";
+      errors.referenceAnchorDate = "reference_date_invalid";
     const first = interval ? null : readAnchor("first");
     const second = form.cadence === "semimonthly" ? readAnchor("second") : null;
     if (second && !errors.firstAnchorDay && !errors.secondAnchorDay
       && !errors.firstAnchorKind && !errors.secondAnchorKind
       && !validSemimonthlyPair(first.day ?? 31, second.day ?? 31)) {
-      errors.secondAnchorKind = "Choose ordered anchors at least seven days apart, including across February's month boundary.";
+      errors.secondAnchorKind = "semimonthly_pair_invalid";
     }
     schedule = { cadence: form.cadence, referenceAnchorDate: interval ? form.referenceAnchorDate : null,
       firstMonthAnchor: first, secondMonthAnchor: second };
   }
   for (const field of ["windowBeforeDays", "windowAfterDays"])
-    if (!integerInRange(form[field], 0, 3)) errors[field] = "Enter a whole number from 0 to 3.";
+    if (!integerInRange(form[field], 0, 3)) errors[field] = "window_invalid";
 
   const fixed = form.amountMode === "fixed";
   const variableCandidate = mode === "confirm" && model?.observedAmount?.mode === "variable";
   if (!["fixed", "range"].includes(form.amountMode) || (variableCandidate && fixed))
-    errors.amountMode = "Variable evidence requires an explicit amount range.";
+    errors.amountMode = "amount_mode_invalid";
   const fields = fixed ? ["fixedAmount"] : ["minimumAmount", "maximumAmount"];
   const amounts = {};
   for (const field of fields) {
     amounts[field] = parseAmount(form[field]);
-    if (!amounts[field]) errors[field] = "Enter a positive amount with at most two decimals, up to 9999999999999999.99.";
+    if (!amounts[field]) errors[field] = "amount_invalid";
   }
   if (!fixed && amounts.minimumAmount && amounts.maximumAmount
     && amounts.minimumAmount.cents >= amounts.maximumAmount.cents)
-    errors.maximumAmount = "Maximum amount must be greater than minimum amount.";
+    errors.maximumAmount = "range_order_invalid";
 
   if (Object.keys(errors).length) return { errors, payload: null };
   return { errors, payload: {

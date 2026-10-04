@@ -12,11 +12,13 @@ import activityEn from "./locales/en/activity.json";
 import activityEs from "./locales/es/activity.json";
 import importPreviewEn from "./locales/en/importPreview.json";
 import importPreviewEs from "./locales/es/importPreview.json";
+import paychecksEn from "./locales/en/paychecks.json";
+import paychecksEs from "./locales/es/paychecks.json";
 import { applyDocumentLocale, getStoredLocale } from "./locale";
 
 export const resources = {
-  en: { common: commonEn, navigation: navigationEn, settings: settingsEn, home: homeEn, activity: activityEn, importPreview: importPreviewEn },
-  es: { common: commonEs, navigation: navigationEs, settings: settingsEs, home: homeEs, activity: activityEs, importPreview: importPreviewEs },
+  en: { common: commonEn, navigation: navigationEn, settings: settingsEn, home: homeEn, activity: activityEn, importPreview: importPreviewEn, paychecks: paychecksEn },
+  es: { common: commonEs, navigation: navigationEs, settings: settingsEs, home: homeEs, activity: activityEs, importPreview: importPreviewEs, paychecks: paychecksEs },
 };
 
 const initialLocale = getStoredLocale();
@@ -28,7 +30,7 @@ i18n.use(initReactI18next).init({
   fallbackLng: "en",
   supportedLngs: ["en", "es"],
   load: "languageOnly",
-  ns: ["common", "navigation", "settings", "home", "activity", "importPreview"],
+  ns: ["common", "navigation", "settings", "home", "activity", "importPreview", "paychecks"],
   defaultNS: "common",
   interpolation: { escapeValue: false },
   initAsync: false,

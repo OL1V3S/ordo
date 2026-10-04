@@ -1,9 +1,11 @@
 import { useEffect, useId, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import FormField from "../../../shared/ui/FormField";
 import { CADENCES, initialPaycheckForm, isUnsafeNumericAmount, validatePaycheckForm } from "../utils/paycheckForm";
 import { cadenceLabel, formatSchedule } from "../utils/formatPaychecks";
 
 export default function PaycheckForm({ mode, model, busy = false, submitDisabled = false, onSubmit, onCancel, formId }) {
+  const { t } = useTranslation("paychecks");
   const generatedId = useId();
   const [form, setForm] = useState(() => initialPaycheckForm(mode, model));
   const [errors, setErrors] = useState({});
@@ -15,7 +17,7 @@ export default function PaycheckForm({ mode, model, busy = false, submitDisabled
   const variable = mode === "confirm" && model?.observedAmount?.mode === "variable";
   const sourceAmount = mode === "confirm" ? model?.observedAmount : model?.amount;
   const amountNeedsReview = Object.values(sourceAmount ?? {}).some(isUnsafeNumericAmount);
-  const submitLabel = { confirm: "Confirm paycheck", manual: "Create paycheck", edit: "Save changes" }[mode];
+  const submitLabel = t(`form.submit.${mode}`);
 
   useEffect(() => { formRef.current?.querySelector("input")?.focus(); }, []);
   useEffect(() => {
@@ -46,7 +48,7 @@ export default function PaycheckForm({ mode, model, busy = false, submitDisabled
     setSubmitting(true);
     setSubmitError("");
     try { await onSubmit(result.payload); }
-    catch { setSubmitError("The action could not be completed. Check the page message before trying again."); }
+    catch { setSubmitError("form.submitError"); }
     finally { pending.current = false; setSubmitting(false); }
   }
 
@@ -59,52 +61,51 @@ export default function PaycheckForm({ mode, model, busy = false, submitDisabled
         {choices.map(([value, text]) => <option key={value} value={value}>{text}</option>)}
       </select> : <input id={id} value={form[name]} onChange={(event) => update(name, event.target.value)}
         required aria-invalid={Boolean(errors[name])} aria-describedby={errors[name] ? errorId : undefined} {...inputProps} />}
-    </>}</FormField>{errors[name] && <span className="paycheck-form__error" id={errorId}>{errors[name]}</span>}</div>;
+    </>}</FormField>{errors[name] && <span className="paycheck-form__error" id={errorId}>{t(`form.errors.${errors[name]}`)}</span>}</div>;
   }
 
-  function anchorFields(prefix, label) {
+  function anchorFields(prefix, labelKey) {
     return <>
-      {field(`${prefix}AnchorKind`, label, { choices: [["day_of_month", "Day of month"], ["month_end", "Month end"]] })}
-      {form[`${prefix}AnchorKind`] === "day_of_month" && field(`${prefix}AnchorDay`, `${label} day`, { inputMode: "numeric" })}
+      {field(`${prefix}AnchorKind`, t(`form.fields.${labelKey}`), { choices: [["day_of_month", t("form.anchorKinds.dayOfMonth")], ["month_end", t("form.anchorKinds.monthEnd")]] })}
+      {form[`${prefix}AnchorKind`] === "day_of_month" && field(`${prefix}AnchorDay`, t(`form.fields.${labelKey}Day`), { inputMode: "numeric" })}
     </>;
   }
 
   return <form id={formId ?? generatedId} ref={formRef} className="paycheck-form" aria-label={submitLabel}
     aria-busy={disabled} onSubmit={handleSubmit} noValidate>
-    {mode === "manual" && <p className="paycheck-form__note">Create an active profile for your expected paycheck. This is your expectation and is not employer-verified.</p>}
+    {mode === "manual" && <p className="paycheck-form__note">{t("form.manualNote")}</p>}
     {mode !== "manual" && <div className="paycheck-form__schedule">
-      <strong>Schedule</strong><p>{formatSchedule(model?.schedule)}</p>
-      <p>{mode === "confirm" ? "Review and accept this schedule unchanged. To use a different schedule, create a paycheck manually."
-        : "The schedule cannot be edited. End this profile and create a replacement to change its schedule. Evidence stays assigned to this profile."}</p>
+      <strong>{t("form.scheduleHeading")}</strong><p>{formatSchedule(model?.schedule, t)}</p>
+      <p>{mode === "confirm" ? t("form.confirmScheduleNote") : t("form.editScheduleNote")}</p>
     </div>}
-    {variable && <p className="paycheck-form__note">Observed amounts vary. Enter the minimum and maximum you explicitly accept; observed bounds are not filled in.</p>}
-    {amountNeedsReview && <p className="paycheck-form__note">This amount could not be loaded with reliable cent precision. Enter the exact amount you accept before saving.</p>}
-    {Object.keys(errors).length > 0 && <p className="paycheck-form__error" role="alert">Check the highlighted fields.</p>}
-    {submitError && <p className="paycheck-form__error" role="alert">{submitError}</p>}
+    {variable && <p className="paycheck-form__note">{t("form.variableNote")}</p>}
+    {amountNeedsReview && <p className="paycheck-form__note">{t("form.unsafeAmountNote")}</p>}
+    {Object.keys(errors).length > 0 && <p className="paycheck-form__error" role="alert">{t("form.checkFields")}</p>}
+    {submitError && <p className="paycheck-form__error" role="alert">{t(submitError)}</p>}
     <fieldset className="paycheck-form__fields" disabled={disabled}>
-      <legend className="sr-only">Paycheck expectation</legend>
+      <legend className="sr-only">{t("form.legend")}</legend>
       <div className="paycheck-form__grid">
-        {field("displayName", "Display name", { maxLength: 500 })}
+        {field("displayName", t("form.fields.displayName"), { maxLength: 500 })}
         {mode === "manual" && <>
-          {field("cadence", "Cadence", { choices: CADENCES.map((cadence) => [cadence, cadenceLabel(cadence)]) })}
+          {field("cadence", t("form.fields.cadence"), { choices: CADENCES.map((cadence) => [cadence, cadenceLabel(cadence, t)]) })}
           {["weekly", "biweekly"].includes(form.cadence)
-            ? field("referenceAnchorDate", "Reference anchor date", { type: "date", min: "0001-01-01", max: "9999-12-31" })
-            : <>{anchorFields("first", form.cadence === "monthly" ? "Monthly anchor" : "First anchor")}
-              {form.cadence === "semimonthly" && anchorFields("second", "Second anchor")}</>}
+            ? field("referenceAnchorDate", t("form.fields.referenceAnchorDate"), { type: "date", min: "0001-01-01", max: "9999-12-31" })
+            : <>{anchorFields("first", form.cadence === "monthly" ? "monthlyAnchor" : "firstAnchor")}
+              {form.cadence === "semimonthly" && anchorFields("second", "secondAnchor")}</>}
         </>}
-        {field("windowBeforeDays", "Days before", { inputMode: "numeric" })}
-        {field("windowAfterDays", "Days after", { inputMode: "numeric" })}
-        {field("amountMode", "Amount model", { choices: variable ? [["range", "Amount range"]]
-          : [["fixed", "Fixed amount"], ["range", "Amount range"]] })}
-        {form.amountMode === "fixed" ? field("fixedAmount", "Fixed amount", { inputMode: "decimal" }) : <>
-          {field("minimumAmount", "Minimum amount", { inputMode: "decimal" })}
-          {field("maximumAmount", "Maximum amount", { inputMode: "decimal" })}
+        {field("windowBeforeDays", t("form.fields.windowBeforeDays"), { inputMode: "numeric" })}
+        {field("windowAfterDays", t("form.fields.windowAfterDays"), { inputMode: "numeric" })}
+        {field("amountMode", t("form.fields.amountMode"), { choices: variable ? [["range", t("form.amountModes.range")]]
+          : [["fixed", t("form.amountModes.fixed")], ["range", t("form.amountModes.range")]] })}
+        {form.amountMode === "fixed" ? field("fixedAmount", t("form.fields.fixedAmount"), { inputMode: "decimal" }) : <>
+          {field("minimumAmount", t("form.fields.minimumAmount"), { inputMode: "decimal" })}
+          {field("maximumAmount", t("form.fields.maximumAmount"), { inputMode: "decimal" })}
         </>}
       </div>
     </fieldset>
     <div className="paycheck-form__actions inline-actions">
-      <button type="submit" disabled={disabled || submitDisabled}>{disabled ? "Saving…" : submitLabel}</button>
-      <button type="button" className="button-ghost" disabled={disabled} onClick={onCancel}>Cancel</button>
+      <button type="submit" disabled={disabled || submitDisabled}>{disabled ? t("form.saving") : submitLabel}</button>
+      <button type="button" className="button-ghost" disabled={disabled} onClick={onCancel}>{t("form.cancel")}</button>
     </div>
   </form>;
 }

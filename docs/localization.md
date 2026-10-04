@@ -12,10 +12,11 @@ confirmation), including their feedback and error messages. The statement import
 preview is localized through the `importPreview` namespace: the import panel, its
 rows, and the safe upload, confirmation, and row-warning messages that the hook
 maps from stable backend codes, so the import preview no longer stays English on
-the Spanish Activity page. The shared cash-in form is also used
-to record a paycheck receipt on the Paychecks page; it follows the selected
-language there while the rest of that page, including its validation messages,
-stays English until Paychecks is adopted.
+the Spanish Activity page. The Paychecks page is localized through the `paychecks` namespace: the page, the
+paycheck form and its validation messages, the linked-deposit evidence, the
+record-received panel, and the safe error and notice messages that the hook maps
+from stable backend codes. The shared cash-in form that records a paycheck receipt
+follows the selected language there, including its validation messages.
 
 ## Runtime boundary
 
@@ -71,6 +72,26 @@ import/export them, but the runtime must not depend on a translation service.
   English, as they were before localization.
 - Activity spending and cash-in lists keep their existing `$` amounts and
   `MM/DD/YYYY` dates in both languages until formatters adopt the direction below.
+- Paychecks messages are keyed by stable code (`feedback.errors.*`,
+  `feedback.notices.*`, `form.errors.*`, `receipt.cashInErrors.*`) and never by raw
+  server text; a code without an entry shows the generic `request_failed` message.
+  The paychecks hook keeps catalog keys in its state and resolves them when it
+  returns them, so a displayed message follows a language change. Paycheck form
+  validation returns stable `*_invalid` codes that the form maps to messages.
+  `formatPaychecks.js` helpers take an optional `t` and default to the English
+  catalog for callers that are not localized yet.
+- The Paychecks receipt panel maps the shared cash-in validation failures to
+  `receipt.cashInErrors.*` by field. `inflows/utils/inflowForm.js` and the Activity
+  page are unchanged; their validation text is still never displayed on Activity.
+- Spanish keeps a paycheck expectation distinct from money actually recorded.
+  Expectation, projection, and expected-window copy uses `previsión` and
+  `previsto`; copy about money actually received uses `pago recibido` and
+  `entrada de dinero`. Do not describe a recorded deposit as `previsto` or an
+  expectation as recibido or registrado.
+- Paychecks keeps `Mon D, YYYY` dates (English month abbreviations) and `$` amounts
+  in both languages until formatters adopt the direction below. Day counts are
+  count-aware messages; English `linked deposit(s)` and `day(s) before/after`
+  wording is kept as written, with matching Spanish `(s)` forms.
 
 ## Formatting direction
 
@@ -123,5 +144,9 @@ unchanged. Generic cash-in wording must not imply earned income.
 | Statement | Estado de cuenta | Bank statement import |
 | Incoming deposit | Depósito entrante | Imported statement credit; not classified as income |
 | Possible duplicate | Posible duplicado | Review before selecting or saving |
+| Possible paycheck | Posible pago de nómina | Detected candidate; not a confirmed paycheck |
+| Record received | Registrar pago recibido | Links actual cash in; does not change the expectation |
+| Schedule | Calendario | Paycheck schedule |
+| Anchor | Ancla | Schedule anchor day or month end |
 
 Language option names are autonyms: `English` and `Español` in both catalogs.

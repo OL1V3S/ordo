@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Plus, WalletCards } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import Card from "../../../shared/ui/Card";
 import StatusMessage from "../../../shared/ui/StatusMessage";
 import PaycheckEvidence from "../components/PaycheckEvidence";
@@ -12,34 +13,48 @@ import { initialInflowDraft, validateInflow } from "../../inflows/utils/inflowFo
 import { isCalendarDate, isUnsafeNumericAmount, parseAmount } from "../utils/paycheckForm";
 import "../../../styles/inflows.css";
 
-const LIFECYCLE_LABELS = { active: "Active", paused: "Paused", ended: "Ended" };
+const LIFECYCLES = ["active", "paused", "ended"];
 const STALE_CODES = new Set(["candidate_changed", "candidate_dismissed", "confirmation_conflict", "paycheck_not_found", "paycheck_not_active"]);
 
-function receiptWarnings(profile, slot, inflow) {
+function receiptWarnings(profile, slot, inflow, t) {
   if (!slot || !inflow) return [];
   const warnings = [];
   if (isCalendarDate(inflow.date) && (inflow.date < slot.earliestExpectedDate || inflow.date > slot.latestExpectedDate))
-    warnings.push("Date is outside this paycheck's expected window. You can still record the actual deposit date.");
+    warnings.push(t("receipt.warnings.dateOutsideWindow"));
   const observed = isUnsafeNumericAmount(inflow.amount) ? null : parseAmount(inflow.amount);
   if (!observed) {
-    if (inflow.amount !== "") warnings.push("Amount needs review. Linking by record ID will not change the saved expectation.");
+    if (inflow.amount !== "") warnings.push(t("receipt.warnings.amountNeedsReview"));
     return warnings;
   }
   if (profile.amount?.mode === "fixed") {
     const expected = isUnsafeNumericAmount(profile.amount.fixedAmount) ? null : parseAmount(profile.amount.fixedAmount);
-    if (!expected) warnings.push("Expected amount needs review. Recording the actual amount will not change the saved expectation.");
-    else if (observed.cents !== expected.cents) warnings.push("Amount differs from the fixed expectation. You can still record the actual amount.");
+    if (!expected) warnings.push(t("receipt.warnings.expectedAmountNeedsReview"));
+    else if (observed.cents !== expected.cents) warnings.push(t("receipt.warnings.differsFromFixed"));
   } else {
     const minimum = isUnsafeNumericAmount(profile.amount?.minimumAmount) ? null : parseAmount(profile.amount?.minimumAmount);
     const maximum = isUnsafeNumericAmount(profile.amount?.maximumAmount) ? null : parseAmount(profile.amount?.maximumAmount);
-    if (!minimum || !maximum) warnings.push("Expected amount range needs review. Recording the actual amount will not change the saved expectation.");
+    if (!minimum || !maximum) warnings.push(t("receipt.warnings.expectedRangeNeedsReview"));
     else if (observed.cents < minimum.cents || observed.cents > maximum.cents)
-      warnings.push("Amount is outside the expected range. You can still record the actual amount.");
+      warnings.push(t("receipt.warnings.outsideRange"));
   }
   return warnings;
 }
 
+// Validation failures from the shared cash-in helper map to `receipt.cashInErrors.*` codes by
+// field; the panel resolves them to the selected language when it renders. A failed
+// description is blank or longer than 500 characters; nothing else fails it.
+function cashInErrorCodes(errors, draft) {
+  return Object.fromEntries(Object.keys(errors).map((field) => [field, field === "description"
+    ? (String(draft.description ?? "").trim() ? "descriptionTooLong" : "descriptionRequired")
+    : field]));
+}
+
+function lifecycleLabel(lifecycle, t) {
+  return LIFECYCLES.includes(lifecycle) ? t(`lifecycle.${lifecycle}`) : "";
+}
+
 function ReceiptPanel({ profile, busy, submitDisabled, onSubmit, onCancel }) {
+  const { t } = useTranslation("paychecks");
   const fixed = profile.amount?.mode === "fixed" ? profile.amount.fixedAmount : null;
   const [selectedSlot, setSelectedSlot] = useState(() => profile.receiptSlots?.[0] ?? null);
   const [mode, setMode] = useState("new");
@@ -63,7 +78,7 @@ function ReceiptPanel({ profile, busy, submitDisabled, onSubmit, onCancel }) {
 
   function submitNew() {
     const result = validateInflow(draft);
-    setErrors(result.errors);
+    setErrors(cashInErrorCodes(result.errors, draft));
     if (result.payload) onSubmit({ slotAnchor: selectedSlot.anchor, newInflow: result.payload });
   }
 
@@ -74,34 +89,36 @@ function ReceiptPanel({ profile, busy, submitDisabled, onSubmit, onCancel }) {
   const selectedSlotIsStale = selectedSlot && !availableSlots.some((slot) => slot.anchor === selectedSlot.anchor);
   const slotOptions = selectedSlotIsStale ? [selectedSlot, ...availableSlots] : availableSlots;
   const selectedInflow = mode === "new" ? draft : inflows.find((row) => String(row.id) === selectedId);
-  const warnings = receiptWarnings(profile, selectedSlot, selectedInflow);
+  const warnings = receiptWarnings(profile, selectedSlot, selectedInflow, t);
 
-  return <section className="paycheck-receipt" aria-label={`Record received paycheck for ${profile.displayName}`}>
-    <h4>Record received</h4>
-    <p className="muted">Link actual cash in to this paycheck. This does not change the saved expectation.</p>
-    <label className="field">Expected paycheck date<select value={selectedSlot?.anchor ?? ""} onChange={(event) => setSelectedSlot(slotOptions.find((slot) => slot.anchor === event.target.value) ?? null)} disabled={busy}>
-      {slotOptions.map((slot) => <option key={slot.anchor} value={slot.anchor}>{slot.relation === "current" ? "Current" : "Previous"}: {formatDate(slot.earliestExpectedDate)}–{formatDate(slot.latestExpectedDate)}{selectedSlotIsStale && slot.anchor === selectedSlot.anchor ? " (previously selected)" : ""}</option>)}
+  return <section className="paycheck-receipt" aria-label={t("receipt.label", { name: profile.displayName })}>
+    <h4>{t("receipt.heading")}</h4>
+    <p className="muted">{t("receipt.intro")}</p>
+    <label className="field">{t("receipt.slotLabel")}<select value={selectedSlot?.anchor ?? ""} onChange={(event) => setSelectedSlot(slotOptions.find((slot) => slot.anchor === event.target.value) ?? null)} disabled={busy}>
+      {slotOptions.map((slot) => <option key={slot.anchor} value={slot.anchor}>{t(`receipt.slot.${slot.relation === "current" ? "current" : "previous"}${selectedSlotIsStale && slot.anchor === selectedSlot.anchor ? "Stale" : ""}`, { from: formatDate(slot.earliestExpectedDate, t), to: formatDate(slot.latestExpectedDate, t) })}</option>)}
     </select></label>
-    <fieldset disabled={busy}><legend>Cash-in source</legend>
-      <label><input type="radio" name="receipt-source" checked={mode === "new"} onChange={() => setMode("new")} /> Enter new cash in</label>
-      <label><input type="radio" name="receipt-source" checked={mode === "existing"} onChange={() => setMode("existing")} /> Use existing cash in</label>
+    <fieldset disabled={busy}><legend>{t("receipt.sourceLegend")}</legend>
+      <label><input type="radio" name="receipt-source" checked={mode === "new"} onChange={() => setMode("new")} /> {t("receipt.sourceNew")}</label>
+      <label><input type="radio" name="receipt-source" checked={mode === "existing"} onChange={() => setMode("existing")} /> {t("receipt.sourceExisting")}</label>
     </fieldset>
     {warnings.length > 0 && <div className="paycheck-receipt__warnings" aria-live="polite">
       {warnings.map((warning) => <p key={warning} className="inflow-form__warning">{warning}</p>)}
     </div>}
-    {mode === "new" ? <InflowForm draft={draft} onChange={setDraft} fieldErrors={errors} pending={busy}
+    {mode === "new" ? <InflowForm draft={draft} onChange={setDraft} pending={busy}
+      fieldErrors={Object.fromEntries(Object.entries(errors).map(([field, code]) => [field, t(`receipt.cashInErrors.${code}`)]))}
       disabled={submitDisabled || !selectedSlot} amountNeedsReview={fixed != null && isUnsafeNumericAmount(fixed)} onSubmit={submitNew} onCancel={onCancel} /> : <div className="paycheck-receipt__existing">
-      <label className="field">Search cash in<input type="search" value={search} onChange={(event) => setSearch(event.target.value)} /></label>
-      {inflowError ? <StatusMessage tone="danger">Cash in could not be loaded. Cancel and try again.</StatusMessage> : <fieldset disabled={busy}><legend>Choose cash in</legend>
-        {choices.map((row) => <label key={row.id}><input type="radio" name="existing-inflow" value={row.id} checked={selectedId === String(row.id)} onChange={(event) => setSelectedId(event.target.value)} /> {row.description} · {formatDate(row.date)} · {formatMoney(row.amount)}</label>)}
-        {!choices.length && <p className="muted">No available cash-in records match.</p>}
+      <label className="field">{t("receipt.search")}<input type="search" value={search} onChange={(event) => setSearch(event.target.value)} /></label>
+      {inflowError ? <StatusMessage tone="danger">{t("receipt.loadError")}</StatusMessage> : <fieldset disabled={busy}><legend>{t("receipt.chooseLegend")}</legend>
+        {choices.map((row) => <label key={row.id}><input type="radio" name="existing-inflow" value={row.id} checked={selectedId === String(row.id)} onChange={(event) => setSelectedId(event.target.value)} /> {row.description} · {formatDate(row.date, t)} · {formatMoney(row.amount, t)}</label>)}
+        {!choices.length && <p className="muted">{t("receipt.noMatches")}</p>}
       </fieldset>}
-      <div className="inline-actions"><button type="button" disabled={busy || submitDisabled || !selectedSlot || !selectedId} onClick={() => onSubmit({ slotAnchor: selectedSlot.anchor, existingInflowId: Number(selectedId) })}>Link cash in</button><button type="button" className="button-ghost" disabled={busy} onClick={onCancel}>Cancel</button></div>
+      <div className="inline-actions"><button type="button" disabled={busy || submitDisabled || !selectedSlot || !selectedId} onClick={() => onSubmit({ slotAnchor: selectedSlot.anchor, existingInflowId: Number(selectedId) })}>{t("receipt.link")}</button><button type="button" className="button-ghost" disabled={busy} onClick={onCancel}>{t("receipt.cancel")}</button></div>
     </div>}
   </section>;
 }
 
 function CandidateCard({ candidate, dismissed, evaluatedOn, busy, actionsDisabled, editor, onReview, onCancel, onConfirm, onDecision }) {
+  const { t } = useTranslation("paychecks");
   const name = candidate.normalizedDescriptionIdentity;
   const reviewing = editor?.mode === "confirm" && editor.key === candidate.fingerprint;
   const observed = candidate.observedAmount;
@@ -109,25 +126,25 @@ function CandidateCard({ candidate, dismissed, evaluatedOn, busy, actionsDisable
     <Card as="article" className="paycheck-card">
       <header className="paycheck-card__header">
         <div>
-          {dismissed && <p className="paycheck-status">Dismissed possible paycheck</p>}
+          {dismissed && <p className="paycheck-status">{t("card.dismissedStatus")}</p>}
           <h3>{name}</h3>
-          <p className="muted">{cadenceLabel(candidate.schedule.cadence)}</p>
+          <p className="muted">{cadenceLabel(candidate.schedule.cadence, t)}</p>
         </div>
         <div className="paycheck-card__amount">
-          <span>Observed deposits</span>
-          <strong>{observed.mode === "fixed" ? formatMoney(observed.fixedAmount) : `${formatMoney(observed.minimumAmount)}–${formatMoney(observed.maximumAmount)}`}</strong>
+          <span>{t("card.observedDeposits")}</span>
+          <strong>{observed.mode === "fixed" ? formatMoney(observed.fixedAmount, t) : `${formatMoney(observed.minimumAmount, t)}–${formatMoney(observed.maximumAmount, t)}`}</strong>
         </div>
       </header>
-      <p className="paycheck-candidate-count">Based on {candidate.occurrenceCount} deposits{observed.mode !== "fixed" && ". Observed history, not an expected range."}</p>
+      <p className="paycheck-candidate-count">{t(observed.mode === "fixed" ? "card.basedOn" : "card.basedOnVariable", { total: candidate.occurrenceCount })}</p>
       <details className="paycheck-details">
-        <summary aria-label={`Details for ${name}`}>Details</summary>
+        <summary aria-label={t("card.detailsLabel", { name })}>{t("card.details")}</summary>
         <dl className="paycheck-facts">
-          <div><dt>Schedule</dt><dd>{formatSchedule(candidate.schedule)}</dd></div>
-          <div><dt>Records covered</dt><dd>{formatDate(candidate.coveredFrom)}–{formatDate(candidate.coveredTo)}</dd></div>
-          <div><dt>Observed timing</dt><dd>{formatWindow(candidate.windowBeforeDays, candidate.windowAfterDays)}</dd></div>
-          <div><dt>Observed amounts</dt><dd>{observed.mode === "fixed" ? "The same amount in each deposit" : `Variable · lower median ${formatMoney(observed.lowerMedianAmount)}. This history is not an expected range.`}</dd></div>
-          {evaluatedOn && <div><dt>Evaluated</dt><dd>{formatDate(evaluatedOn)}</dd></div>}
-          <div><dt>Detection details</dt><dd>{candidate.algorithmVersion}</dd></div>
+          <div><dt>{t("facts.schedule")}</dt><dd>{formatSchedule(candidate.schedule, t)}</dd></div>
+          <div><dt>{t("facts.recordsCovered")}</dt><dd>{formatDate(candidate.coveredFrom, t)}–{formatDate(candidate.coveredTo, t)}</dd></div>
+          <div><dt>{t("facts.observedTiming")}</dt><dd>{formatWindow(candidate.windowBeforeDays, candidate.windowAfterDays, t)}</dd></div>
+          <div><dt>{t("facts.observedAmounts")}</dt><dd>{observed.mode === "fixed" ? t("facts.sameAmount") : t("facts.variableAmount", { amount: formatMoney(observed.lowerMedianAmount, t) })}</dd></div>
+          {evaluatedOn && <div><dt>{t("facts.evaluated")}</dt><dd>{formatDate(evaluatedOn, t)}</dd></div>}
+          <div><dt>{t("facts.detection")}</dt><dd>{candidate.algorithmVersion}</dd></div>
         </dl>
         <PaycheckEvidence evidence={candidate.evidence} disclosure={false} />
       </details>
@@ -136,11 +153,11 @@ function CandidateCard({ candidate, dismissed, evaluatedOn, busy, actionsDisable
       ) : (
         <div className="inline-actions paycheck-actions">
           {dismissed ? (
-            <button type="button" disabled={actionsDisabled} onClick={() => onDecision(candidate, true)} aria-label={`Reconsider ${name}`}>Reconsider</button>
+            <button type="button" disabled={actionsDisabled} onClick={() => onDecision(candidate, true)} aria-label={t("actions.reconsiderLabel", { name })}>{t("actions.reconsider")}</button>
           ) : (
             <>
-              <button type="button" disabled={actionsDisabled} onClick={(event) => onReview(candidate, event.currentTarget)} aria-label={`Review and confirm ${name}`}>Review and confirm</button>
-              <button type="button" className="button-ghost" disabled={actionsDisabled} onClick={() => onDecision(candidate, false)} aria-label={`Dismiss ${name}`}>Dismiss</button>
+              <button type="button" disabled={actionsDisabled} onClick={(event) => onReview(candidate, event.currentTarget)} aria-label={t("actions.reviewConfirmLabel", { name })}>{t("actions.reviewConfirm")}</button>
+              <button type="button" className="button-ghost" disabled={actionsDisabled} onClick={() => onDecision(candidate, false)} aria-label={t("actions.dismissLabel", { name })}>{t("actions.dismiss")}</button>
             </>
           )}
         </div>
@@ -150,6 +167,7 @@ function CandidateCard({ candidate, dismissed, evaluatedOn, busy, actionsDisable
 }
 
 function ProfileCard({ profile, evaluatedOn, busy, actionsDisabled, receiptSubmitDisabled, ending, onEndingChange, editor, onEdit, onCancel, onSave, onLifecycle, receiving, onReceive, onRecord, onRemoveReceipt }) {
+  const { t } = useTranslation("paychecks");
   const detailsRef = useRef(null);
   const endTrigger = useRef(null);
   const endConfirm = useRef(null);
@@ -169,62 +187,62 @@ function ProfileCard({ profile, evaluatedOn, busy, actionsDisabled, receiptSubmi
     <Card as="article" className={`paycheck-card paycheck-card--${profile.lifecycle}`}>
       <header className="paycheck-card__header">
         <div>
-          <p className="paycheck-status">{LIFECYCLE_LABELS[profile.lifecycle]}</p>
+          <p className="paycheck-status">{lifecycleLabel(profile.lifecycle, t)}</p>
           <h3>{profile.displayName}</h3>
-          <p className="muted">{cadenceLabel(profile.schedule.cadence)}</p>
+          <p className="muted">{cadenceLabel(profile.schedule.cadence, t)}</p>
         </div>
-        <div className="paycheck-card__amount"><span>Expected amount</span><strong>{formatAmount(profile.amount)}</strong></div>
+        <div className="paycheck-card__amount"><span>{t("card.expectedAmount")}</span><strong>{formatAmount(profile.amount, t)}</strong></div>
       </header>
       {projection ? (
         <div className="paycheck-projection">
-          <p className="muted">Next expected window</p>
-          <p className="paycheck-projection__date">{formatDate(projection.earliestExpectedDate)}{projection.earliestExpectedDate !== projection.latestExpectedDate && `–${formatDate(projection.latestExpectedDate)}`}</p>
-          <p>Expected, not guaranteed.</p>
+          <p className="muted">{t("card.nextWindow")}</p>
+          <p className="paycheck-projection__date">{formatDate(projection.earliestExpectedDate, t)}{projection.earliestExpectedDate !== projection.latestExpectedDate && `–${formatDate(projection.latestExpectedDate, t)}`}</p>
+          <p>{t("card.notGuaranteed")}</p>
         </div>
       ) : (
-        <p className="paycheck-inactive">{profile.lifecycle === "active" ? "No expected window is available. Expected, not guaranteed." : `${LIFECYCLE_LABELS[profile.lifecycle]} paychecks have no active expected window.`}</p>
+        <p className="paycheck-inactive">{profile.lifecycle === "active" ? t("card.noWindowActive") : profile.lifecycle === "paused" ? t("card.noWindowPaused") : profile.lifecycle === "ended" ? t("card.noWindowEnded") : ""}</p>
       )}
       <details ref={detailsRef} className="paycheck-details">
-        <summary aria-label={`Details for ${profile.displayName}`}>Details</summary>
+        <summary aria-label={t("card.detailsLabel", { name: profile.displayName })}>{t("card.details")}</summary>
         <dl className="paycheck-facts">
-          <div><dt>Source</dt><dd>{profile.source === "manual" ? "Entered by you" : "Confirmed from deposits"}</dd></div>
-          {profile.origin?.algorithmVersion && <div><dt>Detection details</dt><dd>{profile.origin.algorithmVersion}</dd></div>}
-          <div><dt>Schedule</dt><dd>{formatSchedule(profile.schedule)}</dd></div>
-          <div><dt>Expected date window</dt><dd>{formatWindow(profile.windowBeforeDays, profile.windowAfterDays)}</dd></div>
-          <div><dt>Linked paycheck deposits</dt><dd>{profile.evidence.length} linked deposit(s)</dd></div>
-          {evaluatedOn && <div><dt>Profiles evaluated</dt><dd>{formatDate(evaluatedOn)}</dd></div>}
+          <div><dt>{t("facts.source")}</dt><dd>{profile.source === "manual" ? t("facts.sourceManual") : t("facts.sourceConfirmed")}</dd></div>
+          {profile.origin?.algorithmVersion && <div><dt>{t("facts.detection")}</dt><dd>{profile.origin.algorithmVersion}</dd></div>}
+          <div><dt>{t("facts.schedule")}</dt><dd>{formatSchedule(profile.schedule, t)}</dd></div>
+          <div><dt>{t("facts.expectedWindow")}</dt><dd>{formatWindow(profile.windowBeforeDays, profile.windowAfterDays, t)}</dd></div>
+          <div><dt>{t("facts.linkedDeposits")}</dt><dd>{t("facts.linkedCount", { total: profile.evidence.length })}</dd></div>
+          {evaluatedOn && <div><dt>{t("facts.profilesEvaluated")}</dt><dd>{formatDate(evaluatedOn, t)}</dd></div>}
           {projection && <>
-            <div><dt>Projection amount</dt><dd>{formatAmount(projection.amount)}</dd></div>
-            <div><dt>Schedule date</dt><dd>{formatDate(projection.anchor)}</dd></div>
-            <div><dt>Projection evaluated</dt><dd>{formatDate(projection.evaluatedOn)}</dd></div>
-            <div><dt>Projection details</dt><dd>{projection.algorithmVersion}</dd></div>
+            <div><dt>{t("facts.projectionAmount")}</dt><dd>{formatAmount(projection.amount, t)}</dd></div>
+            <div><dt>{t("facts.scheduleDate")}</dt><dd>{formatDate(projection.anchor, t)}</dd></div>
+            <div><dt>{t("facts.projectionEvaluated")}</dt><dd>{formatDate(projection.evaluatedOn, t)}</dd></div>
+            <div><dt>{t("facts.projectionDetails")}</dt><dd>{projection.algorithmVersion}</dd></div>
           </>}
         </dl>
         <PaycheckEvidence evidence={profile.evidence} confirmed disclosure={false} disabled={busy} onRemove={onRemoveReceipt} />
-        <p className="muted paycheck-schedule-note">To change this schedule, end this profile and create or confirm a replacement. Linked evidence stays with this profile.</p>
+        <p className="muted paycheck-schedule-note">{t("card.scheduleNote")}</p>
         {!editing && !ending && !receiving && <div className="inline-actions paycheck-actions">
-          {profile.lifecycle === "ended" && <button type="button" className="button-ghost" disabled={actionsDisabled} onClick={() => onLifecycle(profile.id, "paused")} aria-label={`Pause ${profile.displayName}`}>Pause</button>}
-          {profile.lifecycle !== "ended" && <button ref={endTrigger} type="button" className="button-ghost" disabled={actionsDisabled} onClick={() => onEndingChange({ id: profile.id, lifecycle: profile.lifecycle })} aria-label={`End ${profile.displayName}`}>End</button>}
+          {profile.lifecycle === "ended" && <button type="button" className="button-ghost" disabled={actionsDisabled} onClick={() => onLifecycle(profile.id, "paused")} aria-label={t("actions.pauseLabel", { name: profile.displayName })}>{t("actions.pause")}</button>}
+          {profile.lifecycle !== "ended" && <button ref={endTrigger} type="button" className="button-ghost" disabled={actionsDisabled} onClick={() => onEndingChange({ id: profile.id, lifecycle: profile.lifecycle })} aria-label={t("actions.endLabel", { name: profile.displayName })}>{t("actions.end")}</button>}
         </div>}
       </details>
       {receiving ? <ReceiptPanel profile={profile} busy={busy} submitDisabled={receiptSubmitDisabled} onSubmit={onRecord} onCancel={onCancel} /> : editing ? (
         <PaycheckForm key={profile.id} mode="edit" model={editor.model} busy={busy} onSubmit={(payload) => onSave(profile.id, payload)} onCancel={onCancel} />
       ) : ending ? (
-        <div className="paycheck-end-confirmation" role="group" aria-label={`End ${profile.displayName}`}>
-          <p>End {profile.displayName}? Its projection will stop. The profile and linked evidence will remain, and you can reactivate it.</p>
+        <div className="paycheck-end-confirmation" role="group" aria-label={t("actions.endLabel", { name: profile.displayName })}>
+          <p>{t("actions.endPrompt", { name: profile.displayName })}</p>
           <div className="inline-actions">
-            <button ref={endConfirm} type="button" disabled={busy} onClick={end}>Confirm end</button>
-            <button type="button" className="button-ghost" disabled={busy} onClick={() => { onEndingChange(null); if (detailsRef.current) detailsRef.current.open = true; requestAnimationFrame(() => endTrigger.current?.focus()); }}>Cancel ending</button>
+            <button ref={endConfirm} type="button" disabled={busy} onClick={end}>{t("actions.confirmEnd")}</button>
+            <button type="button" className="button-ghost" disabled={busy} onClick={() => { onEndingChange(null); if (detailsRef.current) detailsRef.current.open = true; requestAnimationFrame(() => endTrigger.current?.focus()); }}>{t("actions.cancelEnding")}</button>
           </div>
         </div>
       ) : (
         <div className="inline-actions paycheck-actions">
-          {profile.lifecycle === "active" && profile.receiptSlots?.length > 0 && <button type="button" disabled={actionsDisabled} onClick={(event) => onReceive(profile, event.currentTarget)} aria-label={`Record received ${profile.displayName}`}>Record received</button>}
-          <button type="button" className="button-ghost" disabled={actionsDisabled} onClick={(event) => onEdit(profile, event.currentTarget)} aria-label={`Edit ${profile.displayName}`}>Edit</button>
+          {profile.lifecycle === "active" && profile.receiptSlots?.length > 0 && <button type="button" disabled={actionsDisabled} onClick={(event) => onReceive(profile, event.currentTarget)} aria-label={t("actions.recordReceivedLabel", { name: profile.displayName })}>{t("actions.recordReceived")}</button>}
+          <button type="button" className="button-ghost" disabled={actionsDisabled} onClick={(event) => onEdit(profile, event.currentTarget)} aria-label={t("actions.editLabel", { name: profile.displayName })}>{t("actions.edit")}</button>
           {profile.lifecycle !== "active" ? (
-            <button type="button" disabled={actionsDisabled} onClick={() => onLifecycle(profile.id, "active")} aria-label={`Reactivate ${profile.displayName}`}>Reactivate</button>
+            <button type="button" disabled={actionsDisabled} onClick={() => onLifecycle(profile.id, "active")} aria-label={t("actions.reactivateLabel", { name: profile.displayName })}>{t("actions.reactivate")}</button>
           ) : (
-            <button type="button" className="button-ghost" disabled={actionsDisabled} onClick={() => onLifecycle(profile.id, "paused")} aria-label={`Pause ${profile.displayName}`}>Pause</button>
+            <button type="button" className="button-ghost" disabled={actionsDisabled} onClick={() => onLifecycle(profile.id, "paused")} aria-label={t("actions.pauseLabel", { name: profile.displayName })}>{t("actions.pause")}</button>
           )}
         </div>
       )}
@@ -233,6 +251,7 @@ function ProfileCard({ profile, evaluatedOn, busy, actionsDisabled, receiptSubmi
 }
 
 export default function PaychecksPage() {
+  const { t } = useTranslation("paychecks");
   const state = usePaychecks();
   const [editor, setEditor] = useState(null);
   const [endingTarget, setEndingTarget] = useState(null);
@@ -332,11 +351,11 @@ export default function PaychecksPage() {
     <div className="container paychecks-page">
       <header className="page-header">
         <div>
-          <h1>Paychecks</h1>
-          <p className="muted">Manage expected pay and review possible paychecks.</p>
+          <h1>{t("page.title")}</h1>
+          <p className="muted">{t("page.intro")}</p>
         </div>
         <button type="button" className="paycheck-create" disabled={actionsDisabled || Boolean(state.loadError) || state.uncertainCreate} onClick={(event) => openEditor("manual", null, event.currentTarget)}>
-          <Plus size={18} aria-hidden="true" /> Add paycheck manually
+          <Plus size={18} aria-hidden="true" /> {t("page.addManual")}
         </button>
       </header>
 
@@ -344,31 +363,31 @@ export default function PaychecksPage() {
         {state.loadError && <StatusMessage tone="danger">{state.loadError}</StatusMessage>}
         {state.actionError && <StatusMessage tone="danger">{state.actionError}</StatusMessage>}
         {state.notice && <StatusMessage tone="success">{state.notice}</StatusMessage>}
-        {(state.loadError || state.actionError) && <button type="button" className="button-ghost" disabled={busy} onClick={() => state.refresh()}>Refresh paychecks</button>}
-        {state.uncertainCreate && <button type="button" className="button-ghost" disabled={busy} onClick={state.acknowledgeUncertainCreate}>I checked my profiles; allow another attempt</button>}
-        {state.busyKey && <StatusMessage>Saving your decision…</StatusMessage>}
-        {state.refreshing && <StatusMessage>Refreshing paychecks…</StatusMessage>}
+        {(state.loadError || state.actionError) && <button type="button" className="button-ghost" disabled={busy} onClick={() => state.refresh()}>{t("page.refresh")}</button>}
+        {state.uncertainCreate && <button type="button" className="button-ghost" disabled={busy} onClick={state.acknowledgeUncertainCreate}>{t("page.acknowledgeCreate")}</button>}
+        {state.busyKey && <StatusMessage>{t("page.saving")}</StatusMessage>}
+        {state.refreshing && <StatusMessage>{t("page.refreshing")}</StatusMessage>}
       </div>
 
       {editor?.mode === "manual" && (
         <section className="paycheck-manual" aria-labelledby="manual-paycheck-heading">
-          <h2 id="manual-paycheck-heading">Add a paycheck expectation</h2>
-          <p className="muted">This is your own expectation, not employer-verified. It will be active without attaching any deposit evidence.</p>
+          <h2 id="manual-paycheck-heading">{t("manual.heading")}</h2>
+          <p className="muted">{t("manual.intro")}</p>
           <PaycheckForm key="manual" mode="manual" busy={busy} submitDisabled={state.uncertainCreate} onSubmit={(payload) => submit(() => state.createPaycheck(payload))} onCancel={cancelEditor} />
         </section>
       )}
 
-      {state.loading && <StatusMessage>Loading paychecks…</StatusMessage>}
+      {state.loading && <StatusMessage>{t("page.loading")}</StatusMessage>}
       {showContent && (
         <>
           <section className="paycheck-section" aria-labelledby="paycheck-profiles-heading" aria-busy={Boolean(state.busyKey)}>
             <header className="paycheck-section__header">
-              <h2 id="paycheck-profiles-heading" ref={profilesHeading} tabIndex={-1}>Your paychecks</h2>
+              <h2 id="paycheck-profiles-heading" ref={profilesHeading} tabIndex={-1}>{t("profiles.heading")}</h2>
             </header>
             {activeProfiles.length === 0 ? (
-              <div className="paycheck-empty"><WalletCards size={28} aria-hidden="true" /><h3>{state.paychecks.length === 0 ? "No paycheck profiles yet" : "No active paychecks"}</h3><p>Review a possible paycheck below or add an expectation manually. A deposit alone is not a confirmed paycheck.</p></div>
+              <div className="paycheck-empty"><WalletCards size={28} aria-hidden="true" /><h3>{state.paychecks.length === 0 ? t("profiles.emptyNone") : t("profiles.emptyNoActive")}</h3><p>{t("profiles.emptyBody")}</p></div>
             ) : (
-              <div className="paycheck-group" role="group" aria-label="Active paychecks">
+              <div className="paycheck-group" role="group" aria-label={t("groups.active")}>
                 {activeProfiles.map(profileCard)}
               </div>
             )}
@@ -376,10 +395,10 @@ export default function PaychecksPage() {
 
           <section className="paycheck-section" aria-labelledby="paycheck-candidates-heading">
             <header className="paycheck-section__header">
-              <div><h2 id="paycheck-candidates-heading" ref={candidatesHeading} tabIndex={-1}>Possible paychecks</h2><p className="muted">Review the deposits before confirming an expectation.</p></div>
-              {state.candidates.length > 0 && <p className="muted">{state.candidates.length} to review</p>}
+              <div><h2 id="paycheck-candidates-heading" ref={candidatesHeading} tabIndex={-1}>{t("candidates.heading")}</h2><p className="muted">{t("candidates.intro")}</p></div>
+              {state.candidates.length > 0 && <p className="muted">{t("candidates.toReview", { total: state.candidates.length })}</p>}
             </header>
-            {state.candidates.length === 0 ? <p className="paycheck-empty">No possible paychecks need review. You can still add a manual expectation.</p> : state.candidates.map((candidate) => <CandidateCard key={candidate.fingerprint} candidate={candidate} evaluatedOn={state.candidatesEvaluatedOn} busy={busy} actionsDisabled={actionsDisabled} editor={editor} onReview={(model, trigger) => openEditor("confirm", model, trigger)} onCancel={cancelEditor} onConfirm={(payload) => submit(() => state.confirmCandidate(payload))} onDecision={decide} />)}
+            {state.candidates.length === 0 ? <p className="paycheck-empty">{t("candidates.none")}</p> : state.candidates.map((candidate) => <CandidateCard key={candidate.fingerprint} candidate={candidate} evaluatedOn={state.candidatesEvaluatedOn} busy={busy} actionsDisabled={actionsDisabled} editor={editor} onReview={(model, trigger) => openEditor("confirm", model, trigger)} onCancel={cancelEditor} onConfirm={(payload) => submit(() => state.confirmCandidate(payload))} onDecision={decide} />)}
           </section>
 
           {["paused", "ended"].map((kind) => {
@@ -387,9 +406,9 @@ export default function PaychecksPage() {
             const locked = profiles.some((profile) => (endingTarget?.id === profile.id && endingTarget.lifecycle === profile.lifecycle) || (editor?.mode === "edit" && editor.key === profile.id) || state.busyKey === `lifecycle:${profile.id}`);
             return profiles.length > 0 && (
               <details key={kind} className="paycheck-history" open={historyOpen[kind] || locked} onToggle={(event) => { if (!locked) setHistory(kind, event.currentTarget.open); }}>
-                <summary aria-disabled={locked || undefined} onClick={(event) => { if (locked) event.preventDefault(); }}><h2>{LIFECYCLE_LABELS[kind]} paychecks <span>({profiles.length})</span></h2></summary>
-                <div className="paycheck-history__content paycheck-group" role="group" aria-label={`${LIFECYCLE_LABELS[kind]} paychecks`}>
-                  {locked && <p className="muted paycheck-history-note">Finish or cancel the open action before closing this group.</p>}
+                <summary aria-disabled={locked || undefined} onClick={(event) => { if (locked) event.preventDefault(); }}><h2>{t(`groups.${kind}`)} <span>({profiles.length})</span></h2></summary>
+                <div className="paycheck-history__content paycheck-group" role="group" aria-label={t(`groups.${kind}`)}>
+                  {locked && <p className="muted paycheck-history-note">{t("groups.locked")}</p>}
                   {profiles.map(profileCard)}
                 </div>
               </details>
@@ -397,10 +416,10 @@ export default function PaychecksPage() {
           })}
 
           <details className="paycheck-history" open={historyOpen.dismissed || state.busyKey?.startsWith("reconsider:")} onToggle={(event) => { if (!state.busyKey?.startsWith("reconsider:")) setHistory("dismissed", event.currentTarget.open); }}>
-            <summary ref={dismissedSummary} aria-disabled={state.busyKey?.startsWith("reconsider:") || undefined} onClick={(event) => { if (state.busyKey?.startsWith("reconsider:")) event.preventDefault(); }}><h2 id="paycheck-dismissed-heading">Dismissed possible paychecks <span>({state.dismissedCandidates.length})</span></h2></summary>
+            <summary ref={dismissedSummary} aria-disabled={state.busyKey?.startsWith("reconsider:") || undefined} onClick={(event) => { if (state.busyKey?.startsWith("reconsider:")) event.preventDefault(); }}><h2 id="paycheck-dismissed-heading">{t("candidates.dismissedHeading")} <span>({state.dismissedCandidates.length})</span></h2></summary>
             <div className="paycheck-history__content">
-              <p className="muted">Dismissal applies to the exact evidence reviewed. Reconsider a possible paycheck to review it again.</p>
-              {state.dismissedCandidates.length === 0 ? <p className="muted">No dismissed possible paychecks.</p> : state.dismissedCandidates.map((candidate) => <CandidateCard key={candidate.fingerprint} candidate={candidate} evaluatedOn={state.candidatesEvaluatedOn} dismissed busy={busy} actionsDisabled={actionsDisabled} onDecision={decide} />)}
+              <p className="muted">{t("candidates.dismissedIntro")}</p>
+              {state.dismissedCandidates.length === 0 ? <p className="muted">{t("candidates.dismissedNone")}</p> : state.dismissedCandidates.map((candidate) => <CandidateCard key={candidate.fingerprint} candidate={candidate} evaluatedOn={state.candidatesEvaluatedOn} dismissed busy={busy} actionsDisabled={actionsDisabled} onDecision={decide} />)}
             </div>
           </details>
         </>
