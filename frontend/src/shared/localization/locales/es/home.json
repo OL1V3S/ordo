@@ -83,7 +83,7 @@
     "reasonSeparator": "; ",
     "budgetStates": {
       "at_limit": "En el límite: {{spent}} de {{limit}}.",
-      "over_limit": "Sobre el límite: se gastaron {{spent}} de {{limit}}.",
+      "over_limit": "Por encima del límite: se gastaron {{spent}} de {{limit}}.",
       "zero_limit_spending": "Se gastaron {{spent}} con un límite de cero."
     },
     "dimensions": {

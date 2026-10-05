@@ -120,6 +120,20 @@ describe("capture-first Home", () => {
       .toHaveAttribute("href", "/commitments#changes-review-heading");
   });
 
+  it("words an over-limit budget alert in Spanish with Por encima del límite", async () => {
+    await i18n.changeLanguage("es");
+    const attention = availableAttention([], [
+      { kind: "budget_attention", category: "Groceries", state: "over_limit", spentAmount: "110.00", limitAmount: "100.00" },
+    ]);
+    homeApi.getHome.mockResolvedValue(response(home([], availableUpcoming(), attention)));
+
+    renderPage();
+
+    const list = await screen.findByRole("list", { name: "Elementos que requieren atención" });
+    expect(within(list).getByText("Groceries")).toBeInTheDocument();
+    expect(within(list).getByText("Por encima del límite: se gastaron $110.00 de $100.00.")).toBeInTheDocument();
+  });
+
   it("orders budget alerts with commitment reviews and applies the shared two-row cap", async () => {
     const attention = availableAttention(
       ["a", "b", "c"].map((id, index) => ({

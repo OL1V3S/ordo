@@ -2,9 +2,11 @@
 
 Ordo's browser frontend supports English and broadly neutral U.S./Latin
 American Spanish as an incremental product capability. The authenticated shell,
-primary navigation, Plan and More hubs, and Settings are the first localized
-surfaces. Other feature pages and public account-access pages remain English
-until a separately scoped adoption issue moves their complete copy into catalogs.
+primary navigation, Plan and More hubs, and Settings were the first localized
+surfaces, and the Home, Activity, statement import, Budgets, Insights, Commitments,
+and Paychecks pages have since followed. The public account-access pages and the
+unavailable Investing placeholder page remain English until a separately scoped
+adoption issue moves their complete copy into catalogs.
 The Activity page is localized through the `activity` namespace: the timeline, the
 section links, the page header and actions, the spending area (expense form,
 filters, list, and row editing), and the cash-in area (form, list, and delete
