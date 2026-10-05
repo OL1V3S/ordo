@@ -1,27 +1,21 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import Card from "../../../shared/ui/Card";
 import CommitmentEvidence from "./CommitmentEvidence";
-import { formatDate, formatDerivedMoney, formatMoney } from "../utils/formatCommitments";
+import { cadenceLabel, formatDate, formatDerivedMoney, formatMoney, weekdayLabel } from "../utils/formatCommitments";
 import groupCommitmentChanges from "../utils/groupCommitmentChanges";
 import { displayText } from "../../../utils/text";
 import { parseExpenseAmount } from "../../expenses/utils/exactMoney";
 
-function title(value) {
-  const text = value?.replaceAll("_", " ").replace(/([a-z])([A-Z])/g, "$1 $2") ?? "";
-  return text ? text[0].toUpperCase() + text.slice(1) : "";
-}
-
-function timingSummary(model) {
-  if (model.cadence === "weekly") {
-    return `${title(model.expectedDayOfWeek)} · ${model.windowBeforeDays} days before / ${model.windowAfterDays} days after`;
-  }
-  if (model.cadence === "monthly" && model.timingKind === "monthend") {
-    return `Month end · ${model.windowBeforeDays} days before / ${model.windowAfterDays} days after`;
-  }
-  if (model.cadence === "yearly") {
-    return `Month ${model.expectedMonth}, day ${model.expectedDay} · ${model.windowBeforeDays} days before / ${model.windowAfterDays} days after`;
-  }
-  return `Day ${model.expectedDay} · ${model.windowBeforeDays} days before / ${model.windowAfterDays} days after`;
+function timingSummary(model, t) {
+  const window = {
+    before: t("timing.compact.before", { count: Number(model.windowBeforeDays) }),
+    after: t("timing.compact.after", { count: Number(model.windowAfterDays) }),
+  };
+  if (model.cadence === "weekly") return t("timing.compact.weekly", { weekday: weekdayLabel(model.expectedDayOfWeek, t), ...window });
+  if (model.cadence === "monthly" && model.timingKind === "monthend") return t("timing.compact.monthEnd", window);
+  if (model.cadence === "yearly") return t("timing.compact.yearly", { month: model.expectedMonth, day: model.expectedDay, ...window });
+  return t("timing.compact.dayOfMonth", { day: model.expectedDay, ...window });
 }
 
 function amountSummary(model) {
@@ -34,7 +28,7 @@ function proposedAmountSummary(assessment) {
   return `${formatDerivedMoney(assessment.proposedMinimumAmount)}–${formatDerivedMoney(assessment.proposedMaximumAmount)}`;
 }
 
-function proposedTimingSummary(commitment, assessment) {
+function proposedTimingSummary(commitment, assessment, t) {
   return timingSummary({
     cadence: commitment.cadence,
     timingKind: assessment.proposedTimingKind,
@@ -43,7 +37,7 @@ function proposedTimingSummary(commitment, assessment) {
     expectedMonth: assessment.proposedMonth,
     windowBeforeDays: assessment.proposedWindowBeforeDays,
     windowAfterDays: assessment.proposedWindowAfterDays,
-  });
+  }, t);
 }
 
 function evidenceFor(change, assessment) {
@@ -63,23 +57,27 @@ function exactAmountAssessmentAvailable(change, assessment) {
     && evidence.every((observation) => parseExpenseAmount(observation.amount));
 }
 
-function explanation(change, dimension, assessment) {
+const MISSING_CADENCES = ["weekly", "monthly", "yearly"];
+
+function explanation(change, dimension, assessment, t) {
   if (dimension === "missing") {
     const count = assessment.missedSlotAnchors.length;
-    return `${count} expected ${change.commitment.cadence} date${count === 1 ? " has" : "s have"} passed without a matching expense.`;
+    const cadence = MISSING_CADENCES.includes(change.commitment.cadence) ? change.commitment.cadence : "other";
+    return t(`changes.explanation.missing.${cadence}`, { count });
   }
   const count = assessment.evidenceExpenseIds.length;
-  return `${count} recent expense${count === 1 ? " supports" : "s support"} this ${dimension} change.`;
+  return t(`changes.explanation.${dimension}`, { count });
 }
 
 function Comparison({ change, dimension, assessment }) {
+  const { t } = useTranslation("commitments");
   if (dimension === "missing") {
     return (
       <div className="commitment-change__missing">
-        <strong>{assessment.state === "possibly_ended" ? "Possibly ended" : "Not seen recently"}</strong>
-        <span>This is an observation, not an automatic status change.</span>
+        <strong>{assessment.state === "possibly_ended" ? t("changes.possiblyEnded") : t("changes.notSeen")}</strong>
+        <span>{t("changes.observationNote")}</span>
         <ul>
-          {assessment.missedSlotAnchors.map((anchor) => <li key={anchor}>{formatDate(anchor)}</li>)}
+          {assessment.missedSlotAnchors.map((anchor) => <li key={anchor}>{formatDate(anchor, t)}</li>)}
         </ul>
       </div>
     );
@@ -87,19 +85,20 @@ function Comparison({ change, dimension, assessment }) {
 
   const current = dimension === "amount"
     ? amountSummary(change.commitment)
-    : timingSummary(change.commitment);
+    : timingSummary(change.commitment, t);
   const proposed = dimension === "amount"
     ? proposedAmountSummary(assessment)
-    : proposedTimingSummary(change.commitment, assessment);
+    : proposedTimingSummary(change.commitment, assessment, t);
   return (
     <dl className="commitment-change__comparison">
-      <div><dt>Current expectation</dt><dd>{current}</dd></div>
-      <div><dt>Observed change</dt><dd>{proposed}</dd></div>
+      <div><dt>{t("changes.currentExpectation")}</dt><dd>{current}</dd></div>
+      <div><dt>{t("changes.observedChange")}</dt><dd>{proposed}</dd></div>
     </dl>
   );
 }
 
 function ChangeActions({ change, dimension, assessment, state, kept, activeTask, onTaskChange, onReviewedOpenChange }) {
+  const { t } = useTranslation("commitments");
   const endTriggerRef = useRef(null);
   const confirmEndRef = useRef(null);
   const restoreEndFocus = useRef(false);
@@ -145,13 +144,13 @@ function ChangeActions({ change, dimension, assessment, state, kept, activeTask,
         <button
           type="button"
           disabled={actionDisabled}
-          aria-label={`Reconsider ${dimension} change for ${name}`}
+          aria-label={t(`changes.reconsiderLabel.${dimension}`, { name })}
           onClick={() => run(
             () => state.reconsiderChange(change.commitment.id, dimension, assessment.fingerprint),
             "changes-review-heading"
           )}
         >
-          {state.busyKey ? "Updating..." : "Reconsider"}
+          {state.busyKey ? t("changes.updating") : t("changes.reconsider")}
         </button>
       </div>
     );
@@ -162,7 +161,7 @@ function ChangeActions({ change, dimension, assessment, state, kept, activeTask,
     return (
       <div className="commitment-change__confirmation" role="group" aria-labelledby={confirmationId}>
         <p id={confirmationId}>
-          Mark {name} ended? This changes its status, and you can change it again from the confirmed commitment.
+          {t("changes.markEndedPrompt", { name })}
         </p>
         <div className="inline-actions">
           <button
@@ -170,25 +169,25 @@ function ChangeActions({ change, dimension, assessment, state, kept, activeTask,
             type="button"
             className="button-danger"
             disabled={confirmationDisabled}
-            aria-label={`Confirm mark ${name} ended`}
+            aria-label={t("changes.confirmMarkEndedLabel", { name })}
             onClick={() => run(
               () => state.markEndedFromChange(change.commitment.id, assessment.fingerprint),
               "changes-review-heading"
             )}
           >
-            {state.busyKey ? "Marking ended..." : "Confirm mark ended"}
+            {state.busyKey ? t("changes.markingEnded") : t("changes.confirmMarkEnded")}
           </button>
           <button
             type="button"
             className="button-ghost"
             disabled={cancelDisabled}
-            aria-label={`Cancel marking ${name} ended`}
+            aria-label={t("changes.cancelMarkEndedLabel", { name })}
             onClick={() => {
               restoreEndFocus.current = true;
               onTaskChange(null);
             }}
           >
-            Cancel
+            {t("changes.cancelMarkEnded")}
           </button>
         </div>
       </div>
@@ -201,42 +200,40 @@ function ChangeActions({ change, dimension, assessment, state, kept, activeTask,
         <button
           type="button"
           disabled={actionDisabled}
-          aria-label={`Accept amount change for ${name}`}
+          aria-label={t("changes.acceptLabel.amount", { name })}
           onClick={() => run(
             () => state.acceptAmountChange(change.commitment.id, assessment.fingerprint),
             "changes-review-heading"
           )}
         >
-          {state.busyKey ? "Updating..." : "Accept change"}
+          {state.busyKey ? t("changes.updating") : t("changes.accept")}
         </button>
       )}
       {dimension === "timing" && (
         <button
           type="button"
           disabled={actionDisabled}
-          aria-label={`Accept timing change for ${name}`}
+          aria-label={t("changes.acceptLabel.timing", { name })}
           onClick={() => run(
             () => state.acceptTimingChange(change.commitment.id, assessment.fingerprint),
             "changes-review-heading"
           )}
         >
-          {state.busyKey ? "Updating..." : "Accept change"}
+          {state.busyKey ? t("changes.updating") : t("changes.accept")}
         </button>
       )}
       <button
         type="button"
         className="button-ghost"
         disabled={actionDisabled}
-        aria-label={dimension === "missing"
-          ? `Keep active for ${name}`
-          : `Keep current ${dimension} for ${name}`}
+        aria-label={t(`changes.keepCurrentLabel.${dimension}`, { name })}
         onClick={() => run(
           () => state.keepChange(change.commitment.id, dimension, assessment.fingerprint),
           "kept-changes-heading",
           true
         )}
       >
-        {state.busyKey ? "Updating..." : dimension === "missing" ? "Keep active" : "Keep current"}
+        {state.busyKey ? t("changes.updating") : dimension === "missing" ? t("changes.keepActive") : t("changes.keepCurrent")}
       </button>
       {dimension === "missing" && assessment.state === "possibly_ended" && (
         <button
@@ -244,10 +241,10 @@ function ChangeActions({ change, dimension, assessment, state, kept, activeTask,
           type="button"
           className="button-danger"
           disabled={actionDisabled}
-          aria-label={`Mark ${name} ended`}
+          aria-label={t("changes.markEndedLabel", { name })}
           onClick={() => onTaskChange({ mode: "change-end", key: taskKey })}
         >
-          Mark ended
+          {t("changes.markEnded")}
         </button>
       )}
     </div>
@@ -255,13 +252,14 @@ function ChangeActions({ change, dimension, assessment, state, kept, activeTask,
 }
 
 function ChangeCard({ change, state, kept, activeTask, onTaskChange, onReviewedOpenChange }) {
+  const { t } = useTranslation("commitments");
   return (
     <Card as="article" className={`commitment-card commitment-change-card${kept ? " commitment-change-card--kept" : ""}`}>
       <div className="commitment-card__header">
         <div>
-          <p className="commitment-card__eyebrow">{kept ? "Reviewed change" : "Needs your decision"}</p>
+          <p className="commitment-card__eyebrow">{kept ? t("changes.eyebrowReviewed") : t("changes.eyebrowPending")}</p>
           <h3>{change.commitment.name}</h3>
-          <p className="muted">{displayText(change.commitment.category)} · {title(change.commitment.cadence)}</p>
+          <p className="muted">{displayText(change.commitment.category)} · {cadenceLabel(change.commitment.cadence, t)}</p>
         </div>
       </div>
 
@@ -274,21 +272,21 @@ function ChangeCard({ change, state, kept, activeTask, onTaskChange, onReviewedO
             <section className="commitment-change__panel" key={`${dimension}:${assessment.fingerprint}`}>
               <div className="commitment-change__panel-header">
                 <div>
-                  <p className="commitment-change__dimension">{title(dimension)} review</p>
-                  <h4>{explanation(change, dimension, assessment)}</h4>
+                  <p className="commitment-change__dimension">{t(`changes.dimension.${dimension}`)}</p>
+                  <h4>{explanation(change, dimension, assessment, t)}</h4>
                 </div>
                 <span className={`commitment-change__status commitment-change__status--${kept ? "kept" : "pending"}`}>
-                  {kept ? "Kept" : "Pending"}
+                  {kept ? t("changes.statusKept") : t("changes.statusPending")}
                 </span>
               </div>
               <Comparison change={change} dimension={dimension} assessment={assessment} />
-              {!exactAmountAvailable && <p className="muted">Exact amount review is unavailable. Refresh with an updated client before making this amount decision.</p>}
+              {!exactAmountAvailable && <p className="muted">{t("changes.exactUnavailable")}</p>}
               <details className="commitment-change__details">
-                <summary aria-label={`Details for ${dimension} change for ${change.commitment.name}`}>Details</summary>
+                <summary aria-label={t(`changes.detailsLabel.${dimension}`, { name: change.commitment.name })}>{t("changes.details")}</summary>
                 {evidence.length > 0 && <CommitmentEvidence evidence={evidence} />}
                 <dl className="commitment-change__mechanics">
-                  <div><dt>Evaluated</dt><dd>{formatDate(state.changeEvaluatedOn)}</dd></div>
-                  <div><dt>Detection details</dt><dd>{change.algorithmVersion}</dd></div>
+                  <div><dt>{t("changes.evaluated")}</dt><dd>{formatDate(state.changeEvaluatedOn, t)}</dd></div>
+                  <div><dt>{t("changes.detectionDetails")}</dt><dd>{change.algorithmVersion}</dd></div>
                 </dl>
               </details>
               <ChangeActions change={change} dimension={dimension} assessment={assessment} state={state} kept={kept}
@@ -306,7 +304,8 @@ function changeCount(changes) {
 }
 
 function ChangeList({ changes, state, kept = false, activeTask, onTaskChange, onReviewedOpenChange }) {
-  if (changes.length === 0) return <p className="empty-state">{kept ? "No reviewed changes." : "No commitment changes need your review."}</p>;
+  const { t } = useTranslation("commitments");
+  if (changes.length === 0) return <p className="empty-state">{kept ? t("changes.emptyReviewed") : t("changes.emptyPending")}</p>;
   return (
     <div className="commitment-list">
       {changes.map((change) => (
@@ -318,12 +317,13 @@ function ChangeList({ changes, state, kept = false, activeTask, onTaskChange, on
 }
 
 function PendingChanges({ changes, state, activeTask, onTaskChange, onReviewedOpenChange }) {
+  const { t } = useTranslation("commitments");
   return (
     <section className="commitment-section" aria-labelledby="changes-review-heading">
       <div className="commitment-section__header">
         <div>
-          <h2 id="changes-review-heading" tabIndex="-1">Changes to review</h2>
-          <p className="muted">Review the latest evidence before changing an expectation or commitment status. Each decision applies only to this exact assessment.</p>
+          <h2 id="changes-review-heading" tabIndex="-1">{t("changes.heading")}</h2>
+          <p className="muted">{t("changes.intro")}</p>
         </div>
         <span className="commitment-count">{changeCount(changes)}</span>
       </div>
@@ -334,16 +334,17 @@ function PendingChanges({ changes, state, activeTask, onTaskChange, onReviewedOp
 }
 
 function ReviewedChanges({ changes, state, activeTask, onTaskChange, open, onOpenChange, onReviewedOpenChange }) {
+  const { t } = useTranslation("commitments");
   const locked = Boolean(state.busyKey?.includes(":reconsider:"));
   return (
     <details className="commitment-section commitment-change-history" open={open || locked}
       onToggle={(event) => { if (!locked) onOpenChange(event.currentTarget.open); }}>
       <summary aria-disabled={locked || undefined} onClick={(event) => { if (locked) event.preventDefault(); }}>
-        <h2 id="kept-changes-heading">Reviewed changes <span>({changeCount(changes)})</span></h2>
+        <h2 id="kept-changes-heading">{t("changes.reviewedHeading")} <span>({changeCount(changes)})</span></h2>
       </summary>
       <div className="commitment-change-history__content">
-        <p className="muted">These exact observations were kept without changing the saved expectation. Reconsider one if you want to review it again.</p>
-        {locked && <p className="muted">Finish reconsidering this change before closing reviewed history.</p>}
+        <p className="muted">{t("changes.reviewedIntro")}</p>
+        {locked && <p className="muted">{t("changes.reviewedLocked")}</p>}
         <ChangeList changes={changes} state={state} kept activeTask={activeTask}
           onTaskChange={onTaskChange} onReviewedOpenChange={onReviewedOpenChange} />
       </div>
