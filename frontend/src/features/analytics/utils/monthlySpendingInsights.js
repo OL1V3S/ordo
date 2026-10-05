@@ -1,4 +1,5 @@
 import { formatLocalCalendarDate } from "../../expenses/utils/calendarDate";
+import { cashMonthLabel } from "./cashFlowPresentation";
 import {
   compareCents, decimalFromCents, parseBudgetLimit, parseExactMoney,
   parseExpenseAmount, percentageFromRatio,
@@ -53,9 +54,12 @@ export function getPreviousMonth(monthYear) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 }
 
-export function formatMonthLabel(monthYear) {
+// With a translator the label is built from the catalog month names; without one the
+// original English formatting is unchanged.
+export function formatMonthLabel(monthYear, t) {
   const match = MONTH_PATTERN.exec(String(monthYear));
   if (!match) return monthYear;
+  if (t) return cashMonthLabel(monthYear, { t });
   return new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" })
     .format(new Date(Number(match[1]), Number(match[2]) - 1, 1));
 }

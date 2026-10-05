@@ -1,4 +1,8 @@
-const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+import i18n from "../../../shared/localization/i18n";
+
+// Callers that render localized copy pass their own `t`. Callers that have not adopted
+// localization keep the English wording, read from the same English catalog.
+export const englishT = (key, options) => i18n.getFixedT("en", "analytics")(key, options);
 
 export function minorUnits(value) {
   if (typeof value !== "string" || !/^(0|-?[1-9]\d*)$/.test(value)) {
@@ -36,19 +40,29 @@ export function localThroughDate(now = new Date()) {
   return `${String(now.getFullYear()).padStart(4, "0")}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 }
 
-export function cashMonthLabel(month, { short = false } = {}) {
-  const name = monthNames[Number(month.slice(5, 7)) - 1];
-  return `${short ? name.slice(0, 3) : name} ${month.slice(0, 4)}`;
+// Month names come from the catalog and are applied to the existing year-month
+// and date components; no Date object, timezone, or locale formatter is involved.
+function monthName(month, short, t) {
+  return t(`months.${short ? "short" : "long"}.${month.slice(5, 7)}`);
 }
 
-export function cashDateLabel(date) {
-  return `${monthNames[Number(date.slice(5, 7)) - 1]} ${Number(date.slice(8, 10))}, ${date.slice(0, 4)}`;
+export function cashMonthLabel(month, { short = false, t = englishT } = {}) {
+  return t("labels.month", { month: monthName(month, short, t), year: month.slice(0, 4) });
 }
 
-export function periodNotes(bucket, throughDate) {
+// Month and year as separate parts, for the chart's two-line axis ticks.
+export function cashMonthTickParts(month, { t = englishT } = {}) {
+  return [monthName(month, true, t), month.slice(0, 4)];
+}
+
+export function cashDateLabel(date, { t = englishT } = {}) {
+  return t("labels.date", { month: monthName(date, false, t), day: Number(date.slice(8, 10)), year: date.slice(0, 4) });
+}
+
+export function periodNotes(bucket, throughDate, { t = englishT } = {}) {
   const notes = [];
-  if (bucket.month === throughDate.slice(0, 7)) notes.push(`Through ${cashDateLabel(bucket.to)}`);
-  if (bucket.cashInMinor === "0") notes.push("No cash in recorded");
-  if (bucket.spentMinor === "0") notes.push("No spending recorded");
+  if (bucket.month === throughDate.slice(0, 7)) notes.push(t("periodNotes.through", { date: cashDateLabel(bucket.to, { t }) }));
+  if (bucket.cashInMinor === "0") notes.push(t("periodNotes.noCashIn"));
+  if (bucket.spentMinor === "0") notes.push(t("periodNotes.noSpending"));
   return notes.join(" · ") || "—";
 }
