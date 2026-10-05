@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import groupCommitmentChanges from "../utils/groupCommitmentChanges";
 import CommitmentChangeReview from "./CommitmentChangeReview";
+import "../../../shared/localization/i18n";
 
 const observations = [
   { expenseId: 4, date: "2026-08-17", amount: 25, description: "Gym membership", category: "health", source: "manual" },

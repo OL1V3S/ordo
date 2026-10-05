@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useCommitments } from "../hooks/useCommitments";
 import CommitmentsPage from "./CommitmentsPage";
 import { MemoryRouter } from "react-router-dom";
+import "../../../shared/localization/i18n";
 
 vi.mock("../hooks/useCommitments", () => ({ useCommitments: vi.fn() }));
 

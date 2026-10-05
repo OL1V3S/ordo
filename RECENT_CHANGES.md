@@ -24,6 +24,23 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-05 — Spanish Commitments page
+
+[PR #183](https://github.com/OL1V3S/ordo/pull/183) ·
+[Issue #182](https://github.com/OL1V3S/ordo/issues/182)
+
+- Localized the Commitments page (the page, commitment form, change review with its
+  pending and reviewed decisions, supporting-expense evidence, and the error and
+  notice messages the hook maps from stable backend codes) in English and Spanish
+  through a new `commitments` catalog namespace. Count-dependent text is now complete
+  count-aware messages per cadence and change dimension instead of concatenated
+  English fragments; English wording is unchanged.
+- Spanish keeps an expected commitment distinct from expenses actually recorded and
+  names what each accept, keep, dismiss, and mark-ended decision does. Commitment
+  detection, change-review and decision logic, payloads, element ids, and focus
+  behavior are unchanged; `$` amounts and the browser-language date display keep
+  their existing form in both languages.
+
 ### 2026-10-05 — Spanish Analytics page
 
 [PR #181](https://github.com/OL1V3S/ordo/pull/181) ·
