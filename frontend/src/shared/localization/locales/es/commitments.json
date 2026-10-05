@@ -1,0 +1,262 @@
+{
+  "page": {
+    "title": "Compromisos",
+    "subtitle": "Administra las previsiones guardadas y revisa los posibles cambios.",
+    "reviewLinks": "Revisiones de compromisos",
+    "changesLink_one": "{{count}} cambio por revisar",
+    "changesLink_other": "{{count}} cambios por revisar",
+    "possibleLink_one": "{{count}} posible compromiso",
+    "possibleLink_other": "{{count}} posibles compromisos"
+  },
+  "feedback": {
+    "outOfDate": "La información mostrada puede estar desactualizada. Actualiza antes de tomar otra decisión.",
+    "refresh": "Actualizar compromisos",
+    "tryAgain": "Intentar de nuevo",
+    "refreshing": "Actualizando compromisos...",
+    "loading": "Cargando compromisos...",
+    "saving": "Guardando tu decisión...",
+    "errors": {
+      "candidate_changed": "Esta propuesta cambió o ya no está disponible. Se cargó la evidencia más reciente.",
+      "candidate_dismissed": "Reconsidera esta propuesta antes de confirmarla.",
+      "confirmation_conflict": "Esta propuesta cambió mientras se confirmaba. Se cargó el estado más reciente.",
+      "fingerprint_invalid": "Esta propuesta ya no se puede revisar. Actualiza e inténtalo de nuevo.",
+      "name_invalid": "Ingresa un nombre de compromiso de 500 caracteres o menos.",
+      "category_invalid": "Ingresa una categoría válida de 100 caracteres o menos.",
+      "cadence_invalid": "Elige una frecuencia de compromiso válida.",
+      "timing_invalid": "Elige fechas que coincidan con la frecuencia.",
+      "amount_invalid": "Ingresa un monto fijo o un rango de montos válido.",
+      "lifecycle_invalid": "Elige activo, pausado o finalizado.",
+      "commitment_not_found": "Ese compromiso ya no está disponible.",
+      "dimension_invalid": "Ese tipo de cambio ya no se puede revisar. Actualiza e inténtalo de nuevo.",
+      "change_proposal_changed": "Esta propuesta de cambio cambió. Se cargaron la evidencia y la recomendación más recientes.",
+      "request_failed": "Algo salió mal. Inténtalo de nuevo."
+    },
+    "notices": {
+      "dismissed": "Propuesta descartada. Puedes reconsiderarla más abajo.",
+      "reconsidered": "La propuesta volvió a tu lista de revisión.",
+      "confirmed": "Compromiso confirmado.",
+      "updated": "Compromiso actualizado.",
+      "lifecycle": "Estado del compromiso actualizado.",
+      "amountAccepted": "Previsión de monto actualizada.",
+      "timingAccepted": "Previsión de fechas actualizada.",
+      "markedEnded": "Compromiso marcado como finalizado.",
+      "keptActive": "El compromiso se mantiene activo.",
+      "keptCurrent": "Se mantiene la previsión actual.",
+      "changeReconsidered": "El cambio volvió a tu lista de revisión."
+    }
+  },
+  "cadence": {
+    "weekly": "Semanal",
+    "monthly": "Mensual",
+    "yearly": "Anual"
+  },
+  "weekday": {
+    "sunday": "Domingo",
+    "monday": "Lunes",
+    "tuesday": "Martes",
+    "wednesday": "Miércoles",
+    "thursday": "Jueves",
+    "friday": "Viernes",
+    "saturday": "Sábado"
+  },
+  "lifecycle": {
+    "active": "Activo",
+    "paused": "Pausado",
+    "ended": "Finalizado"
+  },
+  "format": {
+    "unknownDate": "Fecha desconocida"
+  },
+  "timing": {
+    "summary": {
+      "weekly": "{{weekday}}, con una ventana de {{before}} / {{after}}",
+      "monthEnd": "Fin de mes, con una ventana de {{before}} / {{after}}",
+      "yearly": "Mes {{month}}, día {{day}}, con una ventana de {{before}} / {{after}}",
+      "dayOfMonth": "Día {{day}}, con una ventana de {{before}} / {{after}}",
+      "before_one": "{{count}} día antes",
+      "before_other": "{{count}} días antes",
+      "after_one": "{{count}} día después",
+      "after_other": "{{count}} días después"
+    },
+    "compact": {
+      "weekly": "{{weekday}} · {{before}} / {{after}}",
+      "monthEnd": "Fin de mes · {{before}} / {{after}}",
+      "yearly": "Mes {{month}}, día {{day}} · {{before}} / {{after}}",
+      "dayOfMonth": "Día {{day}} · {{before}} / {{after}}",
+      "before_one": "{{count}} día antes",
+      "before_other": "{{count}} días antes",
+      "after_one": "{{count}} día después",
+      "after_other": "{{count}} días después"
+    }
+  },
+  "evidence": {
+    "heading": "Gastos de respaldo",
+    "rules": {
+      "consecutive_calendar_months": "Meses calendario consecutivos",
+      "weekly_six_to_eight_day_gaps": "Semanal, con 6–8 días entre gastos",
+      "consecutive_years_same_month": "Años consecutivos en el mismo mes"
+    },
+    "sources": {
+      "sunflower_pdf": "Estado de cuenta de Sunflower",
+      "manual": "Ingresado manualmente"
+    }
+  },
+  "saved": {
+    "heading": "Tus compromisos",
+    "activeGroup": "Compromisos activos",
+    "emptyNone": "Aún no hay compromisos confirmados.",
+    "emptyNoActive": "No hay compromisos activos.",
+    "expectedAmount": "Monto previsto",
+    "timingPattern": "Patrón de fechas guardado",
+    "details": "Detalles",
+    "detailsLabel": "Detalles de {{name}}",
+    "recordsUsed": "Registros usados para confirmar",
+    "linkedExpenses_one": "{{count}} gasto vinculado",
+    "linkedExpenses_other": "{{count}} gastos vinculados",
+    "edit": "Editar",
+    "editLabel": "Editar {{name}}",
+    "saveChanges": "Guardar cambios",
+    "pause": "Pausar",
+    "pauseLabel": "Pausar {{name}}",
+    "end": "Finalizar",
+    "endLabel": "Finalizar {{name}}",
+    "reactivate": "Reactivar",
+    "reactivateLabel": "Reactivar {{name}}",
+    "endPrompt": "¿Finalizar {{name}}? La previsión guardada y los registros vinculados se conservarán. Puedes reactivarlo.",
+    "confirmEnd": "Confirmar finalización",
+    "cancelEnd": "Cancelar finalización"
+  },
+  "candidates": {
+    "heading": "Posibles compromisos",
+    "intro": "Revisa los gastos registrados antes de confirmar una previsión.",
+    "toReview": "{{count}} por revisar",
+    "empty": "Ningún posible compromiso requiere tu revisión.",
+    "dismissedStatus": "Posible compromiso descartado",
+    "observedAmount": "Monto observado",
+    "observedAmountRange": "Rango de monto observado",
+    "basedOnFixed_one": "Basado en {{count}} gasto registrado",
+    "basedOnFixed_other": "Basado en {{count}} gastos registrados",
+    "basedOnRange_one": "Basado en {{count}} gasto registrado. Historial observado, no una previsión guardada.",
+    "basedOnRange_other": "Basado en {{count}} gastos registrados. Historial observado, no una previsión guardada.",
+    "evidence": "Evidencia",
+    "evidenceSummary_one": "{{count}} gasto registrado · {{rule}}",
+    "evidenceSummary_other": "{{count}} gastos registrados · {{rule}}",
+    "coveredPeriod": "Período cubierto",
+    "observedTiming": "Fechas observadas",
+    "identical": "Idéntico cada vez",
+    "median": "Mediana {{amount}}",
+    "detectionDetails": "Detalles de detección",
+    "reviewAndConfirm": "Revisar y confirmar",
+    "reviewAndConfirmLabel": "Revisar y confirmar {{name}}",
+    "confirmCommitment": "Confirmar compromiso",
+    "dismiss": "Descartar",
+    "dismissLabel": "Descartar {{name}}",
+    "reconsider": "Reconsiderar",
+    "reconsiderLabel": "Reconsiderar {{name}}"
+  },
+  "history": {
+    "paused": "Compromisos pausados",
+    "ended": "Compromisos finalizados",
+    "locked": "Termina o cancela la acción abierta antes de cerrar este grupo.",
+    "dismissedHeading": "Posibles compromisos descartados",
+    "dismissedIntro": "El descarte se aplica solo a la evidencia exacta que revisaste. Reconsidera uno para revisarlo de nuevo.",
+    "dismissedEmpty": "No hay posibles compromisos descartados."
+  },
+  "form": {
+    "observedAmountUnsafe": "El monto observado no se pudo cargar con precisión confiable de centavos. Actualiza antes de confirmar.",
+    "name": "Nombre",
+    "category": "Categoría",
+    "cadence": "Frecuencia",
+    "expectedWeekday": "Día de la semana previsto",
+    "monthlyTiming": "Fecha mensual",
+    "dayOfMonth": "Día del mes",
+    "monthEnd": "Fin de mes",
+    "expectedMonth": "Mes previsto",
+    "expectedDay": "Día previsto",
+    "daysBefore": "Días antes",
+    "daysAfter": "Días después",
+    "amountModel": "Tipo de monto",
+    "fixedAmount": "Monto fijo",
+    "amountRange": "Rango de montos",
+    "expectedAmount": "Monto previsto",
+    "minimumAmount": "Monto mínimo",
+    "maximumAmount": "Monto máximo",
+    "saving": "Guardando...",
+    "cancel": "Cancelar"
+  },
+  "changes": {
+    "heading": "Cambios por revisar",
+    "intro": "Revisa la evidencia más reciente antes de cambiar una previsión o el estado de un compromiso. Cada decisión se aplica solo a esta evaluación exacta.",
+    "emptyPending": "Ningún cambio de compromisos requiere tu revisión.",
+    "reviewedHeading": "Cambios revisados",
+    "reviewedIntro": "Estas observaciones exactas se mantuvieron sin cambiar la previsión guardada. Reconsidera una si quieres revisarla de nuevo.",
+    "reviewedLocked": "Termina de reconsiderar este cambio antes de cerrar el historial revisado.",
+    "emptyReviewed": "No hay cambios revisados.",
+    "eyebrowPending": "Requiere tu decisión",
+    "eyebrowReviewed": "Cambio revisado",
+    "statusPending": "Pendiente",
+    "statusKept": "Mantenido",
+    "dimension": {
+      "amount": "Revisión de monto",
+      "timing": "Revisión de fechas",
+      "missing": "Revisión de gasto faltante"
+    },
+    "explanation": {
+      "amount_one": "{{count}} gasto registrado reciente respalda este cambio de monto.",
+      "amount_other": "{{count}} gastos registrados recientes respaldan este cambio de monto.",
+      "timing_one": "{{count}} gasto registrado reciente respalda este cambio de fechas.",
+      "timing_other": "{{count}} gastos registrados recientes respaldan este cambio de fechas.",
+      "missing": {
+        "weekly_one": "Ha pasado {{count}} fecha semanal prevista sin un gasto registrado que coincida.",
+        "weekly_other": "Han pasado {{count}} fechas semanales previstas sin un gasto registrado que coincida.",
+        "monthly_one": "Ha pasado {{count}} fecha mensual prevista sin un gasto registrado que coincida.",
+        "monthly_other": "Han pasado {{count}} fechas mensuales previstas sin un gasto registrado que coincida.",
+        "yearly_one": "Ha pasado {{count}} fecha anual prevista sin un gasto registrado que coincida.",
+        "yearly_other": "Han pasado {{count}} fechas anuales previstas sin un gasto registrado que coincida.",
+        "other_one": "Ha pasado {{count}} fecha prevista sin un gasto registrado que coincida.",
+        "other_other": "Han pasado {{count}} fechas previstas sin un gasto registrado que coincida."
+      }
+    },
+    "possiblyEnded": "Posiblemente finalizado",
+    "notSeen": "No se ha visto recientemente",
+    "observationNote": "Esto es una observación, no un cambio automático de estado.",
+    "currentExpectation": "Previsión actual",
+    "observedChange": "Cambio observado",
+    "exactUnavailable": "La revisión del monto exacto no está disponible. Actualiza con una versión más reciente de la aplicación antes de decidir sobre este monto.",
+    "details": "Detalles",
+    "detailsLabel": {
+      "amount": "Detalles del cambio de monto de {{name}}",
+      "timing": "Detalles del cambio de fechas de {{name}}",
+      "missing": "Detalles del cambio por gasto faltante de {{name}}"
+    },
+    "evaluated": "Evaluado",
+    "detectionDetails": "Detalles de detección",
+    "updating": "Actualizando...",
+    "accept": "Aceptar cambio",
+    "acceptLabel": {
+      "amount": "Aceptar cambio de monto de {{name}}",
+      "timing": "Aceptar cambio de fechas de {{name}}"
+    },
+    "keepCurrent": "Mantener actual",
+    "keepCurrentLabel": {
+      "amount": "Mantener el monto actual de {{name}}",
+      "timing": "Mantener las fechas actuales de {{name}}",
+      "missing": "Mantener activo el compromiso {{name}}"
+    },
+    "keepActive": "Mantener activo",
+    "reconsider": "Reconsiderar",
+    "reconsiderLabel": {
+      "amount": "Reconsiderar cambio de monto de {{name}}",
+      "timing": "Reconsiderar cambio de fechas de {{name}}",
+      "missing": "Reconsiderar cambio por gasto faltante de {{name}}"
+    },
+    "markEnded": "Marcar como finalizado",
+    "markEndedLabel": "Marcar {{name}} como finalizado",
+    "markEndedPrompt": "¿Marcar {{name}} como finalizado? Esto cambia su estado y podrás volver a cambiarlo desde el compromiso confirmado.",
+    "markingEnded": "Marcando como finalizado...",
+    "confirmMarkEnded": "Confirmar como finalizado",
+    "confirmMarkEndedLabel": "Confirmar marcar {{name}} como finalizado",
+    "cancelMarkEnded": "Cancelar",
+    "cancelMarkEndedLabel": "Cancelar marcar {{name}} como finalizado"
+  }
+}

@@ -1,0 +1,262 @@
+{
+  "page": {
+    "title": "Commitments",
+    "subtitle": "Manage saved expectations and review possible changes.",
+    "reviewLinks": "Commitment reviews",
+    "changesLink_one": "{{count}} change to review",
+    "changesLink_other": "{{count}} changes to review",
+    "possibleLink_one": "{{count}} possible commitment",
+    "possibleLink_other": "{{count}} possible commitments"
+  },
+  "feedback": {
+    "outOfDate": "Displayed information may be out of date. Refresh before making another decision.",
+    "refresh": "Refresh commitments",
+    "tryAgain": "Try again",
+    "refreshing": "Refreshing commitments...",
+    "loading": "Loading commitments...",
+    "saving": "Saving your decision...",
+    "errors": {
+      "candidate_changed": "This proposal changed or is no longer available. The latest evidence has been loaded.",
+      "candidate_dismissed": "Reconsider this proposal before confirming it.",
+      "confirmation_conflict": "This proposal changed while it was being confirmed. The latest state has been loaded.",
+      "fingerprint_invalid": "This proposal can no longer be reviewed. Refresh and try again.",
+      "name_invalid": "Enter a commitment name of 500 characters or fewer.",
+      "category_invalid": "Enter a valid category of 100 characters or fewer.",
+      "cadence_invalid": "Choose a valid commitment cadence.",
+      "timing_invalid": "Choose timing details that match the cadence.",
+      "amount_invalid": "Enter a valid fixed amount or amount range.",
+      "lifecycle_invalid": "Choose active, paused, or ended.",
+      "commitment_not_found": "That commitment is no longer available.",
+      "dimension_invalid": "That change type can no longer be reviewed. Refresh and try again.",
+      "change_proposal_changed": "This change proposal changed. The latest evidence and recommendation have been loaded.",
+      "request_failed": "Something went wrong. Try again."
+    },
+    "notices": {
+      "dismissed": "Proposal dismissed. You can reconsider it below.",
+      "reconsidered": "Proposal returned to your review list.",
+      "confirmed": "Commitment confirmed.",
+      "updated": "Commitment updated.",
+      "lifecycle": "Commitment status updated.",
+      "amountAccepted": "Amount expectation updated.",
+      "timingAccepted": "Timing expectation updated.",
+      "markedEnded": "Commitment marked ended.",
+      "keptActive": "Commitment kept active.",
+      "keptCurrent": "Current expectation kept.",
+      "changeReconsidered": "Change returned to your review list."
+    }
+  },
+  "cadence": {
+    "weekly": "Weekly",
+    "monthly": "Monthly",
+    "yearly": "Yearly"
+  },
+  "weekday": {
+    "sunday": "Sunday",
+    "monday": "Monday",
+    "tuesday": "Tuesday",
+    "wednesday": "Wednesday",
+    "thursday": "Thursday",
+    "friday": "Friday",
+    "saturday": "Saturday"
+  },
+  "lifecycle": {
+    "active": "Active",
+    "paused": "Paused",
+    "ended": "Ended"
+  },
+  "format": {
+    "unknownDate": "Unknown date"
+  },
+  "timing": {
+    "summary": {
+      "weekly": "{{weekday}} with a {{before}} / {{after}} window",
+      "monthEnd": "Month end, with a {{before}} / {{after}} window",
+      "yearly": "Month {{month}}, day {{day}}, with a {{before}} / {{after}} window",
+      "dayOfMonth": "Day {{day}}, with a {{before}} / {{after}} window",
+      "before_one": "{{count}}-day before",
+      "before_other": "{{count}}-day before",
+      "after_one": "{{count}}-day after",
+      "after_other": "{{count}}-day after"
+    },
+    "compact": {
+      "weekly": "{{weekday}} · {{before}} / {{after}}",
+      "monthEnd": "Month end · {{before}} / {{after}}",
+      "yearly": "Month {{month}}, day {{day}} · {{before}} / {{after}}",
+      "dayOfMonth": "Day {{day}} · {{before}} / {{after}}",
+      "before_one": "{{count}} days before",
+      "before_other": "{{count}} days before",
+      "after_one": "{{count}} days after",
+      "after_other": "{{count}} days after"
+    }
+  },
+  "evidence": {
+    "heading": "Supporting expenses",
+    "rules": {
+      "consecutive_calendar_months": "Consecutive calendar months",
+      "weekly_six_to_eight_day_gaps": "Weekly, with 6–8 days between expenses",
+      "consecutive_years_same_month": "Consecutive years in the same month"
+    },
+    "sources": {
+      "sunflower_pdf": "Sunflower statement",
+      "manual": "Manual entry"
+    }
+  },
+  "saved": {
+    "heading": "Your commitments",
+    "activeGroup": "Active commitments",
+    "emptyNone": "No commitments confirmed yet.",
+    "emptyNoActive": "No active commitments.",
+    "expectedAmount": "Expected amount",
+    "timingPattern": "Saved timing pattern",
+    "details": "Details",
+    "detailsLabel": "Details for {{name}}",
+    "recordsUsed": "Records used to confirm",
+    "linkedExpenses_one": "{{count}} linked expense(s)",
+    "linkedExpenses_other": "{{count}} linked expense(s)",
+    "edit": "Edit",
+    "editLabel": "Edit {{name}}",
+    "saveChanges": "Save changes",
+    "pause": "Pause",
+    "pauseLabel": "Pause {{name}}",
+    "end": "End",
+    "endLabel": "End {{name}}",
+    "reactivate": "Reactivate",
+    "reactivateLabel": "Reactivate {{name}}",
+    "endPrompt": "End {{name}}? The saved expectation and linked records will remain. You can reactivate it.",
+    "confirmEnd": "Confirm end",
+    "cancelEnd": "Cancel ending"
+  },
+  "candidates": {
+    "heading": "Possible commitments",
+    "intro": "Review the expenses before confirming an expectation.",
+    "toReview": "{{count}} to review",
+    "empty": "No possible commitments need your review.",
+    "dismissedStatus": "Dismissed possible commitment",
+    "observedAmount": "Observed amount",
+    "observedAmountRange": "Observed amount range",
+    "basedOnFixed_one": "Based on {{count}} expenses",
+    "basedOnFixed_other": "Based on {{count}} expenses",
+    "basedOnRange_one": "Based on {{count}} expenses. Observed history, not a saved expectation.",
+    "basedOnRange_other": "Based on {{count}} expenses. Observed history, not a saved expectation.",
+    "evidence": "Evidence",
+    "evidenceSummary_one": "{{count}} expenses · {{rule}}",
+    "evidenceSummary_other": "{{count}} expenses · {{rule}}",
+    "coveredPeriod": "Covered period",
+    "observedTiming": "Observed timing",
+    "identical": "Identical each time",
+    "median": "Median {{amount}}",
+    "detectionDetails": "Detection details",
+    "reviewAndConfirm": "Review and confirm",
+    "reviewAndConfirmLabel": "Review and confirm {{name}}",
+    "confirmCommitment": "Confirm commitment",
+    "dismiss": "Dismiss",
+    "dismissLabel": "Dismiss {{name}}",
+    "reconsider": "Reconsider",
+    "reconsiderLabel": "Reconsider {{name}}"
+  },
+  "history": {
+    "paused": "Paused commitments",
+    "ended": "Ended commitments",
+    "locked": "Finish or cancel the open action before closing this group.",
+    "dismissedHeading": "Dismissed possible commitments",
+    "dismissedIntro": "Dismissals apply only to the exact evidence you reviewed. Reconsider one to review it again.",
+    "dismissedEmpty": "No dismissed possible commitments."
+  },
+  "form": {
+    "observedAmountUnsafe": "The observed amount could not be loaded with reliable cent precision. Refresh before confirming.",
+    "name": "Name",
+    "category": "Category",
+    "cadence": "Cadence",
+    "expectedWeekday": "Expected weekday",
+    "monthlyTiming": "Monthly timing",
+    "dayOfMonth": "Day of month",
+    "monthEnd": "Month end",
+    "expectedMonth": "Expected month",
+    "expectedDay": "Expected day",
+    "daysBefore": "Days before",
+    "daysAfter": "Days after",
+    "amountModel": "Amount model",
+    "fixedAmount": "Fixed amount",
+    "amountRange": "Amount range",
+    "expectedAmount": "Expected amount",
+    "minimumAmount": "Minimum amount",
+    "maximumAmount": "Maximum amount",
+    "saving": "Saving...",
+    "cancel": "Cancel"
+  },
+  "changes": {
+    "heading": "Changes to review",
+    "intro": "Review the latest evidence before changing an expectation or commitment status. Each decision applies only to this exact assessment.",
+    "emptyPending": "No commitment changes need your review.",
+    "reviewedHeading": "Reviewed changes",
+    "reviewedIntro": "These exact observations were kept without changing the saved expectation. Reconsider one if you want to review it again.",
+    "reviewedLocked": "Finish reconsidering this change before closing reviewed history.",
+    "emptyReviewed": "No reviewed changes.",
+    "eyebrowPending": "Needs your decision",
+    "eyebrowReviewed": "Reviewed change",
+    "statusPending": "Pending",
+    "statusKept": "Kept",
+    "dimension": {
+      "amount": "Amount review",
+      "timing": "Timing review",
+      "missing": "Missing review"
+    },
+    "explanation": {
+      "amount_one": "{{count}} recent expense supports this amount change.",
+      "amount_other": "{{count}} recent expenses support this amount change.",
+      "timing_one": "{{count}} recent expense supports this timing change.",
+      "timing_other": "{{count}} recent expenses support this timing change.",
+      "missing": {
+        "weekly_one": "{{count}} expected weekly date has passed without a matching expense.",
+        "weekly_other": "{{count}} expected weekly dates have passed without a matching expense.",
+        "monthly_one": "{{count}} expected monthly date has passed without a matching expense.",
+        "monthly_other": "{{count}} expected monthly dates have passed without a matching expense.",
+        "yearly_one": "{{count}} expected yearly date has passed without a matching expense.",
+        "yearly_other": "{{count}} expected yearly dates have passed without a matching expense.",
+        "other_one": "{{count}} expected date has passed without a matching expense.",
+        "other_other": "{{count}} expected dates have passed without a matching expense."
+      }
+    },
+    "possiblyEnded": "Possibly ended",
+    "notSeen": "Not seen recently",
+    "observationNote": "This is an observation, not an automatic status change.",
+    "currentExpectation": "Current expectation",
+    "observedChange": "Observed change",
+    "exactUnavailable": "Exact amount review is unavailable. Refresh with an updated client before making this amount decision.",
+    "details": "Details",
+    "detailsLabel": {
+      "amount": "Details for amount change for {{name}}",
+      "timing": "Details for timing change for {{name}}",
+      "missing": "Details for missing change for {{name}}"
+    },
+    "evaluated": "Evaluated",
+    "detectionDetails": "Detection details",
+    "updating": "Updating...",
+    "accept": "Accept change",
+    "acceptLabel": {
+      "amount": "Accept amount change for {{name}}",
+      "timing": "Accept timing change for {{name}}"
+    },
+    "keepCurrent": "Keep current",
+    "keepCurrentLabel": {
+      "amount": "Keep current amount for {{name}}",
+      "timing": "Keep current timing for {{name}}",
+      "missing": "Keep active for {{name}}"
+    },
+    "keepActive": "Keep active",
+    "reconsider": "Reconsider",
+    "reconsiderLabel": {
+      "amount": "Reconsider amount change for {{name}}",
+      "timing": "Reconsider timing change for {{name}}",
+      "missing": "Reconsider missing change for {{name}}"
+    },
+    "markEnded": "Mark ended",
+    "markEndedLabel": "Mark {{name}} ended",
+    "markEndedPrompt": "Mark {{name}} ended? This changes its status, and you can change it again from the confirmed commitment.",
+    "markingEnded": "Marking ended...",
+    "confirmMarkEnded": "Confirm mark ended",
+    "confirmMarkEndedLabel": "Confirm mark {{name}} ended",
+    "cancelMarkEnded": "Cancel",
+    "cancelMarkEndedLabel": "Cancel marking {{name}} ended"
+  }
+}

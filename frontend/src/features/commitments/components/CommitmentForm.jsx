@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import FormField from "../../../shared/ui/FormField";
 import StatusMessage from "../../../shared/ui/StatusMessage";
 import { parseExpenseAmount } from "../../expenses/utils/exactMoney";
+import { weekdayLabel } from "../utils/formatCommitments";
 
 const WEEKDAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
 
@@ -30,6 +32,7 @@ function numberOrNull(value) {
 }
 
 export default function CommitmentForm({ model, fingerprint, submitLabel, busy, submitDisabled = false, initialDraft, onDraftChange, onSubmit, onCancel }) {
+  const { t } = useTranslation("commitments");
   const [form, setForm] = useState(() => initialDraft ?? initialForm(model));
   const nameRef = useRef(null);
   const candidateObservedUnsafe = Boolean(fingerprint) && (
@@ -94,56 +97,56 @@ export default function CommitmentForm({ model, fingerprint, submitLabel, busy, 
   return (
     <form className="commitment-form" aria-label={submitLabel} onSubmit={handleSubmit}>
       {candidateObservedUnsafe
-        && <StatusMessage tone="warning">The observed amount could not be loaded with reliable cent precision. Refresh before confirming.</StatusMessage>}
+        && <StatusMessage tone="warning">{t("form.observedAmountUnsafe")}</StatusMessage>}
       <fieldset className="form-grid commitment-form__fields" disabled={busy}>
-        <FormField label="Name">{(id) => <input ref={nameRef} id={id} required maxLength="500" value={form.name} onChange={(event) => update("name", event.target.value)} />}</FormField>
-        <FormField label="Category">{(id) => <input id={id} required maxLength="100" value={form.category} onChange={(event) => update("category", event.target.value)} />}</FormField>
-        <FormField label="Cadence">{(id) => <select id={id} value={form.cadence} onChange={(event) => updateCadence(event.target.value)}>
-          <option value="weekly">Weekly</option>
-          <option value="monthly">Monthly</option>
-          <option value="yearly">Yearly</option>
+        <FormField label={t("form.name")}>{(id) => <input ref={nameRef} id={id} required maxLength="500" value={form.name} onChange={(event) => update("name", event.target.value)} />}</FormField>
+        <FormField label={t("form.category")}>{(id) => <input id={id} required maxLength="100" value={form.category} onChange={(event) => update("category", event.target.value)} />}</FormField>
+        <FormField label={t("form.cadence")}>{(id) => <select id={id} value={form.cadence} onChange={(event) => updateCadence(event.target.value)}>
+          <option value="weekly">{t("cadence.weekly")}</option>
+          <option value="monthly">{t("cadence.monthly")}</option>
+          <option value="yearly">{t("cadence.yearly")}</option>
         </select>}</FormField>
 
         {form.cadence === "weekly" && (
-          <FormField label="Expected weekday">{(id) => <select id={id} value={form.expectedDayOfWeek} onChange={(event) => update("expectedDayOfWeek", event.target.value)}>
-            {WEEKDAYS.map((weekday) => <option key={weekday} value={weekday}>{weekday[0].toUpperCase() + weekday.slice(1)}</option>)}
+          <FormField label={t("form.expectedWeekday")}>{(id) => <select id={id} value={form.expectedDayOfWeek} onChange={(event) => update("expectedDayOfWeek", event.target.value)}>
+            {WEEKDAYS.map((weekday) => <option key={weekday} value={weekday}>{weekdayLabel(weekday, t)}</option>)}
           </select>}</FormField>
         )}
 
         {form.cadence === "monthly" && (
-          <FormField label="Monthly timing">{(id) => <select id={id} value={form.timingKind} onChange={(event) => update("timingKind", event.target.value)}>
-            <option value="dayofmonth">Day of month</option>
-            <option value="monthend">Month end</option>
+          <FormField label={t("form.monthlyTiming")}>{(id) => <select id={id} value={form.timingKind} onChange={(event) => update("timingKind", event.target.value)}>
+            <option value="dayofmonth">{t("form.dayOfMonth")}</option>
+            <option value="monthend">{t("form.monthEnd")}</option>
           </select>}</FormField>
         )}
 
         {form.cadence === "yearly" && (
-          <FormField label="Expected month">{(id) => <input id={id} type="number" required min="1" max="12" value={form.expectedMonth} onChange={(event) => update("expectedMonth", event.target.value)} />}</FormField>
+          <FormField label={t("form.expectedMonth")}>{(id) => <input id={id} type="number" required min="1" max="12" value={form.expectedMonth} onChange={(event) => update("expectedMonth", event.target.value)} />}</FormField>
         )}
 
         {form.cadence !== "weekly" && !(form.cadence === "monthly" && form.timingKind === "monthend") && (
-          <FormField label="Expected day">{(id) => <input id={id} type="number" required min="1" max="31" value={form.expectedDay} onChange={(event) => update("expectedDay", event.target.value)} />}</FormField>
+          <FormField label={t("form.expectedDay")}>{(id) => <input id={id} type="number" required min="1" max="31" value={form.expectedDay} onChange={(event) => update("expectedDay", event.target.value)} />}</FormField>
         )}
 
-        <FormField label="Days before">{(id) => <input id={id} type="number" required min="0" step="1" value={form.windowBeforeDays} onChange={(event) => update("windowBeforeDays", event.target.value)} />}</FormField>
-        <FormField label="Days after">{(id) => <input id={id} type="number" required min="0" step="1" value={form.windowAfterDays} onChange={(event) => update("windowAfterDays", event.target.value)} />}</FormField>
-        <FormField label="Amount model">{(id) => <select id={id} value={form.amountMode} onChange={(event) => update("amountMode", event.target.value)}>
-          <option value="fixed">Fixed amount</option>
-          <option value="range">Amount range</option>
+        <FormField label={t("form.daysBefore")}>{(id) => <input id={id} type="number" required min="0" step="1" value={form.windowBeforeDays} onChange={(event) => update("windowBeforeDays", event.target.value)} />}</FormField>
+        <FormField label={t("form.daysAfter")}>{(id) => <input id={id} type="number" required min="0" step="1" value={form.windowAfterDays} onChange={(event) => update("windowAfterDays", event.target.value)} />}</FormField>
+        <FormField label={t("form.amountModel")}>{(id) => <select id={id} value={form.amountMode} onChange={(event) => update("amountMode", event.target.value)}>
+          <option value="fixed">{t("form.fixedAmount")}</option>
+          <option value="range">{t("form.amountRange")}</option>
         </select>}</FormField>
 
         {form.amountMode === "fixed" ? (
-          <FormField label="Expected amount">{(id) => <input id={id} type={fingerprint ? "text" : "number"} inputMode="decimal" required min="0.01" step="0.01" value={form.expectedAmount} onChange={(event) => update("expectedAmount", event.target.value)} />}</FormField>
+          <FormField label={t("form.expectedAmount")}>{(id) => <input id={id} type={fingerprint ? "text" : "number"} inputMode="decimal" required min="0.01" step="0.01" value={form.expectedAmount} onChange={(event) => update("expectedAmount", event.target.value)} />}</FormField>
         ) : (
           <>
-            <FormField label="Minimum amount">{(id) => <input id={id} type={fingerprint ? "text" : "number"} inputMode="decimal" required min="0.01" step="0.01" value={form.expectedMinimumAmount} onChange={(event) => update("expectedMinimumAmount", event.target.value)} />}</FormField>
-            <FormField label="Maximum amount">{(id) => <input id={id} type={fingerprint ? "text" : "number"} inputMode="decimal" required min="0.01" step="0.01" value={form.expectedMaximumAmount} onChange={(event) => update("expectedMaximumAmount", event.target.value)} />}</FormField>
+            <FormField label={t("form.minimumAmount")}>{(id) => <input id={id} type={fingerprint ? "text" : "number"} inputMode="decimal" required min="0.01" step="0.01" value={form.expectedMinimumAmount} onChange={(event) => update("expectedMinimumAmount", event.target.value)} />}</FormField>
+            <FormField label={t("form.maximumAmount")}>{(id) => <input id={id} type={fingerprint ? "text" : "number"} inputMode="decimal" required min="0.01" step="0.01" value={form.expectedMaximumAmount} onChange={(event) => update("expectedMaximumAmount", event.target.value)} />}</FormField>
           </>
         )}
       </fieldset>
       <div className="inline-actions commitment-form__actions">
-        <button type="submit" disabled={busy || submitDisabled || candidateObservedUnsafe}>{busy ? "Saving..." : submitLabel}</button>
-        <button type="button" className="button-ghost" disabled={busy} onClick={onCancel}>Cancel</button>
+        <button type="submit" disabled={busy || submitDisabled || candidateObservedUnsafe}>{busy ? t("form.saving") : submitLabel}</button>
+        <button type="button" className="button-ghost" disabled={busy} onClick={onCancel}>{t("form.cancel")}</button>
       </div>
     </form>
   );

@@ -1,21 +1,25 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { commitmentsApi } from "../api/commitmentsApi";
+import { englishT } from "../utils/formatCommitments";
 
-const ERROR_MESSAGES = {
-  candidate_changed: "This proposal changed or is no longer available. The latest evidence has been loaded.",
-  candidate_dismissed: "Reconsider this proposal before confirming it.",
-  confirmation_conflict: "This proposal changed while it was being confirmed. The latest state has been loaded.",
-  fingerprint_invalid: "This proposal can no longer be reviewed. Refresh and try again.",
-  name_invalid: "Enter a commitment name of 500 characters or fewer.",
-  category_invalid: "Enter a valid category of 100 characters or fewer.",
-  cadence_invalid: "Choose a valid commitment cadence.",
-  timing_invalid: "Choose timing details that match the cadence.",
-  amount_invalid: "Enter a valid fixed amount or amount range.",
-  lifecycle_invalid: "Choose active, paused, or ended.",
-  commitment_not_found: "That commitment is no longer available.",
-  dimension_invalid: "That change type can no longer be reviewed. Refresh and try again.",
-  change_proposal_changed: "This change proposal changed. The latest evidence and recommendation have been loaded.",
-};
+// Stable backend codes with a localized message at `feedback.errors.<code>` in the
+// commitments catalog. Anything else shows the generic `request_failed` message.
+const ERROR_CODES = new Set([
+  "candidate_changed",
+  "candidate_dismissed",
+  "confirmation_conflict",
+  "fingerprint_invalid",
+  "name_invalid",
+  "category_invalid",
+  "cadence_invalid",
+  "timing_invalid",
+  "amount_invalid",
+  "lifecycle_invalid",
+  "commitment_not_found",
+  "dimension_invalid",
+  "change_proposal_changed",
+]);
 
 const REFRESH_AFTER_ERROR = new Set([
   "candidate_changed",
@@ -25,12 +29,19 @@ const REFRESH_AFTER_ERROR = new Set([
   "change_proposal_changed",
 ]);
 
-export function getCommitmentErrorMessage(error) {
+// State holds catalog keys and the hook resolves them to the selected language when it
+// returns them, so a displayed message follows a language change.
+const errorKey = (error) => {
   const code = error?.response?.data?.code;
-  return ERROR_MESSAGES[code] ?? "Something went wrong. Try again.";
+  return `feedback.errors.${ERROR_CODES.has(code) ? code : "request_failed"}`;
+};
+
+export function getCommitmentErrorMessage(error, t = englishT) {
+  return t(errorKey(error));
 }
 
 export function useCommitments() {
+  const { t } = useTranslation("commitments");
   const [candidates, setCandidates] = useState([]);
   const [dismissedCandidates, setDismissedCandidates] = useState([]);
   const [commitments, setCommitments] = useState([]);
@@ -63,7 +74,7 @@ export function useCommitments() {
       }
       return true;
     } catch (error) {
-      if (currentRequestId === requestId.current) setLoadError(getCommitmentErrorMessage(error));
+      if (currentRequestId === requestId.current) setLoadError(errorKey(error));
       if (rethrow) throw error;
       return false;
     } finally {
@@ -89,7 +100,7 @@ export function useCommitments() {
       return response.data;
     } catch (error) {
       if (REFRESH_AFTER_ERROR.has(error?.response?.data?.code)) await refresh();
-      setActionError(getCommitmentErrorMessage(error));
+      setActionError(errorKey(error));
       return null;
     } finally {
       busyRef.current = null;
@@ -104,9 +115,9 @@ export function useCommitments() {
     commitmentChanges,
     changeEvaluatedOn,
     loading,
-    loadError,
-    actionError,
-    notice,
+    loadError: loadError && t(loadError),
+    actionError: actionError && t(actionError),
+    notice: notice && t(notice),
     busyKey,
     refresh,
     clearMessages: () => {
@@ -116,52 +127,52 @@ export function useCommitments() {
     dismissCandidate: (fingerprint) => perform(
       `dismiss:${fingerprint}`,
       () => commitmentsApi.dismissCandidate(fingerprint),
-      "Proposal dismissed. You can reconsider it below."
+      "feedback.notices.dismissed"
     ),
     reconsiderCandidate: (fingerprint) => perform(
       `reconsider:${fingerprint}`,
       () => commitmentsApi.reconsiderCandidate(fingerprint),
-      "Proposal returned to your review list."
+      "feedback.notices.reconsidered"
     ),
     confirmCandidate: (payload) => perform(
       `confirm:${payload.fingerprint}`,
       () => commitmentsApi.confirmCandidate(payload),
-      "Commitment confirmed."
+      "feedback.notices.confirmed"
     ),
     updateCommitment: (id, payload) => perform(
       `update:${id}`,
       () => commitmentsApi.updateCommitment(id, payload),
-      "Commitment updated."
+      "feedback.notices.updated"
     ),
     updateLifecycle: (id, lifecycle) => perform(
       `lifecycle:${id}`,
       () => commitmentsApi.updateLifecycle(id, lifecycle),
-      "Commitment status updated."
+      "feedback.notices.lifecycle"
     ),
     acceptAmountChange: (id, fingerprint) => perform(
       `change:amount:accept:${id}:${fingerprint}`,
       () => commitmentsApi.acceptAmountChange(id, fingerprint),
-      "Amount expectation updated."
+      "feedback.notices.amountAccepted"
     ),
     acceptTimingChange: (id, fingerprint) => perform(
       `change:timing:accept:${id}:${fingerprint}`,
       () => commitmentsApi.acceptTimingChange(id, fingerprint),
-      "Timing expectation updated."
+      "feedback.notices.timingAccepted"
     ),
     markEndedFromChange: (id, fingerprint) => perform(
       `change:missing:end:${id}:${fingerprint}`,
       () => commitmentsApi.markEndedFromChange(id, fingerprint),
-      "Commitment marked ended."
+      "feedback.notices.markedEnded"
     ),
     keepChange: (id, dimension, fingerprint) => perform(
       `change:${dimension}:keep:${id}:${fingerprint}`,
       () => commitmentsApi.keepChange(id, dimension, fingerprint),
-      dimension === "missing" ? "Commitment kept active." : "Current expectation kept."
+      dimension === "missing" ? "feedback.notices.keptActive" : "feedback.notices.keptCurrent"
     ),
     reconsiderChange: (id, dimension, fingerprint) => perform(
       `change:${dimension}:reconsider:${id}:${fingerprint}`,
       () => commitmentsApi.reconsiderChange(id, dimension, fingerprint),
-      "Change returned to your review list."
+      "feedback.notices.changeReconsidered"
     ),
   };
 }
