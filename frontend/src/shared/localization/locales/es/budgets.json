@@ -1,0 +1,86 @@
+{
+  "page": {
+    "title": "Presupuestos",
+    "description": "Mira cómo se compara tu gasto con el límite de cada categoría."
+  },
+  "toolbar": {
+    "month": "Mes del presupuesto",
+    "add": "Agregar presupuesto por categoría"
+  },
+  "taskNote": "Termina o cancela este presupuesto de {{month}} antes de cambiar de mes.",
+  "form": {
+    "addHeading": "Agregar presupuesto por categoría",
+    "editHeading": "Editar presupuesto de {{category}}",
+    "forMonth": "Para {{month}}",
+    "validation": "Elige una categoría e ingresa un monto límite.",
+    "details": "Detalles del presupuesto",
+    "category": "Categoría",
+    "categoryPlaceholder": "Categoría",
+    "customCategory": "Categoría personalizada",
+    "customCategoryPlaceholder": "Categoría personalizada",
+    "limitAmount": "Monto límite",
+    "editLimitAmount": "Monto límite de {{category}}",
+    "limitAmountPlaceholder": "Monto límite",
+    "save": "Guardar límite",
+    "saving": "Guardando…",
+    "cancel": "Cancelar"
+  },
+  "categories": {
+    "food": "Comida",
+    "transport": "Transporte",
+    "bills": "Facturas",
+    "entertainment": "Entretenimiento",
+    "other": "Otra"
+  },
+  "section": {
+    "heading": "Presupuestos por categoría",
+    "refresh": "Actualizar límites"
+  },
+  "states": {
+    "chooseMonth": "Elige un mes para ver los presupuestos de sus categorías.",
+    "loadingLimits": "Cargando límites de presupuesto...",
+    "limitsError": "No pudimos cargar los límites de presupuesto de {{month}}. Actualiza los límites para intentarlo de nuevo.",
+    "loadingSpending": "Cargando gastos registrados...",
+    "spendingError": "No pudimos cargar los gastos registrados. Los montos usados y el progreso no están disponibles.",
+    "retrySpending": "Reintentar gastos",
+    "empty": "No hay límites de presupuesto definidos para este mes."
+  },
+  "feedback": {
+    "saved": "Límite de presupuesto guardado.",
+    "savedRefreshFailed": "Límite de presupuesto guardado. No se pudieron actualizar los límites de presupuesto. Actualiza los límites antes de hacer otro cambio.",
+    "deleted": "Límite de presupuesto eliminado.",
+    "deletedRefreshFailed": "Límite de presupuesto eliminado. No se pudieron actualizar los límites de presupuesto. Actualiza los límites antes de hacer otro cambio.",
+    "unconfirmed": "No pudimos confirmar el cambio. Actualiza los límites y revisa los presupuestos guardados antes de intentarlo de nuevo.",
+    "refreshed": "Límites de presupuesto actualizados. Revisa los límites guardados antes de volver a intentar tu cambio."
+  },
+  "confirmDelete": "¿Eliminar el límite de presupuesto de la categoría \"{{category}}\"?",
+  "card": {
+    "ariaLabel": "Presupuesto de {{name}}",
+    "unavailable": "No disponible",
+    "usedOf": "usado de {{limit}}",
+    "progressLabel": "Uso del presupuesto de {{name}}",
+    "progressValue": "{{used}} usado de {{limit}}, {{percent}}%",
+    "percentUsed": "{{percent}}% usado",
+    "zeroLimitNote": "No hay porcentaje para un límite de cero.",
+    "comparisonUnavailable": "La comparación exacta no está disponible. Revisa el monto antes de confiar en el estado de este presupuesto.",
+    "edit": "Editar",
+    "editLabel": "Editar presupuesto de {{name}}",
+    "delete": "Eliminar",
+    "deleteLabel": "Eliminar presupuesto de {{name}}",
+    "status": {
+      "spendingUnavailable": "Gasto no disponible",
+      "spendingNeedsReview": "El gasto requiere revisión",
+      "limitNeedsReview": "El límite requiere revisión",
+      "zeroLimit": "Límite de cero",
+      "overLimit": "Sobre el límite",
+      "limitReached": "Límite alcanzado",
+      "nearLimit": "Cerca del límite",
+      "withinLimit": "Dentro del límite"
+    }
+  },
+  "explanation": {
+    "summary": "Acerca de los límites mensuales",
+    "reset": "Próximo reinicio: {{date}}. Cada límite se aplica a su mes calendario seleccionado.",
+    "zeroLimit": "Un límite de cero es un presupuesto intencional sin gastos. Es diferente a no tener un presupuesto para una categoría."
+  }
+}

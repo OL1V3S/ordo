@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useExpenses } from "../../expenses/hooks/useExpenses";
 import { useBudgetLimits } from "../hooks/useBudgetLimits";
 import { computeMonthlyTotalsByCategory } from "../utils/totalsByCategory";
@@ -7,6 +8,7 @@ import BudgetLimitsPanel from "../components/BudgetLimitsPanel";
 import "../../../styles/budgets.css";
 
 export default function BudgetsPage() {
+  const { t } = useTranslation("budgets");
   const { expenses, loading: spendingLoading, error: spendingError, refresh: refreshSpending } = useExpenses();
   const [limitMonthYear, setLimitMonthYear] = useState(getMonthYear(new Date()));
   const {
@@ -27,8 +29,8 @@ export default function BudgetsPage() {
     <div className="container budgets-page">
       <header className="page-header">
         <div>
-          <h1>Budgets</h1>
-          <p className="muted">See how your spending compares with each category limit.</p>
+          <h1>{t("page.title")}</h1>
+          <p className="muted">{t("page.description")}</p>
         </div>
       </header>
 
