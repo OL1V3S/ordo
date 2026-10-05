@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import BudgetLimitsPanel from './BudgetLimitsPanel'
+import '../../../shared/localization/i18n'
 
 const baseProps = {
   limitMonthYear: '2026-08',

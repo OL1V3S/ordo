@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import BudgetsPage from './BudgetsPage'
 import { useExpenses } from '../../expenses/hooks/useExpenses'
 import { useBudgetLimits } from '../hooks/useBudgetLimits'
+import '../../../shared/localization/i18n'
 
 vi.mock('../../expenses/hooks/useExpenses', () => ({ useExpenses: vi.fn() }))
 vi.mock('../hooks/useBudgetLimits', () => ({ useBudgetLimits: vi.fn() }))

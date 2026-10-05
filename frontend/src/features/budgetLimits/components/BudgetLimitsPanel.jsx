@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { DEFAULT_CATEGORIES } from "../../../shared/constants/categories";
 import { displayText, normalizeText } from "../../../utils/text";
 import FormField from "../../../shared/ui/FormField";
@@ -22,6 +23,7 @@ export default function BudgetLimitsPanel({
   spendingLoading = false, spendingError = null, refreshSpending = async () => {},
   totalsByCategory, upsertLimit, deleteLimit,
 }) {
+  const { t } = useTranslation("budgets");
   // Preserve the existing exact category keys and last-record grouping.
   const budgetLimitsByCategory = useMemo(() => {
     const result = {};
@@ -70,7 +72,7 @@ export default function BudgetLimitsPanel({
     focusAfterRender(() => taskOpener.current?.isConnected && !taskOpener.current.disabled
       ? taskOpener.current : sectionHeading.current);
   }
-  async function mutate(action, successMessage) {
+  async function mutate(action, successKey) {
     if (writeInFlight.current || mutationDisabled) return;
     writeInFlight.current = true;
     setPending(true);
@@ -81,13 +83,11 @@ export default function BudgetLimitsPanel({
       setOutcomeNeedsRefresh(Boolean(result?.refreshFailed));
       setFeedback({
         tone: result?.refreshFailed ? "warning" : "success",
-        message: result?.refreshFailed
-          ? `${successMessage} Budget limits could not be refreshed. Refresh limits before making another change.`
-          : successMessage,
+        key: result?.refreshFailed ? `${successKey}RefreshFailed` : successKey,
       });
     } catch {
       setOutcomeNeedsRefresh(true);
-      setFeedback({ tone: "danger", message: "We couldn’t confirm the change. Refresh limits and check the saved budgets before trying again." });
+      setFeedback({ tone: "danger", key: "unconfirmed" });
     } finally {
       writeInFlight.current = false;
       setPending(false);
@@ -109,19 +109,19 @@ export default function BudgetLimitsPanel({
       category, limitAmount: roundMoney(task.amount),
       monthYear: new Date(task.month + "-01T00:00:00").toISOString(),
     };
-    return mutate(() => upsertLimit(payload), "Budget limit saved.");
+    return mutate(() => upsertLimit(payload), "saved");
   }
   function removeLimit(limit, category) {
     if (task || mutationDisabled) return;
-    if (!window.confirm(`Delete budget limit for category "${displayText(category)}"?`)) return;
-    return mutate(() => deleteLimit(limit.id), "Budget limit deleted.");
+    if (!window.confirm(t("confirmDelete", { category: displayText(category) }))) return;
+    return mutate(() => deleteLimit(limit.id), "deleted");
   }
   async function retryLimits() {
     try {
       await refreshLimits({ rethrow: true });
       setOutcomeNeedsRefresh(false);
       setFeedback(outcomeNeedsRefresh
-        ? { tone: "info", message: "Budget limits refreshed. Check the saved limits before retrying your change." }
+        ? { tone: "info", key: "refreshed" }
         : null);
     } catch {
       // Keep unknown write outcomes gated until the selected month can be read.
@@ -131,65 +131,65 @@ export default function BudgetLimitsPanel({
   return (
     <section className="budget-workspace" aria-labelledby="category-budgets-heading">
       <div className="budget-toolbar">
-        <FormField label="Budget month">{(id) => <input id={id} type="month" value={limitMonthYear}
+        <FormField label={t("toolbar.month")}>{(id) => <input id={id} type="month" value={limitMonthYear}
           disabled={Boolean(task) || pending || outcomeNeedsRefresh}
           onChange={(event) => { setLimitMonthYear(event.target.value); setFeedback(null); }} />}</FormField>
         <button type="button" ref={addButton} aria-expanded={task?.type === "add"} aria-controls="budget-task"
-          disabled={Boolean(task) || mutationDisabled} onClick={openAdd}>Add category budget</button>
+          disabled={Boolean(task) || mutationDisabled} onClick={openAdd}>{t("toolbar.add")}</button>
       </div>
-      {task && <p className="muted budget-task-note">Finish or cancel this {task.month} budget before changing months.</p>}
+      {task && <p className="muted budget-task-note">{t("taskNote", { month: task.month })}</p>}
       <div ref={feedbackRegion} tabIndex={-1} className="budget-feedback">
-        {feedback && <StatusMessage tone={feedback.tone}>{feedback.message}</StatusMessage>}
+        {feedback && <StatusMessage tone={feedback.tone}>{t(`feedback.${feedback.key}`)}</StatusMessage>}
       </div>
       <div id="budget-task" hidden={!task}>
         {task && <form className="card budget-form" noValidate onSubmit={(event) => { event.preventDefault(); saveTask(); }}>
-          <h2>{task.type === "edit" ? `Edit ${displayText(task.category)} budget` : "Add category budget"}</h2>
-          <p className="muted">For {task.month}</p>
-          {validation && <div id="budget-validation"><StatusMessage tone="danger">Choose a category and enter a limit amount.</StatusMessage></div>}
+          <h2>{task.type === "edit" ? t("form.editHeading", { category: displayText(task.category) }) : t("form.addHeading")}</h2>
+          <p className="muted">{t("form.forMonth", { month: task.month })}</p>
+          {validation && <div id="budget-validation"><StatusMessage tone="danger">{t("form.validation")}</StatusMessage></div>}
           <fieldset disabled={pending}>
-            <legend className="sr-only">Budget details</legend>
+            <legend className="sr-only">{t("form.details")}</legend>
             <div className="budget-form__fields">
-              {task.type === "add" && <FormField label="Category">{(id) => <select id={id} ref={taskField}
+              {task.type === "add" && <FormField label={t("form.category")}>{(id) => <select id={id} ref={taskField}
                 aria-invalid={validation === "category" && !task.category} aria-describedby={validation ? "budget-validation" : undefined}
                 value={task.category} onChange={(event) => setTask((current) => ({ ...current, category: event.target.value }))}>
-                <option value="">Category</option>
-                {DEFAULT_CATEGORIES.map((category) => <option key={category} value={category.toLowerCase()}>{displayText(category)}</option>)}
-                <option value="other">Other</option>
+                <option value="">{t("form.categoryPlaceholder")}</option>
+                {DEFAULT_CATEGORIES.map((category) => <option key={category} value={category.toLowerCase()}>{t(`categories.${category.toLowerCase()}`)}</option>)}
+                <option value="other">{t("categories.other")}</option>
               </select>}</FormField>}
-              {task.type === "add" && task.category === "other" && <FormField label="Custom category">{(id) => <input id={id}
-                placeholder="Custom Category" value={task.customCategory}
+              {task.type === "add" && task.category === "other" && <FormField label={t("form.customCategory")}>{(id) => <input id={id}
+                placeholder={t("form.customCategoryPlaceholder")} value={task.customCategory}
                 onChange={(event) => setTask((current) => ({ ...current, customCategory: event.target.value }))} />}</FormField>}
-              <FormField label={task.type === "edit" ? `Limit amount for ${displayText(task.category)}` : "Limit amount"}>{(id) => <input id={id}
+              <FormField label={task.type === "edit" ? t("form.editLimitAmount", { category: displayText(task.category) }) : t("form.limitAmount")}>{(id) => <input id={id}
                 ref={(element) => { amountField.current = element; if (task.type === "edit") taskField.current = element; }}
                 aria-invalid={validation === "amount" && !task.amount} aria-describedby={validation ? "budget-validation" : undefined}
-                type="text" inputMode="decimal" placeholder="Limit Amount" value={task.amount}
+                type="text" inputMode="decimal" placeholder={t("form.limitAmountPlaceholder")} value={task.amount}
                 onChange={(event) => {
                   if (isValidMoney(event.target.value)) setTask((current) => ({ ...current, amount: event.target.value }));
                 }} />}</FormField>
             </div>
           </fieldset>
           <div className="inline-actions">
-            <button type="submit" disabled={mutationDisabled}>{pending ? "Saving…" : "Save limit"}</button>
-            <button type="button" className="button-ghost" disabled={pending} onClick={cancelTask}>Cancel</button>
+            <button type="submit" disabled={mutationDisabled}>{pending ? t("form.saving") : t("form.save")}</button>
+            <button type="button" className="button-ghost" disabled={pending} onClick={cancelTask}>{t("form.cancel")}</button>
           </div>
         </form>}
       </div>
       <div className="budget-section-header">
-        <h2 id="category-budgets-heading" ref={sectionHeading} tabIndex={-1}>Category budgets</h2>
-        <button type="button" className="button-ghost" disabled={limitsLoading || pending || !limitMonthYear} onClick={retryLimits}>Refresh limits</button>
+        <h2 id="category-budgets-heading" ref={sectionHeading} tabIndex={-1}>{t("section.heading")}</h2>
+        <button type="button" className="button-ghost" disabled={limitsLoading || pending || !limitMonthYear} onClick={retryLimits}>{t("section.refresh")}</button>
       </div>
-      {!limitMonthYear ? <StatusMessage>Choose a month to view its category budgets.</StatusMessage>
-        : limitsLoading ? <StatusMessage>Loading budget limits...</StatusMessage>
-          : limitsError ? <StatusMessage tone="danger">We couldn’t load budget limits for {limitMonthYear}. Refresh limits to try again.</StatusMessage>
+      {!limitMonthYear ? <StatusMessage>{t("states.chooseMonth")}</StatusMessage>
+        : limitsLoading ? <StatusMessage>{t("states.loadingLimits")}</StatusMessage>
+          : limitsError ? <StatusMessage tone="danger">{t("states.limitsError", { month: limitMonthYear })}</StatusMessage>
             : null}
-      {limitMonthYear && spendingLoading && <StatusMessage>Loading recorded spending...</StatusMessage>}
+      {limitMonthYear && spendingLoading && <StatusMessage>{t("states.loadingSpending")}</StatusMessage>}
       {limitMonthYear && spendingError && <div className="budget-spending-error">
-        <StatusMessage tone="danger">We couldn’t load recorded spending. Used amounts and progress are unavailable.</StatusMessage>
+        <StatusMessage tone="danger">{t("states.spendingError")}</StatusMessage>
         <button type="button" className="button-ghost" disabled={spendingLoading || pending}
-          onClick={() => refreshSpending().catch(() => {})}>Retry spending</button>
+          onClick={() => refreshSpending().catch(() => {})}>{t("states.retrySpending")}</button>
       </div>}
       {!limitsUnavailable && (Object.keys(budgetLimitsByCategory).length === 0
-        ? <p className="empty-state">No budget limits set for this month.</p>
+        ? <p className="empty-state">{t("states.empty")}</p>
         : <div className="budget-cards">
           {Object.entries(budgetLimitsByCategory).map(([category, limit]) => {
             const name = displayText(category);
@@ -201,39 +201,39 @@ export default function BudgetLimitsPanel({
               ? percentageFromRatio(used.cents, limitAmount.cents) : null;
             const warning = comparisonAvailable && (limitAmount.cents === 0n
               || used.cents * 100n >= limitAmount.cents * 90n);
-            const status = !spendingAvailable ? "Spending unavailable"
-              : !used ? "Spending needs review"
-                : !limitAmount ? "Limit needs review"
-                  : limitAmount.cents === 0n ? "Zero limit"
-                : used.cents > limitAmount.cents ? "Over limit" : used.cents === limitAmount.cents ? "Limit reached"
-                  : warning ? "Near limit" : "Within limit";
-            return <article key={category} className={`card budget-card${warning ? " budget-card--warning" : ""}`} aria-label={`${name} budget`}>
-              <div className="budget-card__header"><h3>{name}</h3><span className="budget-card__status">{status}</span></div>
+            const status = !spendingAvailable ? "spendingUnavailable"
+              : !used ? "spendingNeedsReview"
+                : !limitAmount ? "limitNeedsReview"
+                  : limitAmount.cents === 0n ? "zeroLimit"
+                : used.cents > limitAmount.cents ? "overLimit" : used.cents === limitAmount.cents ? "limitReached"
+                  : warning ? "nearLimit" : "withinLimit";
+            return <article key={category} className={`card budget-card${warning ? " budget-card--warning" : ""}`} aria-label={t("card.ariaLabel", { name })}>
+              <div className="budget-card__header"><h3>{name}</h3><span className="budget-card__status">{t(`card.status.${status}`)}</span></div>
               <p className="budget-card__amounts">
-                <strong>{spendingAvailable && used ? formatCents(used.cents) : "Unavailable"}</strong>
-                <span> used of {limitAmount ? formatCents(limitAmount.cents) : "Unavailable"}</span>
+                <strong>{spendingAvailable && used ? formatCents(used.cents) : t("card.unavailable")}</strong>
+                <span> {t("card.usedOf", { limit: limitAmount ? formatCents(limitAmount.cents) : t("card.unavailable") })}</span>
               </p>
               {comparisonAvailable && limitAmount.cents > 0n && <div className="budget-card__progress">
-                <progress max="100" value={Math.min(100, Math.max(0, percentage))} aria-label={`${name} budget used`}
-                  aria-valuetext={`${formatCents(used.cents)} used of ${formatCents(limitAmount.cents)}, ${Math.round(percentage)}%`} />
-                <span>{Math.round(percentage)}% used</span>
+                <progress max="100" value={Math.min(100, Math.max(0, percentage))} aria-label={t("card.progressLabel", { name })}
+                  aria-valuetext={t("card.progressValue", { used: formatCents(used.cents), limit: formatCents(limitAmount.cents), percent: Math.round(percentage) })} />
+                <span>{t("card.percentUsed", { percent: Math.round(percentage) })}</span>
               </div>}
-              {comparisonAvailable && limitAmount.cents === 0n && <p className="muted budget-card__note">No percentage for a zero limit.</p>}
-              {spendingAvailable && (!used || !limitAmount) && <p className="muted budget-card__note">Exact comparison is unavailable. Review the amount before relying on this budget status.</p>}
+              {comparisonAvailable && limitAmount.cents === 0n && <p className="muted budget-card__note">{t("card.zeroLimitNote")}</p>}
+              {spendingAvailable && (!used || !limitAmount) && <p className="muted budget-card__note">{t("card.comparisonUnavailable")}</p>}
               <div className="inline-actions">
-                <button type="button" aria-label={`Edit ${name} budget`} aria-controls="budget-task"
+                <button type="button" aria-label={t("card.editLabel", { name })} aria-controls="budget-task"
                   aria-expanded={task?.type === "edit" && task.category === category}
-                  disabled={Boolean(task) || mutationDisabled} onClick={(event) => openEdit(category, event.currentTarget)}>Edit</button>
-                <button type="button" className="button-danger" aria-label={`Delete ${name} budget`}
-                  disabled={Boolean(task) || mutationDisabled} onClick={() => removeLimit(limit, category)}>Delete</button>
+                  disabled={Boolean(task) || mutationDisabled} onClick={(event) => openEdit(category, event.currentTarget)}>{t("card.edit")}</button>
+                <button type="button" className="button-danger" aria-label={t("card.deleteLabel", { name })}
+                  disabled={Boolean(task) || mutationDisabled} onClick={() => removeLimit(limit, category)}>{t("card.delete")}</button>
               </div>
             </article>;
           })}
         </div>)}
       {limitMonthYear && <details className="budget-explanation">
-        <summary>About monthly limits</summary>
-        <p>Next reset: {nextResetDate}. Each limit applies to its selected calendar month.</p>
-        <p>A zero limit is an intentional no-spend budget. It is different from having no budget for a category.</p>
+        <summary>{t("explanation.summary")}</summary>
+        <p>{t("explanation.reset", { date: nextResetDate })}</p>
+        <p>{t("explanation.zeroLimit")}</p>
       </details>}
     </section>
   );
