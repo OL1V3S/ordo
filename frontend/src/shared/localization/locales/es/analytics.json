@@ -1,0 +1,173 @@
+{
+  "months": {
+    "long": {
+      "01": "enero",
+      "02": "febrero",
+      "03": "marzo",
+      "04": "abril",
+      "05": "mayo",
+      "06": "junio",
+      "07": "julio",
+      "08": "agosto",
+      "09": "septiembre",
+      "10": "octubre",
+      "11": "noviembre",
+      "12": "diciembre"
+    },
+    "short": {
+      "01": "ene",
+      "02": "feb",
+      "03": "mar",
+      "04": "abr",
+      "05": "may",
+      "06": "jun",
+      "07": "jul",
+      "08": "ago",
+      "09": "sep",
+      "10": "oct",
+      "11": "nov",
+      "12": "dic"
+    }
+  },
+  "labels": {
+    "month": "{{month}} de {{year}}",
+    "date": "{{day}} de {{month}} de {{year}}"
+  },
+  "format": {
+    "notApplicable": "No aplica"
+  },
+  "page": {
+    "title": "Análisis",
+    "description": "Mira las entradas de dinero y los gastos registrados, mes por mes.",
+    "month": "Mes",
+    "refresh": "Actualizar flujo de efectivo"
+  },
+  "cashFlow": {
+    "regionLabel": "Flujo de efectivo registrado",
+    "loading": "Cargando el flujo de efectivo registrado...",
+    "retry": "Reintentar flujo de efectivo",
+    "errors": {
+      "signIn": "Inicia sesión para ver el flujo de efectivo registrado.",
+      "loadFailed": "No pudimos cargar el flujo de efectivo registrado. Inténtalo de nuevo."
+    }
+  },
+  "summary": {
+    "heading": "Entradas de dinero registradas vs. gastado",
+    "through": "Hasta el {{date}}",
+    "basis": "Basado en tus transacciones registradas.",
+    "cashIn": "Entradas de dinero registradas",
+    "spent": "Gastado",
+    "noCashIn": "No hay entradas de dinero registradas",
+    "noSpending": "No hay gastos registrados",
+    "breakdownLabel": "Desglose de las entradas de dinero registradas",
+    "confirmedPaychecks": "Pagos de nómina confirmados",
+    "otherCashIn": "Otras entradas de dinero",
+    "netHeading": "Flujo de efectivo neto registrado",
+    "netNote": "Entradas de dinero registradas menos gastado",
+    "about": {
+      "summary": "Acerca de estas cifras",
+      "coverage": "Estas cifras reflejan las transacciones guardadas y pueden no cubrir toda la actividad de la cuenta. El flujo de efectivo neto registrado describe este período; no es un saldo de la cuenta, ahorros ni dinero disponible para gastar.",
+      "composition": "Los pagos de nómina confirmados son las entradas registradas vinculadas a un perfil de nómina confirmado por el titular de la cuenta, incluidos los perfiles activos, en pausa y finalizados. Otras entradas de dinero son todas las demás entradas registradas y pueden incluir pagos de nómina sin vincular, devoluciones, transferencias y reembolsos. Ambas partes cuentan como entradas de dinero registradas; recibir dinero no lo clasifica como ingreso.",
+      "spending": "Gastado incluye todas las salidas de dinero registradas, como compras, transferencias, pagos de deudas y aportes a inversiones. Las devoluciones cuentan como entradas de dinero sin reducir su categoría de gasto original. Los presupuestos, las previsiones de nómina, las proyecciones y las vistas previas de importación sin guardar no se suman a estas cifras.",
+      "history": "Los montos y las fechas reflejan los registros guardados actuales. Editar o eliminar una transacción puede cambiar estas cifras históricas. Confirmar un pago de nómina cambia el desglose de las entradas de dinero, sin cambiar el total de entradas de dinero ni el flujo neto.",
+      "rounding": "Las entradas vinculadas editadas conservan su asignación y usan su fecha de contabilización y su monto actuales. Los porcentajes se redondean a la décima más cercana, con los valores intermedios redondeados hacia arriba; es posible que los porcentajes redondeados no sumen 100.0%."
+    },
+    "facts": {
+      "cashInSpent": "Entradas de dinero gastadas",
+      "confirmedShare": "Proporción de pagos de nómina confirmados",
+      "otherShare": "Proporción de otras entradas de dinero",
+      "notApplicable": "No aplica — no hay entradas de dinero registradas",
+      "inflows": "Entradas registradas",
+      "inflowsValue": "{{total}} (vinculadas a nómina: {{paycheck}}, otras: {{other}})",
+      "expenses": "Gastos registrados",
+      "profiles": "Perfiles de nómina que contribuyen",
+      "edited": "Entradas vinculadas editadas"
+    }
+  },
+  "categories": {
+    "kicker": "Ordenado por monto",
+    "heading": "Dónde se gastó",
+    "empty": "No hay gastos registrados",
+    "notApplicable": "No aplica"
+  },
+  "chart": {
+    "kickerSixMonths": "Seis meses calendario",
+    "kickerFromFloor_one": "{{count}} mes calendario desde {{start}}",
+    "kickerFromFloor_other": "{{count}} meses calendario desde {{start}}",
+    "heading": "Entradas de dinero vs. gastos a lo largo del tiempo",
+    "legendLabel": "Leyenda del gráfico",
+    "monthToDateTick": "Acum.",
+    "monthToDateNote": "Acum.: acumulado del mes hasta la fecha",
+    "tooltipValue": "{{label}}: {{amount}}",
+    "tooltipCashIn": "Entradas de dinero registradas: {{amount}}",
+    "datasets": {
+      "paychecks": "Pagos de nómina confirmados",
+      "other": "Otras entradas de dinero",
+      "spent": "Gastado"
+    },
+    "table": {
+      "summary": "Ver datos del gráfico",
+      "caption": "Flujo de efectivo mensual registrado en dólares estadounidenses",
+      "month": "Mes",
+      "cashIn": "Entradas de dinero registradas",
+      "paychecks": "Pagos de nómina confirmados",
+      "other": "Otras entradas de dinero",
+      "spent": "Gastado",
+      "net": "Flujo de efectivo neto registrado",
+      "note": "Nota del período"
+    }
+  },
+  "periodNotes": {
+    "through": "Hasta el {{date}}",
+    "noCashIn": "No hay entradas de dinero registradas",
+    "noSpending": "No hay gastos registrados"
+  },
+  "spending": {
+    "heading": "Más detalle de gastos",
+    "loading": "Cargando el análisis de gastos...",
+    "loadError": "No pudimos cargar los gastos registrados.",
+    "retry": "Intentar de nuevo",
+    "inexact": "No se pudieron verificar con exactitud algunos montos de gastos. Las comparaciones de gastos afectadas no están disponibles."
+  },
+  "budget": {
+    "heading": "Estado del presupuesto por categoría",
+    "kicker": "Límites configurados",
+    "manage": "Administrar presupuestos",
+    "empty": "No hay límites de presupuesto definidos para este mes.",
+    "loading": "Cargando los límites de presupuesto...",
+    "unavailable": "Los límites de presupuesto no están disponibles. El resto del análisis se sigue mostrando.",
+    "retry": "Intentar de nuevo",
+    "comparisonUnavailable": "La comparación exacta no está disponible. Revisa el límite o el monto del gasto.",
+    "spentOf": "{{spent}} gastado de {{limit}}",
+    "over": "{{amount}} por encima del límite",
+    "remaining": "{{amount}} restante",
+    "zeroLimit": "Porcentaje usado: no aplica para un límite de $0",
+    "percentUsed": "{{percent}} usado",
+    "status": {
+      "overBudget": "Sobre el presupuesto",
+      "nearLimit": "Cerca del límite",
+      "onTrack": "En buen camino",
+      "unavailable": "No disponible"
+    }
+  },
+  "comparison": {
+    "heading": "Cambio de un mes a otro",
+    "kicker": "Comparado con {{month}}",
+    "unavailable": "La comparación exacta de un mes a otro no está disponible.",
+    "neither": "Ninguno de los dos meses tiene gastos registrados.",
+    "percentageUnavailable": "La comparación porcentual no está disponible porque el mes anterior tuvo $0.00 en gastos registrados.",
+    "percentFrom": "{{percent}} desde {{amount}}",
+    "empty": "No hay cambios de categoría para mostrar entre estos meses.",
+    "increases": "Mayores aumentos",
+    "noIncreases": "Sin aumentos.",
+    "decreases": "Mayores disminuciones",
+    "noDecreases": "Sin disminuciones."
+  },
+  "largest": {
+    "heading": "Gastos más grandes",
+    "kicker": "Los cinco principales",
+    "review": "Revisar actividad",
+    "unavailable": "La clasificación exacta de los gastos más grandes no está disponible porque no se pudo verificar un monto.",
+    "empty": "No hay gastos para clasificar este mes."
+  }
+}

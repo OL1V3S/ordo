@@ -16,11 +16,13 @@ import paychecksEn from "./locales/en/paychecks.json";
 import paychecksEs from "./locales/es/paychecks.json";
 import budgetsEn from "./locales/en/budgets.json";
 import budgetsEs from "./locales/es/budgets.json";
+import analyticsEn from "./locales/en/analytics.json";
+import analyticsEs from "./locales/es/analytics.json";
 import { applyDocumentLocale, getStoredLocale } from "./locale";
 
 export const resources = {
-  en: { common: commonEn, navigation: navigationEn, settings: settingsEn, home: homeEn, activity: activityEn, importPreview: importPreviewEn, paychecks: paychecksEn, budgets: budgetsEn },
-  es: { common: commonEs, navigation: navigationEs, settings: settingsEs, home: homeEs, activity: activityEs, importPreview: importPreviewEs, paychecks: paychecksEs, budgets: budgetsEs },
+  en: { common: commonEn, navigation: navigationEn, settings: settingsEn, home: homeEn, activity: activityEn, importPreview: importPreviewEn, paychecks: paychecksEn, budgets: budgetsEn, analytics: analyticsEn },
+  es: { common: commonEs, navigation: navigationEs, settings: settingsEs, home: homeEs, activity: activityEs, importPreview: importPreviewEs, paychecks: paychecksEs, budgets: budgetsEs, analytics: analyticsEs },
 };
 
 const initialLocale = getStoredLocale();
@@ -32,7 +34,7 @@ i18n.use(initReactI18next).init({
   fallbackLng: "en",
   supportedLngs: ["en", "es"],
   load: "languageOnly",
-  ns: ["common", "navigation", "settings", "home", "activity", "importPreview", "paychecks", "budgets"],
+  ns: ["common", "navigation", "settings", "home", "activity", "importPreview", "paychecks", "budgets", "analytics"],
   defaultNS: "common",
   interpolation: { escapeValue: false },
   initAsync: false,

@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useTranslation } from "react-i18next";
 import { getSessionSnapshot, subscribeToSession } from "../../../shared/auth/session";
 import { cashFlowApi } from "../api/cashFlowApi";
 import { localThroughDate } from "../utils/cashFlowPresentation";
 
 export function useCashFlow(month) {
+  const { t } = useTranslation("analytics");
   const session = useSyncExternalStore(subscribeToSession, getSessionSnapshot);
   const [state, setState] = useState(null);
   const [attempt, setAttempt] = useState(0);
@@ -21,7 +23,7 @@ export function useCashFlow(month) {
     }));
 
     if (!session.token) {
-      setState({ month, session, attempt, loading: false, data: null, availableMonths: [], error: "Sign in to view recorded cash flow." });
+      setState({ month, session, attempt, loading: false, data: null, availableMonths: [], error: "cashFlow.errors.signIn" });
       return () => { latest.current += 1; controller.abort(); };
     }
 
@@ -33,7 +35,7 @@ export function useCashFlow(month) {
     }).catch(() => {
       if (!current()) return;
       setState((previous) => ({ ...previous, loading: false, data: null,
-        error: "We couldn’t load recorded cash flow. Try again." }));
+        error: "cashFlow.errors.loadFailed" }));
     });
 
     return () => { latest.current += 1; controller.abort(); };
@@ -44,7 +46,8 @@ export function useCashFlow(month) {
   return {
     data: matches ? state.data : null,
     loading: !matches || state.loading,
-    error: matches ? state.error : null,
+    // State keeps a catalog key; it is resolved here so a message follows a language change.
+    error: matches && state.error ? t(state.error) : null,
     availableMonths: state?.session === session ? state.availableMonths : [],
     refresh,
   };

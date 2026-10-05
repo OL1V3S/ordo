@@ -1,0 +1,173 @@
+{
+  "months": {
+    "long": {
+      "01": "January",
+      "02": "February",
+      "03": "March",
+      "04": "April",
+      "05": "May",
+      "06": "June",
+      "07": "July",
+      "08": "August",
+      "09": "September",
+      "10": "October",
+      "11": "November",
+      "12": "December"
+    },
+    "short": {
+      "01": "Jan",
+      "02": "Feb",
+      "03": "Mar",
+      "04": "Apr",
+      "05": "May",
+      "06": "Jun",
+      "07": "Jul",
+      "08": "Aug",
+      "09": "Sep",
+      "10": "Oct",
+      "11": "Nov",
+      "12": "Dec"
+    }
+  },
+  "labels": {
+    "month": "{{month}} {{year}}",
+    "date": "{{month}} {{day}}, {{year}}"
+  },
+  "format": {
+    "notApplicable": "Not applicable"
+  },
+  "page": {
+    "title": "Insights",
+    "description": "See recorded cash in and spending, month by month.",
+    "month": "Month",
+    "refresh": "Refresh cash flow"
+  },
+  "cashFlow": {
+    "regionLabel": "Recorded cash flow",
+    "loading": "Loading recorded cash flow...",
+    "retry": "Retry cash flow",
+    "errors": {
+      "signIn": "Sign in to view recorded cash flow.",
+      "loadFailed": "We couldn’t load recorded cash flow. Try again."
+    }
+  },
+  "summary": {
+    "heading": "Recorded cash in vs Spent",
+    "through": "Through {{date}}",
+    "basis": "Based on your recorded transactions.",
+    "cashIn": "Recorded cash in",
+    "spent": "Spent",
+    "noCashIn": "No cash in recorded",
+    "noSpending": "No spending recorded",
+    "breakdownLabel": "Recorded cash in breakdown",
+    "confirmedPaychecks": "Confirmed paychecks",
+    "otherCashIn": "Other cash in",
+    "netHeading": "Net recorded cash flow",
+    "netNote": "Recorded cash in minus Spent",
+    "about": {
+      "summary": "About these figures",
+      "coverage": "These figures reflect saved transactions and may not cover all account activity. Net recorded cash flow describes this period; it is not an account balance, savings, or money available to spend.",
+      "composition": "Confirmed paychecks are the recorded inflows linked to an owner-confirmed paycheck profile, including active, paused, and ended profiles. Other cash in is every remaining recorded inflow and can include unlinked paychecks, refunds, transfers, and reimbursements. Both parts count toward recorded cash in; receiving cash does not classify it as income.",
+      "spending": "Spent includes all recorded outflows, including purchases, transfers, debt payments, and investment funding. Refunds count as cash in without reducing their original spending category. Budgets, paycheck expectations, projections, and unsaved import previews do not add to these figures.",
+      "history": "Amounts and dates reflect the current saved records. Editing or deleting a transaction can change these historical figures. Confirming a paycheck changes the cash-in breakdown, without changing total cash in or net flow.",
+      "rounding": "Edited linked inflows retain their assignment and use their current posted date and amount. Percentages round to the nearest tenth, with halfway values rounded upward; rounded shares may not sum to 100.0%."
+    },
+    "facts": {
+      "cashInSpent": "Cash in spent",
+      "confirmedShare": "Confirmed paycheck share",
+      "otherShare": "Other cash in share",
+      "notApplicable": "Not applicable — no cash in recorded",
+      "inflows": "Recorded inflows",
+      "inflowsValue": "{{total}} ({{paycheck}} paycheck-linked, {{other}} other)",
+      "expenses": "Recorded expenses",
+      "profiles": "Contributing paycheck profiles",
+      "edited": "Edited linked inflows"
+    }
+  },
+  "categories": {
+    "kicker": "Ranked by amount",
+    "heading": "Where it went",
+    "empty": "No spending recorded",
+    "notApplicable": "Not applicable"
+  },
+  "chart": {
+    "kickerSixMonths": "Six calendar months",
+    "kickerFromFloor_one": "{{count}} calendar month from {{start}}",
+    "kickerFromFloor_other": "{{count}} calendar months from {{start}}",
+    "heading": "Cash in vs spending over time",
+    "legendLabel": "Chart legend",
+    "monthToDateTick": "MTD",
+    "monthToDateNote": "MTD: month to date",
+    "tooltipValue": "{{label}}: {{amount}}",
+    "tooltipCashIn": "Recorded cash in: {{amount}}",
+    "datasets": {
+      "paychecks": "Confirmed paychecks",
+      "other": "Other cash in",
+      "spent": "Spent"
+    },
+    "table": {
+      "summary": "View chart data",
+      "caption": "Monthly recorded cash flow in US dollars",
+      "month": "Month",
+      "cashIn": "Recorded cash in",
+      "paychecks": "Confirmed paychecks",
+      "other": "Other cash in",
+      "spent": "Spent",
+      "net": "Net recorded cash flow",
+      "note": "Period note"
+    }
+  },
+  "periodNotes": {
+    "through": "Through {{date}}",
+    "noCashIn": "No cash in recorded",
+    "noSpending": "No spending recorded"
+  },
+  "spending": {
+    "heading": "More spending detail",
+    "loading": "Loading spending insights...",
+    "loadError": "We couldn’t load recorded expenses.",
+    "retry": "Try again",
+    "inexact": "Some Expense amounts could not be verified exactly. Affected spending comparisons are unavailable."
+  },
+  "budget": {
+    "heading": "Budget status by category",
+    "kicker": "Configured limits",
+    "manage": "Manage budgets",
+    "empty": "No budget limits are set for this month.",
+    "loading": "Loading budget limits...",
+    "unavailable": "Budget limits are unavailable. Other insights are still shown.",
+    "retry": "Try again",
+    "comparisonUnavailable": "Exact comparison unavailable. Review the limit or spending amount.",
+    "spentOf": "{{spent}} spent of {{limit}}",
+    "over": "{{amount}} over",
+    "remaining": "{{amount}} remaining",
+    "zeroLimit": "Percentage used: Not applicable for a $0 limit",
+    "percentUsed": "{{percent}} used",
+    "status": {
+      "overBudget": "Over Budget",
+      "nearLimit": "Near Limit",
+      "onTrack": "On Track",
+      "unavailable": "Unavailable"
+    }
+  },
+  "comparison": {
+    "heading": "Month-over-month change",
+    "kicker": "Compared with {{month}}",
+    "unavailable": "Exact month-over-month comparison is unavailable.",
+    "neither": "Neither month has recorded spending.",
+    "percentageUnavailable": "Percentage comparison is unavailable because the previous month had $0.00 recorded spending.",
+    "percentFrom": "{{percent}} from {{amount}}",
+    "empty": "No category changes to show between these months.",
+    "increases": "Largest increases",
+    "noIncreases": "No increases.",
+    "decreases": "Largest decreases",
+    "noDecreases": "No decreases."
+  },
+  "largest": {
+    "heading": "Largest expenses",
+    "kicker": "Top five",
+    "review": "Review activity",
+    "unavailable": "Exact largest-expense ranking is unavailable because an amount could not be verified.",
+    "empty": "No expenses to rank for this month."
+  }
+}
