@@ -24,6 +24,24 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-05 — Spanish Analytics page
+
+[PR #181](https://github.com/OL1V3S/ordo/pull/181) ·
+[Issue #180](https://github.com/OL1V3S/ordo/issues/180)
+
+- Localized the Analytics (Insights) page (the cash-flow summary and its
+  disclosure, category ranking, trend chart with its tooltips, ticks, and
+  accessible table, spending, budget-status, comparison, and largest-expense
+  sections, and the cash-flow load messages) in English and Spanish through a new
+  `analytics` catalog namespace. Month names and the month and date labels built
+  from them follow the language, using catalog month names applied to the
+  existing year-month and date components; English labels are unchanged.
+- Spanish keeps recorded cash in and spending distinct from expectations and an
+  unavailable exact figure distinct from a recorded zero. Cash-flow and spending
+  calculation, comparisons, which month or date each label refers to, payloads,
+  and focus behavior are unchanged; `$` amounts, percentages, and numeric
+  expense dates keep their existing form in both languages.
+
 ### 2026-10-04 — Spanish Budgets page
 
 [PR #179](https://github.com/OL1V3S/ordo/pull/179) ·

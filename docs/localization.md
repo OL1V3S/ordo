@@ -20,7 +20,12 @@ follows the selected language there, including its validation messages. The Budg
 page is localized through the `budgets` namespace: the page header, the budget month
 and category-budget form, validation and feedback messages, the loading, error, and
 empty states, the budget status labels, progress text, accessible names, and the
-delete confirmation.
+delete confirmation. The Analytics (Insights) page is localized through the
+`analytics` namespace: the page, the cash-flow summary and its disclosure, the
+category ranking, the trend chart (dataset labels, tooltips, axis ticks, kicker, and
+the accessible chart-data table), the spending, budget-status, comparison, and
+largest-expense sections, and the load-failure messages that the cash-flow hook
+returns.
 
 ## Runtime boundary
 
@@ -112,6 +117,41 @@ import/export them, but the runtime must not depend on a translation service.
   Budgets keeps the `$` amounts, the `YYYY-MM` month text, and the
   browser-formatted next-reset date in both languages until formatters adopt the
   direction below.
+
+- Analytics messages are keyed by meaning (`summary.*`, `chart.*`, `budget.*`,
+  `comparison.*`, `cashFlow.errors.*`) and never by raw server text; the page shows no
+  backend-provided message. `useCashFlow` keeps a catalog key in its state and resolves
+  it when returning `error`, so a displayed message follows a language change. The
+  budget status values (`over budget`, `near limit`, `on track`, `unavailable`) stay
+  the internal values used for sorting and styling; the page maps them to catalog
+  labels. The chart's `USD` axis code, `$` amounts, and percentages stay as formatted
+  in both languages.
+- Month names follow the language (owner decision on #180). The `analytics` catalog
+  holds the full and short month names (`months.long.01`-`12`, `months.short.01`-`12`)
+  and a per-language label template (`labels.month`, `labels.date`). `cashMonthLabel`,
+  `cashDateLabel`, `cashMonthTickParts`, and `periodNotes` in
+  `cashFlowPresentation.js` apply those names to the existing `YYYY-MM` and
+  `YYYY-MM-DD` components and take an optional `{ t }` that defaults to the English
+  catalog, so English output is byte-identical (`August 2026`, `August 14, 2026`,
+  `Aug`). `formatMonthLabel` takes an optional translator and otherwise keeps its
+  original English formatting. No `Date` object, timezone conversion, or `Intl` locale
+  formatter is used for the translated labels, and no month or date is computed
+  differently. Spanish month names are lowercase in running text and labels
+  (`agosto de 2026`, `14 de agosto de 2026`, ticks `ago`); the chart's `MTD` marker
+  is `Acum.` in Spanish.
+- Spanish keeps recorded cash and spending distinct from expectations: copy about
+  recorded cash uses `entradas de dinero registradas`, `gastos registrados`, and
+  `gastado`; paycheck expectations and projections use `previsión`/`previsto`
+  (budgets, expectations, and projections add nothing to the recorded figures).
+  Spanish also keeps an unavailable exact figure (`no está disponible`, `No
+  disponible`) distinct from a recorded zero (`No hay gastos registrados`,
+  `No hay entradas de dinero registradas`); never describe an unavailable figure as
+  zero or a recorded zero as unavailable.
+- Analytics keeps `$` amounts, percentages, the `YYYY-MM` option values, the numeric
+  `MM/DD/YYYY` expense dates in Largest expenses, and stored category values as
+  stored (for example `Food`) in both languages until formatters adopt the direction
+  below. The category ranking order and the budget and comparison calculations are
+  unchanged.
 
 ## Formatting direction
 
