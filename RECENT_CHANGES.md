@@ -24,6 +24,20 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-04 — Spanish Budgets page
+
+[PR #179](https://github.com/OL1V3S/ordo/pull/179) ·
+[Issue #178](https://github.com/OL1V3S/ordo/issues/178)
+
+- Localized the Budgets page (headings, month and category form, validation,
+  feedback, loading, error, and empty states, budget status labels, progress
+  text, accessible names, and the delete confirmation) in English and Spanish
+  through a new `budgets` catalog namespace.
+- Spanish keeps a budget limit (`límite`, `monto límite`) distinct from recorded
+  spending (`gasto`, `gastos registrados`, `usado`). English wording,
+  budget-limit validation and calculation, payloads, focus behavior, and money
+  and month display are unchanged.
+
 ### 2026-10-03 — Spanish Paychecks page
 
 [PR #177](https://github.com/OL1V3S/ordo/pull/177) ·

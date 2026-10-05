@@ -16,7 +16,11 @@ the Spanish Activity page. The Paychecks page is localized through the `paycheck
 paycheck form and its validation messages, the linked-deposit evidence, the
 record-received panel, and the safe error and notice messages that the hook maps
 from stable backend codes. The shared cash-in form that records a paycheck receipt
-follows the selected language there, including its validation messages.
+follows the selected language there, including its validation messages. The Budgets
+page is localized through the `budgets` namespace: the page header, the budget month
+and category-budget form, validation and feedback messages, the loading, error, and
+empty states, the budget status labels, progress text, accessible names, and the
+delete confirmation.
 
 ## Runtime boundary
 
@@ -92,6 +96,22 @@ import/export them, but the runtime must not depend on a translation service.
   in both languages until formatters adopt the direction below. Day counts are
   count-aware messages; English `linked deposit(s)` and `day(s) before/after`
   wording is kept as written, with matching Spanish `(s)` forms.
+- Budgets messages are keyed by outcome (`feedback.*`, `card.status.*`, `states.*`)
+  and never by raw server text; the Budgets page shows no backend-provided message.
+  The panel keeps a feedback catalog key in its state and resolves it when rendering,
+  so a displayed message follows a language change. A write whose refresh failed has
+  its own complete message instead of concatenated fragments.
+- Spanish keeps a budget limit distinct from recorded spending. Limit copy uses
+  `límite` and `monto límite`; copy about money actually recorded uses `gasto`,
+  `gastos registrados`, and `usado`. Do not describe a limit as spent or recorded
+  spending as a limit.
+- Budget cards show the stored category value as stored (for example `Food`, a custom
+  `Home Repair`) in both languages, inside a localized phrase such as
+  `Presupuesto de Food`. Only the category option labels in the add form are
+  localized; the stored value (`food`) and the request payload do not change.
+  Budgets keeps the `$` amounts, the `YYYY-MM` month text, and the
+  browser-formatted next-reset date in both languages until formatters adopt the
+  direction below.
 
 ## Formatting direction
 
