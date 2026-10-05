@@ -165,6 +165,27 @@ describe("Commitments workspace", () => {
     expect(possible.getByText("Month end, with a 2-day before / 1-day after window")).toBeVisible();
   });
 
+  it("keeps the legacy English wording for a count of one", async () => {
+    const user = userEvent.setup();
+    const single = { ...candidate, occurrenceCount: 1, windowBeforeDays: 1, windowAfterDays: 1, evidence: [evidence[0]] };
+    const change = {
+      ...commitmentChange,
+      commitment: { ...commitmentChange.commitment, windowBeforeDays: 1, windowAfterDays: 1 },
+      timing: { ...commitmentChange.timing, decisionState: "pending", proposedWindowBeforeDays: 1, proposedWindowAfterDays: 1 },
+    };
+    useCommitments.mockReturnValue(state({ candidates: [single], dismissedCandidates: [], commitments: [commitment], commitmentChanges: [change] }));
+    renderCommitmentsPage();
+
+    const possible = within(card("Gym membership"));
+    expect(possible.getByText("Based on 1 expenses")).toBeVisible();
+    await user.click(possible.getByLabelText("Details for Gym membership"));
+    expect(possible.getByText("1 expenses · Consecutive calendar months")).toBeVisible();
+    expect(possible.getByText("Day 15, with a 1-day before / 1-day after window")).toBeVisible();
+    expect(within(card("Rent")).getByText("Day 1, with a 1-day before / 1-day after window")).toBeVisible();
+    expect(screen.getByText("Day 15 · 1 days before / 1 days after")).toBeVisible();
+    expect(screen.getByText("Day 17 · 1 days before / 1 days after")).toBeVisible();
+  });
+
   it("preserves a typed confirmation draft across disclosure, theme, resize, refresh, and stale-data errors", async () => {
     const user = userEvent.setup();
     let current = state();

@@ -232,6 +232,16 @@ describe('budget hierarchy and truthful states', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Budget limit saved. Budget limits could not be refreshed.')
     expect(screen.getByRole('button', { name: 'Edit Food budget' })).toBeDisabled()
   })
+  it('reports a completed delete with a failed refresh separately', async () => {
+    const user = userEvent.setup()
+    vi.spyOn(window, 'confirm').mockReturnValueOnce(true)
+    const deleteLimit = vi.fn().mockResolvedValue({ refreshFailed: true })
+    render(<BudgetLimitsPanel {...baseProps} budgetLimits={limits} deleteLimit={deleteLimit} />)
+    await user.click(screen.getByRole('button', { name: 'Delete Food budget' }))
+    expect(deleteLimit).toHaveBeenCalledWith(1)
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Budget limit deleted. Budget limits could not be refreshed. Refresh limits before making another change.')
+  })
   it('retains explicit delete confirmation and the exact limit id', async () => {
     const user = userEvent.setup()
     const confirm = vi.spyOn(window, 'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true)

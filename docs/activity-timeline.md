@@ -89,8 +89,9 @@ between pages; the browser never renders one record twice.
 
 A recoverable provider (`DbException`) or timeout failure returns privacy-safe
 `503` ProblemDetails with code `activity_timeline_unavailable`; only the failure
-type is logged. Cancellation and programming defects propagate. The frontend maps
-stable codes and never displays backend ProblemDetails text.
+type is logged. Cancellation and programming defects propagate. The frontend treats
+any failed read generically, with a fixed localized message and a retry, and never
+displays backend ProblemDetails text.
 
 ## Frontend behavior
 
