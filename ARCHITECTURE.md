@@ -47,8 +47,10 @@ uses bundled i18next English and Spanish catalogs with English fallback. A
 validated browser-local `en` or `es` preference drives catalog selection and
 `html.lang` without changing authentication, routes, APIs, stored financial
 values, currency, or input semantics. Localization adoption is incremental: the
-authenticated shell, navigation hubs, and Settings are localized first, while
-feature and public account-access pages remain English until separately scoped.
+authenticated shell, navigation hubs, and Settings were localized first, and the
+Home, Activity, statement import, Budgets, Insights, Commitments, and Paychecks
+pages have since followed, while the public account-access pages and the
+unavailable Investing placeholder page remain English until separately scoped.
 See [`docs/localization.md`](docs/localization.md) for catalog, glossary, and
 future presentation-formatting rules.
 

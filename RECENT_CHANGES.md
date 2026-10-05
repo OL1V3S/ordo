@@ -35,8 +35,8 @@ the permanent, complete archive.
 - Clarified a few Spanish phrases ("Por encima del límite", "tus categorías"), removed
   a fragile `{{context}}` placeholder name, and added tests for previously untested
   messages and the READ ONLY timeline transaction.
-- Corrected stale statements in the product overview and localization,
-  Home read-model, and Activity timeline documentation.
+- Corrected stale statements in the architecture and product overviews and in the
+  localization, Home read-model, and Activity timeline documentation.
 
 ### 2026-10-05 — Spanish Commitments page
 

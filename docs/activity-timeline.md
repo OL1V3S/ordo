@@ -123,10 +123,11 @@ payloads are unchanged, so every record also appears in its per-type list.
 ## Localization
 
 Timeline strings and the section-links navigation use the `activity` catalog;
-direction labels reuse Home's keys. Money and dates format with `en-US` or
-`es-US`. The rest of the Activity page remains English until a separately scoped
-adoption issue, so the Spanish Activity page is intentionally mixed-language. See
-[`localization.md`](localization.md).
+direction labels reuse Home's keys. Timeline money and dates format with `en-US`
+or `es-US`. The rest of the Activity page (page header and actions, spending
+area, and cash-in area) and the statement import preview are also localized, and
+the spending and cash-in lists keep their existing `$` amounts and `MM/DD/YYYY`
+dates in both languages. See [`localization.md`](localization.md).
 
 ## Non-goals
 
