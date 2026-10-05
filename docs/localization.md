@@ -25,7 +25,10 @@ delete confirmation. The Analytics (Insights) page is localized through the
 category ranking, the trend chart (dataset labels, tooltips, axis ticks, kicker, and
 the accessible chart-data table), the spending, budget-status, comparison, and
 largest-expense sections, and the load-failure messages that the cash-flow hook
-returns.
+returns. The Commitments page is localized through the `commitments` namespace: the
+page, the commitment form, the change review (pending and reviewed changes with their
+decisions), the supporting-expense evidence, and the safe error and notice messages
+that the hook maps from stable backend codes.
 
 ## Runtime boundary
 
@@ -152,6 +155,35 @@ import/export them, but the runtime must not depend on a translation service.
   stored (for example `Food`) in both languages until formatters adopt the direction
   below. The category ranking order and the budget and comparison calculations are
   unchanged.
+- Commitments messages are keyed by meaning (`page.*`, `saved.*`, `candidates.*`,
+  `history.*`, `form.*`, `changes.*`, `feedback.errors.*`, `feedback.notices.*`) and
+  never by raw server text. `useCommitments` keeps a catalog key in its state and
+  resolves it when returning `loadError`, `actionError`, and `notice`, so a displayed
+  message follows a language change; a code without an entry shows the generic
+  `request_failed` message. `getCommitmentErrorMessage` takes an optional `t` and
+  defaults to the English catalog. Cadence, lifecycle, weekday, and evidence-rule values
+  map to catalog labels while the stored value stays the canonical value in payloads; a
+  value without a label shows a readable fallback derived from the code.
+- Commitments count-dependent text uses complete count-aware messages instead of
+  concatenated fragments: `N change(s) to review` and `N possible commitment(s)` on the
+  page, `N linked expense(s)`, supporting-expense phrases per change dimension (amount,
+  timing), and missed-date phrases per cadence (weekly, monthly, yearly, with a generic
+  fallback). Timing sentences take complete before/after day-count messages. English
+  output is unchanged, including its existing wording for a count of one (for example
+  `N linked expense(s)`, `1 days before`, `Based on 1 expenses`); Spanish uses correct
+  singular and plural forms.
+- Spanish keeps an expected commitment distinct from expenses actually recorded.
+  Expectation copy uses `previsión`/`previsto`; evidence copy uses `gastos registrados`
+  and `gastos vinculados`. Decision wording names its effect: `Descartar` and
+  `Reconsiderar` act on a possible commitment, `Aceptar cambio` updates the saved
+  expectation, `Mantener actual`/`Mantener activo` leave it unchanged, and
+  `Marcar como finalizado` changes the commitment status after a confirmation.
+- Commitments keeps `$` amounts and the browser-language date display (`formatDate`
+  uses `toLocaleDateString(undefined, ...)`, so dates follow the browser language, not
+  the app language) in both languages until formatters adopt the direction below. Only
+  the `Unknown date` fallback label is localized. Element ids that Home's attention
+  links target (`changes-review-heading`, `candidate-heading`, and the others) and all
+  focus behavior are unchanged.
 
 ## Formatting direction
 
