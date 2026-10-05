@@ -266,6 +266,70 @@ describe('import preview in Spanish', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Vuelve a cargar esta página para ver los registros importados.')
   })
 
+  it('uses count-aware row totals and keeps the English wording unchanged', async () => {
+    const one = render(<ImportPreviewPanel importState={importState()} />)
+    expect(screen.getByText(/^1 fila · disponible hasta /)).toBeInTheDocument()
+    one.unmount()
+
+    const many = render(<ImportPreviewPanel importState={importState({ preview: previewWith([expenseRow, depositRow]) })} />)
+    expect(screen.getByText(/^2 filas · disponible hasta /)).toBeInTheDocument()
+    many.unmount()
+
+    await i18n.changeLanguage('en')
+    const english = render(<ImportPreviewPanel importState={importState()} />)
+    expect(screen.getByText(/^1 rows · available until /)).toBeInTheDocument()
+    english.unmount()
+    render(<ImportPreviewPanel importState={importState({ preview: previewWith([expenseRow, depositRow]) })} />)
+    expect(screen.getByText(/^2 rows · available until /)).toBeInTheDocument()
+  })
+
+  it('shows every confirmation-code message in Spanish with the right severity', () => {
+    const messages = [
+      ['possible_duplicate', 'Nuevo posible duplicado — revisa esta fila y vuelve a seleccionarla de forma explícita si debe importarse.', 'import-warning'],
+      ['possible_inflow_duplicate', 'Nuevo posible duplicado de depósito entrante — revisa esta fila y vuelve a seleccionarla de forma explícita si debe guardarse.', 'import-warning'],
+      ['row_not_selectable', 'Esta fila no es elegible para la selección de importación solicitada.', 'import-error'],
+      ['date_required', 'Se requiere una fecha de transacción.', 'import-error'],
+      ['amount_must_be_positive', 'El monto del gasto debe ser positivo.', 'import-error'],
+      ['amount_out_of_range', 'El monto del gasto está fuera del rango admitido.', 'import-error'],
+      ['amount_precision_invalid', 'El monto del gasto debe tener como máximo dos decimales.', 'import-error'],
+      ['description_required', 'Se requiere una descripción.', 'import-error'],
+      ['description_too_long', 'La descripción es demasiado larga.', 'import-error'],
+      ['category_required', 'Se requiere una categoría de gasto.', 'import-error'],
+      ['category_too_long', 'La categoría de gasto es demasiado larga.', 'import-error'],
+      ['category_reserved', 'Elige una categoría distinta de “Otra”.', 'import-error'],
+    ]
+    const confirmationIssue = {
+      code: 'confirmation_validation_failed',
+      message: 'Mensaje.',
+      rows: [{ rowId: 'row-1', codes: messages.map(([code]) => code) }],
+      requiresPreviewRefresh: false,
+    }
+    render(<ImportPreviewPanel importState={importState({ confirmationIssue })} />)
+
+    for (const [, text, severity] of messages) {
+      expect(screen.getByText(text)).toHaveClass(severity)
+    }
+  })
+
+  it('shows the Spanish save-failed messages for a selection change and for a draft save', async () => {
+    const user = userEvent.setup()
+    render(<ImportPreviewPanel importState={importState({ updateRow: vi.fn().mockResolvedValue(null) })} />)
+    const table = screen.getByRole('region', { name: 'Vista previa de la importación del estado de cuenta' })
+    const context = 'SYNTHETIC CAFE, 2026-08-12, fila 1 del estado de cuenta'
+
+    await user.click(within(table).getByRole('checkbox', { name: `Seleccionar para importar: ${context}` }))
+    expect(await within(table).findByRole('alert')).toHaveTextContent('No se pudo actualizar la fila. Inténtalo de nuevo.')
+
+    const description = within(table).getByLabelText(`Descripción del gasto: ${context}`)
+    await user.clear(description)
+    await user.type(description, 'Unsaved coffee')
+    expect(within(table).getByRole('status')).toHaveTextContent('Cambios sin guardar')
+    await user.click(within(table).getByRole('button', { name: `Guardar fila: ${context}` }))
+
+    expect(await within(table).findByRole('alert')).toHaveTextContent('No se pudo guardar. Los cambios siguen sin guardarse.')
+    expect(description).toHaveValue('Unsaved coffee')
+  })
+
   it('keeps English readable fallbacks for unknown codes', async () => {
     await i18n.changeLanguage('en')
     const row = { ...expenseRow, errors: ['brand_new_error'], warnings: ['brand_new_warning'] }

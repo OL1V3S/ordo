@@ -122,8 +122,30 @@ describe("ActivityTimeline", () => {
     renderTimeline(state({ items: [expense()] }), { uncertain: true });
 
     const notice = screen.getByText(/may be out of date/);
-    expect(notice).toHaveAttribute("aria-live", "polite");
+    expect(notice.parentElement).toHaveAttribute("aria-live", "polite");
+    expect(notice).not.toHaveAttribute("role");
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  it("keeps one polite live container mounted before the uncertain-write notice appears", () => {
+    const timeline = state({ items: [expense()] });
+    const view = renderTimeline(timeline);
+
+    const liveRegions = view.container.querySelectorAll("[aria-live]");
+    expect(liveRegions).toHaveLength(1);
+    const live = liveRegions[0];
+    expect(live).toHaveAttribute("aria-live", "polite");
+    expect(live).toBeEmptyDOMElement();
+    expect(screen.queryByText(/may be out of date/)).not.toBeInTheDocument();
+
+    view.rerenderTimeline(timeline, { uncertain: true });
+    expect(view.container.querySelector("[aria-live]")).toBe(live);
+    expect(live).toHaveTextContent(/may be out of date/);
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+
+    view.rerenderTimeline(timeline, { uncertain: false });
+    expect(view.container.querySelector("[aria-live]")).toBe(live);
+    expect(live).toBeEmptyDOMElement();
   });
 
   it("offers older activity only while more pages remain and keeps the button focusable while loading", () => {

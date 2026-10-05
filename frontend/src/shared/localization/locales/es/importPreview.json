@@ -84,7 +84,8 @@
   },
   "results": {
     "heading": "Revisar estado de cuenta",
-    "meta": "{{rows}} filas · disponible hasta {{expires}}",
+    "meta_one": "{{count}} fila · disponible hasta {{expires}}",
+    "meta_other": "{{count}} filas · disponible hasta {{expires}}",
     "selected": "<strong>{{items}}</strong> seleccionados para guardar.",
     "save": "Guardar {{items}}",
     "saving": "Guardando {{items}}…",
@@ -152,11 +153,11 @@
     "unknownDate": "fecha desconocida",
     "context": "{{description}}, {{date}}, fila {{ordinal}} del estado de cuenta",
     "selectLabel": "Seleccionar para importar",
-    "selectAria": "Seleccionar para importar: {{context}}",
+    "selectAria": "Seleccionar para importar: {{row}}",
     "depositLabel": "Guardar depósito entrante",
-    "depositAria": "Guardar depósito entrante: {{context}}",
+    "depositAria": "Guardar depósito entrante: {{row}}",
     "notSelectableLabel": "No seleccionable",
-    "notSelectableAria": "No seleccionable: {{context}}",
+    "notSelectableAria": "No seleccionable: {{row}}",
     "facts": {
       "date": "Fecha",
       "amount": "Monto",
@@ -169,7 +170,7 @@
     "qualification": "Guardar este depósito registra evidencia de una entrada de dinero en la cuenta. No lo clasifica como ingreso ni como pago de nómina.",
     "sourceDetails": {
       "summary": "Detalles del origen",
-      "aria": "Detalles del origen: {{context}}",
+      "aria": "Detalles del origen: {{row}}",
       "row": "Fila del estado de cuenta",
       "section": "Sección del estado de cuenta"
     },
@@ -185,14 +186,14 @@
       "unsaved": "Cambios sin guardar",
       "saved": "Guardado",
       "description": "Descripción del gasto",
-      "descriptionAria": "Descripción del gasto: {{context}}",
+      "descriptionAria": "Descripción del gasto: {{row}}",
       "category": "Categoría",
-      "categoryAria": "Categoría: {{context}}",
+      "categoryAria": "Categoría: {{row}}",
       "uncategorized": "Sin categoría",
       "customCategory": "Categoría personalizada",
-      "customCategoryAria": "Categoría personalizada: {{context}}",
+      "customCategoryAria": "Categoría personalizada: {{row}}",
       "saveRow": "Guardar fila",
-      "saveRowAria": "Guardar fila: {{context}}"
+      "saveRowAria": "Guardar fila: {{row}}"
     }
   }
 }

@@ -52,7 +52,10 @@ export default function ActivityTimeline({ timeline, uncertain = false }) {
         <StatusMessage tone="warning">{t("activity:timeline.refreshFailed")}</StatusMessage>
         <button type="button" onClick={() => void refresh()}>{t("activity:timeline.retry")}</button>
       </div>}
-      {uncertain && <p className="status-message status-message--warning" aria-live="polite">{t("activity:timeline.maybeStale")}</p>}
+      {/* Always mounted so assistive technology is already watching it when the notice appears. */}
+      <div className="activity-timeline__live" aria-live="polite">
+        {uncertain && <p className="status-message status-message--warning">{t("activity:timeline.maybeStale")}</p>}
+      </div>
       {settled && !refreshFailed && items.length === 0 && <p className="muted">{t("activity:timeline.empty")}</p>}
       {showRows && <ul className="activity-timeline__list" aria-label={t("activity:timeline.listLabel")}>
         {items.map((item) => {

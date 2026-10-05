@@ -40,6 +40,13 @@ describe("analytics month and date labels", () => {
     expect(formatMonthLabel("not-a-month", tEs)).toBe("not-a-month");
   });
 
+  it("treats only a function as the translator so months.map(formatMonthLabel) keeps the English label", () => {
+    const labels = months.map((month) => `2026-${month}`).map(formatMonthLabel);
+    expect(labels).toEqual(months.map((month) => formatMonthLabel(`2026-${month}`)));
+    expect(labels[0]).toBe("January 2026");
+    expect(formatMonthLabel("2026-07", 1)).toBe("July 2026");
+  });
+
   it("localizes period notes while keeping a recorded zero distinct from the empty marker", () => {
     expect(periodNotes({ month: "2026-08", to: "2026-08-14", cashInMinor: "0", spentMinor: "0" }, "2026-08-14", { t: tEs }))
       .toBe("Hasta el 14 de agosto de 2026 · No hay entradas de dinero registradas · No hay gastos registrados");

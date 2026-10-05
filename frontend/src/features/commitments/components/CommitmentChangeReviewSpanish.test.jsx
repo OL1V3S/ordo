@@ -105,7 +105,7 @@ describe("commitment change review in Spanish", () => {
 
     await user.click(screen.getByRole("button", { name: "Aceptar cambio de monto de Gym plan" }));
     expect(current.acceptAmountChange).toHaveBeenCalledWith("commitment-1", "amount-fingerprint");
-    await user.click(screen.getByRole("button", { name: "Mantener el monto actual de Gym plan" }));
+    await user.click(screen.getByRole("button", { name: "Mantener previsión actual: monto de Gym plan" }));
     expect(current.keepChange).toHaveBeenCalledWith("commitment-1", "amount", "amount-fingerprint");
     await user.click(screen.getByRole("button", { name: "Mantener activo el compromiso Insurance" }));
     expect(current.keepChange).toHaveBeenCalledWith("commitment-2", "missing", "missing-fingerprint");

@@ -152,7 +152,7 @@ describe("Commitments page in Spanish", () => {
     expect(pending.getByText("Cambio observado")).toBeInTheDocument();
     expect(pending.getByText("Pendiente")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Aceptar cambio de monto de Gym plan" })).toBeEnabled();
-    expect(screen.getByRole("button", { name: "Mantener el monto actual de Gym plan" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Mantener previsión actual: monto de Gym plan" })).toBeEnabled();
     expect(screen.getByText("Revisión de fechas")).toBeInTheDocument();
     expect(screen.getByText("Mantenido")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Reconsiderar cambio de fechas de Gym plan" })).toBeInTheDocument();

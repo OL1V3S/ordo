@@ -83,7 +83,7 @@ describe('Budgets page in Spanish', () => {
     expect(within(food).getByRole('button', { name: 'Eliminar presupuesto de Food' })).toHaveTextContent('Eliminar')
 
     const bills = screen.getByRole('article', { name: 'Presupuesto de Bills' })
-    expect(within(bills).getByText('Sobre el límite')).toBeVisible()
+    expect(within(bills).getByText('Por encima del límite')).toBeVisible()
     expect(within(bills).getByText('125% usado')).toBeVisible()
     expect(within(bills).getByRole('progressbar')).toHaveAttribute('aria-valuetext', '$125.00 usado de $100.00, 125%')
 

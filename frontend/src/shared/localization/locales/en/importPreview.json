@@ -84,7 +84,8 @@
   },
   "results": {
     "heading": "Review statement",
-    "meta": "{{rows}} rows · available until {{expires}}",
+    "meta_one": "{{count}} rows · available until {{expires}}",
+    "meta_other": "{{count}} rows · available until {{expires}}",
     "selected": "<strong>{{items}}</strong> selected to save.",
     "save": "Save {{items}}",
     "saving": "Saving {{items}}…",
@@ -152,11 +153,11 @@
     "unknownDate": "unknown date",
     "context": "{{description}} on {{date}}, statement row {{ordinal}}",
     "selectLabel": "Select for import",
-    "selectAria": "Select for import for {{context}}",
+    "selectAria": "Select for import for {{row}}",
     "depositLabel": "Save incoming deposit",
-    "depositAria": "Save incoming deposit for {{context}}",
+    "depositAria": "Save incoming deposit for {{row}}",
     "notSelectableLabel": "Not selectable",
-    "notSelectableAria": "Not selectable for {{context}}",
+    "notSelectableAria": "Not selectable for {{row}}",
     "facts": {
       "date": "Date",
       "amount": "Amount",
@@ -169,7 +170,7 @@
     "qualification": "Saving this deposit records account inflow evidence. It does not classify it as income or a paycheck.",
     "sourceDetails": {
       "summary": "Source details",
-      "aria": "Source details for {{context}}",
+      "aria": "Source details for {{row}}",
       "row": "Statement row",
       "section": "Statement section"
     },
@@ -185,14 +186,14 @@
       "unsaved": "Unsaved changes",
       "saved": "Saved",
       "description": "Expense description",
-      "descriptionAria": "Expense description for {{context}}",
+      "descriptionAria": "Expense description for {{row}}",
       "category": "Category",
-      "categoryAria": "Category for {{context}}",
+      "categoryAria": "Category for {{row}}",
       "uncategorized": "Uncategorized",
       "customCategory": "Custom category",
-      "customCategoryAria": "Custom category for {{context}}",
+      "customCategoryAria": "Custom category for {{row}}",
       "saveRow": "Save row",
-      "saveRowAria": "Save row for {{context}}"
+      "saveRowAria": "Save row for {{row}}"
     }
   }
 }
