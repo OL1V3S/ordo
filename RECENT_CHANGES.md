@@ -26,6 +26,7 @@ the permanent, complete archive.
 
 ### 2026-10-06 — Activity timeline search and filters; newest-first Expenses
 
+[PR #189](https://github.com/OL1V3S/ordo/pull/189) ·
 [Issue #188](https://github.com/OL1V3S/ordo/issues/188)
 
 - The Activity timeline can be searched (description and expense category) and

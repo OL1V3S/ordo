@@ -622,6 +622,20 @@ describe('Activity task hierarchy and safeguards', () => {
     await user.click(screen.getByRole('button', { name: 'Clear filters' }))
     expect(screen.getByText('Synthetic Coffee')).toBeVisible()
   })
+  it('prepends a pinned out-of-page edit ahead of the newest-first rows', async () => {
+    const user = userEvent.setup()
+    useExpenses.mockReturnValue({
+      ...baseExpensesHook,
+      expenses: [3, 2, 1].map((id) => ({ id, description: `Entry ${id}`, amount: 1, date: `2026-08-${10 + id}`, category: 'food' })),
+    })
+    render(<TransactionsPage />)
+    const names = () => within(screen.getByRole('region', { name: 'Expenses table' }))
+      .getAllByRole('row').slice(1).map((row) => within(row).queryByLabelText('Edit description')?.value ?? within(row).getByText(/^Entry \d+$/).textContent)
+    await user.click(screen.getByRole('button', { name: /^Edit expense.*Entry 1/ }))
+    await user.type(screen.getByPlaceholderText('Search description or category...'), 'entry 3')
+    await waitFor(() => expect(names()).toEqual(['Entry 1', 'Entry 3']))
+  })
+
   it('pins an active edit through filters and failed reads without replacing the draft', async () => {
     const user = userEvent.setup()
     const { rerender } = render(<TransactionsPage />)

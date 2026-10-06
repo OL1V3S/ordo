@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { useTranslation } from "react-i18next";
 import FormField from "../../../shared/ui/FormField";
 import { MAX_TIMELINE_SEARCH_LENGTH, normalizeTimelineFilter } from "../utils/timelineFilter";
@@ -5,6 +6,7 @@ import { MAX_TIMELINE_SEARCH_LENGTH, normalizeTimelineFilter } from "../utils/ti
 export default function ActivityTimelineFilters({ filters }) {
   const { t } = useTranslation(["activity", "home"]);
   const { draft, applied, error, active, setField, clear } = filters;
+  const searchRef = useRef(null);
   const shown = normalizeTimelineFilter(applied);
   const summary = [
     shown.q ? t("activity:timeline.filters.summary.search", { term: shown.q }) : "",
@@ -18,7 +20,7 @@ export default function ActivityTimelineFilters({ filters }) {
       <div className="filters activity-timeline__filter-fields">
         <FormField label={t("activity:timeline.filters.searchLabel")} className="activity-timeline__filter-search">
           {(id) => (
-            <input id={id} type="search" value={draft.q} maxLength={MAX_TIMELINE_SEARCH_LENGTH * 2}
+            <input id={id} ref={searchRef} type="search" value={draft.q} maxLength={MAX_TIMELINE_SEARCH_LENGTH * 2}
               placeholder={t("activity:timeline.filters.searchPlaceholder")}
               aria-invalid={error === "search" || undefined}
               onChange={(event) => setField("q", event.target.value)} />
@@ -45,7 +47,7 @@ export default function ActivityTimelineFilters({ filters }) {
               onChange={(event) => setField("to", event.target.value)} />
           )}
         </FormField>
-        {active && <button type="button" className="button-ghost" onClick={clear}>
+        {active && <button type="button" className="button-ghost" onClick={() => { clear(); searchRef.current?.focus(); }}>
           {t("activity:timeline.filters.clear")}
         </button>}
       </div>

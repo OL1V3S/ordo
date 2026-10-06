@@ -277,6 +277,14 @@ describe("ActivityTimeline", () => {
       expect(filters.clear).toHaveBeenCalledTimes(1);
     });
 
+    it("moves focus to the search field when clearing removes the clear button", () => {
+      const applied = { q: "coffee", kind: "", from: "", to: "" };
+      renderTimeline(state({ appliedFilter: applied }), { filters: filtersOf({ draft: applied, applied, active: true }) });
+
+      fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
+      expect(screen.getByLabelText("Search activity")).toHaveFocus();
+    });
+
     it("explains invalid filters in the live region and marks the field", () => {
       renderTimeline(state(), { filters: filtersOf({ error: "range", active: true }) });
 

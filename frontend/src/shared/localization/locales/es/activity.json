@@ -33,7 +33,7 @@
     "end": "Esa es toda tu actividad registrada.",
     "filters": {
       "searchLabel": "Buscar actividad",
-      "searchPlaceholder": "Buscar en la cronología...",
+      "searchPlaceholder": "Buscar en la cronología…",
       "kindLabel": "Tipo",
       "kindAll": "Toda la actividad",
       "fromLabel": "Desde",

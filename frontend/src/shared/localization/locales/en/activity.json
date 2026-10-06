@@ -33,7 +33,7 @@
     "end": "That is all of your recorded activity.",
     "filters": {
       "searchLabel": "Search activity",
-      "searchPlaceholder": "Search the timeline...",
+      "searchPlaceholder": "Search the timeline…",
       "kindLabel": "Type",
       "kindAll": "All activity",
       "fromLabel": "From date",
