@@ -222,6 +222,29 @@ describe('existing expense workflows', () => {
     expect(screen.getByRole('button', { name: 'Show More' })).toBeInTheDocument()
   })
 
+  it('keeps the newest-first order through the first ten, show more, and a filter', async () => {
+    const user = userEvent.setup()
+    useExpenses.mockReturnValue({
+      ...baseExpensesHook,
+      expenses: Array.from({ length: 12 }, (_, index) => ({
+        id: 12 - index,
+        description: `Entry ${12 - index}`,
+        amount: 1,
+        date: `2026-08-${String(20 - index).padStart(2, '0')}`,
+        category: 'food',
+      })),
+    })
+    render(<TransactionsPage />)
+    const names = () => within(screen.getByRole('region', { name: 'Expenses table' }))
+      .getAllByRole('row').slice(1).map((row) => within(row).getByText(/^Entry \d+$/).textContent)
+
+    expect(names()).toEqual(Array.from({ length: 10 }, (_, index) => `Entry ${12 - index}`))
+    await user.click(screen.getByRole('button', { name: 'Show More' }))
+    expect(names().slice(-2)).toEqual(['Entry 2', 'Entry 1'])
+    await user.type(screen.getByPlaceholderText('Search description or category...'), 'entry 1')
+    await waitFor(() => expect(names()).toEqual(['Entry 12', 'Entry 11', 'Entry 10', 'Entry 1']))
+  })
+
   it('shows inline missing-field validation and focuses the first invalid field', async () => {
     const user = userEvent.setup()
     render(<TransactionsPage />)

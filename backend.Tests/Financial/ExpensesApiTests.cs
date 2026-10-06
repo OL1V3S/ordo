@@ -48,6 +48,27 @@ public sealed class ExpensesApiTests
     }
 
     [Fact]
+    public async Task Get_returns_expenses_newest_first_with_id_descending_ties_including_future_dates()
+    {
+        await using var app = new FinancialApiTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("order-owner@example.com");
+        using var other = await app.CreateAuthenticatedUserAsync("order-other@example.com");
+        var oldest = await app.SeedExpenseAsync(owner.Id, "oldest", 1m, new(2026, 1, 1));
+        var tieFirst = await app.SeedExpenseAsync(owner.Id, "tie first", 1m, new(2026, 6, 1));
+        var future = await app.SeedExpenseAsync(owner.Id, "future", 1m, new(2027, 3, 1));
+        var tieSecond = await app.SeedExpenseAsync(owner.Id, "tie second", 1m, new(2026, 6, 1));
+        await app.SeedExpenseAsync(other.Id, "hidden", 1m, new(2028, 1, 1));
+
+        var response = await owner.Client.GetAsync("/api/expenses");
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(
+            [future.Id, tieSecond.Id, tieFirst.Id, oldest.Id],
+            body.EnumerateArray().Select(value => value.GetProperty("id").GetInt32()).ToArray());
+    }
+
+    [Fact]
     public async Task Create_assigns_authenticated_owner_normalizes_fields_and_returns_expense_dto()
     {
         await using var app = new FinancialApiTestApplication();

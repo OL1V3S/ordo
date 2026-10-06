@@ -33,6 +33,20 @@ returned to Home.
 - `cursor`: opaque position returned by a previous response. A malformed,
   non-canonical, or unsupported-version cursor is `400`
   `activity_timeline_cursor_invalid`.
+- Optional filters, all additive; absent means the unfiltered read. Filters only
+  narrow the owner's own rows and carry no owner:
+  - `q`: case-insensitive substring over the description and, for expenses, the
+    category. Trimmed; empty after trimming means absent; at most 100 characters;
+    repeated values are rejected (`400` `activity_timeline_search_invalid`). Case
+    folding is `ToLowerInvariant` on the term and `lower()` in the database, so
+    accented text matches case-insensitively (for example "CAFÉ" for "café");
+    `%` and `_` match literally.
+  - `kind`: `expense` or `account_inflow`; anything else is `400`
+    `activity_timeline_kind_invalid`. The excluded source is not queried.
+  - `from`, `to`: inclusive stored-date bounds, strict `yyyy-MM-dd`; invalid,
+    repeated, or `from > to` is `400` `activity_timeline_date_invalid`.
+  There is no category filter. The frontend validates the same limits first, so a
+  `400` is effectively unreachable and shows the generic failure message.
 - The owner comes only from the authenticated principal. There is no owner
   parameter or field. An anonymous request is `401`.
 
@@ -78,10 +92,15 @@ Paging is keyset, not offset. A row `(date, rank, id)` follows cursor
 `id < I`)), where an expense has rank 0 and an inflow rank 1. The cursor is the
 base64url encoding of its version, date, rank, and ID. It is position-only: it
 carries no owner or secret and cannot widen the owner-scoped read, so another
-owner's cursor merely positions that owner's own rows.
+owner's cursor merely positions that owner's own rows. The cursor carries no
+filter: the client resends the same filters with it, and a mismatch only yields a
+differently filtered continuation. The frontend never continues a cursor under a
+different filter.
 
 No index is added: the Expense table has no date index and adding one would
-require a migration. Cost is bounded by `limit <= 100`. An edit on another device
+require a migration. Without filters, cost is bounded by `limit <= 100`; a filtered
+read that matches little or nothing scans the owner's full history per page, so
+cost is no longer bounded by `limit` alone. An edit on another device
 that moves a row's date across a held cursor can duplicate or drop that row
 between pages; the browser never renders one record twice.
 
@@ -122,7 +141,7 @@ payloads are unchanged, so every record also appears in its per-type list.
 
 ## Localization
 
-Timeline strings and the section-links navigation use the `activity` catalog;
+Timeline strings (including the filter controls under `timeline.filters`) and the section-links navigation use the `activity` catalog;
 direction labels reuse Home's keys. Timeline money and dates format with `en-US`
 or `es-US`. The rest of the Activity page (page header and actions, spending
 area, and cash-in area) and the statement import preview are also localized, and
@@ -131,9 +150,10 @@ dates in both languages. See [`localization.md`](localization.md).
 
 ## Non-goals
 
-Unified edit or delete, per-row actions, search and filter, day grouping,
+Unified edit or delete, per-row actions, a category filter, numbered pages, day grouping,
 replacing the per-type lists, totals, net, balance, reconciliation, Safe-to-Spend,
-import redesign, and any change to an existing endpoint or to Home's UI. Any of
+import redesign, and any change to Home's UI. The only existing-endpoint change is
+that `GET /api/expenses` now guarantees date-descending, id-descending order. Any of
 the financial figures would be a financial-semantics change requiring renewed
 owner approval; see [`financial-domain-invariants.md`](financial-domain-invariants.md)
 and [`home-read-model.md`](home-read-model.md).

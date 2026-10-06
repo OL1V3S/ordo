@@ -30,7 +30,24 @@
     "loadingMore": "Loading older activity…",
     "loadMoreFailed": "We couldn’t load older activity.",
     "retryMore": "Try loading older activity again",
-    "end": "That is all of your recorded activity."
+    "end": "That is all of your recorded activity.",
+    "filters": {
+      "searchLabel": "Search activity",
+      "searchPlaceholder": "Search the timeline...",
+      "kindLabel": "Type",
+      "kindAll": "All activity",
+      "fromLabel": "From date",
+      "toLabel": "To date",
+      "clear": "Clear filters",
+      "activePrefix": "Active filters:",
+      "summary": {
+        "search": "Search: “{{term}}”",
+        "from": "From {{date}}",
+        "to": "Through {{date}}"
+      },
+      "noMatches": "No activity matches these filters.",
+      "invalid": "Check the filters: the search is too long or the dates are not valid or are out of order."
+    }
   },
   "categories": {
     "food": "Food",

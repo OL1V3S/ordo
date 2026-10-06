@@ -1122,6 +1122,23 @@ public sealed class PostgreSqlFinancialApiTests
     }
 
     [PostgreSqlFact]
+    public async Task Expense_list_is_newest_first_with_id_descending_ties_on_PostgreSQL()
+    {
+        await using var app = new PostgreSqlFinancialApiTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("expense-order-owner@example.com");
+        var oldest = await app.SeedExpenseAsync(owner.Id, "oldest", 1m, new(2026, 1, 1));
+        var tieFirst = await app.SeedExpenseAsync(owner.Id, "tie first", 1m, new(2026, 6, 1));
+        var future = await app.SeedExpenseAsync(owner.Id, "future", 1m, new(2027, 3, 1));
+        var tieSecond = await app.SeedExpenseAsync(owner.Id, "tie second", 1m, new(2026, 6, 1));
+
+        var read = await owner.Client.GetFromJsonAsync<JsonElement>("/api/expenses");
+
+        Assert.Equal(
+            [future.Id, tieSecond.Id, tieFirst.Id, oldest.Id],
+            read.EnumerateArray().Select(value => value.GetProperty("id").GetInt32()).ToArray());
+    }
+
+    [PostgreSqlFact]
     public async Task Expense_crud_persists_valid_values_and_enforces_user_isolation()
     {
         await using var app = new PostgreSqlFinancialApiTestApplication();

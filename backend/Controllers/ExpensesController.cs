@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using System.Globalization;
+using BudgetPlanner.ActivityTimeline;
 using BudgetPlanner.Contracts.Expenses;
 using BudgetPlanner.Data;
 using BudgetPlanner.Import;
@@ -39,6 +40,7 @@ public class ExpensesController : ControllerBase
 
         var expenses = await _context.Expenses
             .Where(e => e.UserId == userId)
+            .OrderNewestFirst()
             .ToListAsync();
 
         return expenses.Select(ToResponse).ToList();

@@ -30,7 +30,24 @@
     "loadingMore": "Cargando actividad anterior…",
     "loadMoreFailed": "No pudimos cargar la actividad anterior.",
     "retryMore": "Intentar cargar la actividad anterior de nuevo",
-    "end": "Esa es toda tu actividad registrada."
+    "end": "Esa es toda tu actividad registrada.",
+    "filters": {
+      "searchLabel": "Buscar actividad",
+      "searchPlaceholder": "Buscar en la cronología...",
+      "kindLabel": "Tipo",
+      "kindAll": "Toda la actividad",
+      "fromLabel": "Desde",
+      "toLabel": "Hasta",
+      "clear": "Borrar filtros",
+      "activePrefix": "Filtros activos:",
+      "summary": {
+        "search": "Búsqueda: “{{term}}”",
+        "from": "Desde {{date}}",
+        "to": "Hasta {{date}}"
+      },
+      "noMatches": "Ninguna actividad coincide con estos filtros.",
+      "invalid": "Revisa los filtros: la búsqueda es demasiado larga o las fechas no son válidas o están en orden incorrecto."
+    }
   },
   "categories": {
     "food": "Comida",

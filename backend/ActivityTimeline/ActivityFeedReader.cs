@@ -18,7 +18,27 @@ public static class ActivityFeedOrdering
     public const string ExpenseKind = "expense";
     public const string InflowKind = "account_inflow";
     public const int MaxLimit = 100;
+    public const int MaxSearchLength = 100;
+
+    /// <summary>Date descending, then id descending: the single-source projection of the ordering rule.</summary>
+    public static IOrderedQueryable<Expense> OrderNewestFirst(this IQueryable<Expense> query) =>
+        query.OrderByDescending(value => value.Date).ThenByDescending(value => value.Id);
+
+    /// <summary>Date descending, then id descending: the single-source projection of the ordering rule.</summary>
+    public static IOrderedQueryable<AccountInflow> OrderNewestFirst(this IQueryable<AccountInflow> query) =>
+        query.OrderByDescending(value => value.Date).ThenByDescending(value => value.Id);
 }
+
+/// <summary>
+/// Optional narrowing filters. Search is a case-insensitive substring over the description and,
+/// for expenses, the category. Dates are inclusive stored-date bounds. Kind is one of the
+/// ActivityFeedOrdering kind constants; null means both.
+/// </summary>
+public sealed record ActivityFeedFilter(
+    string? Search = null,
+    string? Kind = null,
+    DateOnly? From = null,
+    DateOnly? To = null);
 
 public sealed record ActivityFeedQueryTags(
     string Expenses,
@@ -37,7 +57,8 @@ public sealed record ActivityFeedRequest(
     int Limit,
     ActivityFeedCursor? After,
     DateOnly? ThroughDate,
-    ActivityFeedQueryTags Tags);
+    ActivityFeedQueryTags Tags,
+    ActivityFeedFilter? Filter = null);
 
 public sealed record ActivityFeedPage(
     IReadOnlyList<HomeActivityItemResponse> Items,
@@ -80,6 +101,34 @@ public sealed class ActivityFeedReader(BudgetContext context) : IActivityFeedRea
             inflowQuery = inflowQuery.Where(value => value.Date <= through);
         }
 
+        var includeExpenses = true;
+        var includeInflows = true;
+        if (request.Filter is { } filter)
+        {
+            includeExpenses = filter.Kind is null || filter.Kind == ActivityFeedOrdering.ExpenseKind;
+            includeInflows = filter.Kind is null || filter.Kind == ActivityFeedOrdering.InflowKind;
+            if (filter.From is { } from)
+            {
+                expenseQuery = expenseQuery.Where(value => value.Date >= from);
+                inflowQuery = inflowQuery.Where(value => value.Date >= from);
+            }
+
+            if (filter.To is { } to)
+            {
+                expenseQuery = expenseQuery.Where(value => value.Date <= to);
+                inflowQuery = inflowQuery.Where(value => value.Date <= to);
+            }
+
+            if (!string.IsNullOrEmpty(filter.Search))
+            {
+                var term = filter.Search.ToLowerInvariant();
+                expenseQuery = expenseQuery.Where(value =>
+                    value.Description.ToLower().Contains(term)
+                    || (value.Category != null && value.Category.ToLower().Contains(term)));
+                inflowQuery = inflowQuery.Where(value => value.Description.ToLower().Contains(term));
+            }
+        }
+
         if (request.After is { } after)
         {
             // A row (d, r, id) follows cursor (D, K, I) iff d < D, or d == D and
@@ -96,23 +145,25 @@ public sealed class ActivityFeedReader(BudgetContext context) : IActivityFeedRea
                 : inflowQuery.Where(value => value.Date <= afterDate);
         }
 
-        var expenses = await expenseQuery
-            .OrderByDescending(value => value.Date)
-            .ThenByDescending(value => value.Id)
-            .Take(fetch)
-            .Select(value => new ActivityRow(
-                ActivityFeedOrdering.ExpenseKind, ActivityFeedOrdering.ExpenseRank, value.Id, value.Date,
-                value.Amount, value.Description, value.Category))
-            .ToListAsync(cancellationToken);
+        var expenses = includeExpenses
+            ? await expenseQuery
+                .OrderNewestFirst()
+                .Take(fetch)
+                .Select(value => new ActivityRow(
+                    ActivityFeedOrdering.ExpenseKind, ActivityFeedOrdering.ExpenseRank, value.Id, value.Date,
+                    value.Amount, value.Description, value.Category))
+                .ToListAsync(cancellationToken)
+            : [];
 
-        var inflows = await inflowQuery
-            .OrderByDescending(value => value.Date)
-            .ThenByDescending(value => value.Id)
-            .Take(fetch)
-            .Select(value => new ActivityRow(
-                ActivityFeedOrdering.InflowKind, ActivityFeedOrdering.InflowRank, value.Id, value.Date,
-                value.Amount, value.Description, null))
-            .ToListAsync(cancellationToken);
+        var inflows = includeInflows
+            ? await inflowQuery
+                .OrderNewestFirst()
+                .Take(fetch)
+                .Select(value => new ActivityRow(
+                    ActivityFeedOrdering.InflowKind, ActivityFeedOrdering.InflowRank, value.Id, value.Date,
+                    value.Amount, value.Description, null))
+                .ToListAsync(cancellationToken)
+            : [];
 
         var merged = expenses.Concat(inflows)
             .OrderByDescending(value => value.Date)

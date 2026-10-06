@@ -17,6 +17,7 @@ import { isUnsafeAmount, formatInflowDate } from "../../inflows/utils/inflowForm
 import { useCaptureRecovery } from "../../home/recovery/captureRecovery";
 import { useTranslation } from "react-i18next";
 import { useActivityTimeline } from "../../activity/hooks/useActivityTimeline";
+import { useTimelineFilters } from "../../activity/hooks/useTimelineFilters";
 import ActivityTimeline from "../../activity/components/ActivityTimeline";
 import { parseExpenseAmount } from "../../expenses/utils/exactMoney";
 import StatusMessage from "../../../shared/ui/StatusMessage";
@@ -75,7 +76,8 @@ export default function TransactionsPage() {
   const { t: ta } = useTranslation("activity");
   const captureRecovery = useCaptureRecovery();
   const timelineEnabled = !captureRecovery.source;
-  const timeline = useActivityTimeline({ enabled: timelineEnabled });
+  const timelineFilters = useTimelineFilters();
+  const timeline = useActivityTimeline({ enabled: timelineEnabled, filter: timelineFilters.applied });
   const timelineRefresh = useRef(timeline.refresh);
   timelineRefresh.current = timeline.refresh;
   const withTimelineRefresh = (write) => async (...args) => {
@@ -308,7 +310,7 @@ export default function TransactionsPage() {
           setImportOpen(false); focusAfterRender(() => importButton.current);
         }}>{ta("page.closeImport")}</button>}
       </div>
-      {timelineEnabled && <ActivityTimeline timeline={timeline} uncertain={timelineUncertain} />}
+      {timelineEnabled && <ActivityTimeline timeline={timeline} filters={timelineFilters} uncertain={timelineUncertain} />}
       <section className="activity-spending" aria-labelledby="spending-activity-heading">
         <div className="activity-spending__header">
           <h2 id="spending-activity-heading" ref={activityHeading} tabIndex={-1}>{ta("spending.heading")}</h2>

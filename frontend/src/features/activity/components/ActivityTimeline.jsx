@@ -1,10 +1,12 @@
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocale } from "../../../shared/localization/useLocale";
+import ActivityTimelineFilters from "./ActivityTimelineFilters";
 import StatusMessage from "../../../shared/ui/StatusMessage";
+import { isTimelineFilterActive } from "../utils/timelineFilter";
 import { formatTimelineAmount, formatTimelineDate, timelineItemKey } from "../utils/timelinePresentation";
 
-export default function ActivityTimeline({ timeline, uncertain = false }) {
+export default function ActivityTimeline({ timeline, filters = null, uncertain = false }) {
   const { t } = useTranslation(["activity", "home"]);
   const { locale } = useLocale();
   const moneyLocale = locale === "es" ? "es-US" : "en-US";
@@ -32,6 +34,8 @@ export default function ActivityTimeline({ timeline, uncertain = false }) {
   }
 
   const showRows = items.length > 0 && !malformed;
+  // Chosen from the filter the committed rows were read under, never from the draft controls.
+  const noMatches = isTimelineFilterActive(timeline.appliedFilter);
   const settled = !loading && !error && !malformed;
 
   return (
@@ -39,6 +43,7 @@ export default function ActivityTimeline({ timeline, uncertain = false }) {
       aria-busy={loading || loadingMore}>
       <h2 id="activity-timeline-heading" ref={headingRef} tabIndex={-1}>{t("activity:timeline.heading")}</h2>
       <p className="muted">{t("activity:timeline.intro")}</p>
+      {filters && <ActivityTimelineFilters filters={filters} />}
       {loading && <StatusMessage>{t(showRows ? "activity:timeline.refreshing" : "activity:timeline.loading")}</StatusMessage>}
       {error && <div className="activity-timeline__notice">
         <StatusMessage tone="danger">{t("activity:timeline.unavailable")}</StatusMessage>
@@ -56,7 +61,7 @@ export default function ActivityTimeline({ timeline, uncertain = false }) {
       <div className="activity-timeline__live" aria-live="polite">
         {uncertain && <p className="status-message status-message--warning">{t("activity:timeline.maybeStale")}</p>}
       </div>
-      {settled && !refreshFailed && items.length === 0 && <p className="muted">{t("activity:timeline.empty")}</p>}
+      {settled && !refreshFailed && items.length === 0 && <p className="muted">{t(noMatches ? "activity:timeline.filters.noMatches" : "activity:timeline.empty")}</p>}
       {showRows && <ul className="activity-timeline__list" aria-label={t("activity:timeline.listLabel")}>
         {items.map((item) => {
           const amount = formatTimelineAmount(item.amount, item.kind, moneyLocale);

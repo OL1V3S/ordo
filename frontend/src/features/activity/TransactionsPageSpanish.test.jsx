@@ -84,6 +84,15 @@ describe("Activity spending in Spanish", () => {
     expect(screen.queryByText("No expenses recorded yet.")).not.toBeInTheDocument();
   });
 
+  it("renders the timeline filter controls in Spanish", () => {
+    renderPage();
+
+    expect(screen.getByLabelText("Buscar actividad")).toBeInTheDocument();
+    expect(screen.getByLabelText("Tipo")).toBeInTheDocument();
+    expect(screen.getByLabelText("Desde")).toBeInTheDocument();
+    expect(screen.getByLabelText("Hasta")).toBeInTheDocument();
+  });
+
   it("renders the expense table, row actions, and review state in Spanish without changing money or dates", () => {
     mockLists({ expenses: { expenses: [lunch, oddAmount] } });
     renderPage();

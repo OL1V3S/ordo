@@ -61,4 +61,15 @@ describe('expense filtering', () => {
 
     expect(result.map((x) => x.id)).toEqual([2, 4])
   })
+
+  it('preserves the incoming newest-first order and never re-sorts', () => {
+    const newestFirst = [
+      { id: 9, description: 'Newest', category: 'food', date: '2026-08-14' },
+      { id: 3, description: 'Older same-day tie', category: 'food', date: '2026-08-10' },
+      { id: 2, description: 'Oldest', category: 'food', date: '2026-08-10' },
+    ]
+
+    expect(filterExpenses(newestFirst, baseFilters).map((x) => x.id)).toEqual([9, 3, 2])
+    expect(filterExpenses(newestFirst, { ...baseFilters, categoryFilter: 'food' }).map((x) => x.id)).toEqual([9, 3, 2])
+  })
 })

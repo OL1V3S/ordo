@@ -236,4 +236,84 @@ describe("ActivityTimeline", () => {
     expect(jsxText).toEqual([]);
     expect(source).not.toMatch(/\b(?:aria-label|title|placeholder|alt)="/);
   });
+
+  describe("filters", () => {
+    const emptyFilter = { q: "", kind: "", from: "", to: "" };
+    const filtersOf = (overrides = {}) => ({
+      draft: { ...emptyFilter }, applied: { ...emptyFilter }, error: null, active: false,
+      setField: vi.fn(), clear: vi.fn(), ...overrides,
+    });
+
+    it("renders no controls without a filters prop", () => {
+      renderTimeline(state());
+      expect(screen.queryByLabelText("Search activity")).not.toBeInTheDocument();
+    });
+
+    it("renders labelled controls and reports changes by field", () => {
+      const filters = filtersOf();
+      renderTimeline(state(), { filters });
+
+      fireEvent.change(screen.getByLabelText("Search activity"), { target: { value: "cof" } });
+      fireEvent.change(screen.getByLabelText("Type"), { target: { value: "expense" } });
+      fireEvent.change(screen.getByLabelText("From date"), { target: { value: "2026-09-01" } });
+      fireEvent.change(screen.getByLabelText("To date"), { target: { value: "2026-09-30" } });
+
+      expect(filters.setField.mock.calls).toEqual([
+        ["q", "cof"], ["kind", "expense"], ["from", "2026-09-01"], ["to", "2026-09-30"]]);
+      expect(within(screen.getByLabelText("Type")).getAllByRole("option").map((option) => option.textContent))
+        .toEqual(["All activity", "Expense", "Cash in"]);
+      expect(screen.queryByRole("button", { name: "Clear filters" })).not.toBeInTheDocument();
+    });
+
+    it("shows a polite active-filter summary and a working clear button", () => {
+      const applied = { q: "coffee", kind: "expense", from: "2026-09-01", to: "" };
+      const filters = filtersOf({ draft: applied, applied, active: true });
+      renderTimeline(state({ appliedFilter: applied }), { filters });
+
+      const summary = screen.getByText(/Search: “coffee” · Expense · From 2026-09-01/);
+      expect(summary.closest("[aria-live='polite']")).not.toBeNull();
+      expect(screen.getByText(/Active filters:/)).toHaveClass("sr-only");
+      fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
+      expect(filters.clear).toHaveBeenCalledTimes(1);
+    });
+
+    it("explains invalid filters in the live region and marks the field", () => {
+      renderTimeline(state(), { filters: filtersOf({ error: "range", active: true }) });
+
+      expect(screen.getByText(/Check the filters/).closest("[aria-live='polite']")).not.toBeNull();
+      expect(screen.getByLabelText("From date")).toHaveAttribute("aria-invalid", "true");
+    });
+
+    it("distinguishes no matches under a filter from no recorded activity", () => {
+      const applied = { q: "zzz", kind: "", from: "", to: "" };
+      const { rerenderTimeline } = renderTimeline(state({ appliedFilter: emptyFilter }));
+      expect(screen.getByText("No recorded activity yet.")).toBeInTheDocument();
+
+      rerenderTimeline(state({ appliedFilter: applied }), { filters: filtersOf({ applied, draft: applied, active: true }) });
+      expect(screen.getByText("No activity matches these filters.")).toBeInTheDocument();
+      expect(screen.queryByText("No recorded activity yet.")).not.toBeInTheDocument();
+      expect(screen.queryByText(/\d+ (results|matches)/i)).not.toBeInTheDocument();
+    });
+
+    it("chooses the empty message from the committed filter, not the draft", () => {
+      const draft = { ...emptyFilter, q: "typing" };
+      renderTimeline(state({ appliedFilter: emptyFilter }), { filters: filtersOf({ draft, active: true }) });
+
+      expect(screen.getByText("No recorded activity yet.")).toBeInTheDocument();
+    });
+
+    it("renders the controls in Spanish", async () => {
+      await i18n.changeLanguage("es");
+      const applied = { q: "caf", kind: "", from: "", to: "2026-09-30" };
+      renderTimeline(state({ appliedFilter: applied }), { filters: filtersOf({ applied, draft: applied, active: true }) });
+
+      expect(screen.getByLabelText("Buscar actividad")).toBeInTheDocument();
+      expect(screen.getByLabelText("Tipo")).toBeInTheDocument();
+      expect(screen.getByLabelText("Desde")).toBeInTheDocument();
+      expect(screen.getByLabelText("Hasta")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Borrar filtros" })).toBeInTheDocument();
+      expect(screen.getByText(/Búsqueda: “caf” · Hasta 2026-09-30/)).toBeInTheDocument();
+      expect(screen.getByText("Ninguna actividad coincide con estos filtros.")).toBeInTheDocument();
+    });
+  });
 });

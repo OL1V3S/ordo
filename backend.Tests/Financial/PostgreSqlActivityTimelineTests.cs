@@ -66,6 +66,49 @@ public sealed class PostgreSqlActivityTimelineTests
     }
 
     [PostgreSqlFact]
+    public async Task Filtered_reads_translate_on_PostgreSQL_including_accented_literal_and_date_filters()
+    {
+        await using var app = new PostgreSqlFinancialApiTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("postgres-timeline-filters@example.com");
+        using var other = await app.CreateAuthenticatedUserAsync("postgres-timeline-filters-other@example.com");
+        var cafe = await app.SeedExpenseAsync(owner.Id, "CAF\u00c9 con leche", 1m, new(2026, 9, 10), "comida");
+        var percent = await app.SeedExpenseAsync(owner.Id, "Save 50% now", 1m, new(2026, 9, 11), "ahorro");
+        await app.SeedExpenseAsync(owner.Id, "Save 50 now", 1m, new(2026, 9, 12), "ahorro");
+        var underscore = await app.SeedInflowAsync(owner.Id, "a_b deposit", 1m, new(2026, 9, 13));
+        await app.SeedInflowAsync(owner.Id, "axb deposit", 1m, new(2026, 9, 14));
+        var late = await app.SeedExpenseAsync(owner.Id, "Late CAF\u00c9", 1m, new(2026, 10, 5), "comida");
+        await app.SeedExpenseAsync(other.Id, "Foreign caf\u00e9", 1m, new(2026, 9, 10));
+
+        var accent = ActivityTimelineTestClient.Keys(await ActivityTimelineTestClient.ReadAsync(
+            owner.Client, "?q=" + Uri.EscapeDataString("caf\u00e9")));
+        Assert.Equal([("expense", late.Id), ("expense", cafe.Id)], accent);
+
+        Assert.Equal(
+            [("expense", percent.Id)],
+            ActivityTimelineTestClient.Keys(await ActivityTimelineTestClient.ReadAsync(owner.Client, "?q=50%25")));
+        Assert.Equal(
+            [("account_inflow", underscore.Id)],
+            ActivityTimelineTestClient.Keys(await ActivityTimelineTestClient.ReadAsync(owner.Client, "?q=a_b")));
+        Assert.Equal(
+            [("expense", late.Id), ("expense", cafe.Id)],
+            ActivityTimelineTestClient.Keys(await ActivityTimelineTestClient.ReadAsync(owner.Client, "?q=COMIDA")));
+        Assert.Equal(
+            [("expense", cafe.Id)],
+            ActivityTimelineTestClient.Keys(await ActivityTimelineTestClient.ReadAsync(
+                owner.Client, "?q=comida&from=2026-09-10&to=2026-09-10&kind=expense")));
+        Assert.Equal(
+            [("account_inflow", underscore.Id)],
+            ActivityTimelineTestClient.Keys(await ActivityTimelineTestClient.ReadAsync(
+                owner.Client, "?kind=account_inflow&to=2026-09-13&from=2026-09-13")));
+
+        const string filter = "&q=caf%C3%A9&from=2026-09-01&to=2026-12-31";
+        var everything = ActivityTimelineTestClient.Keys(
+            await ActivityTimelineTestClient.ReadAsync(owner.Client, "?limit=100" + filter));
+        var walked = await ActivityTimelineTestClient.WalkAsync(owner.Client, 1, filter);
+        Assert.Equal(everything, walked.Keys);
+    }
+
+    [PostgreSqlFact]
     public async Task Amounts_stay_exact_and_legacy_zero_or_negative_expenses_are_not_repaired()
     {
         await using var app = new PostgreSqlFinancialApiTestApplication();
