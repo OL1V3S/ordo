@@ -24,6 +24,20 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-05 — Review follow-ups for the V2 localization work
+
+[PR #185](https://github.com/OL1V3S/ordo/pull/185) ·
+[Issue #184](https://github.com/OL1V3S/ordo/issues/184)
+
+- Fixed the Spanish Commitments "keep current" accessible names, made the Activity
+  timeline's out-of-date notice a persistent live region, and made the import
+  preview row total count-aware ("1 fila" in Spanish; English wording unchanged).
+- Clarified a few Spanish phrases ("Por encima del límite", "tus categorías"), removed
+  a fragile `{{context}}` placeholder name, and added tests for previously untested
+  messages and the READ ONLY timeline transaction.
+- Corrected stale statements in the architecture and product overviews and in the
+  localization, Home read-model, and Activity timeline documentation.
+
 ### 2026-10-05 — Spanish Commitments page
 
 [PR #183](https://github.com/OL1V3S/ordo/pull/183) ·
@@ -130,6 +144,7 @@ the permanent, complete archive.
   ordering rule exists once; Home's output is unchanged.
 - Localized the timeline and the Activity section links in English and Spanish;
   the rest of the Activity page stays English until umbrella item 10.
+
 ### 2026-10-01 — Claude Code command-center workflow
 
 [PR #169](https://github.com/OL1V3S/ordo/pull/169) ·

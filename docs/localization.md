@@ -2,9 +2,11 @@
 
 Ordo's browser frontend supports English and broadly neutral U.S./Latin
 American Spanish as an incremental product capability. The authenticated shell,
-primary navigation, Plan and More hubs, and Settings are the first localized
-surfaces. Other feature pages and public account-access pages remain English
-until a separately scoped adoption issue moves their complete copy into catalogs.
+primary navigation, Plan and More hubs, and Settings were the first localized
+surfaces, and the Home, Activity, statement import, Budgets, Insights, Commitments,
+and Paychecks pages have since followed. The public account-access pages and the
+unavailable Investing placeholder page remain English until a separately scoped
+adoption issue moves their complete copy into catalogs.
 The Activity page is localized through the `activity` namespace: the timeline, the
 section links, the page header and actions, the spending area (expense form,
 filters, list, and row editing), and the cash-in area (form, list, and delete
@@ -80,8 +82,9 @@ import/export them, but the runtime must not depend on a translation service.
 - The import preview keeps row data as the statement parser produced it (source
   descriptions, `YYYY-MM-DD` dates, `$` amounts, and the stored category value) and
   keeps the browser-formatted expiry and confirmation timestamps in both languages
-  until formatters adopt the direction below. Row counts are shown as `N rows` in
-  English, as they were before localization.
+  until formatters adopt the direction below. Row counts are count-aware messages;
+  English keeps `N rows` (including `1 rows`) as before localization, and Spanish
+  uses `1 fila` and `N filas`.
 - Activity spending and cash-in lists keep their existing `$` amounts and
   `MM/DD/YYYY` dates in both languages until formatters adopt the direction below.
 - Paychecks messages are keyed by stable code (`feedback.errors.*`,
@@ -93,17 +96,19 @@ import/export them, but the runtime must not depend on a translation service.
   `formatPaychecks.js` helpers take an optional `t` and default to the English
   catalog for callers that are not localized yet.
 - The Paychecks receipt panel maps the shared cash-in validation failures to
-  `receipt.cashInErrors.*` by field. `inflows/utils/inflowForm.js` and the Activity
-  page are unchanged; their validation text is still never displayed on Activity.
+  `receipt.cashInErrors.*` by field. `inflows/utils/inflowForm.js` keeps its English
+  validation text, which is never displayed: the Paychecks receipt panel and the
+  Activity cash-in form each map the results to their own catalog messages.
 - Spanish keeps a paycheck expectation distinct from money actually recorded.
   Expectation, projection, and expected-window copy uses `previsión` and
   `previsto`; copy about money actually received uses `pago recibido` and
   `entrada de dinero`. Do not describe a recorded deposit as `previsto` or an
   expectation as recibido or registrado.
 - Paychecks keeps `Mon D, YYYY` dates (English month abbreviations) and `$` amounts
-  in both languages until formatters adopt the direction below. Day counts are
-  count-aware messages; English `linked deposit(s)` and `day(s) before/after`
-  wording is kept as written, with matching Spanish `(s)` forms.
+  in both languages until formatters adopt the direction below. Day counts
+  (`formatWindow`) are count-aware messages; English `linked deposit(s)` and
+  `day(s) before/after` wording is kept as written, with matching Spanish `(s)`
+  forms.
 - Budgets messages are keyed by outcome (`feedback.*`, `card.status.*`, `states.*`)
   and never by raw server text; the Budgets page shows no backend-provided message.
   The panel keeps a feedback catalog key in its state and resolves it when rendering,
@@ -144,8 +149,9 @@ import/export them, but the runtime must not depend on a translation service.
   is `Acum.` in Spanish.
 - Spanish keeps recorded cash and spending distinct from expectations: copy about
   recorded cash uses `entradas de dinero registradas`, `gastos registrados`, and
-  `gastado`; paycheck expectations and projections use `previsión`/`previsto`
-  (budgets, expectations, and projections add nothing to the recorded figures).
+  `gastado`; paycheck expectations and projections are named `previsiones de nómina`
+  and `proyecciones` (budgets, expectations, and projections add nothing to the
+  recorded figures).
   Spanish also keeps an unavailable exact figure (`no está disponible`, `No
   disponible`) distinct from a recorded zero (`No hay gastos registrados`,
   `No hay entradas de dinero registradas`); never describe an unavailable figure as
@@ -176,7 +182,7 @@ import/export them, but the runtime must not depend on a translation service.
   Expectation copy uses `previsión`/`previsto`; evidence copy uses `gastos registrados`
   and `gastos vinculados`. Decision wording names its effect: `Descartar` and
   `Reconsiderar` act on a possible commitment, `Aceptar cambio` updates the saved
-  expectation, `Mantener actual`/`Mantener activo` leave it unchanged, and
+  expectation, `Mantener previsión actual`/`Mantener activo` leave it unchanged, and
   `Marcar como finalizado` changes the commitment status after a confirmation.
 - Commitments keeps `$` amounts and the browser-language date display (`formatDate`
   uses `toLocaleDateString(undefined, ...)`, so dates follow the browser language, not

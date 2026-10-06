@@ -50,7 +50,7 @@ function CandidateCard({ candidate, dismissed, state, task, disabled, onOpen, on
         <summary aria-label={t("saved.detailsLabel", { name: candidate.description })}>{t("saved.details")}</summary>
         <dl className="commitment-facts">
           <div><dt>{t("candidates.evidence")}</dt><dd>{t("candidates.evidenceSummary", { count: candidate.occurrenceCount, rule: evidenceRuleLabel(candidate.evidenceRule, t) })}</dd></div>
-          <div><dt>{t("candidates.coveredPeriod")}</dt><dd>{formatDate(candidate.coveredFrom)}–{formatDate(candidate.coveredTo)}</dd></div>
+          <div><dt>{t("candidates.coveredPeriod")}</dt><dd>{formatDate(candidate.coveredFrom, t)}–{formatDate(candidate.coveredTo, t)}</dd></div>
           <div><dt>{t("candidates.observedTiming")}</dt><dd>{timingSummary(candidate, t)}</dd></div>
           <div><dt>{t("candidates.observedAmount")}</dt><dd>{candidate.observedAmountMode === "fixed" ? t("candidates.identical") : t("candidates.median", { amount: formatDerivedMoney(candidate.observedMedianAmount) })}</dd></div>
           <div><dt>{t("candidates.detectionDetails")}</dt><dd>{candidate.algorithmVersion}</dd></div>

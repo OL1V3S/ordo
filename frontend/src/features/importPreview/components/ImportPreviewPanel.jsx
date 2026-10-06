@@ -389,7 +389,7 @@ export default function ImportPreviewPanel({ importState, onImportConfirmed = as
           <div className="import-results__summary">
             <div>
               <h3 className="h3" ref={resultsHeading} tabIndex="-1">{t("results.heading")}</h3>
-              <p className="muted">{t("results.meta", { rows: preview.rows.length, expires: new Date(preview.expiresAt).toLocaleString() })}</p>
+              <p className="muted">{t("results.meta", { count: preview.rows.length, expires: new Date(preview.expiresAt).toLocaleString() })}</p>
             </div>
             <div className="import-confirmation-actions">
               <p className="import-confirmation-actions__selection">

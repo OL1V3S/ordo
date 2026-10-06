@@ -123,8 +123,10 @@ other. Detector semantics are documented in
 ### Recent Activity
 
 Recent Activity returns at most three actual persisted records on or before
-`activityThroughDate`. It queries at most three Expenses and three
-AccountInflows, then owns the final ordering:
+`activityThroughDate`. The shared feed reader
+([`activity-timeline.md`](activity-timeline.md)) queries at most four Expenses and
+four AccountInflows, one more than the limit so it can tell whether further rows
+exist, then owns the final ordering; Home returns only the first three:
 
 1. stored date descending;
 2. `expense` before `account_inflow` as a deterministic same-day tie-break;

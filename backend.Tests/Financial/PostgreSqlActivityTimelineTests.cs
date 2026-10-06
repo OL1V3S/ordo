@@ -1,6 +1,13 @@
+using System.Collections.Concurrent;
+using System.Data;
+using System.Data.Common;
 using System.Net.Http.Json;
 using System.Text.Json;
+using BudgetPlanner.Data;
 using BudgetPlanner.Models;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace BudgetPlanner.Tests.Financial;
@@ -105,5 +112,65 @@ public sealed class PostgreSqlActivityTimelineTests
         Assert.Equal("recorded_receipt", inflow.GetProperty("paycheck").GetProperty("relation").GetString());
         Assert.DoesNotContain("Foreign PostgreSQL", timeline.GetRawText(), StringComparison.Ordinal);
         Assert.Equal(before, await app.RecordStateAsync());
+    }
+
+    [PostgreSqlFact]
+    public async Task Timeline_read_runs_every_query_inside_one_read_only_repeatable_read_transaction()
+    {
+        var observer = new ReadOnlyObserver();
+        await using var app = new ObservedApplication(observer);
+        using var owner = await app.CreateAuthenticatedUserAsync("postgres-timeline-read-only@example.com");
+        await app.SeedExpenseAsync(owner.Id, "PostgreSQL read-only expense", 3m, new(2026, 9, 22));
+        await app.SeedInflowAsync(owner.Id, "PostgreSQL read-only cash", 4m, new(2026, 9, 21));
+        var before = await app.RecordStateAsync();
+
+        var timeline = await ActivityTimelineTestClient.ReadAsync(owner.Client);
+
+        Assert.Equal(2, timeline.GetProperty("items").GetArrayLength());
+        var observed = observer.Commands.ToArray();
+        var readOnly = Assert.Single(observed, value => value.IsReadOnlyStatement);
+        Assert.NotNull(readOnly.Transaction);
+        Assert.Equal(IsolationLevel.RepeatableRead, readOnly.Isolation);
+        // The READ ONLY statement precedes every timeline query, and all of them share its transaction.
+        Assert.Same(readOnly, observed[0]);
+        var queries = observed.Where(value => !value.IsReadOnlyStatement).ToArray();
+        Assert.True(queries.Length >= 2);
+        Assert.All(queries, query => Assert.Same(readOnly.Transaction, query.Transaction));
+        Assert.Equal(before, await app.RecordStateAsync());
+    }
+
+    private sealed class ObservedApplication(ReadOnlyObserver observer) : PostgreSqlFinancialApiTestApplication
+    {
+        protected override void ConfigureDatabase(IServiceCollection services) =>
+            services.AddDbContext<BudgetContext>(options => options
+                .UseNpgsql(Environment.GetEnvironmentVariable(ConnectionEnvironmentVariable))
+                .AddInterceptors(observer));
+    }
+
+    private sealed record ObservedCommand(bool IsReadOnlyStatement, DbTransaction? Transaction, IsolationLevel? Isolation);
+
+    private sealed class ReadOnlyObserver : DbCommandInterceptor
+    {
+        private readonly ConcurrentQueue<ObservedCommand> _commands = new();
+
+        public IReadOnlyCollection<ObservedCommand> Commands => _commands;
+
+        public override ValueTask<InterceptionResult<int>> NonQueryExecutingAsync(
+            DbCommand command, CommandEventData eventData, InterceptionResult<int> result,
+            CancellationToken cancellationToken = default)
+        {
+            if (command.CommandText.Contains("SET TRANSACTION READ ONLY", StringComparison.OrdinalIgnoreCase))
+                _commands.Enqueue(new ObservedCommand(true, command.Transaction, command.Transaction?.IsolationLevel));
+            return ValueTask.FromResult(result);
+        }
+
+        public override ValueTask<InterceptionResult<DbDataReader>> ReaderExecutingAsync(
+            DbCommand command, CommandEventData eventData, InterceptionResult<DbDataReader> result,
+            CancellationToken cancellationToken = default)
+        {
+            if (command.CommandText.Contains("ActivityTimeline:", StringComparison.Ordinal))
+                _commands.Enqueue(new ObservedCommand(false, command.Transaction, command.Transaction?.IsolationLevel));
+            return ValueTask.FromResult(result);
+        }
     }
 }

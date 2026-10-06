@@ -107,7 +107,7 @@ describe("Analytics page in Spanish", () => {
     expect(budget).toHaveTextContent("$90.00 gastado de $100.00");
     expect(budget).toHaveTextContent("$10.00 restante");
     expect(budget).toHaveTextContent("90.0% usado");
-    expect(budget).toHaveTextContent("Sobre el presupuesto");
+    expect(budget).toHaveTextContent("Por encima del presupuesto");
     expect(budget).toHaveTextContent("$10.00 por encima del límite");
     expect(budget).toHaveTextContent("Porcentaje usado: no aplica para un límite de $0");
 

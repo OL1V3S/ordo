@@ -237,10 +237,10 @@
       "amount": "Aceptar cambio de monto de {{name}}",
       "timing": "Aceptar cambio de fechas de {{name}}"
     },
-    "keepCurrent": "Mantener actual",
+    "keepCurrent": "Mantener previsión actual",
     "keepCurrentLabel": {
-      "amount": "Mantener el monto actual de {{name}}",
-      "timing": "Mantener las fechas actuales de {{name}}",
+      "amount": "Mantener previsión actual: monto de {{name}}",
+      "timing": "Mantener previsión actual: fechas de {{name}}",
       "missing": "Mantener activo el compromiso {{name}}"
     },
     "keepActive": "Mantener activo",

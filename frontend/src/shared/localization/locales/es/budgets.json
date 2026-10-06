@@ -37,7 +37,7 @@
     "refresh": "Actualizar límites"
   },
   "states": {
-    "chooseMonth": "Elige un mes para ver los presupuestos de sus categorías.",
+    "chooseMonth": "Elige un mes para ver los presupuestos de tus categorías.",
     "loadingLimits": "Cargando límites de presupuesto...",
     "limitsError": "No pudimos cargar los límites de presupuesto de {{month}}. Actualiza los límites para intentarlo de nuevo.",
     "loadingSpending": "Cargando gastos registrados...",
@@ -72,7 +72,7 @@
       "spendingNeedsReview": "El gasto requiere revisión",
       "limitNeedsReview": "El límite requiere revisión",
       "zeroLimit": "Límite de cero",
-      "overLimit": "Sobre el límite",
+      "overLimit": "Por encima del límite",
       "limitReached": "Límite alcanzado",
       "nearLimit": "Cerca del límite",
       "withinLimit": "Dentro del límite"

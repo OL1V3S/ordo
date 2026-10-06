@@ -28,7 +28,7 @@ function RowFields({ row, rowContext, draft, disabled, onDraftChange, onSave }) 
       <label>
         <span>{t("row.fields.description")}</span>
         <input
-          aria-label={t("row.fields.descriptionAria", { context: rowContext })}
+          aria-label={t("row.fields.descriptionAria", { row: rowContext })}
           value={draft.description}
           disabled={disabled || draft.pending}
           onChange={(event) => onDraftChange({ description: event.target.value })}
@@ -37,7 +37,7 @@ function RowFields({ row, rowContext, draft, disabled, onDraftChange, onSave }) 
       <label>
         <span>{t("row.fields.category")}</span>
         <select
-          aria-label={t("row.fields.categoryAria", { context: rowContext })}
+          aria-label={t("row.fields.categoryAria", { row: rowContext })}
           value={draft.categoryChoice}
           disabled={disabled || draft.pending}
           onChange={(event) => onDraftChange({ categoryChoice: event.target.value })}
@@ -53,7 +53,7 @@ function RowFields({ row, rowContext, draft, disabled, onDraftChange, onSave }) 
         <label>
           <span>{t("row.fields.customCategory")}</span>
           <input
-            aria-label={t("row.fields.customCategoryAria", { context: rowContext })}
+            aria-label={t("row.fields.customCategoryAria", { row: rowContext })}
             value={draft.customCategory}
             disabled={disabled || draft.pending}
             onChange={(event) => onDraftChange({ customCategory: event.target.value })}
@@ -63,7 +63,7 @@ function RowFields({ row, rowContext, draft, disabled, onDraftChange, onSave }) 
       <button
         type="button"
         className="button-ghost"
-        aria-label={t("row.fields.saveRowAria", { context: rowContext })}
+        aria-label={t("row.fields.saveRowAria", { row: rowContext })}
         disabled={disabled || draft.pending || !draft.dirty}
         onClick={onSave}
       >
@@ -132,13 +132,13 @@ export default function ImportPreviewRow({
     date: row.postedDate ?? t("row.unknownDate"),
     ordinal: row.sourceRowOrdinal,
   });
-  const sourceDetailsLabel = t("row.sourceDetails.aria", { context: rowContext });
+  const sourceDetailsLabel = t("row.sourceDetails.aria", { row: rowContext });
   const selectionKind = row.isEligible ? "select" : isInflow ? "deposit" : "notSelectable";
   const selection = (
     <label className="import-selection">
       <input
         type="checkbox"
-        aria-label={t(`row.${selectionKind}Aria`, { context: rowContext })}
+        aria-label={t(`row.${selectionKind}Aria`, { row: rowContext })}
         checked={Boolean(isSelected)}
         disabled={!isSelectable || disabled || draft.pending}
         onChange={(event) => onSelectionChange(event.target.checked)}

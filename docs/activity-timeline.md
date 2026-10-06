@@ -89,8 +89,9 @@ between pages; the browser never renders one record twice.
 
 A recoverable provider (`DbException`) or timeout failure returns privacy-safe
 `503` ProblemDetails with code `activity_timeline_unavailable`; only the failure
-type is logged. Cancellation and programming defects propagate. The frontend maps
-stable codes and never displays backend ProblemDetails text.
+type is logged. Cancellation and programming defects propagate. The frontend treats
+any failed read generically, with a fixed localized message and a retry, and never
+displays backend ProblemDetails text.
 
 ## Frontend behavior
 
@@ -122,10 +123,11 @@ payloads are unchanged, so every record also appears in its per-type list.
 ## Localization
 
 Timeline strings and the section-links navigation use the `activity` catalog;
-direction labels reuse Home's keys. Money and dates format with `en-US` or
-`es-US`. The rest of the Activity page remains English until a separately scoped
-adoption issue, so the Spanish Activity page is intentionally mixed-language. See
-[`localization.md`](localization.md).
+direction labels reuse Home's keys. Timeline money and dates format with `en-US`
+or `es-US`. The rest of the Activity page (page header and actions, spending
+area, and cash-in area) and the statement import preview are also localized, and
+the spending and cash-in lists keep their existing `$` amounts and `MM/DD/YYYY`
+dates in both languages. See [`localization.md`](localization.md).
 
 ## Non-goals
 

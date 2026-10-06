@@ -164,7 +164,7 @@
     "scheduleHeading": "Calendario",
     "confirmScheduleNote": "Revisa y acepta este calendario sin cambios. Para usar un calendario diferente, crea un pago de nómina manualmente.",
     "editScheduleNote": "El calendario no se puede editar. Finaliza este perfil y crea uno de reemplazo para cambiar su calendario. La evidencia sigue asignada a este perfil.",
-    "variableNote": "Los montos observados varían. Ingresa el mínimo y el máximo que aceptas explícitamente; los límites observados no se completan.",
+    "variableNote": "Los montos observados varían. Ingresa el mínimo y el máximo que aceptas explícitamente; los límites observados no se rellenan automáticamente.",
     "unsafeAmountNote": "Este monto no se pudo cargar con precisión confiable de centavos. Ingresa el monto exacto que aceptas antes de guardar.",
     "checkFields": "Revisa los campos marcados.",
     "submitError": "No se pudo completar la acción. Revisa el mensaje de la página antes de intentarlo de nuevo.",

@@ -83,7 +83,7 @@ describe('Budgets page in Spanish', () => {
     expect(within(food).getByRole('button', { name: 'Eliminar presupuesto de Food' })).toHaveTextContent('Eliminar')
 
     const bills = screen.getByRole('article', { name: 'Presupuesto de Bills' })
-    expect(within(bills).getByText('Sobre el límite')).toBeVisible()
+    expect(within(bills).getByText('Por encima del límite')).toBeVisible()
     expect(within(bills).getByText('125% usado')).toBeVisible()
     expect(within(bills).getByRole('progressbar')).toHaveAttribute('aria-valuetext', '$125.00 usado de $100.00, 125%')
 
@@ -162,6 +162,56 @@ describe('Budgets page in Spanish', () => {
     await user.click(screen.getByRole('button', { name: 'Guardar límite' }))
     expect(screen.getByRole('alert')).toHaveTextContent('No pudimos confirmar el cambio. Actualiza los límites y revisa los presupuestos guardados antes de intentarlo de nuevo.')
     expect(screen.getByRole('button', { name: 'Guardar límite' })).toBeDisabled()
+  })
+
+  it('reports a completed delete with a failed refresh separately', async () => {
+    const user = userEvent.setup()
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    setLimits({ budgetLimits: limits })
+    deleteLimit.mockResolvedValueOnce({ refreshFailed: true })
+    render(<BudgetsPage />)
+
+    await user.click(screen.getByRole('button', { name: 'Eliminar presupuesto de Food' }))
+    expect(deleteLimit).toHaveBeenCalledWith(1)
+    expect(screen.getByRole('status')).toHaveTextContent('Límite de presupuesto eliminado. No se pudieron actualizar los límites de presupuesto. Actualiza los límites antes de hacer otro cambio.')
+  })
+
+  it('names the remaining budget statuses and the unavailable comparison note in Spanish', () => {
+    setLimits({
+      budgetLimits: [
+        { id: 11, category: 'within', limitAmount: 100 },
+        { id: 12, category: 'exact', limitAmount: 100 },
+        { id: 13, category: 'review', limitAmount: 100 },
+        { id: 14, category: 'unsafe', limitAmount: Number('9999999999999999') },
+      ],
+    })
+    setSpending({
+      expenses: [
+        { category: 'within', amount: 50, date: '2026-08-02' },
+        { category: 'exact', amount: 100, date: '2026-08-03' },
+        { category: 'review', amount: 'not money', date: '2026-08-04' },
+        { category: 'unsafe', amount: 5, date: '2026-08-05' },
+      ],
+    })
+    render(<BudgetsPage />)
+    const note = 'La comparación exacta no está disponible. Revisa el monto antes de confiar en el estado de este presupuesto.'
+
+    const within_ = screen.getByRole('article', { name: 'Presupuesto de Within' })
+    expect(within(within_).getByText('Dentro del límite')).toBeVisible()
+    expect(within_).not.toHaveTextContent('La comparación exacta no está disponible')
+
+    const exact = screen.getByRole('article', { name: 'Presupuesto de Exact' })
+    expect(within(exact).getByText('Límite alcanzado')).toBeVisible()
+
+    const review = screen.getByRole('article', { name: 'Presupuesto de Review' })
+    expect(within(review).getByText('El gasto requiere revisión')).toBeVisible()
+    expect(within(review).getByText(note)).toBeVisible()
+    expect(within(review).queryByRole('progressbar')).not.toBeInTheDocument()
+
+    const unsafe = screen.getByRole('article', { name: 'Presupuesto de Unsafe' })
+    expect(within(unsafe).getByText('El límite requiere revisión')).toBeVisible()
+    expect(within(unsafe).getByText(note)).toBeVisible()
+    expect(within(unsafe).queryByRole('progressbar')).not.toBeInTheDocument()
   })
 
   it('shows localized loading, error, and unavailable states without rendering zero spending', async () => {

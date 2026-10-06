@@ -144,7 +144,7 @@
     "zeroLimit": "Porcentaje usado: no aplica para un límite de $0",
     "percentUsed": "{{percent}} usado",
     "status": {
-      "overBudget": "Sobre el presupuesto",
+      "overBudget": "Por encima del presupuesto",
       "nearLimit": "Cerca del límite",
       "onTrack": "En buen camino",
       "unavailable": "No disponible"

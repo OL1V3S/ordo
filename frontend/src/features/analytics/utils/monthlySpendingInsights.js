@@ -59,7 +59,7 @@ export function getPreviousMonth(monthYear) {
 export function formatMonthLabel(monthYear, t) {
   const match = MONTH_PATTERN.exec(String(monthYear));
   if (!match) return monthYear;
-  if (t) return cashMonthLabel(monthYear, { t });
+  if (typeof t === "function") return cashMonthLabel(monthYear, { t });
   return new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" })
     .format(new Date(Number(match[1]), Number(match[2]) - 1, 1));
 }
