@@ -1,16 +1,18 @@
 import { useId, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { authApi } from "../../../shared/api/authApi";
+import { useTranslation } from "react-i18next";
 import AuthShell from "./AuthShell";
 import PasswordField from "./PasswordField";
 
 export default function ResetPasswordPage() {
+  const { t } = useTranslation("auth");
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState(null);
   const [messageTone, setMessageTone] = useState("info");
   const passwordId = useId();
 
@@ -28,20 +30,22 @@ export default function ResetPasswordPage() {
       });
 
       setMessageTone("success");
-      setMessage("Password reset successful. You can now log in.");
+      setMessage({ key: "resetPassword.success" });
     } catch {
       setMessageTone("danger");
-      setMessage("Error resetting password.");
+      setMessage({ key: "resetPassword.failed" });
     }
   }
 
   return (
-    <AuthShell title="Reset password">
+    <AuthShell title={t("resetPassword.title")} focusKey="reset-password">
       <form onSubmit={handleSubmit} className="auth-form">
         <PasswordField
           id={passwordId}
-          label="New password"
-          placeholder="New password"
+          label={t("fields.newPassword")}
+          placeholder={t("fields.newPasswordPlaceholder")}
+          showLabel={t("passwordToggle.showNewPassword")}
+          hideLabel={t("passwordToggle.hideNewPassword")}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           isRevealed={showPassword}
@@ -49,7 +53,7 @@ export default function ResetPasswordPage() {
         />
 
         <button type="submit" className="auth-primary-action">
-          Reset Password
+          {t("resetPassword.submit")}
         </button>
       </form>
 
@@ -58,7 +62,7 @@ export default function ResetPasswordPage() {
           className={`auth-status auth-status--${messageTone}`}
           role={messageTone === "danger" ? "alert" : "status"}
         >
-          {message}
+          {t(message.key)}
         </p>
       )}
 
@@ -68,7 +72,7 @@ export default function ResetPasswordPage() {
           className="button-ghost auth-text-action"
           onClick={() => navigate("/")}
         >
-          Back to login
+          {t("actions.backToLogin")}
         </button>
       </div>
     </AuthShell>

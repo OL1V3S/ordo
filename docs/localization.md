@@ -4,9 +4,10 @@ Ordo's browser frontend supports English and broadly neutral U.S./Latin
 American Spanish as an incremental product capability. The authenticated shell,
 primary navigation, Plan and More hubs, and Settings were the first localized
 surfaces, and the Home, Activity, statement import, Budgets, Insights, Commitments,
-and Paychecks pages have since followed. The public account-access pages and the
-unavailable Investing placeholder page remain English until a separately scoped
-adoption issue moves their complete copy into catalogs.
+and Paychecks pages have since followed. The public account-access pages
+(sign-in, registration, email confirmation, and password recovery) are localized
+through the `auth` namespace. The unavailable Investing placeholder page remains
+English until a separately scoped adoption issue moves its complete copy into catalogs.
 The Activity page is localized through the `activity` namespace: the timeline, the
 section links, the page header and actions, the spending area (expense form,
 filters, list, and row editing), and the cash-in area (form, list, and delete
@@ -31,6 +32,14 @@ returns. The Commitments page is localized through the `commitments` namespace: 
 page, the commitment form, the change review (pending and reviewed changes with their
 decisions), the supporting-expense evidence, and the safe error and notice messages
 that the hook maps from stable backend codes.
+
+The account-access pages are localized through the `auth` namespace: the sign-in,
+registration, check-email, email-confirmation, forgot-password, and reset-password
+views, their labels, placeholders, password-toggle accessible names, requirement lists,
+and every status or error message. `authMessages.js` maps failures to catalog keys and
+the components translate them at render, so an on-screen message follows a language
+change. The shared language selector (`LanguageControl`) appears on these pages so a
+language can be chosen before sign-in.
 
 ## Runtime boundary
 
@@ -68,6 +77,24 @@ import/export them, but the runtime must not depend on a translation service.
   messages.
 - Do not look up DOM nodes by visible English text. Where code must locate a
   control by its label, build the selector from the same catalog string.
+- Auth messages are keyed by meaning (`errors.*`, `resend.*`, `forgotPassword.*`,
+  `resetPassword.*`) and never by raw server text; unmapped responses (network errors,
+  validation objects, proxy bodies, unknown 401 bodies) show a fixed localized message.
+  Registration Identity errors map from the stable `code` through a fixed whitelist
+  (`Object.hasOwn`, never a key built from the server value); unknown codes add one
+  fallback line. Password-length numbers in those messages are fixed to the project's
+  default Identity options. Resend and forgot-password results are chosen by HTTP
+  status, not by the response message.
+  **Documented exception:** the login endpoint returns its two 401 results as plain
+  text with no code, so `authMessages.js` matches the exact whole strings
+  `Invalid email or password` and `Please confirm your email before logging in.` (see
+  `AuthController.cs` login action). This is the only place a raw server sentence is
+  matched; any other 401 body shows the localized `errors.login.failed`. If the backend
+  rewording changes those strings, users see that fallback until the literals are
+  updated; a stable backend error code is the preferred future replacement.
+- Auth password toggles use complete per-field labels (`passwordToggle.*`), not a
+  lower-cased field label. `AuthShell` moves focus on a view change (`focusKey`), not
+  when the language changes the title.
 - Category option labels are localized, but a stored category value (for example
   `food`) is shown as stored and text search matches the stored value.
   Localizing displayed values would change search semantics and needs a separate

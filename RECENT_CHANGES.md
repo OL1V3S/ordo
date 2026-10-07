@@ -24,6 +24,15 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-07 — Account-access pages in English and Spanish
+
+[Issue #190](https://github.com/OL1V3S/ordo/issues/190)
+
+- Sign-in, registration, email confirmation, and password recovery pages now follow
+  the selected language, and a language selector is available before sign-in.
+- Backend messages are mapped to localized text by stable code or HTTP status; unknown
+  failures show a fixed localized message instead of raw server text.
+
 ### 2026-10-06 — Activity timeline search and filters; newest-first Expenses
 
 [PR #189](https://github.com/OL1V3S/ordo/pull/189) ·
@@ -269,16 +278,3 @@ the permanent, complete archive.
   advanced projections from recorded slots, and added non-destructive unlinking.
 - Enforced owner, inflow, slot, retry, and concurrency invariants with exact
   historical cash-flow reclassification and focused frontend/backend coverage.
-
-### 2026-09-08 — Recorded cash-in management
-
-[PR #142](https://github.com/OL1V3S/ordo/pull/142) ·
-[Issue #141](https://github.com/OL1V3S/ordo/issues/141)
-
-- Added a separate Cash in section in Activity with manual entry, search, edit,
-  and delete for all recorded inflows, including imported or paycheck-linked records.
-- Preserved exact amount drafts and posted dates, with explicit edit/delete
-  warnings and recovery for uncertain writes or unavailable refreshed lists.
-- Coordinated cash-in, expense, and import tasks; confirmed imports refresh each
-  affected record list while retaining known success if a read fails.
-

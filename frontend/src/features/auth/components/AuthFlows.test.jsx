@@ -1,11 +1,12 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import AuthPage from './AuthPage'
 import ConfirmEmailPage from './ConfirmEmailPage'
 import ResetPasswordPage from './ResetPasswordPage'
 import ForgotPasswordPage from './ForgotPasswordPage'
+import i18n from '../../../shared/localization/i18n'
 import { authApi } from '../../../shared/api/authApi'
 
 vi.mock('../../../shared/api/authApi', () => ({
@@ -28,6 +29,7 @@ describe('existing authentication flows', () => {
     localStorage.clear()
     vi.clearAllMocks()
   })
+  afterEach(() => i18n.changeLanguage('en'))
 
   it('stores the login token and email using the existing keys', async () => {
     const user = userEvent.setup()
@@ -69,13 +71,13 @@ describe('existing authentication flows', () => {
     const onLogin = vi.fn()
     const alert = vi.spyOn(window, 'alert').mockImplementation(() => {})
     const log = vi.spyOn(console, 'log').mockImplementation(() => {})
-    authApi.login.mockRejectedValue({ response: { status: 401, data: 'Invalid credentials' } })
+    authApi.login.mockRejectedValue({ response: { status: 401, data: 'Invalid email or password' } })
     renderAt(<AuthPage onLogin={onLogin} />)
     await user.type(screen.getByLabelText('Email'), 'person@example.invalid')
     await user.type(screen.getByLabelText('Password'), 'Synthetic1!')
     await user.click(screen.getByRole('button', { name: 'Log In' }))
     const error = await screen.findByRole('alert')
-    expect(error).toHaveTextContent('Invalid credentials')
+    expect(error).toHaveTextContent('Invalid email or password')
     expect(error).toHaveFocus()
     expect(alert).not.toHaveBeenCalled()
     expect(onLogin).not.toHaveBeenCalled()
@@ -83,6 +85,20 @@ describe('existing authentication flows', () => {
     expect(localStorage.getItem('email')).toBeNull()
     log.mockRestore()
     alert.mockRestore()
+  })
+
+  it('shows a fixed localized message for an unmapped login 401 body', async () => {
+    const user = userEvent.setup()
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {})
+    authApi.login.mockRejectedValue({ response: { status: 401, data: 'invalid email or password ' } })
+    renderAt(<AuthPage onLogin={vi.fn()} />)
+    await user.type(screen.getByLabelText('Email'), 'person@example.invalid')
+    await user.type(screen.getByLabelText('Password'), 'Synthetic1!')
+    await user.click(screen.getByRole('button', { name: 'Log In' }))
+    const error = await screen.findByRole('alert')
+    expect(error).toHaveTextContent('Unable to log in right now. Please try again.')
+    expect(error).not.toHaveTextContent('invalid email or password')
+    log.mockRestore()
   })
 
   it('keeps the neutral registration delivery failure and rate-limit presentation', async () => {
@@ -112,6 +128,19 @@ describe('existing authentication flows', () => {
     expect(screen.getByRole('status')).toHaveTextContent("Your account was created, but we couldn't send the confirmation email.")
     await user.click(screen.getByRole('button', { name: 'Resend confirmation email' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('Too many requests. Please wait before trying again.')
+  })
+
+  it('renders an email with special characters intact in the check-email view', async () => {
+    const user = userEvent.setup()
+    authApi.register.mockResolvedValue({ data: {} })
+    renderAt(<AuthPage onLogin={vi.fn()} />)
+    await user.click(screen.getByRole('button', { name: 'Need an account? Register' }))
+    await user.type(screen.getByLabelText('Email'), "a+b&c'd@example.com")
+    await user.type(screen.getByLabelText('Password'), 'Secret1!')
+    await user.type(screen.getByLabelText('Confirm password'), 'Secret1!')
+    await user.click(screen.getByRole('button', { name: 'Register' }))
+    expect(await screen.findByText("a+b&c'd@example.com", { selector: 'strong' })).toBeVisible()
+    expect(screen.getByRole('status')).toHaveTextContent("A confirmation link was sent to a+b&c'd@example.com.")
   })
 
   it('forwards confirmation query parameters unchanged', async () => {
@@ -269,7 +298,7 @@ describe('existing authentication flows', () => {
   it('keeps a confirmation resend result visible after its recovery disclosure closes', async () => {
     const user = userEvent.setup()
     authApi.resendConfirmation.mockResolvedValue({
-      data: { message: 'If the account exists, a confirmation email was sent.' },
+      data: { message: 'If an unconfirmed account exists for that email, a confirmation link has been sent.' },
     })
     renderAt(<ForgotPasswordPage />, '/forgot-password')
 
@@ -282,7 +311,7 @@ describe('existing authentication flows', () => {
       email: 'unknown@example.com',
     }))
     const result = await screen.findByRole('status')
-    expect(result).toHaveTextContent('If the account exists, a confirmation email was sent.')
+    expect(result).toHaveTextContent('If an unconfirmed account exists for that email, a confirmation link has been sent.')
     await user.click(recovery)
     expect(result).toBeVisible()
   })
@@ -297,5 +326,156 @@ describe('existing authentication flows', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Error resetting password.')
     expect(screen.getByRole('button', { name: 'Back to login' })).toBeVisible()
+  })
+})
+
+describe('authentication pages in Spanish', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    vi.clearAllMocks()
+    vi.spyOn(console, 'log').mockImplementation(() => {})
+    return i18n.changeLanguage('es')
+  })
+  afterEach(() => {
+    vi.restoreAllMocks()
+    return i18n.changeLanguage('en')
+  })
+
+  async function fillLogin(user, label = 'Contraseña') {
+    await user.type(screen.getByLabelText('Correo electrónico'), 'person@example.com')
+    await user.type(screen.getByLabelText(label), 'Secret1!')
+  }
+
+  it('renders the login and registration pages in Spanish before sign-in', async () => {
+    const user = userEvent.setup()
+    renderAt(<AuthPage onLogin={vi.fn()} />)
+    expect(screen.getByRole('heading', { name: 'Iniciar sesión', level: 1 })).toHaveFocus()
+    expect(screen.getByText('ordo')).toBeVisible()
+    expect(screen.getByLabelText('Contraseña')).toBe(screen.getByPlaceholderText('Contraseña'))
+    expect(screen.getByRole('button', { name: 'Mostrar contraseña' })).toBeVisible()
+    expect(screen.getByRole('button', { name: '¿Olvidaste tu contraseña?' })).toBeVisible()
+    await user.click(screen.getByRole('button', { name: '¿Necesitas una cuenta? Regístrate' }))
+    expect(screen.getByRole('heading', { name: 'Crear cuenta', level: 1 })).toHaveFocus()
+    expect(screen.getByLabelText('Contraseña')).toHaveAccessibleDescription(/Al menos 6 caracteres/)
+    expect(screen.getByRole('button', { name: 'Mostrar confirmación de contraseña' })).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Registrarse' })).toBeVisible()
+  })
+
+  it('shows the password mismatch in Spanish', async () => {
+    const user = userEvent.setup()
+    renderAt(<AuthPage onLogin={vi.fn()} />)
+    await user.click(screen.getByRole('button', { name: '¿Necesitas una cuenta? Regístrate' }))
+    await fillLogin(user)
+    await user.type(screen.getByLabelText('Confirmar contraseña'), 'Different1!')
+    await user.click(screen.getByRole('button', { name: 'Registrarse' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Las contraseñas no coinciden.')
+  })
+
+  it('maps login 401 literals to Spanish and never shows the server English', async () => {
+    const user = userEvent.setup()
+    authApi.login.mockRejectedValueOnce({ response: { status: 401, data: 'Invalid email or password' } })
+    renderAt(<AuthPage onLogin={vi.fn()} />)
+    await fillLogin(user)
+    await user.click(screen.getByRole('button', { name: 'Iniciar sesión' }))
+    const error = await screen.findByRole('alert')
+    expect(error).toHaveTextContent('Correo electrónico o contraseña no válidos')
+    expect(error).not.toHaveTextContent('Invalid')
+
+    authApi.login.mockRejectedValueOnce({ response: { status: 401, data: 'Please confirm your email before logging in.' } })
+    await user.click(screen.getByRole('button', { name: 'Iniciar sesión' }))
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Confirma tu correo electrónico antes de iniciar sesión.'))
+  })
+
+  it('maps Identity registration errors to Spanish and falls back for unknown codes', async () => {
+    const user = userEvent.setup()
+    authApi.register.mockRejectedValue({
+      response: { status: 400, data: [
+        { code: 'PasswordRequiresDigit', description: 'Passwords must have at least one digit' },
+        { code: 'DuplicateEmail', description: "Email 'x' is already taken." },
+        { code: 'SomethingNew', description: 'Some new English text' },
+      ] },
+    })
+    renderAt(<AuthPage onLogin={vi.fn()} />)
+    await user.click(screen.getByRole('button', { name: '¿Necesitas una cuenta? Regístrate' }))
+    await fillLogin(user)
+    await user.type(screen.getByLabelText('Confirmar contraseña'), 'Secret1!')
+    await user.click(screen.getByRole('button', { name: 'Registrarse' }))
+    const error = await screen.findByRole('alert')
+    expect(error).toHaveTextContent("Las contraseñas deben tener al menos un dígito ('0'-'9').")
+    expect(error).toHaveTextContent("El correo electrónico 'person@example.com' ya está en uso.")
+    expect(error).toHaveTextContent('No se puede crear tu cuenta.')
+    expect(error).not.toHaveTextContent('Some new English text')
+  })
+
+  it('falls back to the Spanish generic message for unknown failures', async () => {
+    const user = userEvent.setup()
+    authApi.login.mockRejectedValue(new Error('Network Error'))
+    renderAt(<AuthPage onLogin={vi.fn()} />)
+    await fillLogin(user)
+    await user.click(screen.getByRole('button', { name: 'Iniciar sesión' }))
+    const error = await screen.findByRole('alert')
+    expect(error).toHaveTextContent('Algo salió mal.')
+    expect(error).not.toHaveTextContent('Network Error')
+  })
+
+  it('shows check-email, delivery failure, and resend results in Spanish', async () => {
+    const user = userEvent.setup()
+    authApi.register.mockRejectedValue({ response: { status: 503, data: { code: 'confirmation_email_delivery_failed', message: 'English from server' } } })
+    authApi.resendConfirmation.mockRejectedValue({ response: { status: 429 } })
+    renderAt(<AuthPage onLogin={vi.fn()} />)
+    await user.click(screen.getByRole('button', { name: '¿Necesitas una cuenta? Regístrate' }))
+    await fillLogin(user)
+    await user.type(screen.getByLabelText('Confirmar contraseña'), 'Secret1!')
+    await user.click(screen.getByRole('button', { name: 'Registrarse' }))
+    expect(await screen.findByRole('heading', { name: 'Revisa tu correo electrónico', level: 1 })).toBeVisible()
+    expect(screen.getByRole('status')).toHaveTextContent('Tu cuenta se creó, pero no pudimos enviar el correo de confirmación.')
+    expect(screen.getByText('person@example.com', { selector: 'strong' })).toBeVisible()
+    await user.click(screen.getByRole('button', { name: 'Reenviar correo de confirmación' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Demasiadas solicitudes. Espera un momento antes de volver a intentarlo.')
+  })
+
+  it('localizes confirm, forgot, and reset pages without showing server text', async () => {
+    const user = userEvent.setup()
+    authApi.confirmEmail.mockResolvedValue({ data: { message: 'English' } })
+    const confirm = renderAt(<ConfirmEmailPage />, '/confirm-email?userId=u&token=t')
+    expect(await screen.findByRole('heading', { name: 'Correo electrónico confirmado', level: 1 })).toHaveFocus()
+    expect(screen.getByRole('status')).toHaveTextContent('Ya puedes iniciar sesión.')
+    confirm.unmount()
+
+    authApi.forgotPassword.mockResolvedValue({ data: { message: 'If the email exists, a reset link was sent.' } })
+    authApi.resendConfirmation.mockResolvedValue({ data: { message: 'English' } })
+    const forgot = renderAt(<ForgotPasswordPage />, '/forgot-password')
+    expect(screen.getByRole('heading', { name: '¿Olvidaste tu contraseña?', level: 1 })).toBeVisible()
+    await user.type(screen.getByLabelText('Correo electrónico'), 'x@example.com')
+    await user.click(screen.getByRole('button', { name: 'Enviar enlace de restablecimiento' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Si el correo electrónico existe, se envió un enlace de restablecimiento.')
+    expect(screen.getByRole('region', { name: 'Ayuda para confirmar la cuenta' })).toBeVisible()
+    forgot.unmount()
+
+    authApi.resetPassword.mockRejectedValue(new Error('x'))
+    renderAt(<ResetPasswordPage />, '/reset-password?email=a%40b.com&token=t')
+    expect(screen.getByRole('button', { name: 'Mostrar nueva contraseña' })).toBeVisible()
+    await user.type(screen.getByLabelText('Nueva contraseña'), 'NewSecret1!')
+    await user.click(screen.getByRole('button', { name: 'Restablecer contraseña' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Error al restablecer la contraseña.')
+  })
+
+  it('offers a language selector that keeps focus and re-renders an on-screen error', async () => {
+    const user = userEvent.setup()
+    authApi.login.mockRejectedValue({ response: { status: 401, data: 'Invalid email or password' } })
+    renderAt(<AuthPage onLogin={vi.fn()} />)
+    await fillLogin(user)
+    await user.click(screen.getByRole('button', { name: 'Iniciar sesión' }))
+    const error = await screen.findByRole('alert')
+    expect(error).toHaveFocus()
+
+    const select = screen.getByRole('combobox')
+    select.focus()
+    await user.selectOptions(select, 'en')
+    expect(select).toHaveFocus()
+    expect(screen.getByRole('heading', { name: 'Log in', level: 1 })).not.toHaveFocus()
+    expect(screen.getByRole('alert')).toHaveTextContent('Invalid email or password')
+    expect(screen.getByRole('alert')).not.toHaveFocus()
+    expect(document.documentElement.lang).toBe('en')
   })
 })
