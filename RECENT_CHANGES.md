@@ -26,6 +26,7 @@ the permanent, complete archive.
 
 ### 2026-10-07 — Edit and delete from the Activity timeline
 
+[PR #193](https://github.com/OL1V3S/ordo/pull/193) ·
 [Issue #192](https://github.com/OL1V3S/ordo/issues/192)
 
 - Each Activity timeline row now has Edit and Delete buttons that open the existing
