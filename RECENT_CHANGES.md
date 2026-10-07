@@ -26,6 +26,7 @@ the permanent, complete archive.
 
 ### 2026-10-07 — Account-access pages in English and Spanish
 
+[PR #191](https://github.com/OL1V3S/ordo/pull/191) ·
 [Issue #190](https://github.com/OL1V3S/ordo/issues/190)
 
 - Sign-in, registration, email confirmation, and password recovery pages now follow
