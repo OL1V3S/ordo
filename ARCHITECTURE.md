@@ -200,7 +200,7 @@ use, so the date, expense-before-cash-in, record-ID ordering rule, the
 owner-scoped paycheck-membership join, and exact two-decimal formatting exist
 once. The endpoint pages by opaque position-only keyset cursor in one read-only
 repeatable-read transaction, returns stored amounts unaltered, and adds no
-schema, totals, or balance. The `activity` frontend feature renders it on the
+schema, totals, or balance. It accepts optional server-side `q`, `kind`, `from`, and `to` filters that only narrow the owner's rows, and `ActivityFeedOrdering.OrderNewestFirst` is the shared date/id ordering also used by `GET /api/expenses`. The `activity` frontend feature renders it on the
 Activity page independently of the per-type lists. See
 [`docs/activity-timeline.md`](docs/activity-timeline.md).
 

@@ -23,4 +23,17 @@ describe("activityTimelineApi", () => {
       signal,
     });
   });
+
+  it("sends only the filters that are set, with the search trimmed", () => {
+    const signal = new AbortController().signal;
+
+    activityTimelineApi.get({ limit: 25, q: "  coffee ", kind: "expense", from: "2026-09-01", to: "" }, signal);
+    expect(client.get).toHaveBeenLastCalledWith("/api/activity/timeline", {
+      params: { limit: 25, q: "coffee", kind: "expense", from: "2026-09-01" },
+      signal,
+    });
+
+    activityTimelineApi.get({ limit: 25, q: "   ", kind: "", from: "", to: "" }, signal);
+    expect(client.get).toHaveBeenLastCalledWith("/api/activity/timeline", { params: { limit: 25 }, signal });
+  });
 });

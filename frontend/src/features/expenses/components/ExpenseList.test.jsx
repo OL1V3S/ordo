@@ -86,4 +86,17 @@ describe("ExpenseList", () => {
     expect(screen.getByLabelText("Edit date")).toBeDisabled();
     expect(screen.getByLabelText("Edit category")).toBeDisabled();
   });
+
+  it("renders rows in the order received (the backend sends newest first)", () => {
+    const rows = [
+      { ...expense, id: 3, description: "newest", date: "2026-08-14" },
+      { ...expense, id: 2, description: "middle", date: "2026-08-10" },
+      { ...expense, id: 1, description: "oldest", date: "2026-08-01" },
+    ];
+    render(<ExpenseList {...listProps({ expenses: rows, totalCount: 3, filteredCount: 3 })} />);
+
+    const body = screen.getAllByRole("rowgroup").at(-1);
+    expect(within(body).getAllByRole("row").map((row) => within(row).getByText(/Newest|Middle|Oldest/).textContent))
+      .toEqual(["Newest", "Middle", "Oldest"]);
+  });
 });

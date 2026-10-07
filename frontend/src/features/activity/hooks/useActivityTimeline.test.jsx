@@ -205,4 +205,125 @@ describe("useActivityTimeline", () => {
     await waitFor(() => expect(result.current.items).toEqual([]));
     expect(result.current.loading).toBe(false);
   });
+
+  describe("filters", () => {
+    const filterOf = (overrides = {}) => ({ q: "", kind: "", from: "", to: "", ...overrides });
+
+    it("sends only the set filters on the first read", async () => {
+      renderHook(() => useActivityTimeline({ filter: filterOf({ q: " coffee ", kind: "expense" }) }));
+
+      await waitFor(() => expect(activityTimelineApi.get).toHaveBeenCalledTimes(1));
+      expect(activityTimelineApi.get).toHaveBeenCalledWith(
+        { limit: 25, q: "coffee", kind: "expense" }, expect.any(AbortSignal));
+    });
+
+    it("resets to a fresh first page and drops the old rows when the filter changes", async () => {
+      activityTimelineApi.get
+        .mockResolvedValueOnce(pageOf([row(1), row(2)], { hasMore: true, nextCursor: "cursor-1" }))
+        .mockResolvedValueOnce(pageOf([row(7)]));
+      const { result, rerender } = renderHook(({ filter }) => useActivityTimeline({ filter }), {
+        initialProps: { filter: filterOf() },
+      });
+      await waitFor(() => expect(result.current.hasMore).toBe(true));
+
+      rerender({ filter: filterOf({ q: "seven" }) });
+
+      expect(result.current).toMatchObject({ items: [], hasMore: false, loading: true });
+      await waitFor(() => expect(result.current.items.map((item) => item.recordId)).toEqual([7]));
+      expect(activityTimelineApi.get).toHaveBeenLastCalledWith({ limit: 25, q: "seven" }, expect.any(AbortSignal));
+      expect(result.current.appliedFilter).toEqual(filterOf({ q: "seven" }));
+    });
+
+    it("filter change then read failure shows no stale rows", async () => {
+      activityTimelineApi.get
+        .mockResolvedValueOnce(pageOf([row(1), row(2)], { hasMore: true, nextCursor: "cursor-1" }))
+        .mockRejectedValueOnce(new Error("offline"));
+      const { result, rerender } = renderHook(({ filter }) => useActivityTimeline({ filter }), {
+        initialProps: { filter: filterOf() },
+      });
+      await waitFor(() => expect(result.current.items).toHaveLength(2));
+
+      rerender({ filter: filterOf({ kind: "expense" }) });
+
+      await waitFor(() => expect(result.current.error).toBe(true));
+      expect(result.current).toMatchObject({ items: [], hasMore: false, refreshFailed: false, loading: false });
+    });
+
+    it("keeps same-filter rows on a failed refresh", async () => {
+      const filter = filterOf({ q: "coffee" });
+      const { result } = renderHook(() => useActivityTimeline({ filter }));
+      await waitFor(() => expect(result.current.items).toHaveLength(2));
+      activityTimelineApi.get.mockRejectedValueOnce(new Error("offline"));
+
+      await act(async () => { await result.current.refresh(); });
+
+      expect(result.current).toMatchObject({ refreshFailed: true, error: false });
+      expect(result.current.items).toHaveLength(2);
+    });
+
+    it("loadMore after a filter change never sends the old cursor", async () => {
+      const second = deferred();
+      activityTimelineApi.get
+        .mockResolvedValueOnce(pageOf([row(1), row(2)], { hasMore: true, nextCursor: "old-cursor" }))
+        .mockReturnValueOnce(second.promise);
+      const { result, rerender } = renderHook(({ filter }) => useActivityTimeline({ filter }), {
+        initialProps: { filter: filterOf() },
+      });
+      await waitFor(() => expect(result.current.hasMore).toBe(true));
+      const staleLoadMore = result.current.loadMore;
+
+      rerender({ filter: filterOf({ q: "new" }) });
+      const outcome = await act(async () => staleLoadMore());
+
+      expect(outcome).toEqual({ stale: true });
+      expect(activityTimelineApi.get.mock.calls.every(([params]) => params.cursor !== "old-cursor")).toBe(true);
+      await act(async () => second.resolve(pageOf([row(9)], { hasMore: true, nextCursor: "new-cursor" })));
+      await act(async () => { await result.current.loadMore(); });
+      expect(activityTimelineApi.get).toHaveBeenLastCalledWith(
+        { limit: 25, cursor: "new-cursor", q: "new" }, expect.any(AbortSignal));
+    });
+
+    it("drops a late response read under the previous filter", async () => {
+      const first = deferred();
+      const second = deferred();
+      activityTimelineApi.get.mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise);
+      const { result, rerender } = renderHook(({ filter }) => useActivityTimeline({ filter }), {
+        initialProps: { filter: filterOf() },
+      });
+      await waitFor(() => expect(activityTimelineApi.get).toHaveBeenCalledTimes(1));
+
+      rerender({ filter: filterOf({ q: "b" }) });
+      await act(async () => second.resolve(pageOf([row(5)])));
+      await act(async () => first.resolve(pageOf([row(99)])));
+
+      expect(result.current.items.map((item) => item.recordId)).toEqual([5]);
+    });
+
+    it("issues no request for a filter change while disabled", async () => {
+      const { rerender } = renderHook(({ filter }) => useActivityTimeline({ enabled: false, filter }), {
+        initialProps: { filter: filterOf() },
+      });
+
+      rerender({ filter: filterOf({ q: "x" }) });
+
+      expect(activityTimelineApi.get).not.toHaveBeenCalled();
+    });
+
+    it("carries the filter on loadMore and refresh", async () => {
+      const filter = filterOf({ q: "coffee", from: "2026-09-01" });
+      activityTimelineApi.get
+        .mockResolvedValueOnce(pageOf([row(1)], { hasMore: true, nextCursor: "c1" }))
+        .mockResolvedValueOnce(pageOf([row(2)]))
+        .mockResolvedValueOnce(pageOf([row(1)]));
+      const { result } = renderHook(() => useActivityTimeline({ filter }));
+      await waitFor(() => expect(result.current.hasMore).toBe(true));
+
+      await act(async () => { await result.current.loadMore(); });
+      expect(activityTimelineApi.get).toHaveBeenLastCalledWith(
+        { limit: 25, cursor: "c1", q: "coffee", from: "2026-09-01" }, expect.any(AbortSignal));
+      await act(async () => { await result.current.refresh(); });
+      expect(activityTimelineApi.get).toHaveBeenLastCalledWith(
+        { limit: 25, q: "coffee", from: "2026-09-01" }, expect.any(AbortSignal));
+    });
+  });
 });

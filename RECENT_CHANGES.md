@@ -24,6 +24,17 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-06 — Activity timeline search and filters; newest-first Expenses
+
+[PR #189](https://github.com/OL1V3S/ordo/pull/189) ·
+[Issue #188](https://github.com/OL1V3S/ordo/issues/188)
+
+- The Activity timeline can be searched (description and expense category) and
+  filtered by type and date range on the server, so every page of history stays
+  reachable through "Show older activity".
+- `GET /api/expenses` now guarantees newest-first order (date, then id, descending),
+  so the Expenses table lists the latest records first.
+
 ### 2026-10-05 — Review follow-ups for the V2 localization work
 
 [PR #185](https://github.com/OL1V3S/ordo/pull/185) ·
@@ -271,20 +282,3 @@ the permanent, complete archive.
 - Coordinated cash-in, expense, and import tasks; confirmed imports refresh each
   affected record list while retaining known success if a read fails.
 
-### 2026-09-07 — Ordo UX V3
-
-[Issue #127](https://github.com/OL1V3S/ordo/issues/127) ·
-[PR #132](https://github.com/OL1V3S/ordo/pull/132),
-[PR #133](https://github.com/OL1V3S/ordo/pull/133),
-[PR #134](https://github.com/OL1V3S/ordo/pull/134),
-[PR #135](https://github.com/OL1V3S/ordo/pull/135),
-[PR #136](https://github.com/OL1V3S/ordo/pull/136),
-[PR #137](https://github.com/OL1V3S/ordo/pull/137),
-[PR #138](https://github.com/OL1V3S/ordo/pull/138)
-
-- Simplified Home, Activity/import, Budgets, Commitments, Paychecks, and Insights
-  around recorded figures, saved expectations, and explicit review tasks.
-- Added a consistent responsive shell, task-focused account-access pages,
-  expandable details/history, and quieter Plan, More, and Settings pages.
-- Improved focus, accessible control names, draft preservation, and distinct
-  loading/error states while preserving existing financial and account behavior.

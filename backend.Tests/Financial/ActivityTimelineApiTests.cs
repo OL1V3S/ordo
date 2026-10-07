@@ -367,10 +367,10 @@ public sealed class ActivityTimelineApiTests
 
         await Assert.ThrowsAsync<OperationCanceledException>(() =>
             Controller(new ThrowingActivityFeedReader(new OperationCanceledException(canceled)))
-                .Get(null, null, canceled));
+                .Get(null, null, null, null, null, null, canceled));
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             Controller(new ThrowingActivityFeedReader(new InvalidOperationException("synthetic defect")))
-                .Get(null, null, default));
+                .Get(null, null, null, null, null, null, default));
     }
 
     [Fact]
@@ -403,6 +403,221 @@ public sealed class ActivityTimelineApiTests
             ActivityTimelineTestClient.Base64Url("1.2026-09-22.1.042"), out _));
         Assert.False(ActivityFeedCursor.TryDecode(null, out _));
         Assert.False(ActivityFeedCursor.TryDecode("", out _));
+    }
+
+    private static async Task<string[]> DescriptionsAsync(HttpClient client, string query)
+    {
+        var body = await ActivityTimelineTestClient.ReadAsync(client, query);
+        return body.GetProperty("items").EnumerateArray()
+            .Select(value => value.GetProperty("description").GetString()!).ToArray();
+    }
+
+    [Fact]
+    public async Task Search_is_case_insensitive_over_description_and_expense_category_only()
+    {
+        await using var app = new ActivityTimelineTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("timeline-search@example.com");
+        await app.SeedExpenseAsync(owner.Id, "Coffee beans", 5m, new(2026, 9, 1), "groceries");
+        await app.SeedExpenseAsync(owner.Id, "Lunch", 5m, new(2026, 9, 2), "Coffee");
+        await app.SeedInflowAsync(owner.Id, "COFFEE refund", 5m, new(2026, 9, 3));
+        await app.SeedInflowAsync(owner.Id, "Salary groceries", 5m, new(2026, 9, 4));
+        await app.SeedExpenseAsync(owner.Id, "Rent", 5m, new(2026, 9, 5), "housing");
+
+        Assert.Equal(
+            ["COFFEE refund", "Lunch", "Coffee beans"],
+            await DescriptionsAsync(owner.Client, "?q=coffee"));
+        Assert.Equal(
+            ["COFFEE refund", "Lunch", "Coffee beans"],
+            await DescriptionsAsync(owner.Client, "?q=%20%20CoFfEe%20"));
+        // The expense category matches expenses only; the cash-in description "Salary groceries"
+        // matches through its own description.
+        Assert.Equal(
+            ["Salary groceries", "Coffee beans"],
+            await DescriptionsAsync(owner.Client, "?q=groceries"));
+    }
+
+    [Fact]
+    public async Task Search_treats_percent_and_underscore_literally()
+    {
+        await using var app = new ActivityTimelineTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("timeline-like@example.com");
+        await app.SeedExpenseAsync(owner.Id, "Save 50% now", 1m, new(2026, 9, 1));
+        await app.SeedExpenseAsync(owner.Id, "Save 50 now", 1m, new(2026, 9, 2));
+        await app.SeedExpenseAsync(owner.Id, "a_b", 1m, new(2026, 9, 3));
+        await app.SeedExpenseAsync(owner.Id, "axb", 1m, new(2026, 9, 4));
+
+        Assert.Equal(["Save 50% now"], await DescriptionsAsync(owner.Client, "?q=50%25"));
+        Assert.Equal(["a_b"], await DescriptionsAsync(owner.Client, "?q=a_b"));
+    }
+
+    [Fact]
+    public async Task Empty_or_blank_search_is_treated_as_absent()
+    {
+        await using var app = new ActivityTimelineTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("timeline-blank@example.com");
+        await app.SeedExpenseAsync(owner.Id, "One", 1m, new(2026, 9, 1));
+        await app.SeedInflowAsync(owner.Id, "Two", 1m, new(2026, 9, 2));
+
+        Assert.Equal(2, (await DescriptionsAsync(owner.Client, "?q=")).Length);
+        Assert.Equal(2, (await DescriptionsAsync(owner.Client, "?q=%20%20")).Length);
+    }
+
+    [Fact]
+    public async Task Kind_filter_selects_one_source_and_keeps_has_more_exact()
+    {
+        await using var app = new ActivityTimelineTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("timeline-kind@example.com");
+        for (var day = 1; day <= 3; day++)
+        {
+            await app.SeedExpenseAsync(owner.Id, $"Expense {day}", 1m, new(2026, 9, day));
+            await app.SeedInflowAsync(owner.Id, $"Cash {day}", 1m, new(2026, 9, day));
+        }
+
+        var expenses = await ActivityTimelineTestClient.ReadAsync(owner.Client, "?kind=expense&limit=3");
+        Assert.All(ActivityTimelineTestClient.Keys(expenses), key => Assert.Equal("expense", key.Kind));
+        Assert.Equal(3, ActivityTimelineTestClient.Keys(expenses).Length);
+        Assert.False(expenses.GetProperty("page").GetProperty("hasMore").GetBoolean());
+
+        var inflows = await ActivityTimelineTestClient.ReadAsync(owner.Client, "?kind=account_inflow&limit=2");
+        Assert.All(ActivityTimelineTestClient.Keys(inflows), key => Assert.Equal("account_inflow", key.Kind));
+        Assert.True(inflows.GetProperty("page").GetProperty("hasMore").GetBoolean());
+    }
+
+    [Fact]
+    public async Task Date_bounds_are_inclusive_and_combine_with_other_filters()
+    {
+        await using var app = new ActivityTimelineTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("timeline-dates@example.com");
+        await app.SeedExpenseAsync(owner.Id, "Before", 1m, new(2026, 8, 31));
+        await app.SeedExpenseAsync(owner.Id, "Start", 1m, new(2026, 9, 1));
+        await app.SeedInflowAsync(owner.Id, "Middle cash", 1m, new(2026, 9, 15));
+        await app.SeedExpenseAsync(owner.Id, "End", 1m, new(2026, 9, 30));
+        await app.SeedExpenseAsync(owner.Id, "After", 1m, new(2026, 10, 1));
+
+        Assert.Equal(
+            ["End", "Middle cash", "Start"],
+            await DescriptionsAsync(owner.Client, "?from=2026-09-01&to=2026-09-30"));
+        Assert.Equal(["After"], await DescriptionsAsync(owner.Client, "?from=2026-10-01"));
+        Assert.Equal(["Before"], await DescriptionsAsync(owner.Client, "?to=2026-08-31"));
+        Assert.Equal(
+            ["End", "Start"],
+            await DescriptionsAsync(owner.Client, "?from=2026-09-01&to=2026-09-30&kind=expense"));
+        Assert.Equal(
+            ["Middle cash"],
+            await DescriptionsAsync(owner.Client, "?from=2026-09-01&to=2026-09-30&q=cash"));
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(5)]
+    public async Task Filtered_paging_has_no_gaps_or_duplicates_and_reuses_the_cursor_with_the_same_filter(int limit)
+    {
+        await using var app = new ActivityTimelineTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync($"timeline-filter-paging-{limit}@example.com");
+        var sameDay = new DateOnly(2026, 9, 22);
+        for (var index = 0; index < 3; index++)
+        {
+            await app.SeedExpenseAsync(owner.Id, $"Match expense {index}", 1m, sameDay);
+            await app.SeedInflowAsync(owner.Id, $"Match cash {index}", 1m, sameDay);
+            await app.SeedExpenseAsync(owner.Id, $"Skip expense {index}", 1m, sameDay);
+        }
+        await app.SeedExpenseAsync(owner.Id, "Match older", 1m, new(2026, 9, 1));
+
+        const string filter = "&q=match&from=2026-09-01&to=2026-09-30";
+        var everything = ActivityTimelineTestClient.Keys(
+            await ActivityTimelineTestClient.ReadAsync(owner.Client, "?limit=100" + filter));
+        var walked = await ActivityTimelineTestClient.WalkAsync(owner.Client, limit, filter);
+
+        Assert.Equal(7, everything.Length);
+        Assert.Equal(everything, walked.Keys);
+        Assert.Equal(everything.Length, walked.Keys.Distinct().Count());
+        Assert.Equal((everything.Length + limit - 1) / limit, walked.PageCount);
+    }
+
+    [Fact]
+    public async Task Filters_never_cross_owners()
+    {
+        await using var app = new ActivityTimelineTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("timeline-filter-owner@example.com");
+        using var other = await app.CreateAuthenticatedUserAsync("timeline-filter-other@example.com");
+        await app.SeedExpenseAsync(owner.Id, "Shared term mine", 1m, new(2026, 9, 1));
+        await app.SeedExpenseAsync(other.Id, "Shared term theirs", 1m, new(2026, 9, 1));
+        await app.SeedInflowAsync(other.Id, "Shared term cash", 1m, new(2026, 9, 1));
+
+        Assert.Equal(["Shared term mine"], await DescriptionsAsync(owner.Client, "?q=shared"));
+    }
+
+    [Fact]
+    public async Task Absent_filters_match_the_unfiltered_read_and_the_response_shape_is_unchanged()
+    {
+        await using var app = new ActivityTimelineTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("timeline-nofilter@example.com");
+        await app.SeedExpenseAsync(owner.Id, "One", 1m, new(2026, 9, 1));
+        await app.SeedInflowAsync(owner.Id, "Two", 1m, new(2026, 9, 2));
+
+        var plain = await ActivityTimelineTestClient.ReadAsync(owner.Client);
+        var empty = await ActivityTimelineTestClient.ReadAsync(owner.Client, "?q=");
+        var filtered = await ActivityTimelineTestClient.ReadAsync(owner.Client, "?q=one");
+
+        Assert.Equal(plain.GetRawText(), empty.GetRawText());
+        Assert.Equal(
+            plain.EnumerateObject().Select(value => value.Name),
+            filtered.EnumerateObject().Select(value => value.Name));
+        Assert.DoesNotContain("total", filtered.GetRawText(), StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("count", filtered.GetRawText(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Theory]
+    [InlineData("q=a&q=b", "activity_timeline_search_invalid")]
+    [InlineData("kind=expense&kind=account_inflow", "activity_timeline_kind_invalid")]
+    [InlineData("kind=income", "activity_timeline_kind_invalid")]
+    [InlineData("kind=", "activity_timeline_kind_invalid")]
+    [InlineData("kind=Expense", "activity_timeline_kind_invalid")]
+    [InlineData("from=2026-9-1", "activity_timeline_date_invalid")]
+    [InlineData("to=2026-02-30", "activity_timeline_date_invalid")]
+    [InlineData("from=09/01/2026", "activity_timeline_date_invalid")]
+    [InlineData("from=", "activity_timeline_date_invalid")]
+    [InlineData("from=2026-09-01&from=2026-09-02", "activity_timeline_date_invalid")]
+    [InlineData("from=2026-09-30&to=2026-09-01", "activity_timeline_date_invalid")]
+    public async Task Invalid_filters_are_a_400_with_a_stable_code(string query, string code)
+    {
+        await using var app = new ActivityTimelineTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("timeline-invalid-filter@example.com");
+
+        using var response = await owner.Client.GetAsync($"/api/activity/timeline?{query}");
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal(code, await ActivityTimelineTestClient.ProblemCodeAsync(response));
+    }
+
+    [Fact]
+    public async Task Search_length_is_bounded_after_trimming()
+    {
+        await using var app = new ActivityTimelineTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("timeline-search-length@example.com");
+
+        var atLimit = new string('a', 100);
+        await ActivityTimelineTestClient.ReadAsync(owner.Client, $"?q=%20{atLimit}%20");
+        using var response = await owner.Client.GetAsync($"/api/activity/timeline?q={atLimit}a");
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal("activity_timeline_search_invalid", await ActivityTimelineTestClient.ProblemCodeAsync(response));
+    }
+
+    [Fact]
+    public async Task Home_recent_activity_is_unaffected_by_timeline_filters()
+    {
+        await using var app = new ActivityTimelineTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("timeline-home@example.com");
+        await app.SeedExpenseAsync(owner.Id, "Home one", 1m, new(2026, 9, 1));
+        await app.SeedInflowAsync(owner.Id, "Home two", 1m, new(2026, 9, 2));
+
+        using var response = await owner.Client.GetAsync($"{HomeRoute}&q=zzz&kind=expense");
+        response.EnsureSuccessStatusCode();
+        var home = await response.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.Equal(2, home.GetProperty("recentActivity").GetProperty("items").GetArrayLength());
     }
 
     private static ActivityTimelineController Controller(IActivityFeedReader reader) => new(
@@ -454,14 +669,15 @@ internal static class ActivityTimelineTestClient
 
     public static async Task<(IReadOnlyList<(string Kind, int Id)> Keys, int PageCount)> WalkAsync(
         HttpClient client,
-        int limit)
+        int limit,
+        string extraQuery = "")
     {
         var keys = new List<(string Kind, int Id)>();
         string? cursor = null;
         var pages = 0;
         while (true)
         {
-            var query = $"?limit={limit}" + (cursor is null ? "" : $"&cursor={Uri.EscapeDataString(cursor)}");
+            var query = $"?limit={limit}{extraQuery}" + (cursor is null ? "" : $"&cursor={Uri.EscapeDataString(cursor)}");
             var body = await ReadAsync(client, query);
             keys.AddRange(Keys(body));
             pages++;

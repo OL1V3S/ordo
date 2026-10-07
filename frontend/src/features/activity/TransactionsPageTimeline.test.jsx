@@ -121,7 +121,7 @@ describe("Activity timeline on the Activity page", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "I checked the complete list" }));
 
-    await waitFor(() => expect(useActivityTimeline).toHaveBeenLastCalledWith({ enabled: true }));
+    await waitFor(() => expect(useActivityTimeline).toHaveBeenLastCalledWith(expect.objectContaining({ enabled: true })));
     expect(screen.getByRole("region", { name: "Activity timeline" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Timeline" })).toBeInTheDocument();
   });
@@ -236,7 +236,7 @@ describe("Activity timeline on the Activity page", () => {
     await user.click(screen.getByRole("button", { name: "Save expense" }));
 
     await waitFor(() => expect(timelineRefresh).toHaveBeenCalled());
-    expect(useActivityTimeline).toHaveBeenLastCalledWith({ enabled: true });
+    expect(useActivityTimeline).toHaveBeenLastCalledWith(expect.objectContaining({ enabled: true }));
     expect(screen.getByText(/The activity timeline may be out of date/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Add expense" })).toBeInTheDocument();
   });
