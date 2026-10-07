@@ -28,7 +28,7 @@ const ENTRIES_PER_PAGE = 10;
 function focusAfterRender(target) {
   window.requestAnimationFrame(() => target()?.focus());
 }
-// The timeline is read-only and recovers independently of the per-type lists, so a refresh
+// The timeline is a read-only view whose row actions hand off to the per-type flows, and it recovers independently of the per-type lists, so a refresh
 // request never throws into, delays, or changes the outcome of a write or list refresh.
 function requestTimelineRefresh(refresh) {
   try { Promise.resolve(refresh?.()).catch(() => {}); } catch { /* Timeline failures never affect the lists. */ }
@@ -56,6 +56,7 @@ const INFLOW_OUTCOME_KEYS = {
 function expenseFeedbackMessage(feedback, t) {
   if (!feedback) return "";
   if (feedback.outcome === "unknown") return t("spending.feedback.unknown");
+  if (feedback.outcome === "missing") return t("spending.feedback.missing");
   if (feedback.outcome === "refreshed") return t("spending.feedback.refreshed");
   const completed = EXPENSE_COMPLETED_KEYS[feedback.kind];
   return t(`spending.feedback.${completed}${feedback.refreshFailed ? "RefreshFailed" : ""}`);
@@ -136,11 +137,13 @@ export default function TransactionsPage() {
   // An unknown in-page write outcome may or may not have changed the records: re-read the
   // timeline and tell the user it may be out of date while that uncertainty is unresolved.
   const timelineUncertain = expenseCapture.recoveryRequired
-    || inflowCapture.gate === "unknown" || inflowCapture.gate === "refresh";
+    || inflowCapture.gate === "unknown" || inflowCapture.gate === "refresh" || inflowCapture.gate === "missing";
   useEffect(() => {
     if (timelineUncertain) requestTimelineRefresh(timelineRefresh.current);
   }, [timelineUncertain]);
 
+  const expensesById = useMemo(() => new Map(expenses.map((record) => [record.id, record])), [expenses]);
+  const inflowsById = useMemo(() => new Map(cash.inflows.map((record) => [record.id, record])), [cash.inflows]);
   const filters = useMemo(() => ({
     dateFilter, customStartDate, customEndDate, categoryFilter, searchTerm,
   }), [dateFilter, customStartDate, customEndDate, categoryFilter, searchTerm]);
@@ -236,6 +239,12 @@ export default function TransactionsPage() {
       customCategory: categoryIsDefault ? "" : currentCategory,
     });
   }
+  // The edited record no longer exists: close the edit without returning focus to its opener,
+  // because focus moves to the feedback region.
+  function closeMissingExpenseEdit() {
+    setEditingExpense(null);
+    setEditingExpenseData({});
+  }
   function cancelEditExpense() {
     setEditingExpense(null);
     setEditingExpenseData({});
@@ -251,11 +260,42 @@ export default function TransactionsPage() {
       id, description: normalizeText(editingExpenseData.description),
       amount: amount.value,
       date: editingExpenseData.date, category: finalCategory,
-    }), "update", cancelEditExpense);
+    }), "update", cancelEditExpense, { onMissing: closeMissingExpenseEdit });
   }
+  const expenseActionsUnavailable = expenseCapture.pending || Boolean(captureRecovery.source) || cashLocked
+    || Boolean(editingExpense) || expensesLoading || Boolean(expensesError) || expenseCapture.recoveryRequired;
+  const timelineRowActions = {
+    getState(item) {
+      if (item.kind === "expense") {
+        const record = expensesById.get(item.recordId);
+        const blocked = !record || expenseActionsUnavailable;
+        return { canEdit: !blocked && Boolean(parseExpenseAmount(record.amount)), canDelete: !blocked };
+      }
+      const blocked = !inflowsById.has(item.recordId) || cashLocked || legacyBlocked || cashReadUnavailable;
+      return { canEdit: !blocked, canDelete: !blocked };
+    },
+    onEdit(item, opener) {
+      if (item.kind === "expense") {
+        const record = expensesById.get(item.recordId);
+        if (record) startEditExpense(record, opener);
+      } else {
+        const record = inflowsById.get(item.recordId);
+        if (record) openCashTask("edit", record, opener);
+      }
+    },
+    onDelete(item, opener) {
+      if (item.kind === "expense") {
+        const record = expensesById.get(item.recordId);
+        if (record) void handleDeleteExpense(record.id);
+      } else {
+        const record = inflowsById.get(item.recordId);
+        if (record) openCashTask("delete", record, opener);
+      }
+    },
+  };
   async function handleDeleteExpense(id) {
     if (cashLock.current || expenseCapture.isWriteInFlight() || !window.confirm(ta("spending.deleteConfirm"))) return;
-    await expenseCapture.runMutation(() => deleteExpenseAndTimeline(id), "delete");
+    await expenseCapture.runMutation(() => deleteExpenseAndTimeline(id), "delete", undefined, { onMissing: closeMissingExpenseEdit });
   }
 
   return (
@@ -310,7 +350,7 @@ export default function TransactionsPage() {
           setImportOpen(false); focusAfterRender(() => importButton.current);
         }}>{ta("page.closeImport")}</button>}
       </div>
-      {timelineEnabled && <ActivityTimeline timeline={timeline} filters={timelineFilters} uncertain={timelineUncertain} />}
+      {timelineEnabled && <ActivityTimeline timeline={timeline} filters={timelineFilters} uncertain={timelineUncertain} rowActions={timelineRowActions} />}
       <section className="activity-spending" aria-labelledby="spending-activity-heading">
         <div className="activity-spending__header">
           <h2 id="spending-activity-heading" ref={activityHeading} tabIndex={-1}>{ta("spending.heading")}</h2>

@@ -95,4 +95,38 @@ describe("expense capture controller", () => {
     expect(result.current.draft.description).toBe("  Dinner With Friends  ");
     expect(result.current.feedback).toBeNull();
   });
+
+  describe("missing records", () => {
+    const notFound = () => Object.assign(new Error("not found"), { response: { status: 404 } });
+
+    it.each(["update", "delete"])("treats a %s 404 as missing, blocks writes, and skips onUnknown", async (kind) => {
+      const onUnknown = vi.fn();
+      const onMissing = vi.fn();
+      const { result } = setup({ onUnknown });
+      await act(async () => { await result.current.runMutation(() => Promise.reject(notFound()), kind, undefined, { onMissing }); });
+      expect(result.current.feedback).toEqual({ tone: "danger", outcome: "missing" });
+      expect(result.current.recoveryRequired).toBe(true);
+      expect(onMissing).toHaveBeenCalledOnce();
+      expect(onUnknown).not.toHaveBeenCalled();
+    });
+
+    it("keeps a create 404 on the unknown path", async () => {
+      const onUnknown = vi.fn();
+      const { result } = setup({ onUnknown, createExpense: vi.fn().mockRejectedValue(notFound()) });
+      await fill(result);
+      await act(async () => { await result.current.submitCreate(); });
+      expect(result.current.feedback).toEqual({ tone: "danger", outcome: "unknown" });
+      expect(result.current.recoveryRequired).toBe(true);
+      expect(onUnknown).toHaveBeenCalledOnce();
+    });
+
+    it.each([500, undefined])("keeps status %s on the unknown path for updates", async (status) => {
+      const onUnknown = vi.fn();
+      const { result } = setup({ onUnknown });
+      const error = status ? Object.assign(new Error("x"), { response: { status } }) : new Error("network");
+      await act(async () => { await result.current.runMutation(() => Promise.reject(error), "update"); });
+      expect(result.current.feedback.outcome).toBe("unknown");
+      expect(onUnknown).toHaveBeenCalledOnce();
+    });
+  });
 });

@@ -34,7 +34,7 @@ silently treating every detected pattern as a financial fact.
   before deciding whether to retry.
 - **Activity / Transactions:** An Activity timeline lists recorded expenses and
   cash in together, newest first, with exact signed amounts and older activity
-  loaded on request, and can be searched and filtered by text, type, and date range; it is read-only and shows no totals or balance. The expenses list is newest first. Below it,
+  loaded on request, and can be searched and filtered by text, type, and date range; each row has Edit and Delete buttons that open the matching list's existing edit or delete flow, and it shows no totals or balance. The expenses list is newest first. Below it,
   scan recorded spending, search descriptions and categories, and expand
   date/category filters when needed. A separate Cash in
   section lists recorded incoming money with its own search. Add, edit, or delete

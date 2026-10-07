@@ -3,7 +3,8 @@
 ## Purpose
 
 `GET /api/activity/timeline` is Ordo's authenticated, read-only unified Activity
-read. It returns the caller's recorded Expenses and AccountInflows as one
+read (the endpoint is read-only; the page's row actions reuse the existing per-type
+write flows). It returns the caller's recorded Expenses and AccountInflows as one
 newest-first, paged list so the Activity page can show money out and money in
 together. It creates no money, defines no total, net, balance, or Safe-to-Spend
 figure, and changes no financial classification. Expense and AccountInflow
@@ -128,10 +129,29 @@ payloads are unchanged, so every record also appears in its per-type list.
   It accepts any stored `-?\d+\.\d{2}` amount; a zero, negative, or otherwise
   non-canonical amount renders only that row as "Amount needs review" with the
   stored value unaltered, and never blanks the page.
-- The timeline is read-only and independent: its failures never affect the
-  per-type lists and vice versa. States are loading, ready, empty, initial failure
+- The timeline view is a read model whose failures never affect the per-type lists
+  and vice versa. States are loading, ready, empty, initial failure
   with retry, failed refresh with the last rows kept, failed older-page load with
   an inline retry, and a malformed response.
+- Row actions: an optional `rowActions` prop adds Edit and Delete buttons per row
+  (accessible names state the type, description, date, and record id; expense Delete
+  uses the danger style, cash-in Delete the ghost style, as in the lists). They are
+  dispatched by `kind` (an expense and a cash in can share an id) to the existing
+  Spending edit, Spending delete (native confirm), and Cash in task handlers, so the
+  edit or confirmation opens in the per-type list below, with the same payloads and
+  guards. Enabled state mirrors the per-type lists; an expense whose amount needs
+  review can be deleted but not edited. Cancel returns focus to the timeline button
+  when it is still mounted, else to the Spending or Cash in heading. No timeline
+  write path exists, and the lists stay the source for drafts.
+- An expense update or delete answered with 404 shows "This expense is no longer
+  available", closes any open inline edit, moves focus to the feedback region, and
+  keeps writes blocked until the Spending list is refreshed. Create flows (including
+  Home capture) keep the unknown-outcome handling. A cash-in 404 refreshes the
+  timeline like the other uncertain outcomes.
+- Concurrent edits are last-write-wins: the backend has no revision token, so an
+  edit made from a stale view can overwrite a newer one. Drafts are seeded from the
+  latest list read and the timeline is refreshed after each write. Detection would
+  be a separate HIGH-risk contract change.
 - While Home's uncertain-write marker is set, the timeline and its link are hidden
   and no request is issued; it loads after acknowledgment.
 - A fire-and-forget refresh follows completed expense and cash-in writes, imports
@@ -150,7 +170,7 @@ dates in both languages. See [`localization.md`](localization.md).
 
 ## Non-goals
 
-Unified edit or delete, per-row actions, a category filter, numbered pages, day grouping,
+In-place timeline editing or menus, merging the per-type lists, concurrent-edit detection, a category filter, numbered pages, day grouping,
 replacing the per-type lists, totals, net, balance, reconciliation, Safe-to-Spend,
 import redesign, and any change to Home's UI. The only existing-endpoint change is
 that `GET /api/expenses` now guarantees date-descending, id-descending order. Any of
