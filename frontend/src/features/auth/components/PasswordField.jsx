@@ -9,6 +9,8 @@ export default function PasswordField({
   isRevealed,
   onToggle,
   describedBy,
+  showLabel,
+  hideLabel,
 }) {
   return (
     <div className="auth-field">
@@ -28,7 +30,7 @@ export default function PasswordField({
         <button
           type="button"
           className="password-toggle"
-          aria-label={isRevealed ? `Hide ${label.toLowerCase()}` : `Show ${label.toLowerCase()}`}
+          aria-label={isRevealed ? hideLabel : showLabel}
           aria-pressed={isRevealed}
           onClick={onToggle}
         >

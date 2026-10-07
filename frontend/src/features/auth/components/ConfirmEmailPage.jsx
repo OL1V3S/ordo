@@ -1,28 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { authApi } from "../../../shared/api/authApi";
+import { useTranslation } from "react-i18next";
 import AuthShell from "./AuthShell";
 
-const confirmationCopy = {
-  loading: {
-    title: "Confirming email",
-    message: "Please wait...",
-    tone: "info",
-  },
-  success: {
-    title: "Email confirmed",
-    message: "You can now log in.",
-    tone: "success",
-  },
-  error: {
-    title: "Unable to confirm email",
-    message:
-      "This confirmation link is invalid, expired, or already used. Try logging in or request a new confirmation email.",
-    tone: "danger",
-  },
+const confirmationTones = {
+  loading: "info",
+  success: "success",
+  error: "danger",
 };
 
 export default function ConfirmEmailPage() {
+  const { t } = useTranslation("auth");
   const [searchParams] = useSearchParams();
   const [status, setStatus] = useState("loading");
   const hasRun = useRef(false);
@@ -48,16 +37,16 @@ export default function ConfirmEmailPage() {
     else setStatus("error");
   }, [searchParams]);
 
-  const content = confirmationCopy[status];
+  const tone = confirmationTones[status];
 
   return (
-    <AuthShell title={content.title}>
+    <AuthShell title={t(`confirmEmail.${status}.title`)} focusKey={status}>
       <p
-        className={`auth-status auth-status--${content.tone}`}
-        role={content.tone === "danger" ? "alert" : "status"}
-        aria-live={content.tone === "danger" ? "assertive" : "polite"}
+        className={`auth-status auth-status--${tone}`}
+        role={tone === "danger" ? "alert" : "status"}
+        aria-live={tone === "danger" ? "assertive" : "polite"}
       >
-        {content.message}
+        {t(`confirmEmail.${status}.message`)}
       </p>
 
       <div className="auth-actions auth-actions--secondary">
@@ -66,7 +55,7 @@ export default function ConfirmEmailPage() {
           className="button-ghost auth-text-action"
           onClick={() => navigate("/")}
         >
-          Back to login
+          {t("actions.backToLogin")}
         </button>
       </div>
     </AuthShell>

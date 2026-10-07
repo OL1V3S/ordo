@@ -80,8 +80,9 @@ silently treating every detected pattern as a financial fact.
   signed-in email in a compact account section. The language preference updates
   the authenticated shell, primary navigation, Plan and More hubs, Settings, and
   the Home, Activity, Statement import, Budgets, Insights, Commitments, and Paychecks
-  pages; the public account-access pages and the unavailable Investing placeholder
-  page remain English during the incremental rollout. Account access
+  pages and the public account-access pages (a language selector is also available
+  before sign-in); the unavailable Investing placeholder page remains English during
+  the incremental rollout. Account access
   includes registration,
   sign-in and sign-out, email confirmation and resend, and password recovery by
   email. Settings currently provides email display, appearance, and language controls,

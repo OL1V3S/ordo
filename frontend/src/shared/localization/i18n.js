@@ -20,11 +20,13 @@ import analyticsEn from "./locales/en/analytics.json";
 import analyticsEs from "./locales/es/analytics.json";
 import commitmentsEn from "./locales/en/commitments.json";
 import commitmentsEs from "./locales/es/commitments.json";
+import authEn from "./locales/en/auth.json";
+import authEs from "./locales/es/auth.json";
 import { applyDocumentLocale, getStoredLocale } from "./locale";
 
 export const resources = {
-  en: { common: commonEn, navigation: navigationEn, settings: settingsEn, home: homeEn, activity: activityEn, importPreview: importPreviewEn, paychecks: paychecksEn, budgets: budgetsEn, analytics: analyticsEn, commitments: commitmentsEn },
-  es: { common: commonEs, navigation: navigationEs, settings: settingsEs, home: homeEs, activity: activityEs, importPreview: importPreviewEs, paychecks: paychecksEs, budgets: budgetsEs, analytics: analyticsEs, commitments: commitmentsEs },
+  en: { common: commonEn, navigation: navigationEn, settings: settingsEn, home: homeEn, activity: activityEn, importPreview: importPreviewEn, paychecks: paychecksEn, budgets: budgetsEn, analytics: analyticsEn, commitments: commitmentsEn, auth: authEn },
+  es: { common: commonEs, navigation: navigationEs, settings: settingsEs, home: homeEs, activity: activityEs, importPreview: importPreviewEs, paychecks: paychecksEs, budgets: budgetsEs, analytics: analyticsEs, commitments: commitmentsEs, auth: authEs },
 };
 
 const initialLocale = getStoredLocale();
@@ -36,7 +38,7 @@ i18n.use(initReactI18next).init({
   fallbackLng: "en",
   supportedLngs: ["en", "es"],
   load: "languageOnly",
-  ns: ["common", "navigation", "settings", "home", "activity", "importPreview", "paychecks", "budgets", "analytics", "commitments"],
+  ns: ["common", "navigation", "settings", "home", "activity", "importPreview", "paychecks", "budgets", "analytics", "commitments", "auth"],
   defaultNS: "common",
   interpolation: { escapeValue: false },
   initAsync: false,

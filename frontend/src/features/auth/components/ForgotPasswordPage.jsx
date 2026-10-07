@@ -1,13 +1,16 @@
 import { useId, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { authApi } from "../../../shared/api/authApi";
+import { mapResendFailure } from "../authMessages";
+import { useTranslation } from "react-i18next";
 import AuthShell from "./AuthShell";
 
 export default function ForgotPasswordPage() {
+  const { t } = useTranslation("auth");
   const [email, setEmail] = useState("");
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState(null);
   const [messageTone, setMessageTone] = useState("info");
-  const [resendMessage, setResendMessage] = useState("");
+  const [resendMessage, setResendMessage] = useState(null);
   const [resendTone, setResendTone] = useState("info");
   const [isResending, setIsResending] = useState(false);
   const emailId = useId();
@@ -17,12 +20,12 @@ export default function ForgotPasswordPage() {
     e.preventDefault();
 
     try {
-      const res = await authApi.forgotPassword({ email });
+      await authApi.forgotPassword({ email });
       setMessageTone("info");
-      setMessage(res.data.message);
+      setMessage({ key: "forgotPassword.sent" });
     } catch {
       setMessageTone("danger");
-      setMessage("Something went wrong.");
+      setMessage({ key: "forgotPassword.failed" });
     }
   }
 
@@ -30,19 +33,15 @@ export default function ForgotPasswordPage() {
     if (!email || isResending) return;
 
     setIsResending(true);
-    setResendMessage("");
+    setResendMessage(null);
 
     try {
-      const response = await authApi.resendConfirmation({ email });
+      await authApi.resendConfirmation({ email });
       setResendTone("success");
-      setResendMessage(response.data.message);
+      setResendMessage({ key: "resend.sent" });
     } catch (err) {
       setResendTone("danger");
-      if (err.response?.status === 429) {
-        setResendMessage("Too many requests. Please wait before trying again.");
-      } else {
-        setResendMessage("Unable to request another confirmation email right now.");
-      }
+      setResendMessage(mapResendFailure(err));
     } finally {
       setIsResending(false);
     }
@@ -50,18 +49,19 @@ export default function ForgotPasswordPage() {
 
   return (
     <AuthShell
-      title="Forgot password"
-      description="Enter your email and we’ll send you a reset link."
+      title={t("forgotPassword.title")}
+      description={t("forgotPassword.description")}
+      focusKey="forgot-password"
     >
       <form onSubmit={handleSubmit} className="auth-form">
         <div className="auth-field">
           <label className="auth-field__label" htmlFor={emailId}>
-            Email
+            {t("fields.email")}
           </label>
           <input
             id={emailId}
             type="email"
-            placeholder="Email"
+            placeholder={t("fields.emailPlaceholder")}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -69,7 +69,7 @@ export default function ForgotPasswordPage() {
         </div>
 
         <button type="submit" className="auth-primary-action">
-          Send Reset Link
+          {t("forgotPassword.submit")}
         </button>
       </form>
 
@@ -78,18 +78,18 @@ export default function ForgotPasswordPage() {
           className={`auth-status auth-status--${messageTone}`}
           role={messageTone === "danger" ? "alert" : "status"}
         >
-          {message}
+          {t(message.key)}
         </p>
       )}
 
-      <section className="auth-secondary" aria-label="Account confirmation help">
+      <section className="auth-secondary" aria-label={t("forgotPassword.recovery.label")}>
         <details className="auth-disclosure">
           <summary className="auth-disclosure__summary">
-            Need a new confirmation email?
+            {t("forgotPassword.recovery.summary")}
           </summary>
           <div className="auth-actions">
             <p className="auth-help">
-              Enter your account email above, then request another confirmation link.
+              {t("forgotPassword.recovery.help")}
             </p>
             <button
               type="button"
@@ -97,7 +97,7 @@ export default function ForgotPasswordPage() {
               onClick={handleResendConfirmation}
               disabled={!email || isResending}
             >
-              {isResending ? "Requesting..." : "Resend confirmation email"}
+              {isResending ? t("resend.requesting") : t("resend.action")}
             </button>
           </div>
         </details>
@@ -106,7 +106,7 @@ export default function ForgotPasswordPage() {
             className={`auth-status auth-status--${resendTone}`}
             role={resendTone === "danger" ? "alert" : "status"}
           >
-            {resendMessage}
+            {t(resendMessage.key)}
           </p>
         )}
       </section>
@@ -117,7 +117,7 @@ export default function ForgotPasswordPage() {
           className="button-ghost auth-text-action"
           onClick={() => navigate("/")}
         >
-          Back to login
+          {t("actions.backToLogin")}
         </button>
       </div>
     </AuthShell>

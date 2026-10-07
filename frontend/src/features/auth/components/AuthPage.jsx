@@ -1,19 +1,22 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Trans, useTranslation } from "react-i18next";
 import { authApi } from "../../../shared/api/authApi";
 import { establishSession } from "../../../shared/auth/session";
 import AuthShell from "./AuthShell";
 import PasswordField from "./PasswordField";
+import { mapResendFailure, mapSubmitError, translateDescriptors } from "../authMessages";
 
 export default function AuthPage({ onLogin }) {
+  const { t } = useTranslation("auth");
   const [mode, setMode] = useState("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [confirmationMessage, setConfirmationMessage] = useState("");
-  const [resendMessage, setResendMessage] = useState("");
+  const [confirmationMessage, setConfirmationMessage] = useState(null);
+  const [resendMessage, setResendMessage] = useState(null);
   const [resendTone, setResendTone] = useState("info");
   const [formError, setFormError] = useState(null);
   const [isResending, setIsResending] = useState(false);
@@ -33,7 +36,7 @@ export default function AuthPage({ onLogin }) {
     setFormError(null);
 
     if (mode === "register" && password !== confirmPassword) {
-      setFormError({ message: "Passwords do not match." });
+      setFormError([{ key: "register.passwordMismatch" }]);
       return;
     }
 
@@ -41,8 +44,8 @@ export default function AuthPage({ onLogin }) {
       if (mode === "register") {
         await authApi.register({ email, password });
         setMode("check-email");
-        setConfirmationMessage(`A confirmation link was sent to ${email}.`);
-        setResendMessage("");
+        setConfirmationMessage({ key: "checkEmail.sent", values: { email } });
+        setResendMessage(null);
         setPassword("");
         setConfirmPassword("");
         return;
@@ -56,28 +59,18 @@ export default function AuthPage({ onLogin }) {
     } catch (err) {
       console.log("Auth error:", err.response?.data || err.message);
 
-      const errorData = err.response?.data;
+      const mapped = mapSubmitError(err, { mode, email });
 
-      if (errorData?.code === "confirmation_email_delivery_failed") {
+      if (mapped.kind === "deliveryFailed") {
         setMode("check-email");
-        setConfirmationMessage(errorData.message);
+        setConfirmationMessage(mapped.message);
         setPassword("");
         setConfirmPassword("");
-        setResendMessage("");
+        setResendMessage(null);
         return;
       }
 
-      if (Array.isArray(errorData)) {
-        setFormError({
-          message: errorData.map((error) => error.description).join("\n"),
-        });
-      } else if (typeof errorData === "string") {
-        setFormError({ message: errorData });
-      } else if (typeof errorData?.message === "string") {
-        setFormError({ message: errorData.message });
-      } else {
-        setFormError({ message: err.message || "Something went wrong." });
-      }
+      setFormError(mapped.messages);
     }
   }
 
@@ -85,19 +78,15 @@ export default function AuthPage({ onLogin }) {
     if (!email || isResending) return;
 
     setIsResending(true);
-    setResendMessage("");
+    setResendMessage(null);
 
     try {
-      const response = await authApi.resendConfirmation({ email });
+      await authApi.resendConfirmation({ email });
       setResendTone("success");
-      setResendMessage(response.data.message);
+      setResendMessage({ key: "resend.sent" });
     } catch (err) {
       setResendTone("danger");
-      if (err.response?.status === 429) {
-        setResendMessage("Too many requests. Please wait before trying again.");
-      } else {
-        setResendMessage("Unable to request another confirmation email right now.");
-      }
+      setResendMessage(mapResendFailure(err));
     } finally {
       setIsResending(false);
     }
@@ -105,8 +94,8 @@ export default function AuthPage({ onLogin }) {
 
   function switchMode() {
     setMode(mode === "login" ? "register" : "login");
-    setConfirmationMessage("");
-    setResendMessage("");
+    setConfirmationMessage(null);
+    setResendMessage(null);
     setFormError(null);
     setPassword("");
     setConfirmPassword("");
@@ -114,26 +103,31 @@ export default function AuthPage({ onLogin }) {
 
   function returnToLogin() {
     setMode("login");
-    setConfirmationMessage("");
-    setResendMessage("");
+    setConfirmationMessage(null);
+    setResendMessage(null);
     setFormError(null);
   }
 
   if (mode === "check-email") {
     return (
-      <AuthShell title="Check your email">
+      <AuthShell title={t("checkEmail.title")} focusKey="check-email">
         <p className="auth-status auth-status--info" role="status">
-          {confirmationMessage}
+          {confirmationMessage && t(confirmationMessage.key, confirmationMessage.values)}
         </p>
         <p className="auth-help">
-          Confirm <strong>{email}</strong> before logging in.
+          <Trans
+            t={t}
+            i18nKey="checkEmail.confirmBefore"
+            values={{ email }}
+            components={{ strong: <strong /> }}
+          />
         </p>
         {resendMessage && (
           <p
             className={`auth-status auth-status--${resendTone}`}
             role={resendTone === "danger" ? "alert" : "status"}
           >
-            {resendMessage}
+            {t(resendMessage.key)}
           </p>
         )}
         <div className="auth-actions">
@@ -143,14 +137,14 @@ export default function AuthPage({ onLogin }) {
             onClick={handleResendConfirmation}
             disabled={!email || isResending}
           >
-            {isResending ? "Requesting..." : "Resend confirmation email"}
+            {isResending ? t("resend.requesting") : t("resend.action")}
           </button>
           <button
             type="button"
             className="button-ghost auth-text-action"
             onClick={returnToLogin}
           >
-            Back to login
+            {t("actions.backToLogin")}
           </button>
         </div>
       </AuthShell>
@@ -160,16 +154,16 @@ export default function AuthPage({ onLogin }) {
   const isLogin = mode === "login";
 
   return (
-    <AuthShell title={isLogin ? "Log in" : "Create account"}>
+    <AuthShell title={isLogin ? t("login.title") : t("register.title")} focusKey={mode}>
       <form onSubmit={handleSubmit} className="auth-form">
         <div className="auth-field">
           <label className="auth-field__label" htmlFor={emailId}>
-            Email
+            {t("fields.email")}
           </label>
           <input
             id={emailId}
             type="email"
-            placeholder="Email"
+            placeholder={t("fields.emailPlaceholder")}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -178,8 +172,10 @@ export default function AuthPage({ onLogin }) {
 
         <PasswordField
           id={passwordId}
-          label="Password"
-          placeholder="Password"
+          label={t("fields.password")}
+          placeholder={t("fields.passwordPlaceholder")}
+          showLabel={t("passwordToggle.showPassword")}
+          hideLabel={t("passwordToggle.hidePassword")}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           isRevealed={showPassword}
@@ -193,7 +189,7 @@ export default function AuthPage({ onLogin }) {
             className="button-ghost auth-text-action"
             onClick={() => navigate("/forgot-password")}
           >
-            Forgot password?
+            {t("login.forgotPassword")}
           </button>
         )}
 
@@ -201,8 +197,10 @@ export default function AuthPage({ onLogin }) {
           <>
             <PasswordField
               id={confirmPasswordId}
-              label="Confirm password"
-              placeholder="Confirm Password"
+              label={t("fields.confirmPassword")}
+              placeholder={t("fields.confirmPasswordPlaceholder")}
+              showLabel={t("passwordToggle.showConfirmPassword")}
+              hideLabel={t("passwordToggle.hideConfirmPassword")}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               isRevealed={showConfirmPassword}
@@ -213,13 +211,13 @@ export default function AuthPage({ onLogin }) {
               id={passwordRequirementsId}
               className="auth-password-requirements auth-help"
             >
-              <p>Password must include:</p>
+              <p>{t("register.requirements.title")}</p>
               <ul>
-                <li>At least 6 characters</li>
-                <li>One uppercase letter</li>
-                <li>One lowercase letter</li>
-                <li>One number</li>
-                <li>One special character</li>
+                <li>{t("register.requirements.length")}</li>
+                <li>{t("register.requirements.upper")}</li>
+                <li>{t("register.requirements.lower")}</li>
+                <li>{t("register.requirements.digit")}</li>
+                <li>{t("register.requirements.special")}</li>
               </ul>
             </div>
           </>
@@ -232,12 +230,12 @@ export default function AuthPage({ onLogin }) {
             role="alert"
             tabIndex="-1"
           >
-            {formError.message}
+            {translateDescriptors(t, formError)}
           </p>
         )}
 
         <button type="submit" className="auth-primary-action">
-          {isLogin ? "Log In" : "Register"}
+          {isLogin ? t("login.submit") : t("register.submit")}
         </button>
       </form>
 
@@ -247,9 +245,7 @@ export default function AuthPage({ onLogin }) {
           className="button-ghost auth-text-action"
           onClick={switchMode}
         >
-          {isLogin
-            ? "Need an account? Register"
-            : "Already have an account? Log in"}
+          {isLogin ? t("login.switchToRegister") : t("register.switchToLogin")}
         </button>
       </div>
     </AuthShell>
