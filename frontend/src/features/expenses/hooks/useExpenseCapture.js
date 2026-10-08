@@ -49,7 +49,7 @@ export function useExpenseCapture({
     if (restoreFocus) focusAfterRender(() => opener.current);
   }
 
-  async function runMutation(action, kind, onSuccess) {
+  async function runMutation(action, kind, onSuccess, { onMissing } = {}) {
     if (isExternallyBlocked() || writeInFlight.current || recoveryRequired || readUnavailable) return;
     const session = getSessionSnapshot();
     writeInFlight.current = true;
@@ -62,11 +62,19 @@ export function useExpenseCapture({
       const refreshFailed = Boolean(result?.refreshFailed);
       setRecoveryRequired(refreshFailed);
       setFeedback({ tone: refreshFailed ? "warning" : "success", outcome: "completed", kind, refreshFailed });
-    } catch {
+    } catch (requestError) {
       if (session !== getSessionSnapshot()) return;
-      onUnknown(session);
+      // A 404 on an update or delete means the record no longer exists. Create flows (including
+      // Home capture) keep the unknown path: a failed create is never reported as anything else.
+      const missing = (kind === "update" || kind === "delete") && requestError?.response?.status === 404;
+      if (missing) {
+        onMissing?.();
+      } else {
+        onUnknown(session);
+      }
+      // The list is stale either way, so writes stay blocked until an authoritative re-read.
       setRecoveryRequired(true);
-      setFeedback({ tone: "danger", outcome: "unknown" });
+      setFeedback({ tone: "danger", outcome: missing ? "missing" : "unknown" });
     } finally {
       writeInFlight.current = false;
       if (session === getSessionSnapshot()) {

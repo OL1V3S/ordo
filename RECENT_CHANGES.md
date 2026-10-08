@@ -24,6 +24,16 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-07 — Edit and delete from the Activity timeline
+
+[PR #193](https://github.com/OL1V3S/ordo/pull/193) ·
+[Issue #192](https://github.com/OL1V3S/ordo/issues/192)
+
+- Each Activity timeline row now has Edit and Delete buttons that open the existing
+  Spending and Cash in edit and delete flows; no new write path, payload, or API.
+- An expense that is already gone (404 on edit or delete) now says so, closes the open
+  edit, and prompts a refresh; a cash-in 404 now also refreshes the timeline.
+
 ### 2026-10-07 — Account-access pages in English and Spanish
 
 [PR #191](https://github.com/OL1V3S/ordo/pull/191) ·
@@ -267,15 +277,3 @@ the permanent, complete archive.
   while preserving routes, user content, financial semantics, and feature behavior.
 - Established catalog parity tests, accessible in-place switching, a reviewed
   glossary, and precision-safe boundaries for future feature localization.
-
-### 2026-09-17 — Record paycheck received
-
-[PR #145](https://github.com/OL1V3S/ordo/pull/145) ·
-[Issue #143](https://github.com/OL1V3S/ordo/issues/143)
-
-- Added an active-paycheck workflow to create and link actual cash in or select
-  an existing unclaimed cash-in record for the current or previous schedule slot.
-- Preserved observed amount/date differences without rewriting expectations,
-  advanced projections from recorded slots, and added non-destructive unlinking.
-- Enforced owner, inflow, slot, retry, and concurrency invariants with exact
-  historical cash-flow reclassification and focused frontend/backend coverage.

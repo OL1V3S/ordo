@@ -357,4 +357,19 @@ describe("Activity cash in in Spanish", () => {
     expect(screen.getByRole("button", { name: "Edit cash in Transfer from Savings from 09/01/2026, record 1" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Spending activity" })).toBeInTheDocument();
   });
+
+  it("localizes the timeline row actions and the expense missing message", async () => {
+    const user = userEvent.setup();
+    mockLists({ expenses: { expenses: [lunch], deleteExpense: vi.fn().mockRejectedValue(Object.assign(new Error("x"), { response: { status: 404 } })) } });
+    useActivityTimeline.mockImplementation(() => ({ ...idleTimeline, items: [
+      { kind: "expense", recordId: 42, date: "2026-09-01", amount: "5.00", description: "Lunch", category: "food", paycheck: null },
+    ] }));
+    confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+    renderPage();
+
+    const region = screen.getByRole("region", { name: "Cronología de actividad" });
+    expect(within(region).getByRole("button", { name: /^Editar gasto Lunch del .*, registro 42$/ })).toHaveTextContent("Editar");
+    await user.click(within(region).getByRole("button", { name: /^Eliminar gasto Lunch/ }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Este gasto ya no está disponible.");
+  });
 });

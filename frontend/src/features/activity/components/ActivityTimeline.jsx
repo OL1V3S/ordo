@@ -6,7 +6,7 @@ import StatusMessage from "../../../shared/ui/StatusMessage";
 import { isTimelineFilterActive } from "../utils/timelineFilter";
 import { formatTimelineAmount, formatTimelineDate, timelineItemKey } from "../utils/timelinePresentation";
 
-export default function ActivityTimeline({ timeline, filters = null, uncertain = false }) {
+export default function ActivityTimeline({ timeline, filters = null, uncertain = false, rowActions = null }) {
   const { t } = useTranslation(["activity", "home"]);
   const { locale } = useLocale();
   const moneyLocale = locale === "es" ? "es-US" : "en-US";
@@ -66,6 +66,9 @@ export default function ActivityTimeline({ timeline, filters = null, uncertain =
         {items.map((item) => {
           const amount = formatTimelineAmount(item.amount, item.kind, moneyLocale);
           const date = formatTimelineDate(item.date, moneyLocale);
+          const actionState = rowActions?.getState(item);
+          const labelValues = { description: item.description, date: date ?? t("home:activity.dateUnknown"), id: item.recordId };
+          const expenseRow = item.kind === "expense";
           return (
             <li key={timelineItemKey(item)} className={`activity-timeline__row activity-timeline__row--${item.kind}`}>
               <div className="activity-timeline__main">
@@ -85,6 +88,14 @@ export default function ActivityTimeline({ timeline, filters = null, uncertain =
                   <span className="activity-timeline__stored-amount">{item.amount}</span>
                 </>}
               </div>
+              {actionState && <div className="activity-timeline__actions">
+                <button type="button" disabled={!actionState.canEdit}
+                  aria-label={t(expenseRow ? "activity:timeline.actions.editExpense" : "activity:timeline.actions.editCashIn", labelValues)}
+                  onClick={(event) => rowActions.onEdit(item, event.currentTarget)}>{t("activity:timeline.actions.edit")}</button>
+                <button type="button" className={expenseRow ? "button-danger" : "button-ghost"} disabled={!actionState.canDelete}
+                  aria-label={t(expenseRow ? "activity:timeline.actions.deleteExpense" : "activity:timeline.actions.deleteCashIn", labelValues)}
+                  onClick={(event) => rowActions.onDelete(item, event.currentTarget)}>{t("activity:timeline.actions.delete")}</button>
+              </div>}
             </li>
           );
         })}

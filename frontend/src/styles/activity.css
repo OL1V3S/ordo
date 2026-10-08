@@ -109,6 +109,7 @@
 .activity-timeline__description { overflow-wrap: anywhere; }
 .activity-timeline__meta { margin: 0; color: var(--color-text-muted); font-size: var(--text-sm); overflow-wrap: anywhere; }
 .activity-timeline__amount { display: grid; flex: 0 0 auto; justify-items: end; max-width: 50%; font-variant-numeric: tabular-nums; text-align: right; overflow-wrap: anywhere; }
+.activity-timeline__actions { display: flex; flex: 0 0 auto; flex-wrap: wrap; gap: var(--space-2); }
 .activity-timeline__stored-amount { color: var(--color-text-muted); font-size: var(--text-sm); }
 @media (max-width: 400px) {
   .activity-timeline__row { flex-direction: column; }

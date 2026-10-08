@@ -16,7 +16,7 @@
   },
   "timeline": {
     "heading": "Cronología de actividad",
-    "intro": "Todo lo que has registrado, de lo más reciente a lo más antiguo. Estos registros también aparecen en las listas de más abajo.",
+    "intro": "Todo lo que has registrado, de lo más reciente a lo más antiguo. Edita o elimina un registro aquí; el cambio se abre en su lista de más abajo.",
     "listLabel": "Actividad registrada, de lo más reciente a lo más antiguo",
     "loading": "Cargando la cronología de actividad…",
     "refreshing": "Actualizando la cronología de actividad…",
@@ -47,6 +47,14 @@
       },
       "noMatches": "Ninguna actividad coincide con estos filtros.",
       "invalid": "Revisa los filtros: la búsqueda es demasiado larga o las fechas no son válidas o están en orden incorrecto."
+    },
+    "actions": {
+      "edit": "Editar",
+      "delete": "Eliminar",
+      "editExpense": "Editar gasto {{description}} del {{date}}, registro {{id}}",
+      "deleteExpense": "Eliminar gasto {{description}} del {{date}}, registro {{id}}",
+      "editCashIn": "Editar entrada de dinero {{description}} del {{date}}, registro {{id}}",
+      "deleteCashIn": "Eliminar entrada de dinero {{description}} del {{date}}, registro {{id}}"
     }
   },
   "categories": {
@@ -73,7 +81,8 @@
       "deleted": "Gasto eliminado.",
       "createdRefreshFailed": "Gasto guardado. No se pudo actualizar la actividad. Actualiza la lista antes de hacer otro cambio.",
       "updatedRefreshFailed": "Gasto actualizado. No se pudo actualizar la actividad. Actualiza la lista antes de hacer otro cambio.",
-      "deletedRefreshFailed": "Gasto eliminado. No se pudo actualizar la actividad. Actualiza la lista antes de hacer otro cambio."
+      "deletedRefreshFailed": "Gasto eliminado. No se pudo actualizar la actividad. Actualiza la lista antes de hacer otro cambio.",
+      "missing": "Este gasto ya no está disponible. Actualiza la actividad de gastos antes de hacer otro cambio."
     }
   },
   "expenseForm": {

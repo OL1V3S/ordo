@@ -256,4 +256,184 @@ describe("Activity timeline on the Activity page", () => {
     await waitFor(() => expect(screen.getByText(/The activity timeline may be out of date/)).toBeInTheDocument());
     expect(timelineRefresh).toHaveBeenCalled();
   });
+
+describe("Timeline row actions on the Activity page", () => {
+  const lunchRow = { kind: "expense", recordId: 42, date: "2026-09-01", amount: "5.00", description: "Lunch", category: "food", paycheck: null };
+  const oddRow = { kind: "expense", recordId: 43, date: "2026-09-02", amount: "-5.00", description: "Odd", category: "bills", paycheck: null };
+  const transferRow = { kind: "account_inflow", recordId: 42, date: "2026-09-01", amount: "24.15", description: "Transfer from Savings", category: null, paycheck: null };
+  const odd = { id: 43, description: "Odd", category: "bills", amount: "-5.00", date: "2026-09-02" };
+  const transfer = { id: 42, description: "Transfer from Savings", amount: 24.15, date: "2026-09-01" };
+  const region = () => screen.getByRole("region", { name: "Activity timeline" });
+  const tl = (name) => within(region()).getByRole("button", { name });
+  const withRows = (items) => useActivityTimeline.mockImplementation(() => timelineState({ items }));
+  const httpError = (status) => Object.assign(new Error("http"), { response: { status } });
+
+  it("opens the inline expense edit from the timeline, focuses it, saves unchanged, and refreshes the timeline", async () => {
+    const user = userEvent.setup();
+    mockLists({ expenses: { ...expensePayload, updateExpense: vi.fn().mockResolvedValue({ refreshFailed: false }) } });
+    withRows([lunchRow]);
+    renderPage();
+
+    await user.click(tl("Edit expense Lunch from Sep 1, 2026, record 42"));
+    await waitFor(() => expect(screen.getByLabelText("Edit description")).toHaveFocus());
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(expenses.updateExpense).toHaveBeenCalledExactlyOnceWith(42,
+      { id: 42, description: "lunch", amount: "5.00", date: "2026-09-01", category: "food" });
+    expect(timelineRefresh).toHaveBeenCalled();
+  });
+
+  it("returns focus to the timeline button on cancel and to the Spending heading when the row is gone", async () => {
+    const user = userEvent.setup();
+    mockLists({ expenses: expensePayload });
+    withRows([lunchRow]);
+    const view = renderPage();
+
+    const edit = tl("Edit expense Lunch from Sep 1, 2026, record 42");
+    await user.click(edit);
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    await waitFor(() => expect(edit).toHaveFocus());
+
+    await user.click(edit);
+    withRows([]);
+    view.rerender(<I18nextProvider i18n={i18n}><TransactionsPage /></I18nextProvider>);
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Spending activity" })).toHaveFocus());
+  });
+
+  it("deletes an expense from the timeline only after confirmation", async () => {
+    const user = userEvent.setup();
+    mockLists({ expenses: expensePayload });
+    withRows([lunchRow]);
+    confirmSpy = vi.spyOn(window, "confirm").mockReturnValueOnce(false).mockReturnValueOnce(true);
+    renderPage();
+    const del = tl("Delete expense Lunch from Sep 1, 2026, record 42");
+
+    await user.click(del);
+    expect(expenses.deleteExpense).not.toHaveBeenCalled();
+    await user.click(del);
+    expect(expenses.deleteExpense).toHaveBeenCalledExactlyOnceWith(42);
+    expect(timelineRefresh).toHaveBeenCalled();
+  });
+
+  it("dispatches by kind when an expense and a cash in share an id", async () => {
+    const user = userEvent.setup();
+    mockLists({ expenses: expensePayload, cash: { inflows: [transfer] } });
+    withRows([lunchRow, transferRow]);
+    renderPage();
+
+    await user.click(tl("Edit cash in Transfer from Savings from Sep 1, 2026, record 42"));
+    expect(within(document.getElementById("cash-in-task")).getByRole("form", { name: "Edit cash in" })).toBeInTheDocument();
+    expect(screen.queryByLabelText("Edit description")).not.toBeInTheDocument();
+  });
+
+  it("opens the cash delete confirmation from the timeline and calls deleteInflow unchanged", async () => {
+    const user = userEvent.setup();
+    mockLists({ cash: { inflows: [transfer] } });
+    withRows([transferRow]);
+    renderPage();
+
+    await user.click(tl("Delete cash in Transfer from Savings from Sep 1, 2026, record 42"));
+    const task = document.getElementById("cash-in-task");
+    await waitFor(() => expect(within(task).getByRole("button", { name: "Confirm delete cash in" })).toHaveFocus());
+    await user.click(within(task).getByRole("button", { name: "Confirm delete cash in" }));
+    expect(cash.deleteInflow).toHaveBeenCalledExactlyOnceWith(42);
+  });
+
+  it("returns cash Cancel focus to the timeline button, or the Cash in heading when the row is gone", async () => {
+    const user = userEvent.setup();
+    mockLists({ cash: { inflows: [transfer] } });
+    withRows([transferRow]);
+    const view = renderPage();
+    const del = tl("Delete cash in Transfer from Savings from Sep 1, 2026, record 42");
+
+    await user.click(del);
+    await user.click(within(document.getElementById("cash-in-task")).getByRole("button", { name: "Cancel" }));
+    await waitFor(() => expect(del).toHaveFocus());
+
+    await user.click(del);
+    withRows([]);
+    view.rerender(<I18nextProvider i18n={i18n}><TransactionsPage /></I18nextProvider>);
+    await user.click(within(document.getElementById("cash-in-task")).getByRole("button", { name: "Cancel" }));
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Cash in" })).toHaveFocus());
+  });
+
+  it("disables Edit but not Delete for a legacy non-positive expense amount", () => {
+    mockLists({ expenses: { expenses: [odd] } });
+    withRows([oddRow]);
+    renderPage();
+    expect(tl("Edit expense Odd from Sep 2, 2026, record 43")).toBeDisabled();
+    expect(tl("Delete expense Odd from Sep 2, 2026, record 43")).toBeEnabled();
+  });
+
+  it("disables actions for unresolved records, a loading or failed list, and while a cash task is open", async () => {
+    const user = userEvent.setup();
+    mockLists({ expenses: { expenses: [] }, cash: { inflows: [] } });
+    withRows([lunchRow, transferRow]);
+    const view = renderPage();
+    for (const button of within(region()).getAllByRole("button", { name: /^(Edit|Delete) (expense|cash in)/ })) expect(button).toBeDisabled();
+    view.unmount();
+
+    mockLists({ expenses: { expenses: expensePayload.expenses, error: new Error("x") }, cash: { inflows: [transfer] } });
+    renderPage();
+    expect(tl(/^Edit expense Lunch/)).toBeDisabled();
+    expect(tl(/^Edit cash in Transfer/)).toBeEnabled();
+    await user.click(tl(/^Edit cash in Transfer/));
+    expect(tl(/^Delete cash in Transfer/)).toBeDisabled();
+    expect(tl(/^Delete expense Lunch/)).toBeDisabled();
+  });
+
+  it("disables cash actions while the add-expense form is open but keeps the expense actions as the list does", async () => {
+    const user = userEvent.setup();
+    mockLists({ expenses: expensePayload, cash: { inflows: [transfer] } });
+    withRows([lunchRow, transferRow]);
+    renderPage();
+    await user.click(screen.getByRole("button", { name: "Add expense" }));
+    expect(tl(/^Edit cash in/)).toBeDisabled();
+    expect(tl(/^Edit expense Lunch/)).toBeEnabled();
+  });
+
+  it("shows the missing message on an expense delete 404, refreshes the timeline, and warns it may be stale", async () => {
+    const user = userEvent.setup();
+    mockLists({ expenses: { ...expensePayload, deleteExpense: vi.fn().mockRejectedValue(httpError(404)) } });
+    withRows([lunchRow]);
+    confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+    renderPage();
+
+    await user.click(tl(/^Delete expense Lunch/));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/This expense is no longer available\. Refresh spending activity/);
+    expect(screen.getByText(/The activity timeline may be out of date/)).toBeInTheDocument();
+    await waitFor(() => expect(timelineRefresh).toHaveBeenCalled());
+    await waitFor(() => expect(document.querySelector(".activity-feedback")).toHaveFocus());
+  });
+
+  it("closes the open inline edit and moves focus to feedback on an expense update 404", async () => {
+    const user = userEvent.setup();
+    mockLists({ expenses: { ...expensePayload, updateExpense: vi.fn().mockRejectedValue(httpError(404)) } });
+    withRows([lunchRow]);
+    renderPage();
+
+    await user.click(tl(/^Edit expense Lunch/));
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/no longer available/);
+    expect(screen.queryByLabelText("Edit description")).not.toBeInTheDocument();
+    await waitFor(() => expect(document.querySelector(".activity-feedback")).toHaveFocus());
+  });
+
+  it("re-reads the timeline and warns it may be stale after a cash-in 404", async () => {
+    const user = userEvent.setup();
+    mockLists({ cash: { inflows: [transfer], deleteInflow: vi.fn().mockRejectedValue(httpError(404)) } });
+    withRows([transferRow]);
+    renderPage();
+
+    await user.click(tl(/^Delete cash in Transfer/));
+    const task = document.getElementById("cash-in-task");
+    await user.click(within(task).getByRole("button", { name: "Confirm delete cash in" }));
+
+    await waitFor(() => expect(screen.getByText(/The activity timeline may be out of date/)).toBeInTheDocument());
+    expect(timelineRefresh).toHaveBeenCalled();
+  });
+});
 });

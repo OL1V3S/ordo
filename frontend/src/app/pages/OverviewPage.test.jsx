@@ -368,6 +368,21 @@ describe("capture-first Home", () => {
     await waitFor(() => expect(screen.getByRole("link", { name: "Open Activity to check" })).toHaveFocus());
   });
 
+  it("keeps a create 404 on the unknown path: marker recorded and no missing wording", async () => {
+    const user = userEvent.setup();
+    expensesApi.create.mockRejectedValue({ response: { status: 404 } });
+    renderPage();
+    await user.click(screen.getByRole("button", { name: "Add expense" }));
+    await user.type(screen.getByLabelText("Description"), "Lunch");
+    await user.type(screen.getByLabelText("Amount"), "12.50");
+    await user.type(screen.getByLabelText("Date"), "2026-09-01");
+    await user.selectOptions(screen.getByLabelText("Category"), "food");
+    await user.click(screen.getByRole("button", { name: "Save expense" }));
+    expect(await screen.findByRole("link", { name: "Open Activity to check" })).toHaveAttribute("href", "/transactions");
+    expect(sessionStorage.getItem("ordo-home-uncertain-write:owner%40example.test")).toBe("expense");
+    expect(screen.queryByText(/no longer available/)).not.toBeInTheDocument();
+  });
+
   it("keeps an unknown Cash In marker through a successful Home read and focuses the Activity handoff", async () => {
     const user = userEvent.setup();
     homeApi.getHome.mockRejectedValueOnce(new Error("Home unavailable")).mockResolvedValue(response(home()));

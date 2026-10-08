@@ -324,4 +324,48 @@ describe("ActivityTimeline", () => {
       expect(screen.getByText("Ninguna actividad coincide con estos filtros.")).toBeInTheDocument();
     });
   });
+
+  describe("row actions", () => {
+    const actions = (getState = () => ({ canEdit: true, canDelete: true })) => ({ getState, onEdit: vi.fn(), onDelete: vi.fn() });
+
+    it("renders no actions without rowActions", () => {
+      renderTimeline(state({ items: [expense(), inflow()] }));
+      expect(screen.queryByRole("button", { name: /^(Edit|Delete)/ })).not.toBeInTheDocument();
+    });
+
+    it("names each action by type, record and date, even when an expense and a cash in share an id", () => {
+      renderTimeline(state({ items: [expense({ recordId: 3 }), inflow({ recordId: 3 })] }), { rowActions: actions() });
+      expect(screen.getByRole("button", { name: "Edit expense Corner coffee from Sep 22, 2026, record 3" })).toHaveTextContent("Edit");
+      expect(screen.getByRole("button", { name: "Delete expense Corner coffee from Sep 22, 2026, record 3" })).toHaveClass("button-danger");
+      expect(screen.getByRole("button", { name: "Edit cash in Payroll deposit from Sep 21, 2026, record 3" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Delete cash in Payroll deposit from Sep 21, 2026, record 3" })).toHaveClass("button-ghost");
+    });
+
+    it("applies getState per row, keeping Delete enabled for an amount that needs review", () => {
+      const rowActions = actions((item) => item.kind === "expense" ? { canEdit: false, canDelete: true } : { canEdit: false, canDelete: false });
+      renderTimeline(state({ items: [expense({ amount: "-5.00" }), inflow()] }), { rowActions });
+      expect(screen.getByRole("button", { name: /^Edit expense/ })).toBeDisabled();
+      expect(screen.getByRole("button", { name: /^Delete expense/ })).toBeEnabled();
+      expect(screen.getByRole("button", { name: /^Edit cash in/ })).toBeDisabled();
+      expect(screen.getByRole("button", { name: /^Delete cash in/ })).toBeDisabled();
+    });
+
+    it("passes the item and the clicked button to the handlers", () => {
+      const rowActions = actions();
+      const item = inflow({ recordId: 9 });
+      renderTimeline(state({ items: [item] }), { rowActions });
+      const edit = screen.getByRole("button", { name: /^Edit cash in/ });
+      fireEvent.click(edit);
+      fireEvent.click(screen.getByRole("button", { name: /^Delete cash in/ }));
+      expect(rowActions.onEdit).toHaveBeenCalledWith(item, edit);
+      expect(rowActions.onDelete).toHaveBeenCalledWith(item, screen.getByRole("button", { name: /^Delete cash in/ }));
+    });
+
+    it("localizes the action names in Spanish", async () => {
+      await i18n.changeLanguage("es");
+      renderTimeline(state({ items: [expense({ recordId: 3 })] }), { rowActions: actions() });
+      expect(screen.getByRole("button", { name: /^Editar gasto Corner coffee del .*, registro 3$/ })).toHaveTextContent("Editar");
+      expect(screen.getByRole("button", { name: /^Eliminar gasto/ })).toHaveTextContent("Eliminar");
+    });
+  });
 });
