@@ -1,13 +1,6 @@
 {
-  "nav": {
-    "label": "Secciones de actividad",
-    "timeline": "Cronología",
-    "spending": "Gastos",
-    "cashIn": "Entradas de dinero"
-  },
   "page": {
     "title": "Actividad",
-    "intro": "Revisa los gastos registrados y el dinero que entra.",
     "addExpense": "Agregar gasto",
     "addCashIn": "Agregar entrada de dinero",
     "importStatement": "Importar estado de cuenta",
@@ -16,7 +9,7 @@
   },
   "timeline": {
     "heading": "Cronología de actividad",
-    "intro": "Todo lo que has registrado, de lo más reciente a lo más antiguo. Edita o elimina un registro aquí; el cambio se abre en su lista de más abajo.",
+    "intro": "De lo más reciente a lo más antiguo.",
     "listLabel": "Actividad registrada, de lo más reciente a lo más antiguo",
     "loading": "Cargando la cronología de actividad…",
     "refreshing": "Actualizando la cronología de actividad…",
@@ -46,7 +39,19 @@
         "to": "Hasta {{date}}"
       },
       "noMatches": "Ninguna actividad coincide con estos filtros.",
-      "invalid": "Revisa los filtros: la búsqueda es demasiado larga o las fechas no son válidas o están en orden incorrecto."
+      "invalid": "Revisa los filtros: la búsqueda es demasiado larga o las fechas no son válidas o están en orden incorrecto.",
+      "toggle": "Filtros",
+      "toggleHint": "Se mantiene abierto mientras los filtros necesitan atención.",
+      "periodLabel": "Periodo",
+      "period": {
+        "all": "Todo",
+        "last7": "Últimos 7 días",
+        "last30": "Últimos 30 días",
+        "thisMonth": "Este mes",
+        "custom": "Personalizado"
+      },
+      "chipsLabel": "Filtros activos",
+      "remove": "Quitar filtro: {{label}}"
     },
     "actions": {
       "edit": "Editar",
@@ -65,7 +70,7 @@
     "other": "Otra"
   },
   "spending": {
-    "heading": "Actividad de gastos",
+    "heading": "Gastos",
     "refresh": "Actualizar actividad",
     "loading": "Cargando gastos...",
     "refreshing": "Actualizando gastos…",
@@ -83,7 +88,9 @@
       "updatedRefreshFailed": "Gasto actualizado. No se pudo actualizar la actividad. Actualiza la lista antes de hacer otro cambio.",
       "deletedRefreshFailed": "Gasto eliminado. No se pudo actualizar la actividad. Actualiza la lista antes de hacer otro cambio.",
       "missing": "Este gasto ya no está disponible. Actualiza la actividad de gastos antes de hacer otro cambio."
-    }
+    },
+    "recordsToggle": "Registros de gastos",
+    "recordsHint": "Se mantiene abierto mientras una tarea, un error o una recuperación lo necesita."
   },
   "expenseForm": {
     "title": "Agregar gasto",
@@ -238,6 +245,8 @@
         "date": "Fecha",
         "actions": "Acciones"
       }
-    }
+    },
+    "recordsToggle": "Registros de entradas de dinero",
+    "recordsHint": "Se mantiene abierto mientras una tarea, un error o una recuperación lo necesita."
   }
 }

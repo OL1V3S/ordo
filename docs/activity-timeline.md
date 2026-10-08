@@ -118,9 +118,22 @@ displays backend ProblemDetails text.
 `frontend/src/features/activity/` owns the timeline API module, a session-scoped
 hook (request-id, abort, and session staleness guards; first page, load older,
 refresh resets to the first page), a timeline-specific response validator, and
-the presentation component. The Activity page renders it above Spending activity
-with a Timeline section link; the per-type lists, forms, gates, and write
-payloads are unchanged, so every record also appears in its per-type list.
+the presentation component. The Activity page renders it above Spending (no section
+navigation); the per-type lists, forms, gates, and write payloads are unchanged, so
+every record also appears in its per-type list. The Spending and Cash in lists sit in
+closed-by-default "Spending records" and "Cash-in records" disclosures that open
+automatically, and stay open, when an edit/delete task, a load error, an unknown or
+refresh gate, or write recovery needs them (the toggle is then aria-disabled with an
+explanatory hint). Loading and error lines, Refresh, task forms, and focus targets stay
+outside the collapsed bodies.
+
+- Filters: search is always visible; a Filters disclosure holds Period chips (All, Last 7
+  days, Last 30 days, This month, Custom) and Type; From/To appear for Custom. The panel
+  opens by itself on a date, range, or type error. Presets are computed client-side from
+  the browser-local calendar day, fixed when clicked (they do not move past midnight),
+  and only fill the existing from/to bounds, so requests carry the same optional
+  q/kind/from/to as before: no API change. This month is the whole calendar month.
+  Active filters show as removable chips (dates shown as ISO) plus Clear filters.
 
 - Rows are a list, not a table. Each shows a text label (Expense or Cash in),
   description, date, expense category, a paycheck-linked note, and an amount with
@@ -138,7 +151,7 @@ payloads are unchanged, so every record also appears in its per-type list.
   uses the danger style, cash-in Delete the ghost style, as in the lists). They are
   dispatched by `kind` (an expense and a cash in can share an id) to the existing
   Spending edit, Spending delete (native confirm), and Cash in task handlers, so the
-  edit or confirmation opens in the per-type list below, with the same payloads and
+  edit or confirmation opens in its per-type list (which opens automatically), with the same payloads and
   guards. Enabled state mirrors the per-type lists; an expense whose amount needs
   review can be deleted but not edited. Cancel returns focus to the timeline button
   when it is still mounted, else to the Spending or Cash in heading. No timeline
@@ -152,7 +165,7 @@ payloads are unchanged, so every record also appears in its per-type list.
   edit made from a stale view can overwrite a newer one. Drafts are seeded from the
   latest list read and the timeline is refreshed after each write. Detection would
   be a separate HIGH-risk contract change.
-- While Home's uncertain-write marker is set, the timeline and its link are hidden
+- While Home's uncertain-write marker is set, the timeline is hidden
   and no request is issued; it loads after acknowledgment.
 - A fire-and-forget refresh follows completed expense and cash-in writes, imports
   that saved records, and the manual per-type refresh buttons, through wrappers
@@ -161,7 +174,7 @@ payloads are unchanged, so every record also appears in its per-type list.
 
 ## Localization
 
-Timeline strings (including the filter controls under `timeline.filters`) and the section-links navigation use the `activity` catalog;
+Timeline strings (including the filter controls under `timeline.filters`) use the `activity` catalog;
 direction labels reuse Home's keys. Timeline money and dates format with `en-US`
 or `es-US`. The rest of the Activity page (page header and actions, spending
 area, and cash-in area) and the statement import preview are also localized, and

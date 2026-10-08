@@ -1,13 +1,6 @@
 {
-  "nav": {
-    "label": "Activity sections",
-    "timeline": "Timeline",
-    "spending": "Spending",
-    "cashIn": "Cash in"
-  },
   "page": {
     "title": "Activity",
-    "intro": "Review recorded spending and incoming money.",
     "addExpense": "Add expense",
     "addCashIn": "Add cash in",
     "importStatement": "Import statement",
@@ -16,7 +9,7 @@
   },
   "timeline": {
     "heading": "Activity timeline",
-    "intro": "Everything you have recorded, newest first. Edit or delete a record here; the change opens in its list below.",
+    "intro": "Newest first.",
     "listLabel": "Recorded activity, newest first",
     "loading": "Loading the activity timeline…",
     "refreshing": "Refreshing the activity timeline…",
@@ -46,7 +39,19 @@
         "to": "Through {{date}}"
       },
       "noMatches": "No activity matches these filters.",
-      "invalid": "Check the filters: the search is too long or the dates are not valid or are out of order."
+      "invalid": "Check the filters: the search is too long or the dates are not valid or are out of order.",
+      "toggle": "Filters",
+      "toggleHint": "Kept open while the filters need attention.",
+      "periodLabel": "Period",
+      "period": {
+        "all": "All",
+        "last7": "Last 7 days",
+        "last30": "Last 30 days",
+        "thisMonth": "This month",
+        "custom": "Custom"
+      },
+      "chipsLabel": "Active filters",
+      "remove": "Remove filter: {{label}}"
     },
     "actions": {
       "edit": "Edit",
@@ -65,7 +70,7 @@
     "other": "Other"
   },
   "spending": {
-    "heading": "Spending activity",
+    "heading": "Spending",
     "refresh": "Refresh activity",
     "loading": "Loading expenses...",
     "refreshing": "Refreshing expenses…",
@@ -83,7 +88,9 @@
       "updatedRefreshFailed": "Expense updated. Activity could not be refreshed. Refresh the list before making another change.",
       "deletedRefreshFailed": "Expense deleted. Activity could not be refreshed. Refresh the list before making another change.",
       "missing": "This expense is no longer available. Refresh spending activity before making another change."
-    }
+    },
+    "recordsToggle": "Spending records",
+    "recordsHint": "Kept open while a task, error or recovery needs it."
   },
   "expenseForm": {
     "title": "Add expense",
@@ -238,6 +245,8 @@
         "date": "Date",
         "actions": "Actions"
       }
-    }
+    },
+    "recordsToggle": "Cash-in records",
+    "recordsHint": "Kept open while a task, error or recovery needs it."
   }
 }

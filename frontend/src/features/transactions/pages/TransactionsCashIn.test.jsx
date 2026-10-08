@@ -7,6 +7,7 @@ import { useInflows } from '../../inflows/hooks/useInflows'
 import { useExpenses } from '../../expenses/hooks/useExpenses'
 import { useImportPreview } from '../../importPreview/hooks/useImportPreview'
 import { useActivityTimeline } from '../../activity/hooks/useActivityTimeline'
+import { openCashIn } from '../../../test/openRecords'
 vi.mock('../../inflows/hooks/useInflows', () => ({ useInflows: vi.fn() }))
 vi.mock('../../expenses/hooks/useExpenses', () => ({ useExpenses: vi.fn() }))
 vi.mock('../../importPreview/hooks/useImportPreview', () => ({ useImportPreview: vi.fn() }))
@@ -58,6 +59,10 @@ describe('Activity cash-in tasks', () => {
     submit(form)
     const ack = await screen.findByRole('button', { name: 'I checked cash in' })
     expect(ack).toBeDisabled()
+    const recordsToggle = screen.getByRole('button', { name: 'Cash-in records' })
+    expect(recordsToggle).toHaveAttribute('aria-expanded', 'true')
+    expect(recordsToggle).toHaveAttribute('aria-disabled', 'true')
+    expect(document.getElementById('cash-in-records')).toBeVisible()
     expect(within(form).getByLabelText('Description')).toHaveValue('  Refund  From Store  ')
     expect(within(form).getByRole('button', { name: 'Add cash in' })).toBeDisabled()
     cash.refresh.mockRejectedValueOnce(new Error('read failed'))
@@ -100,6 +105,7 @@ describe('Activity cash-in tasks', () => {
   it('pins an edit through search and a failed read and returns cancellation focus', async () => {
     const user = userEvent.setup()
     const view = render(<TransactionsPage />)
+    await openCashIn(user)
     await user.click(screen.getByRole('button', { name: /Edit cash in Transfer/ }))
     const form = screen.getByRole('form', { name: 'Edit cash in' })
     await user.type(within(form).getByLabelText('Description'), ' revised')
@@ -107,15 +113,18 @@ describe('Activity cash-in tasks', () => {
     cash = { ...cash, error: new Error('offline'), inflows: [] }
     view.rerender(<TransactionsPage />)
     expect(within(form).getByLabelText('Description')).toHaveValue('Transfer from Savings revised')
-    expect(screen.getByText('Transfer from Savings', { selector: 'td' })).toBeInTheDocument()
+    expect(screen.getByText('Transfer from Savings', { selector: 'td' })).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Cash-in records' })).toHaveAttribute('aria-expanded', 'true')
     expect(within(form).getByRole('button', { name: 'Save changes' })).toBeDisabled()
     await user.click(within(form).getByRole('button', { name: 'Cancel' }))
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Cash in' })).toHaveFocus())
+    expect(screen.getByRole('button', { name: 'Cash-in records' })).toHaveAttribute('aria-expanded', 'true')
   })
   it('requires refresh after 404 and prevents resubmitting an unavailable target', async () => {
     cash.updateInflow.mockRejectedValue({ response: { status: 404 } })
     const user = userEvent.setup()
     const view = render(<TransactionsPage />)
+    await openCashIn(user)
     await user.click(screen.getByRole('button', { name: /Edit cash in Transfer/ }))
     const form = screen.getByRole('form', { name: 'Edit cash in' })
     submit(form)
@@ -130,6 +139,7 @@ describe('Activity cash-in tasks', () => {
   it('requires record-specific delete confirmation with link and import consequences', async () => {
     const user = userEvent.setup()
     render(<TransactionsPage />)
+    await openCashIn(user)
     await user.click(screen.getByRole('button', { name: /Delete cash in Transfer/ }))
     expect(screen.getByRole('heading', { name: /Delete cash in: Transfer from Savings/ })).toBeInTheDocument()
     expect(screen.getByText(/supporting paycheck link is removed/)).toBeInTheDocument()

@@ -24,6 +24,14 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-08 — Activity page declutter (part 1)
+
+[PR #196](https://github.com/OL1V3S/ordo/pull/196) ·
+[Issue #194](https://github.com/OL1V3S/ordo/issues/194)
+
+- Activity timeline filters moved behind a Filters disclosure with period chips and removable filter chips; the section links were removed.
+- Spending and Cash in lists are now collapsed Records disclosures that open automatically when a task, error, or recovery needs them; frontend only, no API change.
+
 ### 2026-10-07 — Edit and delete from the Activity timeline
 
 [PR #193](https://github.com/OL1V3S/ordo/pull/193) ·
@@ -265,15 +273,3 @@ the permanent, complete archive.
   preserving Activity payloads, validation, task locking, focus, and recovery behavior.
 - Kept full-list ownership outside capture so future surfaces can reuse trusted
   writes with bounded authoritative reads instead of loading complete history.
-
-### 2026-09-18 — English and Spanish localization foundation
-
-[PR #148](https://github.com/OL1V3S/ordo/pull/148) ·
-[Issue #147](https://github.com/OL1V3S/ordo/issues/147)
-
-- Added a persisted English/Spanish browser preference with bundled catalogs,
-  English fallback, and active-language document metadata.
-- Localized the responsive shell, navigation hubs, Settings, and theme controls
-  while preserving routes, user content, financial semantics, and feature behavior.
-- Established catalog parity tests, accessible in-place switching, a reviewed
-  glossary, and precision-safe boundaries for future feature localization.

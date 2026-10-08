@@ -7,6 +7,7 @@ import { useInflows } from '../../inflows/hooks/useInflows'
 import { useExpenses } from '../../expenses/hooks/useExpenses'
 import { useImportPreview } from '../../importPreview/hooks/useImportPreview'
 import { useActivityTimeline } from '../../activity/hooks/useActivityTimeline'
+import { openSpending } from '../../../test/openRecords'
 
 vi.mock('../../inflows/hooks/useInflows', () => ({ useInflows: vi.fn() }))
 beforeEach(() => { useInflows.mockReturnValue({ inflows: [], loading: false, error: null, refresh: vi.fn().mockResolvedValue({ stale: false }), createInflow: vi.fn(), updateInflow: vi.fn(), deleteInflow: vi.fn() }) })
@@ -169,6 +170,7 @@ describe('existing expense workflows', () => {
       }],
     })
     render(<TransactionsPage />)
+    await openSpending(user)
 
     const row = screen.getByText('Medical').closest('tr')
     await user.click(within(row).getByRole('button', { name: /^Edit expense old name/i }))
@@ -210,6 +212,7 @@ describe('existing expense workflows', () => {
       })),
     })
     render(<TransactionsPage />)
+    await openSpending(user)
 
     expect(screen.getByRole('region', { name: 'Expenses table' })).toHaveAttribute('tabindex', '0')
     expect(screen.getByText('Expenses', { selector: 'caption' })).toBeInTheDocument()
@@ -235,6 +238,7 @@ describe('existing expense workflows', () => {
       })),
     })
     render(<TransactionsPage />)
+    await openSpending(user)
     const names = () => within(screen.getByRole('region', { name: 'Expenses table' }))
       .getAllByRole('row').slice(1).map((row) => within(row).getByText(/^Entry \d+$/).textContent)
 
@@ -589,7 +593,7 @@ describe('Activity task hierarchy and safeguards', () => {
   it('starts with searchable spending and opens tasks with focus; a competing opener preserves the add draft', async () => {
     const user = userEvent.setup()
     render(<TransactionsPage />)
-    expect(screen.getByRole('heading', { name: 'Spending activity' })).toBeVisible()
+    expect(screen.getByRole('heading', { name: 'Spending' })).toBeVisible()
     expect(screen.queryByRole('button', { name: 'Choose PDF' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Save expense' })).not.toBeInTheDocument()
     const task = await fillNewExpense(user)
@@ -604,6 +608,23 @@ describe('Activity task hierarchy and safeguards', () => {
     await user.click(screen.getByRole('button', { name: 'Close import' }))
     await waitFor(() => expect(screen.getByRole('button', { name: 'Import statement' })).toHaveFocus())
   })
+  it('keeps both Records lists collapsed by default and opens them from their toggles', async () => {
+    const user = userEvent.setup()
+    render(<TransactionsPage />)
+    for (const [name, body] of [['Spending records', 'spending-records'], ['Cash-in records', 'cash-in-records']]) {
+      const toggle = screen.getByRole('button', { name })
+      expect(toggle).toHaveAttribute('aria-expanded', 'false')
+      expect(toggle).toHaveAttribute('aria-controls', body)
+      expect(document.getElementById(body)).not.toBeVisible()
+    }
+    expect(screen.queryByRole('button', { name: /^Edit expense/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Expenses table' })).not.toBeInTheDocument()
+    await openSpending(user)
+    expect(screen.getByRole('button', { name: 'Spending records' })).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('button', { name: /^Edit expense/ })).toBeVisible()
+    await user.click(screen.getByRole('button', { name: 'Spending records' }))
+    expect(screen.queryByRole('button', { name: /^Edit expense/ })).not.toBeInTheDocument()
+  })
   it('keeps the idle import panel hidden during initial loading, while exposing resume loading', () => {
     useImportPreview.mockReturnValue({ ...baseImportHook, loading: true })
     const { rerender } = render(<TransactionsPage />)
@@ -616,7 +637,8 @@ describe('Activity task hierarchy and safeguards', () => {
   it('distinguishes no matches and resets all filters with a visible clear action', async () => {
     const user = userEvent.setup()
     render(<TransactionsPage />)
-    await user.type(within(screen.getByRole('region', { name: 'Spending activity' })).getByRole('searchbox'), 'missing')
+    await openSpending(user)
+    await user.type(within(screen.getByRole('region', { name: 'Spending' })).getByRole('searchbox'), 'missing')
     expect(screen.getByText('No expenses match these filters.')).toBeVisible()
     expect(screen.queryByText('No expenses recorded yet.')).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Clear filters' }))
@@ -629,6 +651,7 @@ describe('Activity task hierarchy and safeguards', () => {
       expenses: [3, 2, 1].map((id) => ({ id, description: `Entry ${id}`, amount: 1, date: `2026-08-${10 + id}`, category: 'food' })),
     })
     render(<TransactionsPage />)
+    await openSpending(user)
     const names = () => within(screen.getByRole('region', { name: 'Expenses table' }))
       .getAllByRole('row').slice(1).map((row) => within(row).queryByLabelText('Edit description')?.value ?? within(row).getByText(/^Entry \d+$/).textContent)
     await user.click(screen.getByRole('button', { name: /^Edit expense.*Entry 1/ }))
@@ -639,10 +662,11 @@ describe('Activity task hierarchy and safeguards', () => {
   it('pins an active edit through filters and failed reads without replacing the draft', async () => {
     const user = userEvent.setup()
     const { rerender } = render(<TransactionsPage />)
+    await openSpending(user)
     await user.click(screen.getByRole('button', { name: /^Edit expense/ }))
     await user.clear(screen.getByLabelText('Edit description'))
     await user.type(screen.getByLabelText('Edit description'), 'Unsaved description')
-    await user.type(within(screen.getByRole('region', { name: 'Spending activity' })).getByRole('searchbox'), 'not a match')
+    await user.type(within(screen.getByRole('region', { name: 'Spending' })).getByRole('searchbox'), 'not a match')
     expect(screen.getByLabelText('Edit description')).toHaveValue('Unsaved description')
     useExpenses.mockReturnValue({ ...baseExpensesHook, expenses: [], error: new Error('offline') })
     rerender(<TransactionsPage />)
@@ -650,24 +674,26 @@ describe('Activity task hierarchy and safeguards', () => {
     expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled()
     expect(screen.getByRole('alert')).toHaveTextContent('We couldn’t load your expenses')
     await user.click(screen.getByRole('button', { name: 'Cancel' }))
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Spending activity' })).toHaveFocus())
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Spending' })).toHaveFocus())
   })
   it('does not let a second edit replace a current draft', async () => {
     const user = userEvent.setup()
     useExpenses.mockReturnValue({ ...baseExpensesHook, expenses: [expense, { ...expense, id: 43, description: 'Other' }] })
     render(<TransactionsPage />)
+    await openSpending(user)
     await user.click(screen.getAllByRole('button', { name: /^Edit expense/ })[0])
     await user.type(screen.getByLabelText('Edit description'), ' draft')
     expect(screen.getByRole('button', { name: /^Edit expense/ })).toBeDisabled()
     expect(screen.getByRole('button', { name: /^Delete expense/ })).toBeDisabled()
     expect(screen.getByLabelText('Edit description')).toHaveValue('Synthetic coffee draft')
   })
-  it('gives repeated expense actions unique names while keeping their visible copy', () => {
+  it('gives repeated expense actions unique names while keeping their visible copy', async () => {
     useExpenses.mockReturnValue({
       ...baseExpensesHook,
       expenses: [expense, { ...expense, id: 43 }],
     })
     render(<TransactionsPage />)
+    await openSpending(userEvent.setup())
 
     expect(screen.getByRole('button', { name: 'Edit expense Synthetic Coffee from 09/01/2026, row 1' })).toHaveTextContent('Edit')
     expect(screen.getByRole('button', { name: 'Edit expense Synthetic Coffee from 09/01/2026, row 2' })).toHaveTextContent('Edit')
@@ -731,6 +757,7 @@ describe('Activity task hierarchy and safeguards', () => {
     const deleteExpense = vi.fn().mockResolvedValue({ refreshFailed: false })
     useExpenses.mockReturnValue({ ...baseExpensesHook, expenses: [expense], deleteExpense })
     render(<TransactionsPage />)
+    await openSpending(user)
     await user.click(screen.getByRole('button', { name: /^Delete expense/ }))
     expect(deleteExpense).not.toHaveBeenCalled()
     await user.click(screen.getByRole('button', { name: /^Delete expense/ }))
