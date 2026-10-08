@@ -326,6 +326,23 @@ describe("ActivityTimeline", () => {
       expect(screen.getByLabelText("Search activity")).toHaveFocus();
     });
 
+    it("moves focus to the previous chip when the last of several chips is removed", () => {
+      const applied = { q: "coffee", kind: "expense", from: "", to: "" };
+      const { rerenderTimeline } = renderTimeline(state(), { filters: filtersOf({ draft: applied, applied, active: true }) });
+      fireEvent.click(screen.getByRole("button", { name: "Remove filter: Expense" }));
+      const searchOnly = { ...applied, kind: "" };
+      rerenderTimeline(state(), { filters: filtersOf({ draft: searchOnly, applied: searchOnly, active: true }) });
+      expect(screen.getByRole("button", { name: /Remove filter: Search/ })).toHaveFocus();
+    });
+
+    it("opens the Filters panel so the field is visible on a date error", () => {
+      renderTimeline(state(), { filters: filtersOf({ error: "date", active: true, period: "custom" }) });
+      const toggle = screen.getByRole("button", { name: "Filters" });
+      expect(toggle).toHaveAttribute("aria-expanded", "true");
+      expect(toggle).toHaveAttribute("aria-disabled", "true");
+      expect(screen.getByLabelText("From date")).toBeVisible();
+    });
+
     it("shows a polite active-filter summary and a working clear button", () => {
       const applied = { q: "coffee", kind: "expense", from: "2026-09-01", to: "" };
       const filters = filtersOf({ draft: applied, applied, active: true });

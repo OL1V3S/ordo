@@ -9,7 +9,7 @@ and Paychecks pages have since followed. The public account-access pages
 through the `auth` namespace. The unavailable Investing placeholder page remains
 English until a separately scoped adoption issue moves its complete copy into catalogs.
 The Activity page is localized through the `activity` namespace: the timeline, the
-the Records disclosures, the page header and actions, the spending area (expense form,
+Records disclosures, the page header and actions, the spending area (expense form,
 filters, list, and row editing), and the cash-in area (form, list, and delete
 confirmation), including their feedback and error messages. The statement import
 preview is localized through the `importPreview` namespace: the import panel, its
