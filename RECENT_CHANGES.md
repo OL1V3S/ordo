@@ -26,6 +26,7 @@ the permanent, complete archive.
 
 ### 2026-10-08 — Visual hygiene fixes (warning style, dark divider, tokens)
 
+[PR #198](https://github.com/OL1V3S/ordo/pull/198) ·
 [Issue #197](https://github.com/OL1V3S/ordo/issues/197)
 
 - Warning status messages now have a distinct amber style in light and dark themes instead of rendering as a neutral box.
