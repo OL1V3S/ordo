@@ -80,7 +80,7 @@
 
 .secondary-link__status {
   padding: .2rem .45rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   color: var(--color-text-muted);
   background: var(--color-surface-subtle);
   font-size: var(--text-xs);

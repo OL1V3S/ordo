@@ -126,6 +126,6 @@
 .activity-timeline__periods-label { font-weight: 600; }
 .activity-timeline__period[aria-pressed="true"] { border-color: var(--color-focus); font-weight: 700; }
 .activity-timeline__chips { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2); }
-.activity-timeline__chip { display: inline-flex; align-items: center; gap: var(--space-1); padding-left: var(--space-3); border: 1px solid var(--color-border); border-radius: 999px; background: var(--color-surface); overflow-wrap: anywhere; }
+.activity-timeline__chip { display: inline-flex; align-items: center; gap: var(--space-1); padding-left: var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius-pill); background: var(--color-surface); overflow-wrap: anywhere; }
 .activity-timeline__chip-remove { min-width: 44px; min-height: 44px; padding: 0; border: 0; background: transparent; cursor: pointer; }
 .activity-timeline__filters button:focus-visible, .activity-records-controls button:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 3px; }
