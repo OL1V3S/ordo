@@ -24,6 +24,14 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-08 — Visual hygiene fixes (warning style, dark divider, tokens)
+
+[PR #198](https://github.com/OL1V3S/ordo/pull/198) ·
+[Issue #197](https://github.com/OL1V3S/ordo/issues/197)
+
+- Warning status messages now have a distinct amber style in light and dark themes instead of rendering as a neutral box.
+- The Home recent-list divider follows the dark theme; CSS-only, with tabular numerals for amounts and existing tokens replacing raw spacing and pill radii.
+
 ### 2026-10-08 — Activity page declutter (part 1)
 
 [PR #196](https://github.com/OL1V3S/ordo/pull/196) ·
@@ -263,13 +271,3 @@ the permanent, complete archive.
   Expense-derived commitment evidence exact with integer minor-unit arithmetic.
 - Made ambiguous legacy Expense and BudgetLimit numbers fail closed instead of
   driving approximate edits, commitment decisions, budget classifications, or attention.
-
-### 2026-09-21 — Reusable financial capture orchestration
-
-[PR #150](https://github.com/OL1V3S/ordo/pull/150) ·
-[Issue #149](https://github.com/OL1V3S/ordo/issues/149)
-
-- Extracted dependency-injected Expense and Cash In capture controllers while
-  preserving Activity payloads, validation, task locking, focus, and recovery behavior.
-- Kept full-list ownership outside capture so future surfaces can reuse trusted
-  writes with bounded authoritative reads instead of loading complete history.

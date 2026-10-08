@@ -100,6 +100,10 @@ describe("theme palette", () => {
   it.each([
     ["light control border", light, "--color-control-border", "--color-surface-raised"],
     ["light focus", light, "--color-focus", "--color-surface"],
+    ["light warning border", light, "--color-warning", "--color-surface"],
+    ["light warning border on tint", light, "--color-warning", "--color-warning-soft"],
+    ["dark warning border", dark, "--color-warning", "--color-surface"],
+    ["dark warning border on tint", dark, "--color-warning", "--color-warning-soft"],
     ["dark control border", dark, "--color-control-border", "--color-surface-raised"],
     ["dark focus", dark, "--color-focus", "--color-surface"],
   ])("meets non-text contrast for %s", (_name, theme, foreground, background) => {
