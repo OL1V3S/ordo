@@ -1,3 +1,5 @@
+import { formatLocalCalendarDate, localCalendarDateDaysAgo } from "../../expenses/utils/calendarDate";
+
 // Timeline filters are applied by the server so every page of history stays reachable.
 // The server's 400 detail is never shown, so the same limits are enforced here first.
 
@@ -49,4 +51,22 @@ export function validateTimelineFilter(filter) {
 // Request parameters for the set filters only, so an unfiltered read is identical to before.
 export function timelineFilterParams(filter) {
   return Object.fromEntries(Object.entries(normalizeTimelineFilter(filter)).filter(([, value]) => value));
+}
+
+export const TIMELINE_PERIODS = Object.freeze(["all", "last7", "last30", "thisMonth", "custom"]);
+
+// Client-side period presets. They only fill the existing from/to bounds (browser-local calendar
+// days, never UTC), so the request carries nothing new. Same meanings as the Spending presets.
+// "custom" returns null: the user's own dates are kept.
+export function periodRange(period, now = new Date()) {
+  if (period === "all") return { from: "", to: "" };
+  if (period === "last7") return { from: localCalendarDateDaysAgo(6, now), to: formatLocalCalendarDate(now) };
+  if (period === "last30") return { from: localCalendarDateDaysAgo(29, now), to: formatLocalCalendarDate(now) };
+  if (period === "thisMonth") {
+    return {
+      from: formatLocalCalendarDate(new Date(now.getFullYear(), now.getMonth(), 1)),
+      to: formatLocalCalendarDate(new Date(now.getFullYear(), now.getMonth() + 1, 0)),
+    };
+  }
+  return null;
 }

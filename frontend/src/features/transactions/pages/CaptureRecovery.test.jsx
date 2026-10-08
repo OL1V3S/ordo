@@ -43,15 +43,18 @@ describe("uncertain Home write recovery in Activity", () => {
     markCaptureRecovery("expense");
     renderPage();
     expect(screen.getByText("An expense save could not be confirmed. Review the complete expense list below. Do not retry until you have checked it.")).toBeInTheDocument();
-    expect(screen.getByText("Expense 12")).toBeInTheDocument();
-    expect(screen.getByText("Expense 1")).toBeInTheDocument();
+    expect(screen.getByText("Expense 12")).toBeVisible();
+    expect(screen.getByText("Expense 1")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Spending records" })).toHaveAttribute("aria-expanded", "true");
     expect(screen.queryByRole("button", { name: /show more/i })).not.toBeInTheDocument();
     await waitFor(() => expect(screen.getByRole("region", { name: "Check the complete activity list" })).toHaveFocus());
     expect(sessionStorage.length).toBe(1);
     fireEvent.click(screen.getByRole("button", { name: "I checked the complete list" }));
     expect(sessionStorage.length).toBe(0);
     expect(screen.getByText(/Ordo did not determine whether the entry was saved/)).toBeInTheDocument();
-    await waitFor(() => expect(screen.getByRole("heading", { name: "Spending activity" })).toHaveFocus());
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Spending" })).toHaveFocus());
+    expect(screen.getByRole("heading", { name: "Spending" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Spending records" })).toHaveAttribute("aria-expanded", "true");
   });
 
   it("requires a successful complete Cash In read and focuses Cash In after acknowledgment", async () => {
@@ -74,12 +77,15 @@ describe("uncertain Home write recovery in Activity", () => {
     view.rerender(<I18nextProvider i18n={i18n}><TransactionsPage /></I18nextProvider>);
     const table = screen.getByRole("region", { name: "Cash in table" });
     expect(within(table).getByText("Cash record 1")).toBeInTheDocument();
-    expect(within(table).getByText("Cash record 12")).toBeInTheDocument();
+    expect(within(table).getByText("Cash record 12")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Cash-in records" })).toHaveAttribute("aria-expanded", "true");
     expect(screen.queryByLabelText("Search cash in")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "I checked the complete list" })).toBeEnabled();
     fireEvent.click(screen.getByRole("button", { name: "I checked the complete list" }));
     expect(sessionStorage.length).toBe(0);
     await waitFor(() => expect(screen.getByRole("heading", { name: "Cash in" })).toHaveFocus());
+    expect(screen.getByRole("heading", { name: "Cash in" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Cash-in records" })).toHaveAttribute("aria-expanded", "true");
   });
 
   it("retains the marker and prevents acknowledgment when the full list failed", () => {

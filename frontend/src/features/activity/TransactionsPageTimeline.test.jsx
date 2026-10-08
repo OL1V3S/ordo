@@ -10,6 +10,7 @@ import { useActivityTimeline } from "./hooks/useActivityTimeline";
 import { clearSession, establishSession } from "../../shared/auth/session";
 import { markCaptureRecovery } from "../home/recovery/captureRecovery";
 import i18n from "../../shared/localization/i18n";
+import { openSpending } from "../../test/openRecords";
 
 vi.mock("../expenses/hooks/useExpenses", () => ({ useExpenses: vi.fn() }));
 vi.mock("../inflows/hooks/useInflows", () => ({ useInflows: vi.fn() }));
@@ -79,51 +80,46 @@ beforeEach(() => {
 afterEach(() => { clearSession(); sessionStorage.clear(); confirmSpy?.mockRestore(); confirmSpy = null; });
 
 describe("Activity timeline on the Activity page", () => {
-  it("adds a labelled timeline region above Spending activity and a Timeline section link", () => {
+  it("adds a labelled timeline region above Spending and no section navigation", () => {
     useActivityTimeline.mockImplementation(() => timelineState({ items: timelineItems }));
     renderPage();
 
     const region = screen.getByRole("region", { name: "Activity timeline" });
-    const spending = screen.getByRole("heading", { name: "Spending activity" });
+    const spending = screen.getByRole("heading", { name: "Spending" });
     expect(region.compareDocumentPosition(spending) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    const nav = screen.getByRole("navigation", { name: "Activity sections" });
-    expect(within(nav).getByRole("link", { name: "Timeline" })).toHaveAttribute("href", "#activity-timeline-heading");
-    expect(within(nav).getByRole("link", { name: "Spending" })).toHaveAttribute("href", "#spending-activity-heading");
-    expect(within(nav).getByRole("link", { name: "Cash in" })).toHaveAttribute("href", "#cash-in-heading");
+    expect(screen.queryByRole("navigation", { name: "Activity sections" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Timeline" })).not.toBeInTheDocument();
     expect(within(region).getAllByRole("listitem")).toHaveLength(2);
     expect(screen.getByRole("heading", { name: "Cash in" })).toBeInTheDocument();
   });
 
-  it("localizes the section links in Spanish", async () => {
+  it("localizes the page headings and Records toggles in Spanish without a section navigation", async () => {
     await i18n.changeLanguage("es");
     try {
       renderPage();
 
-      const nav = screen.getByRole("navigation", { name: "Secciones de actividad" });
-      expect(within(nav).getByRole("link", { name: "Cronología" })).toBeInTheDocument();
-      expect(within(nav).getByRole("link", { name: "Gastos" })).toBeInTheDocument();
-      expect(within(nav).getByRole("link", { name: "Entradas de dinero" })).toBeInTheDocument();
-      expect(screen.getByRole("heading", { name: "Actividad de gastos" })).toBeInTheDocument();
+      expect(screen.queryByRole("navigation", { name: "Secciones de actividad" })).not.toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "Gastos" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Registros de gastos" })).toHaveAttribute("aria-expanded", "false");
+      expect(screen.getByRole("button", { name: "Registros de entradas de dinero" })).toHaveAttribute("aria-expanded", "false");
     } finally {
       await i18n.changeLanguage("en");
     }
   });
 
-  it("issues no timeline request and hides the region and link while the uncertain-write marker is set", async () => {
+  it("issues no timeline request and hides the region while the uncertain-write marker is set", async () => {
     markCaptureRecovery("expense");
     renderPage();
 
     expect(useActivityTimeline.mock.calls.length).toBeGreaterThan(0);
     expect(useActivityTimeline.mock.calls.every(([options]) => options.enabled === false)).toBe(true);
     expect(screen.queryByRole("region", { name: "Activity timeline" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Timeline" })).not.toBeInTheDocument();
     expect(timelineRefresh).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole("button", { name: "I checked the complete list" }));
 
     await waitFor(() => expect(useActivityTimeline).toHaveBeenLastCalledWith(expect.objectContaining({ enabled: true })));
     expect(screen.getByRole("region", { name: "Activity timeline" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Timeline" })).toBeInTheDocument();
   });
 
   it("refreshes the timeline after a completed expense create without changing the write", async () => {
@@ -139,11 +135,46 @@ describe("Activity timeline on the Activity page", () => {
     expect(timelineRefresh).toHaveBeenCalledOnce();
   });
 
+  it("forces each Records list open on a load error while Refresh and the status stay outside the body", () => {
+    mockLists({ expenses: { error: new Error("offline") }, cash: { error: new Error("offline") } });
+    renderPage();
+
+    for (const name of ["Spending records", "Cash-in records"]) {
+      const toggle = screen.getByRole("button", { name });
+      expect(toggle).toHaveAttribute("aria-expanded", "true");
+      expect(toggle).toHaveAttribute("aria-disabled", "true");
+    }
+    expect(document.getElementById("spending-records")).toBeVisible();
+    expect(document.getElementById("cash-in-records")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Try again" }).closest("#spending-records")).toBeNull();
+    expect(screen.getByRole("button", { name: "Refresh cash in" }).closest("#cash-in-records")).toBeNull();
+  });
+
+  it("does not expand Cash-in records for Add cash in, and keeps Spending open after an edit ends", async () => {
+    const user = userEvent.setup();
+    mockLists({ expenses: expensePayload });
+    renderPage();
+
+    await user.click(screen.getByRole("button", { name: "Add cash in", exact: true }));
+    expect(screen.getByRole("form", { name: "Add cash in" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Cash-in records" })).toHaveAttribute("aria-expanded", "false");
+    await user.click(within(document.getElementById("cash-in-task")).getByRole("button", { name: "Cancel" }));
+
+    await openSpending(user);
+    await user.click(screen.getByRole("button", { name: /^Edit expense/ }));
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    const toggle = screen.getByRole("button", { name: "Spending records" });
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(toggle).not.toHaveAttribute("aria-disabled");
+    expect(screen.getByRole("button", { name: /^Edit expense/ })).toBeVisible();
+  });
+
   it("refreshes the timeline after a completed expense delete", async () => {
     const user = userEvent.setup();
     confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
     mockLists({ expenses: expensePayload });
     renderPage();
+    await openSpending(user);
 
     await user.click(screen.getByRole("button", { name: /^Delete expense/ }));
 
@@ -220,6 +251,7 @@ describe("Activity timeline on the Activity page", () => {
     mockLists({ expenses: expensePayload });
     timelineRefresh.mockImplementation(behavior);
     renderPage();
+    await openSpending(user);
 
     await user.click(screen.getByRole("button", { name: /^Delete expense/ }));
 
@@ -276,6 +308,13 @@ describe("Timeline row actions on the Activity page", () => {
 
     await user.click(tl("Edit expense Lunch from Sep 1, 2026, record 42"));
     await waitFor(() => expect(screen.getByLabelText("Edit description")).toHaveFocus());
+    expect(screen.getByLabelText("Edit description")).toBeVisible();
+    const toggle = screen.getByRole("button", { name: "Spending records" });
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(toggle).toHaveAttribute("aria-disabled", "true");
+    expect(toggle).toHaveAccessibleDescription("Kept open while a task, error or recovery needs it.");
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
     await user.click(screen.getByRole("button", { name: "Save" }));
 
     expect(expenses.updateExpense).toHaveBeenCalledExactlyOnceWith(42,
@@ -291,6 +330,7 @@ describe("Timeline row actions on the Activity page", () => {
 
     const edit = tl("Edit expense Lunch from Sep 1, 2026, record 42");
     await user.click(edit);
+    expect(screen.getByRole("button", { name: "Spending records" })).toHaveAttribute("aria-expanded", "true");
     await user.click(screen.getByRole("button", { name: "Cancel" }));
     await waitFor(() => expect(edit).toHaveFocus());
 
@@ -298,7 +338,8 @@ describe("Timeline row actions on the Activity page", () => {
     withRows([]);
     view.rerender(<I18nextProvider i18n={i18n}><TransactionsPage /></I18nextProvider>);
     await user.click(screen.getByRole("button", { name: "Cancel" }));
-    await waitFor(() => expect(screen.getByRole("heading", { name: "Spending activity" })).toHaveFocus());
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Spending" })).toHaveFocus());
+    expect(screen.getByRole("heading", { name: "Spending" })).toBeVisible();
   });
 
   it("deletes an expense from the timeline only after confirmation", async () => {
@@ -323,7 +364,8 @@ describe("Timeline row actions on the Activity page", () => {
     renderPage();
 
     await user.click(tl("Edit cash in Transfer from Savings from Sep 1, 2026, record 42"));
-    expect(within(document.getElementById("cash-in-task")).getByRole("form", { name: "Edit cash in" })).toBeInTheDocument();
+    expect(within(document.getElementById("cash-in-task")).getByRole("form", { name: "Edit cash in" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Cash-in records" })).toHaveAttribute("aria-expanded", "true");
     expect(screen.queryByLabelText("Edit description")).not.toBeInTheDocument();
   });
 
@@ -336,6 +378,8 @@ describe("Timeline row actions on the Activity page", () => {
     await user.click(tl("Delete cash in Transfer from Savings from Sep 1, 2026, record 42"));
     const task = document.getElementById("cash-in-task");
     await waitFor(() => expect(within(task).getByRole("button", { name: "Confirm delete cash in" })).toHaveFocus());
+    expect(within(task).getByRole("button", { name: "Confirm delete cash in" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Cash-in records" })).toHaveAttribute("aria-disabled", "true");
     await user.click(within(task).getByRole("button", { name: "Confirm delete cash in" }));
     expect(cash.deleteInflow).toHaveBeenCalledExactlyOnceWith(42);
   });

@@ -241,7 +241,7 @@ describe("ActivityTimeline", () => {
     const emptyFilter = { q: "", kind: "", from: "", to: "" };
     const filtersOf = (overrides = {}) => ({
       draft: { ...emptyFilter }, applied: { ...emptyFilter }, error: null, active: false,
-      setField: vi.fn(), clear: vi.fn(), ...overrides,
+      period: "all", presetRange: null, setField: vi.fn(), setPeriod: vi.fn(), removeField: vi.fn(), clear: vi.fn(), ...overrides,
     });
 
     it("renders no controls without a filters prop", () => {
@@ -249,9 +249,19 @@ describe("ActivityTimeline", () => {
       expect(screen.queryByLabelText("Search activity")).not.toBeInTheDocument();
     });
 
-    it("renders labelled controls and reports changes by field", () => {
-      const filters = filtersOf();
+    it("keeps search visible and Type/period behind a Filters disclosure", () => {
+      const filters = filtersOf({ period: "custom" });
       renderTimeline(state(), { filters });
+      const toggle = screen.getByRole("button", { name: "Filters" });
+      expect(screen.getByLabelText("Search activity")).toBeVisible();
+      expect(toggle).toHaveAttribute("aria-expanded", "false");
+      expect(toggle).toHaveAttribute("aria-controls", "activity-timeline-filter-panel");
+      expect(document.getElementById("activity-timeline-filter-panel")).not.toBeVisible();
+      expect(screen.getByLabelText("Type")).not.toBeVisible();
+
+      fireEvent.click(toggle);
+      expect(toggle).toHaveAttribute("aria-expanded", "true");
+      expect(document.getElementById("activity-timeline-filter-panel")).toBeVisible();
 
       fireEvent.change(screen.getByLabelText("Search activity"), { target: { value: "cof" } });
       fireEvent.change(screen.getByLabelText("Type"), { target: { value: "expense" } });
@@ -265,6 +275,57 @@ describe("ActivityTimeline", () => {
       expect(screen.queryByRole("button", { name: "Clear filters" })).not.toBeInTheDocument();
     });
 
+    it("offers single-select period chips and hides the dates unless Custom", () => {
+      const filters = filtersOf({ period: "last7" });
+      renderTimeline(state(), { filters });
+      fireEvent.click(screen.getByRole("button", { name: "Filters" }));
+      const group = screen.getByRole("group", { name: "Period" });
+      const pressed = within(group).getAllByRole("button").filter((button) => button.getAttribute("aria-pressed") === "true");
+      expect(pressed.map((button) => button.textContent)).toEqual(["Last 7 days"]);
+      expect(screen.queryByLabelText("From date")).not.toBeInTheDocument();
+      fireEvent.click(within(group).getByRole("button", { name: "This month" }));
+      expect(filters.setPeriod).toHaveBeenCalledWith("thisMonth");
+    });
+
+    it("renders removable chips from the applied filter, and a preset collapses from/to into one chip", () => {
+      const applied = { q: "coffee", kind: "expense", from: "2026-09-01", to: "2026-09-30" };
+      const filters = filtersOf({ draft: applied, applied, active: true, period: "thisMonth", presetRange: { from: "2026-09-01", to: "2026-09-30" } });
+      renderTimeline(state({ appliedFilter: applied }), { filters });
+
+      const group = screen.getByRole("group", { name: "Active filters" });
+      expect(within(group).getAllByRole("button").map((button) => button.getAttribute("aria-label"))).toEqual([
+        "Remove filter: Search: “coffee”", "Remove filter: Expense", "Remove filter: This month", null]);
+      fireEvent.click(within(group).getByRole("button", { name: "Remove filter: This month" }));
+      expect(filters.removeField).toHaveBeenCalledWith("period");
+    });
+
+    it("shows From/Through chips for custom dates", () => {
+      const applied = { q: "", kind: "", from: "2026-09-01", to: "2026-09-30" };
+      const filters = filtersOf({ draft: applied, applied, active: true, period: "custom" });
+      renderTimeline(state({ appliedFilter: applied }), { filters });
+      fireEvent.click(screen.getByRole("button", { name: "Remove filter: Through 2026-09-30" }));
+      expect(filters.removeField).toHaveBeenCalledWith("to");
+      expect(screen.getByRole("button", { name: "Remove filter: From 2026-09-01" })).toBeVisible();
+    });
+
+    it("moves focus to the next chip, else the previous, else search after a removal", () => {
+      const applied = { q: "coffee", kind: "expense", from: "", to: "" };
+      const state1 = filtersOf({ draft: applied, applied, active: true });
+      let current = state1;
+      state1.removeField = vi.fn();
+      const { rerenderTimeline } = renderTimeline(state(), { filters: current });
+      fireEvent.click(screen.getByRole("button", { name: /Remove filter: Search/ }));
+      const kindOnly = { ...applied, q: "" };
+      current = filtersOf({ draft: kindOnly, applied: kindOnly, active: true });
+      rerenderTimeline(state(), { filters: current });
+      expect(screen.getByRole("button", { name: "Remove filter: Expense" })).toHaveFocus();
+
+      fireEvent.click(screen.getByRole("button", { name: "Remove filter: Expense" }));
+      const none = { q: "", kind: "", from: "", to: "" };
+      rerenderTimeline(state(), { filters: filtersOf({ draft: none, applied: none }) });
+      expect(screen.getByLabelText("Search activity")).toHaveFocus();
+    });
+
     it("shows a polite active-filter summary and a working clear button", () => {
       const applied = { q: "coffee", kind: "expense", from: "2026-09-01", to: "" };
       const filters = filtersOf({ draft: applied, applied, active: true });
@@ -272,7 +333,8 @@ describe("ActivityTimeline", () => {
 
       const summary = screen.getByText(/Search: “coffee” · Expense · From 2026-09-01/);
       expect(summary.closest("[aria-live='polite']")).not.toBeNull();
-      expect(screen.getByText(/Active filters:/)).toHaveClass("sr-only");
+      expect(summary).toHaveClass("sr-only");
+      expect(summary).toHaveTextContent(/^Active filters:/);
       fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
       expect(filters.clear).toHaveBeenCalledTimes(1);
     });
@@ -285,10 +347,14 @@ describe("ActivityTimeline", () => {
       expect(screen.getByLabelText("Search activity")).toHaveFocus();
     });
 
-    it("explains invalid filters in the live region and marks the field", () => {
-      renderTimeline(state(), { filters: filtersOf({ error: "range", active: true }) });
+    it("explains invalid filters in the live region and opens the panel so the field is visible", () => {
+      renderTimeline(state(), { filters: filtersOf({ error: "range", active: true, period: "custom" }) });
 
       expect(screen.getByText(/Check the filters/).closest("[aria-live='polite']")).not.toBeNull();
+      const toggle = screen.getByRole("button", { name: "Filters" });
+      expect(toggle).toHaveAttribute("aria-expanded", "true");
+      expect(toggle).toHaveAttribute("aria-disabled", "true");
+      expect(screen.getByLabelText("From date")).toBeVisible();
       expect(screen.getByLabelText("From date")).toHaveAttribute("aria-invalid", "true");
     });
 
@@ -313,13 +379,15 @@ describe("ActivityTimeline", () => {
     it("renders the controls in Spanish", async () => {
       await i18n.changeLanguage("es");
       const applied = { q: "caf", kind: "", from: "", to: "2026-09-30" };
-      renderTimeline(state({ appliedFilter: applied }), { filters: filtersOf({ applied, draft: applied, active: true }) });
+      renderTimeline(state({ appliedFilter: applied }), { filters: filtersOf({ applied, draft: applied, active: true, period: "custom" }) });
 
       expect(screen.getByLabelText("Buscar actividad")).toBeInTheDocument();
-      expect(screen.getByLabelText("Tipo")).toBeInTheDocument();
-      expect(screen.getByLabelText("Desde")).toBeInTheDocument();
-      expect(screen.getByLabelText("Hasta")).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "Filtros" }));
+      expect(screen.getByLabelText("Tipo")).toBeVisible();
+      expect(screen.getByLabelText("Desde")).toBeVisible();
+      expect(screen.getByLabelText("Hasta")).toBeVisible();
       expect(screen.getByRole("button", { name: "Borrar filtros" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Quitar filtro: Hasta 2026-09-30" })).toBeVisible();
       expect(screen.getByText(/Búsqueda: “caf” · Hasta 2026-09-30/)).toBeInTheDocument();
       expect(screen.getByText("Ninguna actividad coincide con estos filtros.")).toBeInTheDocument();
     });

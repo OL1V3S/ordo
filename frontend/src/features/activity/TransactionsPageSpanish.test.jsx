@@ -9,6 +9,7 @@ import { useImportPreview } from "../importPreview/hooks/useImportPreview";
 import { useActivityTimeline } from "./hooks/useActivityTimeline";
 import { clearSession, establishSession } from "../../shared/auth/session";
 import i18n from "../../shared/localization/i18n";
+import { openRecords } from "../../test/openRecords";
 
 vi.mock("../expenses/hooks/useExpenses", () => ({ useExpenses: vi.fn() }));
 vi.mock("../inflows/hooks/useInflows", () => ({ useInflows: vi.fn() }));
@@ -31,6 +32,9 @@ const unsafeTransfer = { id: 2, description: "Large transfer", amount: 2 ** 46, 
 let expenses;
 let cash;
 let confirmSpy = null;
+
+const spendingEs = (user) => openRecords(user, "Registros de gastos");
+const cashInEs = (user) => openRecords(user, "Registros de entradas de dinero");
 
 function renderPage() {
   return render(<I18nextProvider i18n={i18n}><TransactionsPage /></I18nextProvider>);
@@ -73,29 +77,43 @@ describe("Activity spending in Spanish", () => {
     renderPage();
 
     expect(screen.getByRole("heading", { level: 1, name: "Actividad" })).toBeInTheDocument();
-    expect(screen.getByText("Revisa los gastos registrados y el dinero que entra.")).toBeInTheDocument();
+    expect(screen.queryByText("Revisa los gastos registrados y el dinero que entra.")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Agregar gasto" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Agregar entrada de dinero" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Importar estado de cuenta" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Actividad de gastos" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Gastos" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Actualizar actividad" })).toBeInTheDocument();
     expect(screen.getByText("Todavía no hay gastos registrados.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Add expense" })).not.toBeInTheDocument();
     expect(screen.queryByText("No expenses recorded yet.")).not.toBeInTheDocument();
   });
 
-  it("renders the timeline filter controls in Spanish", () => {
+  it("renders the timeline filter controls in Spanish", async () => {
+    const user = userEvent.setup();
     renderPage();
 
     expect(screen.getByLabelText("Buscar actividad")).toBeInTheDocument();
-    expect(screen.getByLabelText("Tipo")).toBeInTheDocument();
-    expect(screen.getByLabelText("Desde")).toBeInTheDocument();
-    expect(screen.getByLabelText("Hasta")).toBeInTheDocument();
+    const toggle = screen.getByRole("button", { name: "Filtros" });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getByLabelText("Tipo", { selector: "select" })).not.toBeVisible();
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    const period = screen.getByRole("group", { name: "Periodo" });
+    expect(within(period).getAllByRole("button").map((button) => button.textContent)).toEqual(
+      ["Todo", "Últimos 7 días", "Últimos 30 días", "Este mes", "Personalizado"]);
+    expect(screen.getByLabelText("Tipo")).toBeVisible();
+    await user.click(within(period).getByRole("button", { name: "Personalizado" }));
+    expect(screen.getByLabelText("Desde")).toBeVisible();
+    expect(screen.getByLabelText("Hasta")).toBeVisible();
+    fireEvent.change(screen.getByLabelText("Desde"), { target: { value: "2026-09-01" } });
+    expect(await screen.findByRole("button", { name: "Quitar filtro: Desde 2026-09-01" })).toBeVisible();
   });
 
-  it("renders the expense table, row actions, and review state in Spanish without changing money or dates", () => {
+  it("renders the expense table, row actions, and review state in Spanish without changing money or dates", async () => {
+    const user = userEvent.setup();
     mockLists({ expenses: { expenses: [lunch, oddAmount] } });
     renderPage();
+    await spendingEs(user);
 
     const table = screen.getByRole("region", { name: "Tabla de gastos" });
     for (const name of ["Descripción", "Monto ($)", "Fecha", "Categoría", "Acciones"]) {
@@ -114,6 +132,7 @@ describe("Activity spending in Spanish", () => {
     const user = userEvent.setup();
     mockLists({ expenses: { expenses: [lunch] } });
     renderPage();
+    await spendingEs(user);
     const filters = document.querySelector(".expense-filters");
 
     await user.type(screen.getByLabelText("Buscar gastos"), "lunch");
@@ -190,6 +209,7 @@ describe("Activity spending in Spanish", () => {
     const user = userEvent.setup();
     mockLists({ expenses: { expenses: [lunch] } });
     renderPage();
+    await spendingEs(user);
 
     await user.click(screen.getByRole("button", { name: "Editar gasto Lunch del 09/01/2026, fila 1" }));
 
@@ -211,6 +231,7 @@ describe("Activity spending in Spanish", () => {
     confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
     mockLists({ expenses: { expenses: [lunch] } });
     renderPage();
+    await spendingEs(user);
 
     await user.click(screen.getByRole("button", { name: "Eliminar gasto Lunch del 09/01/2026, fila 1" }));
 
@@ -238,9 +259,11 @@ describe("Activity spending in Spanish", () => {
 });
 
 describe("Activity cash in in Spanish", () => {
-  it("renders the cash-in section, list, and row actions in Spanish without changing money or dates", () => {
+  it("renders the cash-in section, list, and row actions in Spanish without changing money or dates", async () => {
+    const user = userEvent.setup();
     mockLists({ cash: { inflows: [transfer, unsafeTransfer] } });
     renderPage();
+    await cashInEs(user);
 
     expect(screen.getByRole("heading", { name: "Entradas de dinero" })).toBeInTheDocument();
     expect(screen.getByText(/Dinero entrante registrado, incluidas transferencias y reembolsos\./)).toBeInTheDocument();
@@ -317,6 +340,7 @@ describe("Activity cash in in Spanish", () => {
     const user = userEvent.setup();
     mockLists({ cash: { inflows: [unsafeTransfer] } });
     renderPage();
+    await cashInEs(user);
 
     await user.click(screen.getByRole("button", { name: "Editar entrada de dinero Large transfer del 09/02/2026, registro 2" }));
     const form = screen.getByRole("form", { name: "Editar entrada de dinero" });
@@ -332,6 +356,7 @@ describe("Activity cash in in Spanish", () => {
     const user = userEvent.setup();
     mockLists({ cash: { inflows: [transfer] } });
     renderPage();
+    await cashInEs(user);
 
     await user.click(screen.getByRole("button", { name: "Eliminar entrada de dinero Transfer from Savings del 09/01/2026, registro 1" }));
     const confirmation = screen.getByRole("group", { name: "¿Eliminar entrada de dinero: Transfer from Savings (09/01/2026)?" });
@@ -348,14 +373,16 @@ describe("Activity cash in in Spanish", () => {
   });
 
   it("keeps the English cash-in surface unchanged after switching back from Spanish", async () => {
+    const user = userEvent.setup();
     mockLists({ cash: { inflows: [transfer] } });
     await i18n.changeLanguage("en");
     renderPage();
+    await openRecords(user, "Cash-in records");
 
     expect(screen.getByRole("heading", { name: "Cash in" })).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "Cash in table" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Edit cash in Transfer from Savings from 09/01/2026, record 1" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Spending activity" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Spending" })).toBeInTheDocument();
   });
 
   it("localizes the timeline row actions and the expense missing message", async () => {

@@ -56,4 +56,61 @@ describe("useTimelineFilters", () => {
     expect(result.current.applied).toMatchObject({ q: "", kind: "", from: "", to: "" });
     expect(result.current.active).toBe(false);
   });
+
+  it("fills from/to at once for a preset and does not add period to the filter", () => {
+    vi.setSystemTime(new Date(2026, 8, 15, 12));
+    const { result } = renderHook(() => useTimelineFilters());
+
+    act(() => result.current.setPeriod("last7"));
+    act(() => { vi.advanceTimersByTime(0); });
+
+    expect(result.current.period).toBe("last7");
+    expect(result.current.applied).toEqual({ q: "", kind: "", from: "2026-09-09", to: "2026-09-15" });
+    expect(Object.keys(result.current.applied)).toEqual(["q", "kind", "from", "to"]);
+  });
+
+  it("switches to custom when a date is typed and keeps the typed dates", () => {
+    const { result } = renderHook(() => useTimelineFilters());
+    act(() => result.current.setField("from", "2026-09-01"));
+    expect(result.current.period).toBe("custom");
+    act(() => result.current.setPeriod("custom"));
+    expect(result.current.draft.from).toBe("2026-09-01");
+  });
+
+  it("removes an applied field at once, bypassing the search debounce", () => {
+    const { result } = renderHook(() => useTimelineFilters());
+    act(() => result.current.setField("q", "coffee"));
+    act(() => { vi.advanceTimersByTime(300); });
+    act(() => result.current.setField("kind", "expense"));
+    act(() => { vi.advanceTimersByTime(0); });
+
+    act(() => result.current.removeField("q"));
+
+    expect(result.current.applied).toMatchObject({ q: "", kind: "expense" });
+    expect(result.current.draft.q).toBe("");
+  });
+
+  it("removes a period or a single custom date from applied even with an invalid draft", () => {
+    vi.setSystemTime(new Date(2026, 8, 15, 12));
+    const { result } = renderHook(() => useTimelineFilters());
+    act(() => result.current.setPeriod("thisMonth"));
+    act(() => { vi.advanceTimersByTime(0); });
+    act(() => result.current.setField("to", "2026-08-01"));
+    expect(result.current.error).toBe("range");
+
+    act(() => result.current.removeField("to"));
+    expect(result.current.applied).toMatchObject({ from: "2026-09-01", to: "" });
+    expect(result.current.period).toBe("custom");
+
+    act(() => result.current.removeField("period"));
+    expect(result.current.applied).toMatchObject({ from: "", to: "" });
+    expect(result.current.period).toBe("all");
+  });
+
+  it("resets the period on clear", () => {
+    const { result } = renderHook(() => useTimelineFilters());
+    act(() => result.current.setPeriod("last30"));
+    act(() => result.current.clear());
+    expect(result.current.period).toBe("all");
+  });
 });
