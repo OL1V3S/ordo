@@ -24,6 +24,14 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-09 — Budgets declutter
+
+[PR #211](https://github.com/OL1V3S/ordo/pull/211) ·
+[Issue #210](https://github.com/OL1V3S/ordo/issues/210)
+
+- Budgets now has a month picker (previous, next, a month list and This month), flat category rows with a "..." Edit/Delete menu, and one status area that also holds Refresh limits and Retry spending.
+- Month values, write payloads, recovery gating, ordering, zero-limit and status behavior are unchanged.
+
 ### 2026-10-09 — Home declutter
 
 [PR #209](https://github.com/OL1V3S/ordo/pull/209) ·
@@ -242,13 +250,3 @@ the permanent, complete archive.
   ordering rule exists once; Home's output is unchanged.
 - Localized the timeline and the Activity section links in English and Spanish;
   the rest of the Activity page stays English until umbrella item 10.
-
-### 2026-10-01 — Claude Code command-center workflow
-
-[PR #169](https://github.com/OL1V3S/ordo/pull/169) ·
-[Issue #168](https://github.com/OL1V3S/ordo/issues/168)
-
-- Recast command-center, implementation-agent, and independent-reviewer
-  governance in provider-neutral roles while retaining existing Ordo gates.
-- Added a single Claude `/next` cockpit with fresh role-separated workers,
-  task-specific model routing, and a read-only review fallback.

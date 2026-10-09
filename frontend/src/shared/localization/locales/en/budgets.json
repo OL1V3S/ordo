@@ -5,7 +5,11 @@
   },
   "toolbar": {
     "month": "Budget month",
-    "add": "Add category budget"
+    "add": "Add category budget",
+    "previousMonth": "Previous month",
+    "nextMonth": "Next month",
+    "currentMonth": "This month",
+    "noMonth": "Choose a month"
   },
   "taskNote": "Finish or cancel this {{month}} budget before changing months.",
   "form": {
@@ -76,7 +80,8 @@
       "limitReached": "Limit reached",
       "nearLimit": "Near limit",
       "withinLimit": "Within limit"
-    }
+    },
+    "actionsLabel": "Actions for {{name}} budget"
   },
   "explanation": {
     "summary": "About monthly limits",

@@ -35,4 +35,19 @@ export function getMonthYear(date = new Date()) {
     const utc = new Date(Date.UTC(d.getFullYear(), d.getMonth(), 1, 0, 0, 0, 0));
     return utc.toISOString();
   }
-  
+
+/**
+ * Shifts a "YYYY-MM" string by a whole number of months using integer arithmetic (no Date or
+ * time zone use). Returns "" for invalid input. Output format matches getMonthYear exactly.
+ */
+export function shiftMonthYear(monthYear, delta) {
+  if (typeof monthYear !== "string" || !Number.isInteger(delta)) return "";
+  const match = /^(\d{1,9})-(\d{2})$/.exec(monthYear);
+  if (!match) return "";
+  const month = Number(match[2]);
+  if (month < 1 || month > 12) return "";
+  const index = Number(match[1]) * 12 + (month - 1) + delta;
+  if (index < 0) return "";
+  const year = Math.floor(index / 12);
+  return `${year}-${String((index % 12) + 1).padStart(2, "0")}`;
+}

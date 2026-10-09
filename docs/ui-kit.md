@@ -37,6 +37,15 @@ Hidden content: kit panels set `[hidden] { display: none !important }`, so a
   `amount` is null/undefined, and extra props (such as `aria-label`) are passed to the
   `li` without overriding its computed class. Mobile stacking uses the legacy 400px
   breakpoint to stay pixel-identical; normalize with the breakpoint pass.
+- **PeriodPicker**: string-free month picker. A native `select` (the only element
+  labelled by `label`; no group wrapper) of 25 months centred on `value`, previous and next
+  buttons and a current-month button. Values are exact `YYYY-MM` strings
+  (`shiftMonthYear` in `shared/utils/monthYear.js`); every text comes from props
+  (`label`, `previousLabel`, `nextLabel`, `currentLabel`, `emptyLabel`, `formatMonth`).
+  An empty value shows an empty option and disables stepping.
+- **RowActionsMenu**: string-free non-modal disclosure popover (no `menu` role) with Edit
+  and Delete items; labels, `canEdit`/`canDelete` and `deleteClassName` come from props, and the
+  chosen handler receives the trigger button for focus return. Activity wraps it with its own strings.
 - **EmptyState**: `inline` (muted paragraph) or `block` (`.empty-state` with
   optional title and action). No role.
 - **TaskArea** + `useFocusReturn`: labelled region (`label` or `labelledBy`),
@@ -56,9 +65,14 @@ with `useForcedOpen` as the mobile-only "Add" entry (forced open and described w
 capture form is active so the opener buttons are never hidden). The composed `Disclosure`
 remains unadopted.
 
+Used by Budgets: `SectionHeader` (Category budgets, focusable), `ListRow` for the budget rows
+(listitems named "{name} budget" in a list labelled by that heading), `PeriodPicker`, and the shared
+`RowActionsMenu`. `StatusStrip` is not used there because the Budgets notices keep
+`role=alert`/`status` via `StatusMessage`.
+
 Built but not yet adopted, verified by unit tests only:
 `useFocusReturn`, the composed `Disclosure`, `StatusStrip` `action`/`limit`/
-`assertive`, and block `EmptyState`. The Activity row "..." menu is a feature component (`RowActionsMenu`), a non-modal disclosure popover in the `AccountMenu` pattern.
+`assertive`, and block `EmptyState`. The Activity row "..." menu is a thin feature wrapper over the shared `RowActionsMenu`.
 The Activity timeline error/refresh notices keep `StatusMessage` roles.
 
 ## App shell and navigation

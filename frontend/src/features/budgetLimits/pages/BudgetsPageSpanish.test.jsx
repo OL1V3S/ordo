@@ -5,6 +5,7 @@ import BudgetsPage from './BudgetsPage'
 import i18n, { resources } from '../../../shared/localization/i18n'
 import { useExpenses } from '../../expenses/hooks/useExpenses'
 import { useBudgetLimits } from '../hooks/useBudgetLimits'
+import { chooseRowAction, openRowActions } from '../../../test/rowActions'
 
 vi.mock('../../expenses/hooks/useExpenses', () => ({ useExpenses: vi.fn() }))
 vi.mock('../hooks/useBudgetLimits', () => ({ useBudgetLimits: vi.fn() }))
@@ -69,29 +70,31 @@ describe('Budgets page in Spanish', () => {
     expect(screen.getByText('Un límite de cero es un presupuesto intencional sin gastos. Es diferente a no tener un presupuesto para una categoría.')).toBeInTheDocument()
   })
 
-  it('keeps the limit distinct from recorded spending on each card and keeps stored category names and money as-is', () => {
+  it('keeps the limit distinct from recorded spending on each card and keeps stored category names and money as-is', async () => {
+    const user = userEvent.setup()
     setLimits({ budgetLimits: limits })
     render(<BudgetsPage />)
 
-    const food = screen.getByRole('article', { name: 'Presupuesto de Food' })
+    const food = screen.getByRole('listitem', { name: 'Presupuesto de Food' })
     expect(within(food).getByText('Cerca del límite')).toBeVisible()
     expect(within(food).getByText('$95.00')).toBeVisible()
     expect(within(food).getByText('usado de $100.00')).toBeVisible()
     expect(within(food).getByText('95% usado')).toBeVisible()
     expect(within(food).getByRole('progressbar', { name: 'Uso del presupuesto de Food' })).toHaveAttribute('aria-valuetext', '$95.00 usado de $100.00, 95%')
+    await openRowActions(user, 'Food')
     expect(within(food).getByRole('button', { name: 'Editar presupuesto de Food' })).toHaveTextContent('Editar')
     expect(within(food).getByRole('button', { name: 'Eliminar presupuesto de Food' })).toHaveTextContent('Eliminar')
 
-    const bills = screen.getByRole('article', { name: 'Presupuesto de Bills' })
+    const bills = screen.getByRole('listitem', { name: 'Presupuesto de Bills' })
     expect(within(bills).getByText('Por encima del límite')).toBeVisible()
     expect(within(bills).getByText('125% usado')).toBeVisible()
     expect(within(bills).getByRole('progressbar')).toHaveAttribute('aria-valuetext', '$125.00 usado de $100.00, 125%')
 
-    const zero = screen.getByRole('article', { name: 'Presupuesto de Zero' })
+    const zero = screen.getByRole('listitem', { name: 'Presupuesto de Zero' })
     expect(within(zero).getByText('Límite de cero')).toBeVisible()
     expect(within(zero).getByText('No hay porcentaje para un límite de cero.')).toBeVisible()
     expect(within(zero).queryByRole('progressbar')).not.toBeInTheDocument()
-    expect(zero).toHaveClass('budget-card--warning')
+    expect(zero).toHaveClass('budget-row--warning')
   })
 
   it('localizes the add form, option labels, validation, and success feedback without changing the payload', async () => {
@@ -133,12 +136,12 @@ describe('Budgets page in Spanish', () => {
     setLimits({ budgetLimits: limits })
     render(<BudgetsPage />)
 
-    await user.click(screen.getByRole('button', { name: 'Editar presupuesto de Food' }))
+    await chooseRowAction(user, 'Editar presupuesto de Food')
     expect(screen.getByRole('heading', { level: 2, name: 'Editar presupuesto de Food' })).toBeInTheDocument()
     expect(screen.getByLabelText('Monto límite de Food')).toHaveValue('100.00')
     await user.click(screen.getByRole('button', { name: 'Cancelar' }))
 
-    await user.click(screen.getByRole('button', { name: 'Eliminar presupuesto de Food' }))
+    await chooseRowAction(user, 'Eliminar presupuesto de Food')
     expect(confirm).toHaveBeenCalledWith('¿Eliminar el límite de presupuesto de la categoría "Food"?')
     expect(deleteLimit).toHaveBeenCalledWith(1)
     expect(screen.getByRole('status')).toHaveTextContent('Límite de presupuesto eliminado.')
@@ -150,7 +153,7 @@ describe('Budgets page in Spanish', () => {
     upsertLimit.mockResolvedValueOnce({ refreshFailed: true })
     render(<BudgetsPage />)
 
-    await user.click(screen.getByRole('button', { name: 'Editar presupuesto de Food' }))
+    await chooseRowAction(user, 'Editar presupuesto de Food')
     await user.click(screen.getByRole('button', { name: 'Guardar límite' }))
     expect(screen.getByRole('status')).toHaveTextContent('Límite de presupuesto guardado. No se pudieron actualizar los límites de presupuesto. Actualiza los límites antes de hacer otro cambio.')
 
@@ -158,7 +161,7 @@ describe('Budgets page in Spanish', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Límites de presupuesto actualizados. Revisa los límites guardados antes de volver a intentar tu cambio.')
 
     upsertLimit.mockRejectedValueOnce(new Error('offline'))
-    await user.click(screen.getByRole('button', { name: 'Editar presupuesto de Food' }))
+    await chooseRowAction(user, 'Editar presupuesto de Food')
     await user.click(screen.getByRole('button', { name: 'Guardar límite' }))
     expect(screen.getByRole('alert')).toHaveTextContent('No pudimos confirmar el cambio. Actualiza los límites y revisa los presupuestos guardados antes de intentarlo de nuevo.')
     expect(screen.getByRole('button', { name: 'Guardar límite' })).toBeDisabled()
@@ -171,7 +174,7 @@ describe('Budgets page in Spanish', () => {
     deleteLimit.mockResolvedValueOnce({ refreshFailed: true })
     render(<BudgetsPage />)
 
-    await user.click(screen.getByRole('button', { name: 'Eliminar presupuesto de Food' }))
+    await chooseRowAction(user, 'Eliminar presupuesto de Food')
     expect(deleteLimit).toHaveBeenCalledWith(1)
     expect(screen.getByRole('status')).toHaveTextContent('Límite de presupuesto eliminado. No se pudieron actualizar los límites de presupuesto. Actualiza los límites antes de hacer otro cambio.')
   })
@@ -196,19 +199,19 @@ describe('Budgets page in Spanish', () => {
     render(<BudgetsPage />)
     const note = 'La comparación exacta no está disponible. Revisa el monto antes de confiar en el estado de este presupuesto.'
 
-    const within_ = screen.getByRole('article', { name: 'Presupuesto de Within' })
+    const within_ = screen.getByRole('listitem', { name: 'Presupuesto de Within' })
     expect(within(within_).getByText('Dentro del límite')).toBeVisible()
     expect(within_).not.toHaveTextContent('La comparación exacta no está disponible')
 
-    const exact = screen.getByRole('article', { name: 'Presupuesto de Exact' })
+    const exact = screen.getByRole('listitem', { name: 'Presupuesto de Exact' })
     expect(within(exact).getByText('Límite alcanzado')).toBeVisible()
 
-    const review = screen.getByRole('article', { name: 'Presupuesto de Review' })
+    const review = screen.getByRole('listitem', { name: 'Presupuesto de Review' })
     expect(within(review).getByText('El gasto requiere revisión')).toBeVisible()
     expect(within(review).getByText(note)).toBeVisible()
     expect(within(review).queryByRole('progressbar')).not.toBeInTheDocument()
 
-    const unsafe = screen.getByRole('article', { name: 'Presupuesto de Unsafe' })
+    const unsafe = screen.getByRole('listitem', { name: 'Presupuesto de Unsafe' })
     expect(within(unsafe).getByText('El límite requiere revisión')).toBeVisible()
     expect(within(unsafe).getByText(note)).toBeVisible()
     expect(within(unsafe).queryByRole('progressbar')).not.toBeInTheDocument()
@@ -222,7 +225,7 @@ describe('Budgets page in Spanish', () => {
     expect(screen.getByText('No pudimos cargar los gastos registrados. Los montos usados y el progreso no están disponibles.')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Reintentar gastos' }))
     expect(refreshSpending).toHaveBeenCalledOnce()
-    for (const card of screen.getAllByRole('article')) {
+    for (const card of within(screen.getByRole('list', { name: 'Presupuestos por categoría' })).getAllByRole('listitem')) {
       expect(within(card).getAllByText('No disponible').length).toBeGreaterThan(0)
       expect(within(card).getByText('Gasto no disponible')).toBeVisible()
     }

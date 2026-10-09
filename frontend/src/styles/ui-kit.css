@@ -37,3 +37,17 @@
 @media (max-width: 600px) {
   .ui-filter-bar__fields { align-items: stretch; flex-direction: column; }
 }
+
+.row-actions-menu { position: relative; }
+.row-actions-menu__trigger:focus-visible, .row-actions-menu__panel button:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 3px; }
+.row-actions-menu__panel { position: absolute; z-index: 30; inset-block-start: 100%; inset-inline-end: 0; display: grid; min-width: 9rem; gap: var(--space-2); padding: var(--space-2); border: 1px solid var(--color-border); border-radius: var(--overlay-radius); background: var(--color-surface-raised); box-shadow: var(--overlay-shadow); }
+@media (max-width: 400px) {
+  .row-actions-menu__panel { position: static; inset-inline-start: 0; margin-top: var(--space-2); }
+}
+
+.ui-period-picker { display: grid; min-width: 0; gap: var(--space-2); }
+.ui-period-picker__label { font-weight: var(--weight-semibold); }
+.ui-period-picker__controls { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2); min-width: 0; }
+.ui-period-picker__controls select { flex: 1 1 11rem; min-width: 0; max-width: 100%; min-height: var(--size-touch-target); }
+.ui-period-picker__controls button { min-height: var(--size-touch-target); }
+.ui-period-picker__controls button:focus-visible, .ui-period-picker__controls select:focus-visible { outline: var(--focus-ring-width) solid var(--color-focus); outline-offset: 3px; }

@@ -5,7 +5,11 @@
   },
   "toolbar": {
     "month": "Mes del presupuesto",
-    "add": "Agregar presupuesto por categoría"
+    "add": "Agregar presupuesto por categoría",
+    "previousMonth": "Mes anterior",
+    "nextMonth": "Mes siguiente",
+    "currentMonth": "Este mes",
+    "noMonth": "Elige un mes"
   },
   "taskNote": "Termina o cancela este presupuesto de {{month}} antes de cambiar de mes.",
   "form": {
@@ -76,7 +80,8 @@
       "limitReached": "Límite alcanzado",
       "nearLimit": "Cerca del límite",
       "withinLimit": "Dentro del límite"
-    }
+    },
+    "actionsLabel": "Acciones del presupuesto de {{name}}"
   },
   "explanation": {
     "summary": "Acerca de los límites mensuales",
