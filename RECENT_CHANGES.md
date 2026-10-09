@@ -26,6 +26,7 @@ the permanent, complete archive.
 
 ### 2026-10-09 — Design token foundation
 
+[PR #200](https://github.com/OL1V3S/ordo/pull/200) ·
 [Issue #199](https://github.com/OL1V3S/ordo/issues/199)
 
 - Colors, radii, type, weights and spacing now come from tiered design tokens; each theme color is written once and a CSS-only mode switch serves light, dark and system dark (see [docs/design-tokens.md](docs/design-tokens.md)).
