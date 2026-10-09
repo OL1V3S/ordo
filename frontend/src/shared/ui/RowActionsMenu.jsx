@@ -6,13 +6,14 @@ import { MoreHorizontal } from "lucide-react";
 // always rendered (hidden) so aria-controls never dangles. String-free: labels come from props.
 export default function RowActionsMenu({
   triggerLabel, editLabel, editText, deleteLabel, deleteText,
-  canEdit, canDelete, deleteClassName = "button-danger", onEdit, onDelete,
+  canEdit, canDelete, deleteClassName = "button-danger", onEdit, onDelete, items,
 }) {
   const panelId = useId();
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef(null);
   const triggerRef = useRef(null);
-  const disabled = !canEdit && !canDelete;
+  // Generic mode: `items` = [{ key, label, text, disabled, className, onSelect }] replaces Edit/Delete.
+  const disabled = items ? items.every((item) => item.disabled) : !canEdit && !canDelete;
 
   useEffect(() => {
     if (!open) return undefined;
@@ -59,9 +60,16 @@ export default function RowActionsMenu({
         <MoreHorizontal size={19} aria-hidden="true" />
       </button>
       <div id={panelId} className="row-actions-menu__panel" role="group" aria-label={triggerLabel} hidden={!open || disabled}>
-        <button type="button" disabled={!canEdit} aria-label={editLabel} onClick={() => choose(onEdit)}>{editText}</button>
-        <button type="button" className={deleteClassName} disabled={!canDelete} aria-label={deleteLabel}
-          onClick={() => choose(onDelete)}>{deleteText}</button>
+        {items ? items.map((item) => (
+          <button key={item.key} type="button" className={item.className} disabled={item.disabled} aria-label={item.label}
+            onClick={() => choose(item.onSelect)}>{item.text}</button>
+        )) : (
+          <>
+            <button type="button" disabled={!canEdit} aria-label={editLabel} onClick={() => choose(onEdit)}>{editText}</button>
+            <button type="button" className={deleteClassName} disabled={!canDelete} aria-label={deleteLabel}
+              onClick={() => choose(onDelete)}>{deleteText}</button>
+          </>
+        )}
       </div>
     </div>
   );

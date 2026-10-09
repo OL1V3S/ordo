@@ -36,7 +36,9 @@ Hidden content: kit panels set `[hidden] { display: none !important }`, so a
   optional `actions` (omitted when falsy). The amount box is also omitted when
   `amount` is null/undefined, and extra props (such as `aria-label`) are passed to the
   `li` without overriding its computed class. Mobile stacking uses the legacy 400px
-  breakpoint to stay pixel-identical; normalize with the breakpoint pass.
+  breakpoint to stay pixel-identical; normalize with the breakpoint pass. Optional `titleAs` (default
+  `strong`, e.g. `h3`) and `children` (a full-width `.ui-list-row__extra` slot under the row for details, forms and
+  confirmations; the wrap modifier `ui-list-row--with-extra` is added only when children exist).
 - **PeriodPicker**: string-free month picker. A native `select` (the only element
   labelled by `label`; no group wrapper) of 25 months centred on `value`, previous and next
   buttons and a current-month button. Values are exact `YYYY-MM` strings
@@ -46,6 +48,8 @@ Hidden content: kit panels set `[hidden] { display: none !important }`, so a
 - **RowActionsMenu**: string-free non-modal disclosure popover (no `menu` role) with Edit
   and Delete items; labels, `canEdit`/`canDelete` and `deleteClassName` come from props, and the
   chosen handler receives the trigger button for focus return. Activity wraps it with its own strings.
+  Optional `items=[{ key, label, text, disabled, className, onSelect }]` replaces Edit/Delete with a generic item list
+  (the trigger is disabled only when every item is).
 - **EmptyState**: `inline` (muted paragraph) or `block` (`.empty-state` with
   optional title and action). No role.
 - **TaskArea** + `useFocusReturn`: labelled region (`label` or `labelledBy`),
@@ -69,6 +73,10 @@ Used by Budgets: `SectionHeader` (Category budgets, focusable), `ListRow` for th
 (listitems named "{name} budget" in a list labelled by that heading), `PeriodPicker`, and the shared
 `RowActionsMenu`. `StatusStrip` is not used there because the Budgets notices keep
 `role=alert`/`status` via `StatusMessage`.
+
+Used by Commitments: `SectionHeader`, `ListRow` (`titleAs="h3"` and `children`) for flat rows, `RowActionsMenu` in `items` mode (one visible primary action plus the menu), and the
+"h2 > `DisclosureButton`" history pattern (no `hint`: `hintId` points to the visible lock note). `DisclosureButton` renders its sr-only hint only when `hint` is given.
+Create actions, where a page has one, sit in the header, right-aligned, primary style.
 
 Built but not yet adopted, verified by unit tests only:
 `useFocusReturn`, the composed `Disclosure`, `StatusStrip` `action`/`limit`/

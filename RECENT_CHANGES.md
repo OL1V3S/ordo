@@ -24,6 +24,14 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-09 — Commitments declutter
+
+[PR #213](https://github.com/OL1V3S/ordo/pull/213) ·
+[Issue #212](https://github.com/OL1V3S/ordo/issues/212)
+
+- Commitments now has one status area, flat rows with one main action and a "..." actions menu, inline change-review decisions, and collapsed Paused, Ended, Reviewed and Dismissed sections.
+- Lifecycle, candidate and review behavior, payloads and ordering are unchanged. Shared rows and menus gained optional title-level, extra-content and item-list support.
+
 ### 2026-10-09 — Budgets declutter
 
 [PR #211](https://github.com/OL1V3S/ordo/pull/211) ·
@@ -237,16 +245,3 @@ the permanent, complete archive.
   display are unchanged; only message text moved into the `activity` catalogs.
 - The import preview panel stays English until a later slice, so the Spanish
   Activity page is still partly English.
-
-### 2026-10-02 — Unified Activity timeline
-
-[PR #171](https://github.com/OL1V3S/ordo/pull/171) ·
-[Issue #170](https://github.com/OL1V3S/ordo/issues/170)
-
-- Added a read-only, newest-first Activity timeline of recorded expenses and cash
-  in, with exact signed amounts and "Show older activity" keyset paging, above the
-  existing per-type lists on Activity.
-- Home recent activity and the timeline now share one backend feed reader so the
-  ordering rule exists once; Home's output is unchanged.
-- Localized the timeline and the Activity section links in English and Spanish;
-  the rest of the Activity page stays English until umbrella item 10.

@@ -71,7 +71,11 @@ function state(overrides = {}) {
   };
 }
 
-const card = (name) => screen.getByRole("heading", { name, exact: true }).closest("article");
+const card = (name) => screen.getByRole("heading", { name, exact: true }).closest("li");
+async function menuAction(user, name, action) {
+  await user.click(screen.getByRole("button", { name: `Acciones para ${name}` }));
+  await user.click(screen.getByRole("button", { name: action }));
+}
 const historyHeading = (name) => screen.getByRole("heading", { level: 2, name: new RegExp(`^${name} \\(\\d+\\)$`) });
 
 function renderPage(initialEntries = ["/commitments"]) {
@@ -155,7 +159,7 @@ describe("Commitments page in Spanish", () => {
     expect(screen.getByRole("button", { name: "Mantener previsión actual: monto de Gym plan" })).toBeEnabled();
     expect(screen.getByText("Revisión de fechas")).toBeInTheDocument();
     expect(screen.getByText("Mantenido")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Reconsiderar cambio de fechas de Gym plan" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Reconsiderar cambio de fechas de Gym plan", hidden: true })).toBeInTheDocument();
   });
 
   it("runs the dismiss, review, end, and edit flows through Spanish controls without changing calls", async () => {
@@ -164,13 +168,12 @@ describe("Commitments page in Spanish", () => {
     useCommitments.mockReturnValue(current);
     renderPage();
 
-    await user.click(screen.getByRole("button", { name: "Descartar Gym membership" }));
+    await menuAction(user, "Gym membership", "Descartar Gym membership");
     expect(current.dismissCandidate).toHaveBeenCalledWith("fingerprint-1");
     expect(screen.getByRole("button", { name: "Reconsiderar Streaming service" })).toBeInTheDocument();
     expect(screen.getByText("Posible compromiso descartado")).toBeInTheDocument();
 
-    await user.click(screen.getByLabelText("Detalles de Rent"));
-    await user.click(screen.getByRole("button", { name: "Finalizar Rent" }));
+    await menuAction(user, "Rent", "Finalizar Rent");
     const confirmation = screen.getByRole("group", { name: "Finalizar Rent" });
     expect(within(confirmation).getByText("¿Finalizar Rent? La previsión guardada y los registros vinculados se conservarán. Puedes reactivarlo.")).toBeInTheDocument();
     expect(within(confirmation).getByRole("button", { name: "Cancelar finalización" })).toBeInTheDocument();
@@ -186,7 +189,7 @@ describe("Commitments page in Spanish", () => {
     expect(screen.getByRole("form", { name: "Confirmar compromiso" })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Cancelar" }));
 
-    await user.click(screen.getByRole("button", { name: "Editar Rent" }));
+    await menuAction(user, "Rent", "Editar Rent");
     expect(screen.getByRole("form", { name: "Guardar cambios" })).toBeInTheDocument();
   });
 

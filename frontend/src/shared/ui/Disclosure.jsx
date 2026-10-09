@@ -2,7 +2,8 @@ import { useForcedOpen } from "./useForcedOpen";
 
 // Real <button> (never <details>/<summary>): children must be inline text, no headings.
 // While `forced` it stays focusable, is announced disabled via aria-disabled, the reason is
-// exposed through aria-describedby, and click is a no-op.
+// exposed through aria-describedby, and click is a no-op. Omit `hint` to point `hintId` at an
+// existing visible note instead of rendering the sr-only hint.
 export function DisclosureButton({
   controls, open, forced = false, hint, hintId = `${controls}-hint`, onToggle, className = "", children,
 }) {
@@ -13,7 +14,7 @@ export function DisclosureButton({
         onClick={() => { if (!forced) onToggle(); }}>
         {children}
       </button>
-      {forced && <span id={hintId} className="sr-only">{hint}</span>}
+      {forced && hint != null && <span id={hintId} className="sr-only">{hint}</span>}
     </>
   );
 }

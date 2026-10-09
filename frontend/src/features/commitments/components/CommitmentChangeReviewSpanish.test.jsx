@@ -121,10 +121,10 @@ describe("commitment change review in Spanish", () => {
   it("offers the Spanish reconsider action for kept changes and follows a language change", async () => {
     render(<CommitmentChangeReview state={reviewState([amountChange])} />);
 
-    expect(screen.getByRole("button", { name: "Reconsiderar cambio de fechas de Gym plan" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Reconsiderar cambio de fechas de Gym plan", hidden: true })).toBeInTheDocument();
     expect(screen.getByText("Mantenido")).toBeInTheDocument();
     await act(() => i18n.changeLanguage("en"));
-    expect(screen.getByRole("button", { name: "Reconsider timing change for Gym plan" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Reconsider timing change for Gym plan", hidden: true })).toBeInTheDocument();
     expect(screen.getByText("1 recent expense supports this amount change.")).toBeInTheDocument();
   });
 });
