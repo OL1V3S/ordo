@@ -12,7 +12,7 @@ const EVIDENCE_RULES = new Set(["consecutive_calendar_months", "weekly_six_to_ei
 export const englishT = (key, options) => i18n.getFixedT("en", "commitments")(key, options);
 
 // Missing or unparseable amounts show the shared "Amount needs review" label instead of
-// a fabricated $0.00 or $NaN.
+// a fabricated zero or NaN amount.
 export function formatMoney(value, locale = "en") {
   return formatMoneyDecimal(value, locale) ?? AMOUNT_NEEDS_REVIEW;
 }
