@@ -89,6 +89,12 @@
 .activity-timeline__live > p { margin: 0; }
 .activity-timeline__live:empty { position: absolute; }
 .activity-timeline__list { display: grid; margin: 0; padding: 0; gap: var(--space-2); list-style: none; }
+/* The main column absorbs the free space so the amount and actions pack against the row's right edge;
+   with space-between the amount otherwise floated at a content-dependent offset. Stacked <=400px rows keep the kit layout. */
+.activity-timeline__row .ui-list-row__main { flex: 1 1 0; }
+@media (max-width: 400px) {
+  .activity-timeline__row .ui-list-row__main { flex: 0 1 auto; }
+}
 .activity-timeline__stored-amount { color: var(--color-text-muted); font-size: var(--text-sm); }
 
 .activity-status { display: grid; min-width: 0; gap: var(--space-3); }
