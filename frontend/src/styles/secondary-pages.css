@@ -172,3 +172,8 @@
     grid-template-columns: 1fr;
   }
 }
+
+.investing-capabilities__list .ui-list-row__title {
+  margin: 0;
+  font-size: var(--text-lg);
+}
