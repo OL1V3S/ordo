@@ -41,8 +41,9 @@ silently treating every detected pattern as a financial fact.
   tables appear only when a save could not be confirmed, after a Home recovery
   prompt, or if the timeline cannot load. Active drafts and import review stay visible while you work.
 - **Budgets:** Review category spending against the selected month’s limits,
-  with visible progress and near-limit or over-limit status. Open add or edit
-  when needed; drafts keep their original month. Zero limits remain explicit
+  with visible progress and near-limit or over-limit status. Pick the month with
+  previous, next, a month list or This month; edit or delete from each row’s "..."
+  menu. Open add or edit when needed; drafts keep their original month. Zero limits remain explicit
   no-spend budgets, and unavailable spending is shown separately from zero.
 - **Commitments:** See active saved expectations, amounts, and timing patterns
   first, then review supported changes and possible recurring expenses. Edit,

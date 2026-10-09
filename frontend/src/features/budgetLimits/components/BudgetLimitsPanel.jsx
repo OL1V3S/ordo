@@ -3,6 +3,11 @@ import { useTranslation } from "react-i18next";
 import { DEFAULT_CATEGORIES } from "../../../shared/constants/categories";
 import { displayText, normalizeText } from "../../../utils/text";
 import FormField from "../../../shared/ui/FormField";
+import ListRow from "../../../shared/ui/ListRow";
+import PeriodPicker from "../../../shared/ui/PeriodPicker";
+import RowActionsMenu from "../../../shared/ui/RowActionsMenu";
+import SectionHeader from "../../../shared/ui/SectionHeader";
+import { getMonthYear } from "../../../shared/utils/monthYear";
 import StatusMessage from "../../../shared/ui/StatusMessage";
 import {
   formatCents,
@@ -17,13 +22,20 @@ function focusAfterRender(target) {
   window.requestAnimationFrame(() => target()?.focus());
 }
 
+// Visible month label only; the picker values stay exact "YYYY-MM" strings.
+function formatMonthLabel(language, monthYear) {
+  const [monthYearYear, monthYearMonth] = monthYear.split("-").map(Number);
+  return new Intl.DateTimeFormat(language, { month: "long", year: "numeric", timeZone: "UTC" })
+    .format(Date.UTC(monthYearYear, monthYearMonth - 1, 1));
+}
+
 export default function BudgetLimitsPanel({
   limitMonthYear, setLimitMonthYear, budgetLimits, limitsLoading,
   limitsError = null, refreshLimits = async () => {},
   spendingLoading = false, spendingError = null, refreshSpending = async () => {},
   totalsByCategory, upsertLimit, deleteLimit,
 }) {
-  const { t } = useTranslation("budgets");
+  const { t, i18n } = useTranslation("budgets");
   // Preserve the existing exact category keys and last-record grouping.
   const budgetLimitsByCategory = useMemo(() => {
     const result = {};
@@ -131,18 +143,34 @@ export default function BudgetLimitsPanel({
   return (
     <section className="budget-workspace" aria-labelledby="category-budgets-heading">
       <div className="budget-toolbar">
-        <FormField label={t("toolbar.month")}>{(id) => <input id={id} type="month" value={limitMonthYear}
+        <PeriodPicker value={limitMonthYear} currentValue={getMonthYear(new Date())}
           disabled={Boolean(task) || pending || outcomeNeedsRefresh}
-          onChange={(event) => { setLimitMonthYear(event.target.value); setFeedback(null); }} />}</FormField>
+          label={t("toolbar.month")} previousLabel={t("toolbar.previousMonth")} nextLabel={t("toolbar.nextMonth")}
+          currentLabel={t("toolbar.currentMonth")} emptyLabel={t("toolbar.noMonth")}
+          formatMonth={(month) => formatMonthLabel(i18n.resolvedLanguage, month)}
+          onChange={(next) => { setLimitMonthYear(next); setFeedback(null); }} />
         <button type="button" ref={addButton} aria-expanded={task?.type === "add"} aria-controls="budget-task"
           disabled={Boolean(task) || mutationDisabled} onClick={openAdd}>{t("toolbar.add")}</button>
       </div>
-      {task && <p className="muted budget-task-note">{t("taskNote", { month: task.month })}</p>}
-      <div ref={feedbackRegion} tabIndex={-1} className="budget-feedback">
-        {feedback && <StatusMessage tone={feedback.tone}>{t(`feedback.${feedback.key}`)}</StatusMessage>}
+      <div className="budget-status">
+        {task && <p className="muted budget-task-note">{t("taskNote", { month: task.month })}</p>}
+        <div ref={feedbackRegion} tabIndex={-1} className="budget-feedback">
+          {feedback && <StatusMessage tone={feedback.tone}>{t(`feedback.${feedback.key}`)}</StatusMessage>}
+        </div>
+        {!limitMonthYear ? <StatusMessage>{t("states.chooseMonth")}</StatusMessage>
+          : limitsLoading ? <StatusMessage>{t("states.loadingLimits")}</StatusMessage>
+            : limitsError ? <StatusMessage tone="danger">{t("states.limitsError", { month: limitMonthYear })}</StatusMessage>
+              : null}
+        {limitMonthYear && spendingLoading && <StatusMessage>{t("states.loadingSpending")}</StatusMessage>}
+        {limitMonthYear && spendingError && <StatusMessage tone="danger">{t("states.spendingError")}</StatusMessage>}
+        <div className="budget-status__actions">
+          <button type="button" className="button-ghost" disabled={limitsLoading || pending || !limitMonthYear} onClick={retryLimits}>{t("section.refresh")}</button>
+          {limitMonthYear && spendingError && <button type="button" className="button-ghost" disabled={spendingLoading || pending}
+            onClick={() => refreshSpending().catch(() => {})}>{t("states.retrySpending")}</button>}
+        </div>
       </div>
       <div id="budget-task" hidden={!task}>
-        {task && <form className="card budget-form" noValidate onSubmit={(event) => { event.preventDefault(); saveTask(); }}>
+        {task && <form className="budget-form" noValidate onSubmit={(event) => { event.preventDefault(); saveTask(); }}>
           <h2>{task.type === "edit" ? t("form.editHeading", { category: displayText(task.category) }) : t("form.addHeading")}</h2>
           <p className="muted">{t("form.forMonth", { month: task.month })}</p>
           {validation && <div id="budget-validation"><StatusMessage tone="danger">{t("form.validation")}</StatusMessage></div>}
@@ -174,23 +202,10 @@ export default function BudgetLimitsPanel({
           </div>
         </form>}
       </div>
-      <div className="budget-section-header">
-        <h2 id="category-budgets-heading" ref={sectionHeading} tabIndex={-1}>{t("section.heading")}</h2>
-        <button type="button" className="button-ghost" disabled={limitsLoading || pending || !limitMonthYear} onClick={retryLimits}>{t("section.refresh")}</button>
-      </div>
-      {!limitMonthYear ? <StatusMessage>{t("states.chooseMonth")}</StatusMessage>
-        : limitsLoading ? <StatusMessage>{t("states.loadingLimits")}</StatusMessage>
-          : limitsError ? <StatusMessage tone="danger">{t("states.limitsError", { month: limitMonthYear })}</StatusMessage>
-            : null}
-      {limitMonthYear && spendingLoading && <StatusMessage>{t("states.loadingSpending")}</StatusMessage>}
-      {limitMonthYear && spendingError && <div className="budget-spending-error">
-        <StatusMessage tone="danger">{t("states.spendingError")}</StatusMessage>
-        <button type="button" className="button-ghost" disabled={spendingLoading || pending}
-          onClick={() => refreshSpending().catch(() => {})}>{t("states.retrySpending")}</button>
-      </div>}
+      <SectionHeader level={2} id="category-budgets-heading" title={t("section.heading")} headingRef={sectionHeading} focusable />
       {!limitsUnavailable && (Object.keys(budgetLimitsByCategory).length === 0
         ? <p className="empty-state">{t("states.empty")}</p>
-        : <div className="budget-cards">
+        : <ul className="budget-list" aria-labelledby="category-budgets-heading">
           {Object.entries(budgetLimitsByCategory).map(([category, limit]) => {
             const name = displayText(category);
             const totalValue = totalsByCategory[category] === undefined ? "0.00" : totalsByCategory[category];
@@ -207,29 +222,32 @@ export default function BudgetLimitsPanel({
                   : limitAmount.cents === 0n ? "zeroLimit"
                 : used.cents > limitAmount.cents ? "overLimit" : used.cents === limitAmount.cents ? "limitReached"
                   : warning ? "nearLimit" : "withinLimit";
-            return <article key={category} className={`card budget-card${warning ? " budget-card--warning" : ""}`} aria-label={t("card.ariaLabel", { name })}>
-              <div className="budget-card__header"><h3>{name}</h3><span className="budget-card__status">{t(`card.status.${status}`)}</span></div>
-              <p className="budget-card__amounts">
+            const actionsDisabled = Boolean(task) || mutationDisabled;
+            return <ListRow key={category} className={`budget-row${warning ? " budget-row--warning" : ""}`}
+              aria-label={t("card.ariaLabel", { name })} title={name}
+              meta={<>
+                <span className="budget-row__status">{t(`card.status.${status}`)}</span>
+                {comparisonAvailable && limitAmount.cents > 0n && <span className="budget-row__progress">
+                  <progress max="100" value={Math.min(100, Math.max(0, percentage))} aria-label={t("card.progressLabel", { name })}
+                    aria-valuetext={t("card.progressValue", { used: formatCents(used.cents), limit: formatCents(limitAmount.cents), percent: Math.round(percentage) })} />
+                  <span>{t("card.percentUsed", { percent: Math.round(percentage) })}</span>
+                </span>}
+                {comparisonAvailable && limitAmount.cents === 0n && <span className="budget-row__note">{t("card.zeroLimitNote")}</span>}
+                {spendingAvailable && (!used || !limitAmount) && <span className="budget-row__note">{t("card.comparisonUnavailable")}</span>}
+              </>}
+              amount={<>
                 <strong>{spendingAvailable && used ? formatCents(used.cents) : t("card.unavailable")}</strong>
                 <span> {t("card.usedOf", { limit: limitAmount ? formatCents(limitAmount.cents) : t("card.unavailable") })}</span>
-              </p>
-              {comparisonAvailable && limitAmount.cents > 0n && <div className="budget-card__progress">
-                <progress max="100" value={Math.min(100, Math.max(0, percentage))} aria-label={t("card.progressLabel", { name })}
-                  aria-valuetext={t("card.progressValue", { used: formatCents(used.cents), limit: formatCents(limitAmount.cents), percent: Math.round(percentage) })} />
-                <span>{t("card.percentUsed", { percent: Math.round(percentage) })}</span>
-              </div>}
-              {comparisonAvailable && limitAmount.cents === 0n && <p className="muted budget-card__note">{t("card.zeroLimitNote")}</p>}
-              {spendingAvailable && (!used || !limitAmount) && <p className="muted budget-card__note">{t("card.comparisonUnavailable")}</p>}
-              <div className="inline-actions">
-                <button type="button" aria-label={t("card.editLabel", { name })} aria-controls="budget-task"
-                  aria-expanded={task?.type === "edit" && task.category === category}
-                  disabled={Boolean(task) || mutationDisabled} onClick={(event) => openEdit(category, event.currentTarget)}>{t("card.edit")}</button>
-                <button type="button" className="button-danger" aria-label={t("card.deleteLabel", { name })}
-                  disabled={Boolean(task) || mutationDisabled} onClick={() => removeLimit(limit, category)}>{t("card.delete")}</button>
-              </div>
-            </article>;
+              </>}
+              actions={<RowActionsMenu
+                triggerLabel={t("card.actionsLabel", { name })}
+                editLabel={t("card.editLabel", { name })} editText={t("card.edit")}
+                deleteLabel={t("card.deleteLabel", { name })} deleteText={t("card.delete")}
+                canEdit={!actionsDisabled} canDelete={!actionsDisabled}
+                onEdit={(trigger) => openEdit(category, trigger)}
+                onDelete={() => removeLimit(limit, category)} />} />;
           })}
-        </div>)}
+        </ul>)}
       {limitMonthYear && <details className="budget-explanation">
         <summary>{t("explanation.summary")}</summary>
         <p>{t("explanation.reset", { date: nextResetDate })}</p>
