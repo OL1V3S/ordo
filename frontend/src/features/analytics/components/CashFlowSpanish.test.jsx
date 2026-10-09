@@ -22,14 +22,14 @@ describe("cash-flow components in Spanish", () => {
     expect(card).toHaveTextContent("agosto de 2026");
     expect(card).toHaveTextContent("Hasta el 14 de agosto de 2026");
     expect(card).toHaveTextContent("Basado en tus transacciones registradas.");
-    expect(card).toHaveTextContent("Entradas de dinero registradas$150.00");
-    expect(card).toHaveTextContent("Gastado$300.00");
+    expect(card).toHaveTextContent("Entradas de dinero registradasUSD 150.00");
+    expect(card).toHaveTextContent("GastadoUSD 300.00");
     expect(within(card).getByRole("heading", { name: "Flujo de efectivo neto registrado" })).toBeInTheDocument();
-    expect(card).toHaveTextContent("−$150.00");
+    expect(card).toHaveTextContent("−USD 150.00");
     expect(card).toHaveTextContent("Entradas de dinero registradas menos gastado");
     const breakdown = screen.getByRole("list", { name: "Desglose de las entradas de dinero registradas" });
-    expect(breakdown).toHaveTextContent("Pagos de nómina confirmados $120.00");
-    expect(breakdown).toHaveTextContent("Otras entradas de dinero $30.00");
+    expect(breakdown).toHaveTextContent("Pagos de nómina confirmados USD 120.00");
+    expect(breakdown).toHaveTextContent("Otras entradas de dinero USD 30.00");
     expect(screen.queryByText(/Through|Recorded cash in|Spent/)).not.toBeInTheDocument();
   });
 
@@ -72,7 +72,7 @@ describe("cash-flow components in Spanish", () => {
     const { unmount } = render(<CashFlowCategories data={data} />);
     const region = screen.getByRole("region", { name: "Dónde se gastó" });
     expect(region).toHaveTextContent("Ordenado por monto");
-    expect(within(region).getByRole("listitem")).toHaveTextContent("Food$0.01 · No aplica");
+    expect(within(region).getByRole("listitem")).toHaveTextContent("FoodUSD 0.01 · No aplica");
     unmount();
     render(<CashFlowCategories data={{ ...data, categories: [] }} />);
     expect(screen.getByText("No hay gastos registrados")).toBeInTheDocument();
@@ -92,8 +92,8 @@ describe("cash-flow components in Spanish", () => {
     expect(callbacks.title([{ dataIndex: 5 }])).toBe("agosto de 2026");
     expect(callbacks.title([])).toBe("");
     expect(callbacks.label({ dataset: renderedChart.data.datasets[1], datasetIndex: 1, dataIndex: 5 }))
-      .toBe("Otras entradas de dinero: $30.00");
-    expect(callbacks.footer([{ dataIndex: 5 }])).toBe("Entradas de dinero registradas: $150.00");
+      .toBe("Otras entradas de dinero: USD\u00a030.00");
+    expect(callbacks.footer([{ dataIndex: 5 }])).toBe("Entradas de dinero registradas: USD\u00a0150.00");
   });
 
   it("keeps tooltip amounts exact from the cash-flow strings in Spanish", () => {
@@ -101,8 +101,8 @@ describe("cash-flow components in Spanish", () => {
     render(<CashFlowTrendChart data={data} />);
     const callbacks = renderedChart.options.plugins.tooltip.callbacks;
     expect(callbacks.label({ dataset: renderedChart.data.datasets[1], datasetIndex: 1, dataIndex: 5 }))
-      .toBe("Otras entradas de dinero: $9,999,999,999,999,999.99");
-    expect(callbacks.footer([{ dataIndex: 5 }])).toBe("Entradas de dinero registradas: $9,999,999,999,999,999.99");
+      .toBe("Otras entradas de dinero: USD\u00a09,999,999,999,999,999.99");
+    expect(callbacks.footer([{ dataIndex: 5 }])).toBe("Entradas de dinero registradas: USD\u00a09,999,999,999,999,999.99");
   });
 
   it("renders the chart heading, legend, month-to-date note, kicker, and accessible table in Spanish", () => {
@@ -116,8 +116,8 @@ describe("cash-flow components in Spanish", () => {
     expect(within(table).getByText("Flujo de efectivo mensual registrado en dólares estadounidenses")).toBeInTheDocument();
     const rows = within(table).getAllByRole("row", { hidden: true });
     expect(rows[0]).toHaveTextContent("MesEntradas de dinero registradasPagos de nómina confirmadosOtras entradas de dineroGastadoFlujo de efectivo neto registradoNota del período");
-    expect(rows[1]).toHaveTextContent("marzo de 2026$0.00$0.00$0.00$0.00$0.00No hay entradas de dinero registradas · No hay gastos registrados");
-    expect(rows[6]).toHaveTextContent("agosto de 2026$150.00$120.00$30.00$100.00+$50.00Hasta el 14 de agosto de 2026");
+    expect(rows[1]).toHaveTextContent("marzo de 2026USD 0.00USD 0.00USD 0.00USD 0.00USD 0.00No hay entradas de dinero registradas · No hay gastos registrados");
+    expect(rows[6]).toHaveTextContent("agosto de 2026USD 150.00USD 120.00USD 30.00USD 100.00+USD 50.00Hasta el 14 de agosto de 2026");
   });
 
   it("uses count-aware Spanish kickers at the representable-calendar floor", () => {

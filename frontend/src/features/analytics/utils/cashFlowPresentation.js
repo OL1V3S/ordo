@@ -26,7 +26,8 @@ export function cashPercentage(numerator, denominator, locale = "en") {
   const whole = minorUnits(denominator);
   if (whole <= 0n) return null;
   const tenths = (part * 2000n + whole) / (whole * 2n);
-  return formatPercentTenths(tenths, locale);
+  // Cash-flow shares have always been ungrouped (for example 1234.5%); keep that.
+  return formatPercentTenths(tenths, locale, { grouping: false });
 }
 
 // Approximation is exclusively for decorative chart/bar geometry.

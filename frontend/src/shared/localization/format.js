@@ -92,13 +92,17 @@ function percentOptions(fractionDigits) {
   return { style: "percent", minimumFractionDigits: fractionDigits, maximumFractionDigits: fractionDigits };
 }
 
-/** Formats exact tenths of a percent (bigint), for example 123n as "12.3%". */
-export function formatPercentTenths(tenths, locale = "en") {
+/**
+ * Formats exact tenths of a percent (bigint), for example 123n as "12.3%".
+ * `grouping: false` keeps the integer digits ungrouped (used where output was never grouped).
+ */
+export function formatPercentTenths(tenths, locale = "en", { grouping = true } = {}) {
   if (typeof tenths !== "bigint") return null;
   const negative = tenths < 0n;
   const absolute = negative ? -tenths : tenths;
   const parts = numberFormat(locale, percentOptions(1)).formatToParts(negative ? -1 : 1);
-  return substituteDigits(parts, groupedInteger(locale, absolute / 10n), String(absolute % 10n));
+  const whole = absolute / 10n;
+  return substituteDigits(parts, grouping ? groupedInteger(locale, whole) : String(whole), String(absolute % 10n));
 }
 
 /** Formats a whole-number percent (integer Number or bigint), for example 45 as "45%". */

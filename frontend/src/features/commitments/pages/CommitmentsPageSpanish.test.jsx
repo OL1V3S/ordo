@@ -125,7 +125,7 @@ describe("Commitments page in Spanish", () => {
     const saved = within(card("Rent"));
     expect(saved.getByText("Activo")).toBeInTheDocument();
     expect(saved.getByText("Monto previsto")).toBeInTheDocument();
-    expect(saved.getAllByText("$1,200.00")[0]).toBeInTheDocument();
+    expect(saved.getAllByText("USD 1,200.00")[0]).toBeInTheDocument();
     expect(saved.getByText("Mensual", { exact: false })).toBeInTheDocument();
     expect(saved.getByText("Día 1, con una ventana de 1 día antes / 1 día después")).toBeInTheDocument();
     expect(saved.getByText("3 gastos vinculados")).toBeInTheDocument();
@@ -142,7 +142,7 @@ describe("Commitments page in Spanish", () => {
     expect(range.getByText("Basado en 3 gastos registrados. Historial observado, no una previsión guardada.")).toBeInTheDocument();
     expect(range.getByText("Rango de monto observado")).toBeInTheDocument();
     expect(range.getByText("3 gastos registrados · Unknown rule code")).toBeInTheDocument();
-    expect(range.getByText("Mediana $20.00")).toBeInTheDocument();
+    expect(range.getByText("Mediana USD 20.00")).toBeInTheDocument();
   });
 
   it("shows the Spanish change review with the decision effect on the saved expectation", () => {

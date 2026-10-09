@@ -65,8 +65,7 @@ describe('Budgets page in Spanish', () => {
     expect(screen.getByRole('button', { name: 'Actualizar límites' })).toBeEnabled()
     expect(screen.getByText('No hay límites de presupuesto definidos para este mes.')).toBeInTheDocument()
     expect(screen.getByText('Acerca de los límites mensuales').closest('details')).not.toHaveAttribute('open')
-    const reset = new Date(2026, 8, 1).toLocaleDateString()
-    expect(screen.getByText(`Próximo reinicio: ${reset}. Cada límite se aplica a su mes calendario seleccionado.`)).toBeInTheDocument()
+    expect(screen.getByText(`Próximo reinicio: 1 sep 2026. Cada límite se aplica a su mes calendario seleccionado.`)).toBeInTheDocument()
     expect(screen.getByText('Un límite de cero es un presupuesto intencional sin gastos. Es diferente a no tener un presupuesto para una categoría.')).toBeInTheDocument()
   })
 
@@ -77,10 +76,10 @@ describe('Budgets page in Spanish', () => {
 
     const food = screen.getByRole('listitem', { name: 'Presupuesto de Food' })
     expect(within(food).getByText('Cerca del límite')).toBeVisible()
-    expect(within(food).getByText('$95.00')).toBeVisible()
-    expect(within(food).getByText('usado de $100.00')).toBeVisible()
+    expect(within(food).getByText('USD 95.00')).toBeVisible()
+    expect(within(food).getByText('usado de USD 100.00')).toBeVisible()
     expect(within(food).getByText('95% usado')).toBeVisible()
-    expect(within(food).getByRole('progressbar', { name: 'Uso del presupuesto de Food' })).toHaveAttribute('aria-valuetext', '$95.00 usado de $100.00, 95%')
+    expect(within(food).getByRole('progressbar', { name: 'Uso del presupuesto de Food' })).toHaveAttribute('aria-valuetext', 'USD\u00a095.00 usado de USD\u00a0100.00, 95%')
     await openRowActions(user, 'Food')
     expect(within(food).getByRole('button', { name: 'Editar presupuesto de Food' })).toHaveTextContent('Editar')
     expect(within(food).getByRole('button', { name: 'Eliminar presupuesto de Food' })).toHaveTextContent('Eliminar')
@@ -88,7 +87,7 @@ describe('Budgets page in Spanish', () => {
     const bills = screen.getByRole('listitem', { name: 'Presupuesto de Bills' })
     expect(within(bills).getByText('Por encima del límite')).toBeVisible()
     expect(within(bills).getByText('125% usado')).toBeVisible()
-    expect(within(bills).getByRole('progressbar')).toHaveAttribute('aria-valuetext', '$125.00 usado de $100.00, 125%')
+    expect(within(bills).getByRole('progressbar')).toHaveAttribute('aria-valuetext', 'USD\u00a0125.00 usado de USD\u00a0100.00, 125%')
 
     const zero = screen.getByRole('listitem', { name: 'Presupuesto de Zero' })
     expect(within(zero).getByText('Límite de cero')).toBeVisible()
