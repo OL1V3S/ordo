@@ -26,6 +26,7 @@ the permanent, complete archive.
 
 ### 2026-10-09 — Insights declutter
 
+[PR #216](https://github.com/OL1V3S/ordo/pull/216) ·
 [Issue #215](https://github.com/OL1V3S/ordo/issues/215)
 
 - Insights now has a month picker (earlier/later steps move between months that have recorded data), one status area, flat cash-flow panels, and accessible More spending disclosures.
