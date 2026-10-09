@@ -21,4 +21,11 @@ describe("app shell layout contract", () => {
     expect(sidebarRules.length).toBeGreaterThan(0);
     for (const rule of sidebarRules) expect(rule).not.toMatch(/overflow/);
   });
+
+  it("pads the scrolling nav by the focus ring extent so the ring is not clipped", () => {
+    const ring = "calc\\(var\\(--focus-ring-width\\) \\+ var\\(--focus-ring-offset\\)\\)";
+    const rule = layout.match(/\.app-nav \{ overflow-y: auto;[^}]*\}/)?.[0] ?? "";
+    expect(rule).toMatch(new RegExp(`padding: ${ring}`));
+    expect(rule).toMatch(new RegExp(`margin: calc\\(-1 \\* \\(var\\(--focus-ring-width\\) \\+ var\\(--focus-ring-offset\\)\\)\\)`));
+  });
 });
