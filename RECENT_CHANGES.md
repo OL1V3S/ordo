@@ -26,6 +26,7 @@ the permanent, complete archive.
 
 ### 2026-10-09 — Shared UI component kit
 
+[PR #202](https://github.com/OL1V3S/ordo/pull/202) ·
 [Issue #201](https://github.com/OL1V3S/ordo/issues/201)
 
 - Added presentational components in `frontend/src/shared/ui` (Disclosure,
