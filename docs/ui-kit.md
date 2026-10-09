@@ -38,7 +38,9 @@ Hidden content: kit panels set `[hidden] { display: none !important }`, so a
   `li` without overriding its computed class. Mobile stacking uses the legacy 400px
   breakpoint to stay pixel-identical; normalize with the breakpoint pass. Optional `titleAs` (default
   `strong`, e.g. `h3`) and `children` (a full-width `.ui-list-row__extra` slot under the row for details, forms and
-  confirmations; the wrap modifier `ui-list-row--with-extra` is added only when children exist).
+  confirmations; the wrap modifier `ui-list-row--with-extra` is added only when children exist). The kit row is
+  `space-between`, so a row with both an amount and actions must let `.ui-list-row__main` grow (`flex: 1 1 0`, as the
+  Budgets and Activity timeline rows do) or the amount floats at a content-dependent offset instead of aligning to the actions.
 - **PeriodPicker**: string-free month picker. A native `select` (the only element
   labelled by `label`; no group wrapper) of 25 months centred on `value`, previous and next
   buttons and a current-month button. Values are exact `YYYY-MM` strings
