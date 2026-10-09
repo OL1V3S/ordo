@@ -26,6 +26,7 @@ the permanent, complete archive.
 
 ### 2026-10-09 — CSS cleanup and architecture
 
+[PR #220](https://github.com/OL1V3S/ordo/pull/220) ·
 [Issue #219](https://github.com/OL1V3S/ordo/issues/219)
 
 - Removed dead CSS (pre-V2 Home, navigation hub, settings and import-card rules), redundant `box-shadow`/`transform: none` overrides, nine unused design tokens, an unused `saved.timingPattern` string and the unused `buildBudgetStatuses` helper; split `components.css` into page-owned `analytics.css`, `commitments.css` and `import-preview.css` and documented the CSS architecture in `docs/design-tokens.md`.
