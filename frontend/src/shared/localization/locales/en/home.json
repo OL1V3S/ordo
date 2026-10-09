@@ -1,10 +1,10 @@
 {
   "page": {
-    "title": "Home",
-    "intro": "Keep today’s money activity current."
+    "title": "Home"
   },
   "capture": {
     "heading": "Capture",
+    "add": "Add",
     "addExpense": "Add expense",
     "addCashIn": "Add cash in",
     "expense": {
@@ -98,6 +98,7 @@
     "viewPaychecks": "View paychecks",
     "listLabel": "Expected paycheck projections",
     "fixedAmount": "Expected amount: {{amount}}",
+    "rangeValue": "{{minimum}}–{{maximum}}",
     "rangeAmount": "Expected range: {{minimum}}–{{maximum}}",
     "expectedDate": "Expected {{date}}",
     "expectedWindow": "Expected window {{start}}–{{end}}",

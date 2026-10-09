@@ -20,7 +20,8 @@ silently treating every detected pattern as a financial fact.
 
 ## What you can do today
 
-- **Home:** Capture an expense or cash-in record before reviewing a compact,
+- **Home:** Capture an expense or cash-in record (on phones a single Add button
+  reveals Add expense and Add cash in; wider screens show both) before reviewing a compact,
   server-ordered list of up to three recent expenses and inflows. Exact amounts,
   posted dates, expense categories, and paycheck links are shown when available.
   Needs Attention shows up to two selected items across pending commitment

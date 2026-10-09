@@ -9,6 +9,10 @@ import { useInflowCapture } from "../../features/inflows/hooks/useInflowCapture"
 import ExpenseForm from "../../features/expenses/components/ExpenseForm";
 import InflowForm from "../../features/inflows/components/InflowForm";
 import StatusMessage from "../../shared/ui/StatusMessage";
+import SectionHeader from "../../shared/ui/SectionHeader";
+import ListRow from "../../shared/ui/ListRow";
+import { DisclosureButton } from "../../shared/ui/Disclosure";
+import { useForcedOpen } from "../../shared/ui/useForcedOpen";
 import { getSessionSnapshot } from "../../shared/auth/session";
 import { useHomeData } from "../../features/home/hooks/useHomeData";
 import { useCaptureRecovery } from "../../features/home/recovery/captureRecovery";
@@ -31,6 +35,7 @@ export default function OverviewPage() {
   const expenseButton = useRef(null);
   const cashInButton = useRef(null);
   const recoveryLink = useRef(null);
+  const addMenu = useForcedOpen(Boolean(active));
   const moneyLocale = locale === "es" ? "es-US" : "en-US";
   const refreshAfterWrite = async () => {
     const session = getSessionSnapshot();
@@ -123,10 +128,13 @@ export default function OverviewPage() {
   const reviewCount = commitmentItems.reduce((total, item) => total + item.reviews.length, 0);
 
   return <div className="shell-page home-capture-page">
-    <header className="page-header"><div><h1>{t("page.title")}</h1><p className="muted">{t("page.intro")}</p></div></header>
-    <section className="home-capture" aria-labelledby="home-capture-heading">
-      <h2 id="home-capture-heading">{t("capture.heading")}</h2>
-      <div className="home-capture__actions">
+    <header className="page-header"><div><h1>{t("page.title")}</h1></div></header>
+    <section className="home-capture" aria-label={t("capture.heading")}>
+      <div className="home-capture__add">
+        <DisclosureButton controls="home-add-options" open={addMenu.open} forced={Boolean(active)} hint={t("capture.lock")}
+          onToggle={addMenu.toggle} className="home-capture__add-toggle">{t("capture.add")}</DisclosureButton>
+      </div>
+      <div id="home-add-options" className="home-capture__actions" data-collapsed={addMenu.open ? undefined : "true"}>
         <button type="button" ref={expenseButton} disabled={!canStart} aria-expanded={active === "expense"} onClick={startExpense}>{t("capture.addExpense")}</button>
         <button type="button" ref={cashInButton} className="button-ghost" disabled={!canStart} aria-expanded={active === "cashIn"} onClick={startCashIn}>{t("capture.addCashIn")}</button>
       </div>
@@ -151,7 +159,7 @@ export default function OverviewPage() {
           : t(feedback.outcome === "unknown" ? "capture.feedback.unknown" : feedback.outcome === "refreshed" ? "capture.feedback.refreshed"
           : feedback.source === "expense" ? "capture.feedback.expenseSaved" : "capture.feedback.cashInSaved")}</StatusMessage></div>}
       {recovery.source && <div className="home-recovery" role="alert" aria-labelledby="home-recovery-heading">
-        <h3 id="home-recovery-heading">{t("recovery.heading")}</h3>
+        <h2 id="home-recovery-heading">{t("recovery.heading")}</h2>
         <p>{t(recovery.source === "expense" ? "recovery.bodyExpense" : "recovery.bodyCashIn")}</p>
         {recovery.volatile && <p>{t("recovery.storageVolatile")}</p>}
         <Link ref={recoveryLink} className="button-link" to="/transactions">{t("recovery.openActivity")}</Link>
@@ -160,31 +168,25 @@ export default function OverviewPage() {
       {data.loading && <StatusMessage>{t("activity.loading")}</StatusMessage>}
     </section>
     <section className="home-attention" aria-labelledby="home-attention-heading" aria-busy={attentionState === "loading"}>
-      <div className="home-attention__heading">
-        <h2 id="home-attention-heading">{t("attention.heading")}</h2>
-        {["available", "partial"].includes(attentionState) && commitmentItems.length > 0
-          && <Link to="/commitments#changes-review-heading">{commitmentItems.length > visibleCommitmentCount
-            ? t("attention.viewAll", { count: reviewCount }) : t("attention.openReviews")}</Link>}
-      </div>
+      <SectionHeader id="home-attention-heading" title={t("attention.heading")}
+        action={["available", "partial"].includes(attentionState) && commitmentItems.length > 0
+          ? <Link to="/commitments#changes-review-heading">{commitmentItems.length > visibleCommitmentCount
+            ? t("attention.viewAll", { count: reviewCount }) : t("attention.openReviews")}</Link> : null} />
       {["available", "partial"].includes(attentionState) && visibleAttention.length > 0
         && <ul className="home-attention__list" aria-label={t("attention.listLabel")}>
         {visibleAttention.map(({ type, item }) => {
           if (type === "budget") {
             const spent = formatHomeProjectionAmount(item.spentAmount, moneyLocale);
             const limit = formatHomeProjectionAmount(item.limitAmount, moneyLocale);
-            return <li key={`budget-${item.category}`} className="home-attention__item">
-              <strong>{item.category}</strong>
-              <p>{t(`attention.budgetStates.${item.state}`, { category: item.category, spent, limit })}</p>
-              <Link to="/budgets" aria-label={t("attention.openBudgetForCategory", { category: item.category })}>
+            return <ListRow key={`budget-${item.category}`} title={item.category}
+              meta={t(`attention.budgetStates.${item.state}`, { category: item.category, spent, limit })}
+              actions={<Link to="/budgets" aria-label={t("attention.openBudgetForCategory", { category: item.category })}>
                 {t("attention.openBudgets")}
-              </Link>
-            </li>;
+              </Link>} />;
           }
           const reasons = item.reviews.map(({ dimension }) => t(`attention.dimensions.${dimension}`));
-          return <li key={item.commitmentId} className="home-attention__item">
-            <strong>{item.commitmentName}</strong>
-            <p>{reasons.join(t("attention.reasonSeparator"))}</p>
-          </li>;
+          return <ListRow key={item.commitmentId} title={item.commitmentName}
+            meta={reasons.join(t("attention.reasonSeparator"))} />;
         })}
       </ul>}
       {attentionState === "empty"
@@ -198,26 +200,23 @@ export default function OverviewPage() {
         && <Link to="/commitments#changes-review-heading">{t("attention.openReviews")}</Link>}
     </section>
     <section className="home-recent" aria-labelledby="home-recent-heading" aria-busy={data.loading}>
-      <div className="home-recent__heading"><h2 id="home-recent-heading">{t("activity.heading")}</h2>
-        <Link to="/transactions">{t("activity.viewAll")}</Link></div>
+      <SectionHeader id="home-recent-heading" title={t("activity.heading")}
+        action={<Link to="/transactions">{t("activity.viewAll")}</Link>} />
       {data.error && <div><StatusMessage tone="danger">{t("activity.requestUnavailable")}</StatusMessage>
         <button type="button" className="button-ghost" onClick={refreshHome}>{t("activity.retry")}</button></div>}
       {!data.loading && !data.error && data.data?.recentActivity.availability.state === "unavailable"
         && <StatusMessage tone="warning">{t("activity.unavailable")}</StatusMessage>}
       {!data.loading && !data.error && data.data?.recentActivity.availability.state === "available" && (rows.length ?
-        <ul className="home-recent__list">{rows.map((row) => <li key={`${row.kind}-${row.recordId}`}>
-          <span className="home-recent__kind">{t(row.kind === "expense" ? "activity.expense" : "activity.cashIn")}</span>
-          <div><strong>{row.description}</strong><p>{formatHomeDate(row.date, moneyLocale)}{row.category ? ` · ${row.category}` : ""}
-            {row.paycheck && <> · {t("activity.paycheckLinked")}</>}</p></div>
-          <strong className="home-recent__amount">{formatHomeAmount(row.amount, row.kind, moneyLocale) ?? t("activity.amountReview")}</strong>
-        </li>)}</ul> : <StatusMessage>{t("activity.empty")}</StatusMessage>)}
+        <ul className="home-recent__list">{rows.map((row) => <ListRow key={`${row.kind}-${row.recordId}`}
+          label={t(row.kind === "expense" ? "activity.expense" : "activity.cashIn")} title={row.description}
+          meta={<>{formatHomeDate(row.date, moneyLocale)}{row.category ? ` · ${row.category}` : ""}
+            {row.paycheck && <> · {t("activity.paycheckLinked")}</>}</>}
+          amount={<strong>{formatHomeAmount(row.amount, row.kind, moneyLocale) ?? t("activity.amountReview")}</strong>} />)}</ul> : <StatusMessage>{t("activity.empty")}</StatusMessage>)}
     </section>
     <section className="home-coming-up" aria-labelledby="home-coming-up-heading" aria-busy={upcomingState === "loading"}>
-      <div className="home-coming-up__heading">
-        <div><h2 id="home-coming-up-heading">{t("comingUp.heading")}</h2>
-          <p className="home-coming-up__qualifier">{t("comingUp.qualifier")}</p></div>
-        <Link to="/paychecks">{t("comingUp.viewPaychecks")}</Link>
-      </div>
+      <SectionHeader id="home-coming-up-heading" title={t("comingUp.heading")}
+        action={<Link to="/paychecks">{t("comingUp.viewPaychecks")}</Link>} />
+      <p className="home-coming-up__qualifier">{t("comingUp.qualifier")}</p>
       {upcomingState === "available" && <ul className="home-coming-up__list" aria-label={t("comingUp.listLabel")}>
         {upcoming.items.map((item) => {
           const windowLabel = item.earliestExpectedDate === item.latestExpectedDate
@@ -233,12 +232,15 @@ export default function OverviewPage() {
               maximum: formatHomeProjectionAmount(item.amount.maximumAmount, moneyLocale),
             });
           const cadence = t(`comingUp.cadences.${item.cadence}`);
-          return <li key={item.paycheckProfileId} className="home-coming-up__item"
-            aria-label={t("comingUp.itemLabel", { name: item.displayName, amount: amountLabel, cadence: t("comingUp.cadence", { cadence }), window: windowLabel })}>
-            <div className="home-coming-up__item-heading"><strong>{item.displayName}</strong><strong>{amountLabel}</strong></div>
-            <p>{t("comingUp.cadence", { cadence })}</p>
-            <p>{windowLabel}</p>
-          </li>;
+          const amountValue = item.amount.mode === "fixed"
+            ? formatHomeProjectionAmount(item.amount.fixedAmount, moneyLocale)
+            : t("comingUp.rangeValue", {
+              minimum: formatHomeProjectionAmount(item.amount.minimumAmount, moneyLocale),
+              maximum: formatHomeProjectionAmount(item.amount.maximumAmount, moneyLocale),
+            });
+          return <ListRow key={item.paycheckProfileId} className="home-coming-up__row" title={item.displayName}
+            aria-label={t("comingUp.itemLabel", { name: item.displayName, amount: amountLabel, cadence: t("comingUp.cadence", { cadence }), window: windowLabel })}
+            meta={<><span>{cadence}</span>{" · "}<span>{windowLabel}</span></>} amount={amountValue} />;
         })}
       </ul>}
       {upcomingState !== "available" && <StatusMessage tone={upcomingState === "malformed" || upcomingState === "unavailable" ? "warning" : undefined}>

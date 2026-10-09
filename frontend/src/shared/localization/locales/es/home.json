@@ -1,10 +1,10 @@
 {
   "page": {
-    "title": "Inicio",
-    "intro": "Mantén al día los movimientos de dinero de hoy."
+    "title": "Inicio"
   },
   "capture": {
     "heading": "Registrar",
+    "add": "Agregar",
     "addExpense": "Agregar gasto",
     "addCashIn": "Agregar entrada de dinero",
     "expense": {
@@ -98,6 +98,7 @@
     "viewPaychecks": "Ver pagos de nómina",
     "listLabel": "Previsiones de pagos de nómina",
     "fixedAmount": "Monto previsto: {{amount}}",
+    "rangeValue": "{{minimum}}–{{maximum}}",
     "rangeAmount": "Rango previsto: {{minimum}}–{{maximum}}",
     "expectedDate": "Previsto para el {{date}}",
     "expectedWindow": "Ventana prevista: del {{start}} al {{end}}",

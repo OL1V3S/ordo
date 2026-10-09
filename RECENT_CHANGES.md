@@ -24,6 +24,14 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-09 — Home declutter
+
+[PR #209](https://github.com/OL1V3S/ordo/pull/209) ·
+[Issue #208](https://github.com/OL1V3S/ordo/issues/208)
+
+- Home drops its intro line and "Capture" heading, uses the shared section headers and rows, and shows each Coming Up item as a compact two-line row.
+- On phones a single "Add" button reveals Add expense and Add cash in; wider screens still show both buttons. Data, ordering, capture and recovery behavior are unchanged.
+
 ### 2026-10-09 — Activity single task area and row menu
 
 [PR #207](https://github.com/OL1V3S/ordo/pull/207) ·
@@ -244,14 +252,3 @@ the permanent, complete archive.
   governance in provider-neutral roles while retaining existing Ordo gates.
 - Added a single Claude `/next` cockpit with fresh role-separated workers,
   task-specific model routing, and a read-only review fallback.
-
-### 2026-09-29 — Home budget attention
-
-[PR #167](https://github.com/OL1V3S/ordo/pull/167) ·
-[Issue #166](https://github.com/OL1V3S/ordo/issues/166)
-
-- Added selective Home alerts for recorded category spending at or above an
-  explicit monthly budget, with exact-cents classification and deterministic
-  ranking.
-- Kept budget and commitment attention independently available, read-only, and
-  bilingual, within Home's existing two-row limit.
