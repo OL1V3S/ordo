@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocale } from "../../../shared/localization/useLocale";
 import ActivityTimelineFilters from "./ActivityTimelineFilters";
+import RowActionsMenu from "./RowActionsMenu";
 import EmptyState from "../../../shared/ui/EmptyState";
 import ListRow from "../../../shared/ui/ListRow";
 import SectionHeader from "../../../shared/ui/SectionHeader";
@@ -71,7 +72,6 @@ export default function ActivityTimeline({ timeline, filters = null, uncertain =
           const date = formatTimelineDate(item.date, moneyLocale);
           const actionState = rowActions?.getState(item);
           const labelValues = { description: item.description, date: date ?? t("home:activity.dateUnknown"), id: item.recordId };
-          const expenseRow = item.kind === "expense";
           return (
             <ListRow key={timelineItemKey(item)} className={`activity-timeline__row activity-timeline__row--${item.kind}`}
               label={t(item.kind === "expense" ? "home:activity.expense" : "home:activity.cashIn")}
@@ -85,14 +85,8 @@ export default function ActivityTimeline({ timeline, filters = null, uncertain =
                 <strong>{t("home:activity.amountReview")}</strong>
                 <span className="activity-timeline__stored-amount">{item.amount}</span>
               </>}
-              actions={actionState ? <>
-                <button type="button" disabled={!actionState.canEdit}
-                  aria-label={t(expenseRow ? "activity:timeline.actions.editExpense" : "activity:timeline.actions.editCashIn", labelValues)}
-                  onClick={(event) => rowActions.onEdit(item, event.currentTarget)}>{t("activity:timeline.actions.edit")}</button>
-                <button type="button" className={expenseRow ? "button-danger" : "button-ghost"} disabled={!actionState.canDelete}
-                  aria-label={t(expenseRow ? "activity:timeline.actions.deleteExpense" : "activity:timeline.actions.deleteCashIn", labelValues)}
-                  onClick={(event) => rowActions.onDelete(item, event.currentTarget)}>{t("activity:timeline.actions.delete")}</button>
-              </> : null} />
+              actions={actionState ? <RowActionsMenu kind={item.kind} labelValues={labelValues} state={actionState}
+                onEdit={(opener) => rowActions.onEdit(item, opener)} onDelete={(opener) => rowActions.onDelete(item, opener)} /> : null} />
           );
         })}
       </ul>}

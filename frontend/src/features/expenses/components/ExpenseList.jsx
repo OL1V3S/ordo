@@ -2,32 +2,11 @@ import { useTranslation } from "react-i18next";
 import ExpenseItem from "./ExpenseItem";
 import Card from "../../../shared/ui/Card";
 
-export default function ExpenseList({
-  expenses,
-  totalCount,
-  filteredCount,
-  entriesPerPage,
-  showAll,
-  onShowAll,
-  editingExpenseId,
-  editingExpenseData,
-  setEditingExpenseData,
-  onStartEdit,
-  onSave,
-  onCancel,
-  onDelete,
-  busy = false,
-  taskLocked = false,
-  readUnavailable = false,
-}) {
+// Read-only table of every expense (recovery, check-your-records and timeline-failure states).
+export default function ExpenseList({ expenses, rowActions = null }) {
   const { t } = useTranslation("activity");
   if (!expenses || expenses.length === 0) {
-    const hasRecordedExpenses = typeof totalCount === "number" && totalCount > 0;
-    return (
-      <p className="empty-state expense-list__empty">
-        {hasRecordedExpenses ? t("expenseList.noMatches") : t("expenseList.none")}
-      </p>
-    );
+    return <p className="empty-state expense-list__empty">{t("expenseList.none")}</p>;
   }
 
   return (
@@ -41,37 +20,14 @@ export default function ExpenseList({
               <th>{t("expenseList.columns.amount")}</th>
               <th>{t("expenseList.columns.date")}</th>
               <th>{t("expenseList.columns.category")}</th>
-              <th>{t("expenseList.columns.actions")}</th>
+              {rowActions && <th>{t("expenseList.columns.actions")}</th>}
             </tr>
           </thead>
-
           <tbody>
-            {expenses.map((expense, index) => (
-              <ExpenseItem
-                key={expense.id}
-                expense={expense}
-                rowNumber={index + 1}
-                isEditing={editingExpenseId === expense.id}
-                editingData={editingExpenseData}
-                setEditingData={setEditingExpenseData}
-                onStartEdit={onStartEdit}
-                onSave={onSave}
-                onCancel={onCancel}
-                onDelete={onDelete}
-                busy={busy}
-                taskLocked={taskLocked}
-                readUnavailable={readUnavailable}
-              />
-            ))}
+            {expenses.map((expense) => <ExpenseItem key={expense.id} expense={expense} rowActions={rowActions} />)}
           </tbody>
         </table>
       </div>
-
-      {!showAll && filteredCount > entriesPerPage && (
-        <button type="button" className="mt-2 expense-list__show-more" onClick={onShowAll} disabled={busy}>
-          {t("expenseList.showMore")}
-        </button>
-      )}
     </Card>
   );
 }

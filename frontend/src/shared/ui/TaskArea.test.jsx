@@ -32,6 +32,19 @@ describe('TaskArea', () => {
   })
 })
 
+describe('TaskArea autoFocus', () => {
+  it('never moves focus when autoFocus is false', async () => {
+    const view = (open) => <><button type="button">Elsewhere</button><TaskArea id="t" open={open} label="Task" autoFocus={false}>Body</TaskArea></>
+    const { rerender } = render(view(false))
+    screen.getByText('Elsewhere').focus()
+    rerender(view(true))
+    await new Promise((resolve) => requestAnimationFrame(() => resolve()))
+    await new Promise((resolve) => requestAnimationFrame(() => resolve()))
+    expect(screen.getByText('Elsewhere')).toHaveFocus()
+    expect(document.getElementById('t')).not.toHaveFocus()
+  })
+})
+
 describe('useFocusReturn', () => {
   function Probe({ showOpener = true, disabled = false }) {
     const focus = useFocusReturn()

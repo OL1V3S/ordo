@@ -1,22 +1,18 @@
 .activity-page { display: grid; min-width: 0; grid-template-columns: minmax(0, 1fr); gap: var(--space-6); }
-.activity-page > *, .activity-page .page-header > *, .activity-spending > *, .activity-spending__body > *, .activity-cash-in__body > * { min-width: 0; }
+.activity-page > *, .activity-page .page-header > *, .activity-status > *, .activity-records > * { min-width: 0; }
 .activity-page [hidden] { display: none !important; }
 .activity-page .page-header { margin-bottom: 0; }
 .activity-page .section { margin-block: 0; }
 .activity-page h1, .activity-page h2, .activity-page h3 { overflow-wrap: anywhere; }
 .activity-page button { white-space: normal; overflow-wrap: anywhere; max-width: 100%; }
 .activity-page summary { min-height: var(--size-touch-target); padding-block: var(--space-3); cursor: pointer; overflow-wrap: anywhere; }
-.activity-page summary:focus-visible, .activity-feedback:focus-visible, .activity-import-task:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 3px; }
+.activity-page summary:focus-visible, .activity-page h1:focus-visible, .activity-feedback:focus-visible, .activity-import-task:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 3px; }
 .activity-feedback:empty { display: none; }
 .activity-feedback p { margin: 0; }
 .activity-task-openers { flex-wrap: wrap; }
 .activity-form-fields { min-width: 0; margin: 0; padding: 0; border: 0; }
 .activity-form-fields .form-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); }
 .activity-task-actions { margin-top: var(--space-4); }
-.activity-spending, .activity-spending__body, .activity-cash-in__body { display: grid; min-width: 0; gap: var(--space-4); }
-.activity-spending__header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-3); }
-.activity-spending__header h2 { margin: 0; }
-.activity-records-controls { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3); }
 .activity-import-task { display: grid; gap: var(--space-3); }
 .activity-import-task > button { justify-self: start; }
 .activity-page .import-preview { min-width: 0; }
@@ -27,23 +23,13 @@
 .activity-page .import-selection span { overflow-wrap: anywhere; }
 .activity-page .data-table td input, .activity-page .data-table td select { max-width: 100%; min-width: 0; }
 @media (max-width: 600px) {
-  .activity-spending__header { align-items: stretch; flex-direction: column; }
-  .activity-spending__header > button { align-self: start; }
-  .activity-records-controls { align-items: stretch; flex-direction: column; }
   .activity-task-openers { align-items: stretch; flex-direction: column; }
 }
-.expense-filters__primary { display: flex; align-items: end; flex-wrap: wrap; gap: var(--space-3); }
-.expense-filters__primary > label { flex: 1 1 240px; min-width: 0; }
-.expense-filters__summary { margin: var(--space-3) 0 0; color: var(--color-text-muted); font-size: var(--text-sm); overflow-wrap: anywhere; }
-.filter-disclosure { margin-top: var(--space-3); border-top: 1px solid var(--color-border); }
-.filter-disclosure__content { padding-top: var(--space-2); grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); }
 .activity-page .expense-table { min-width: 0; table-layout: fixed; }
 .expense-table th:first-child { width: 27%; }
 .expense-table th:last-child { width: 24%; }
 .expense-cell--description { font-weight: var(--weight-bold); }
 .expense-cell--amount { font-variant-numeric: tabular-nums; font-weight: var(--weight-bold); }
-.expense-row--editing .expense-cell { vertical-align: top; }
-.activity-page .expense-row--editing input, .activity-page .expense-row--editing select { font-weight: var(--weight-regular); }
 .activity-page .expense-cell--category input { margin-top: var(--space-2); }
 .expense-table .inline-actions { flex-wrap: wrap; }
 @media (max-width: 1000px) {
@@ -88,13 +74,12 @@
   .import-preview-row { grid-template-columns: minmax(0, 1fr); }
 }
 
-.activity-cash-in .activity-feedback > a { display: inline-flex; align-items: center; min-height: var(--size-touch-target); }
+.activity-status .activity-feedback > a { display: inline-flex; align-items: center; min-height: var(--size-touch-target); }
 .activity-cash-in { display: grid; min-width: 0; gap: var(--space-4); }
 .activity-cash-in > * { min-width: 0; }
 .activity-cash-in p, .activity-cash-in h3 { overflow-wrap: anywhere; }
 .activity-cash-in .field { max-width: 36rem; }
 .inflow-delete-confirmation { padding: var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius-md); }
-#cash-in-heading:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 3px; }
 .activity-timeline { display: grid; min-width: 0; gap: var(--space-3); }
 .activity-timeline > * { min-width: 0; margin-block: 0; }
 .activity-timeline h2 { margin: 0; }
@@ -106,4 +91,20 @@
 .activity-timeline__live:empty { position: absolute; }
 .activity-timeline__list { display: grid; margin: 0; padding: 0; gap: var(--space-2); list-style: none; }
 .activity-timeline__stored-amount { color: var(--color-text-muted); font-size: var(--text-sm); }
-.activity-records-controls button:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 3px; }
+
+.activity-status { display: grid; min-width: 0; gap: var(--space-3); }
+.activity-status > p { margin: 0; }
+.activity-status__refresh { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+.activity-check-records, .activity-records { display: grid; min-width: 0; gap: var(--space-3); }
+.activity-check-records h2, .activity-records h3 { margin: 0; }
+.activity-task-area { display: grid; gap: var(--space-4); }
+.expense-edit-panel { display: grid; gap: var(--space-4); }
+.expense-edit-panel h2 { margin: 0; }
+.expense-edit-panel__fields { display: grid; gap: var(--space-3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); }
+.expense-edit-panel__fields input, .expense-edit-panel__fields select { max-width: 100%; min-width: 0; }
+.row-actions-menu { position: relative; }
+.row-actions-menu__trigger:focus-visible, .row-actions-menu__panel button:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 3px; }
+.row-actions-menu__panel { position: absolute; z-index: 30; inset-block-start: 100%; inset-inline-end: 0; display: grid; min-width: 9rem; gap: var(--space-2); padding: var(--space-2); border: 1px solid var(--color-border); border-radius: var(--overlay-radius); background: var(--color-surface-raised); box-shadow: var(--overlay-shadow); }
+@media (max-width: 400px) {
+  .row-actions-menu__panel { position: static; inset-inline-start: 0; margin-top: var(--space-2); }
+}

@@ -1,3 +1,4 @@
+import userEvent from "@testing-library/user-event";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { I18nextProvider } from "react-i18next";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -413,42 +414,51 @@ describe("ActivityTimeline", () => {
   describe("row actions", () => {
     const actions = (getState = () => ({ canEdit: true, canDelete: true })) => ({ getState, onEdit: vi.fn(), onDelete: vi.fn() });
 
-    it("renders no actions without rowActions", () => {
+    it("renders no trigger without rowActions", () => {
       renderTimeline(state({ items: [expense(), inflow()] }));
-      expect(screen.queryByRole("button", { name: /^(Edit|Delete)/ })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /^(Edit|Delete|Actions for)/ })).not.toBeInTheDocument();
     });
 
-    it("names each action by type, record and date, even when an expense and a cash in share an id", () => {
+    it("names each trigger and action by type, record and date, even when an expense and a cash in share an id", async () => {
+      const user = userEvent.setup();
       renderTimeline(state({ items: [expense({ recordId: 3 }), inflow({ recordId: 3 })] }), { rowActions: actions() });
+      await user.click(screen.getByRole("button", { name: "Actions for expense Corner coffee from Sep 22, 2026, record 3" }));
       expect(screen.getByRole("button", { name: "Edit expense Corner coffee from Sep 22, 2026, record 3" })).toHaveTextContent("Edit");
       expect(screen.getByRole("button", { name: "Delete expense Corner coffee from Sep 22, 2026, record 3" })).toHaveClass("button-danger");
+      await user.click(screen.getByRole("button", { name: "Actions for cash in Payroll deposit from Sep 21, 2026, record 3" }));
       expect(screen.getByRole("button", { name: "Edit cash in Payroll deposit from Sep 21, 2026, record 3" })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Delete cash in Payroll deposit from Sep 21, 2026, record 3" })).toHaveClass("button-ghost");
     });
 
-    it("applies getState per row, keeping Delete enabled for an amount that needs review", () => {
+    it("applies getState per row, keeping Delete enabled for an amount that needs review", async () => {
+      const user = userEvent.setup();
       const rowActions = actions((item) => item.kind === "expense" ? { canEdit: false, canDelete: true } : { canEdit: false, canDelete: false });
       renderTimeline(state({ items: [expense({ amount: "-5.00" }), inflow()] }), { rowActions });
+      expect(screen.getByRole("button", { name: /^Actions for cash in/ })).toBeDisabled();
+      await user.click(screen.getByRole("button", { name: /^Actions for expense/ }));
       expect(screen.getByRole("button", { name: /^Edit expense/ })).toBeDisabled();
       expect(screen.getByRole("button", { name: /^Delete expense/ })).toBeEnabled();
-      expect(screen.getByRole("button", { name: /^Edit cash in/ })).toBeDisabled();
-      expect(screen.getByRole("button", { name: /^Delete cash in/ })).toBeDisabled();
     });
 
-    it("passes the item and the clicked button to the handlers", () => {
+    it("passes the item and the trigger as the opener to the handlers", async () => {
+      const user = userEvent.setup();
       const rowActions = actions();
       const item = inflow({ recordId: 9 });
       renderTimeline(state({ items: [item] }), { rowActions });
-      const edit = screen.getByRole("button", { name: /^Edit cash in/ });
-      fireEvent.click(edit);
-      fireEvent.click(screen.getByRole("button", { name: /^Delete cash in/ }));
-      expect(rowActions.onEdit).toHaveBeenCalledWith(item, edit);
-      expect(rowActions.onDelete).toHaveBeenCalledWith(item, screen.getByRole("button", { name: /^Delete cash in/ }));
+      const trigger = screen.getByRole("button", { name: /^Actions for cash in/ });
+      await user.click(trigger);
+      await user.click(screen.getByRole("button", { name: /^Edit cash in/ }));
+      await user.click(trigger);
+      await user.click(screen.getByRole("button", { name: /^Delete cash in/ }));
+      expect(rowActions.onEdit).toHaveBeenCalledWith(item, trigger);
+      expect(rowActions.onDelete).toHaveBeenCalledWith(item, trigger);
     });
 
-    it("localizes the action names in Spanish", async () => {
+    it("localizes the trigger and action names in Spanish", async () => {
+      const user = userEvent.setup();
       await i18n.changeLanguage("es");
       renderTimeline(state({ items: [expense({ recordId: 3 })] }), { rowActions: actions() });
+      await user.click(screen.getByRole("button", { name: /^Acciones del gasto Corner coffee del .*, registro 3$/ }));
       expect(screen.getByRole("button", { name: /^Editar gasto Corner coffee del .*, registro 3$/ })).toHaveTextContent("Editar");
       expect(screen.getByRole("button", { name: /^Eliminar gasto/ })).toHaveTextContent("Eliminar");
     });

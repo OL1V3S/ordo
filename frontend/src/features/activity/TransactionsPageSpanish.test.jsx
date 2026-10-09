@@ -9,7 +9,7 @@ import { useImportPreview } from "../importPreview/hooks/useImportPreview";
 import { useActivityTimeline } from "./hooks/useActivityTimeline";
 import { clearSession, establishSession } from "../../shared/auth/session";
 import i18n from "../../shared/localization/i18n";
-import { openRecords } from "../../test/openRecords";
+import { chooseRowAction, timelineFrom } from "../../test/rowActions";
 
 vi.mock("../expenses/hooks/useExpenses", () => ({ useExpenses: vi.fn() }));
 vi.mock("../inflows/hooks/useInflows", () => ({ useInflows: vi.fn() }));
@@ -33,8 +33,7 @@ let expenses;
 let cash;
 let confirmSpy = null;
 
-const spendingEs = (user) => openRecords(user, "Registros de gastos");
-const cashInEs = (user) => openRecords(user, "Registros de entradas de dinero");
+const failedTimeline = () => useActivityTimeline.mockImplementation(() => ({ ...idleTimeline, error: true }));
 
 function renderPage() {
   return render(<I18nextProvider i18n={i18n}><TransactionsPage /></I18nextProvider>);
@@ -59,7 +58,7 @@ async function fillExpense(user, task, amount = "12.50") {
 beforeEach(async () => {
   sessionStorage.clear();
   establishSession("token", "owner@example.test");
-  useActivityTimeline.mockImplementation(() => idleTimeline);
+  useActivityTimeline.mockImplementation(() => ({ ...idleTimeline, items: timelineFrom(expenses.expenses, cash.inflows) }));
   useImportPreview.mockReturnValue({ ...idleImport });
   mockLists();
   await i18n.changeLanguage("es");
@@ -81,9 +80,9 @@ describe("Activity spending in Spanish", () => {
     expect(screen.getByRole("button", { name: "Agregar gasto" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Agregar entrada de dinero" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Importar estado de cuenta" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Gastos" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Actualizar actividad" })).toBeInTheDocument();
-    expect(screen.getByText("Todavía no hay gastos registrados.")).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Gastos" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Actualizar actividad" })).toBeVisible();
+    expect(screen.getByText("Todavía no hay actividad registrada.")).toBeVisible();
     expect(screen.queryByRole("button", { name: "Add expense" })).not.toBeInTheDocument();
     expect(screen.queryByText("No expenses recorded yet.")).not.toBeInTheDocument();
   });
@@ -109,11 +108,11 @@ describe("Activity spending in Spanish", () => {
     expect(await screen.findByRole("button", { name: "Quitar filtro: Desde 2026-09-01" })).toBeVisible();
   });
 
-  it("renders the expense table, row actions, and review state in Spanish without changing money or dates", async () => {
+  it("renders the timeline-failure expense table with the row menu and review state in Spanish", async () => {
     const user = userEvent.setup();
+    failedTimeline();
     mockLists({ expenses: { expenses: [lunch, oddAmount] } });
     renderPage();
-    await spendingEs(user);
 
     const table = screen.getByRole("region", { name: "Tabla de gastos" });
     for (const name of ["Descripción", "Monto ($)", "Fecha", "Categoría", "Acciones"]) {
@@ -122,40 +121,12 @@ describe("Activity spending in Spanish", () => {
     expect(within(table).getByRole("cell", { name: "5.00" })).toBeInTheDocument();
     expect(within(table).getByText("09/01/2026")).toBeInTheDocument();
     expect(within(table).getByText("Food")).toBeInTheDocument();
-    expect(within(table).getByRole("button", { name: "Editar gasto Lunch del 09/01/2026, fila 1" })).toBeEnabled();
-    expect(within(table).getByRole("button", { name: "Eliminar gasto Lunch del 09/01/2026, fila 1" })).toBeEnabled();
     expect(within(table).getByText("El monto requiere revisión")).toBeInTheDocument();
-    expect(within(table).getByRole("button", { name: "Editar gasto Odd del 09/02/2026, fila 2" })).toBeDisabled();
-  });
-
-  it("renders the expense filters and their active summary in Spanish", async () => {
-    const user = userEvent.setup();
-    mockLists({ expenses: { expenses: [lunch] } });
-    renderPage();
-    await spendingEs(user);
-    const filters = document.querySelector(".expense-filters");
-
-    await user.type(screen.getByLabelText("Buscar gastos"), "lunch");
-    expect(screen.getByPlaceholderText("Buscar por descripción o categoría...")).toBeInTheDocument();
-    await user.selectOptions(screen.getByLabelText("Rango de fechas"), "custom");
-    fireEvent.change(screen.getByLabelText("Fecha de inicio"), { target: { value: "2026-09-01" } });
-    fireEvent.change(screen.getByLabelText("Fecha de fin"), { target: { value: "2026-09-30" } });
-    const dateOptions = within(screen.getByLabelText("Rango de fechas")).getAllByRole("option", { hidden: true });
-    expect(dateOptions.map((option) => option.textContent)).toEqual(
-      ["Todo el tiempo", "Últimos 7 días", "Últimos 30 días", "Este mes", "Rango personalizado"]);
-    const categoryOptions = within(within(filters).getByLabelText("Categoría")).getAllByRole("option", { hidden: true });
-    expect(categoryOptions.map((option) => option.textContent)).toEqual(
-      ["Todas", "Comida", "Transporte", "Facturas", "Entretenimiento", "Otra"]);
-    expect(screen.getByText("Filtrar por fecha o categoría")).toBeInTheDocument();
-
-    expect(screen.getByText(/Filtros activos:/)).toBeInTheDocument();
-    expect(screen.getByText(/Búsqueda: “lunch” · Rango personalizado: 2026-09-01 – 2026-09-30/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Borrar filtros" })).toBeInTheDocument();
-    expect(within(screen.getByRole("region", { name: "Tabla de gastos" })).getByText("Lunch")).toBeInTheDocument();
-
-    await user.selectOptions(within(filters).getByLabelText("Categoría"), "Entertainment");
-    expect(screen.getByText(/· Categoría: Entretenimiento/)).toBeInTheDocument();
-    expect(screen.getByText("Ningún gasto coincide con estos filtros.")).toBeInTheDocument();
+    await user.click(within(table).getByRole("button", { name: /^Acciones del gasto Lunch del 09\/01\/2026, registro 42$/ }));
+    expect(within(table).getByRole("button", { name: "Editar gasto Lunch del 09/01/2026, registro 42" })).toBeEnabled();
+    expect(within(table).getByRole("button", { name: "Eliminar gasto Lunch del 09/01/2026, registro 42" })).toBeEnabled();
+    await user.click(within(table).getByRole("button", { name: /^Acciones del gasto Odd/ }));
+    expect(within(table).getByRole("button", { name: "Editar gasto Odd del 09/02/2026, registro 43" })).toBeDisabled();
   });
 
   it("renders the add-expense form, its validation messages, and the saved feedback in Spanish", async () => {
@@ -209,10 +180,10 @@ describe("Activity spending in Spanish", () => {
     const user = userEvent.setup();
     mockLists({ expenses: { expenses: [lunch] } });
     renderPage();
-    await spendingEs(user);
 
-    await user.click(screen.getByRole("button", { name: "Editar gasto Lunch del 09/01/2026, fila 1" }));
+    await chooseRowAction(user, /^Editar gasto Lunch del .*, registro 42$/);
 
+    expect(screen.getByRole("group", { name: "Editar gasto" })).toBeVisible();
     expect(screen.getByLabelText("Editar descripción")).toHaveValue("Lunch");
     expect(screen.getByLabelText("Editar monto")).toHaveValue("5.00");
     expect(screen.getByLabelText("Editar fecha")).toHaveValue("2026-09-01");
@@ -231,9 +202,8 @@ describe("Activity spending in Spanish", () => {
     confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
     mockLists({ expenses: { expenses: [lunch] } });
     renderPage();
-    await spendingEs(user);
 
-    await user.click(screen.getByRole("button", { name: "Eliminar gasto Lunch del 09/01/2026, fila 1" }));
+    await chooseRowAction(user, /^Eliminar gasto Lunch del .*, registro 42$/);
 
     expect(confirmSpy).toHaveBeenCalledExactlyOnceWith("¿Eliminar este gasto?");
     expect(expenses.deleteExpense).toHaveBeenCalledExactlyOnceWith(42);
@@ -259,16 +229,15 @@ describe("Activity spending in Spanish", () => {
 });
 
 describe("Activity cash in in Spanish", () => {
-  it("renders the cash-in section, list, and row actions in Spanish without changing money or dates", async () => {
+  it("renders the cash-in disclaimer when idle and the timeline-failure table with the row menu in Spanish", async () => {
     const user = userEvent.setup();
+    failedTimeline();
     mockLists({ cash: { inflows: [transfer, unsafeTransfer] } });
     renderPage();
-    await cashInEs(user);
 
-    expect(screen.getByRole("heading", { name: "Entradas de dinero" })).toBeInTheDocument();
-    expect(screen.getByText(/Dinero entrante registrado, incluidas transferencias y reembolsos\./)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Actualizar entradas de dinero" })).toBeInTheDocument();
-    expect(screen.getByLabelText("Buscar entradas de dinero")).toBeInTheDocument();
+    expect(screen.getByText(/Dinero entrante registrado, incluidas transferencias y reembolsos\./)).toBeVisible();
+    expect(screen.getByRole("button", { name: "Actualizar entradas de dinero" })).toBeVisible();
+    expect(screen.queryByLabelText("Buscar entradas de dinero")).not.toBeInTheDocument();
     const table = screen.getByRole("region", { name: "Tabla de entradas de dinero" });
     for (const name of ["Descripción", "Monto", "Fecha", "Acciones"]) {
       expect(within(table).getByRole("columnheader", { name })).toBeInTheDocument();
@@ -276,23 +245,12 @@ describe("Activity cash in in Spanish", () => {
     expect(within(table).getByText("$24.15")).toBeInTheDocument();
     expect(within(table).getByText("09/01/2026")).toBeInTheDocument();
     expect(within(table).getByText("El monto requiere revisión")).toBeInTheDocument();
+    await user.click(within(table).getByRole("button", { name: /^Acciones de la entrada de dinero Transfer from Savings/ }));
     expect(within(table).getByRole("button", { name: "Editar entrada de dinero Transfer from Savings del 09/01/2026, registro 1" })).toBeEnabled();
     expect(within(table).getByRole("button", { name: "Eliminar entrada de dinero Transfer from Savings del 09/01/2026, registro 1" })).toBeEnabled();
   });
 
-  it("renders the cash-in empty, search, loading, and failure states in Spanish", async () => {
-    const user = userEvent.setup();
-    mockLists();
-    const empty = renderPage();
-    expect(screen.getByText("Todavía no hay entradas de dinero registradas.")).toBeInTheDocument();
-    empty.unmount();
-
-    mockLists({ cash: { inflows: [transfer] } });
-    const searching = renderPage();
-    await user.type(screen.getByLabelText("Buscar entradas de dinero"), "zzz");
-    expect(screen.getByText("Ninguna entrada de dinero coincide con esta búsqueda.")).toBeInTheDocument();
-    searching.unmount();
-
+  it("renders the cash-in loading and failure states in Spanish", () => {
     mockLists({ cash: { loading: true } });
     const loading = renderPage();
     expect(screen.getByText("Cargando entradas de dinero…")).toBeInTheDocument();
@@ -340,9 +298,8 @@ describe("Activity cash in in Spanish", () => {
     const user = userEvent.setup();
     mockLists({ cash: { inflows: [unsafeTransfer] } });
     renderPage();
-    await cashInEs(user);
 
-    await user.click(screen.getByRole("button", { name: "Editar entrada de dinero Large transfer del 09/02/2026, registro 2" }));
+    await chooseRowAction(user, /^Editar entrada de dinero Large transfer del .*, registro 2$/);
     const form = screen.getByRole("form", { name: "Editar entrada de dinero" });
 
     expect(within(form).getByText(/Los cambios actualizan el flujo de efectivo registrado\./)).toBeVisible();
@@ -356,9 +313,8 @@ describe("Activity cash in in Spanish", () => {
     const user = userEvent.setup();
     mockLists({ cash: { inflows: [transfer] } });
     renderPage();
-    await cashInEs(user);
 
-    await user.click(screen.getByRole("button", { name: "Eliminar entrada de dinero Transfer from Savings del 09/01/2026, registro 1" }));
+    await chooseRowAction(user, /^Eliminar entrada de dinero Transfer from Savings del .*, registro 1$/);
     const confirmation = screen.getByRole("group", { name: "¿Eliminar entrada de dinero: Transfer from Savings (09/01/2026)?" });
 
     expect(within(confirmation).getByText(/Esto elimina el registro del historial de flujo de efectivo\./)).toBeInTheDocument();
@@ -372,17 +328,15 @@ describe("Activity cash in in Spanish", () => {
       .toBeInTheDocument();
   });
 
-  it("keeps the English cash-in surface unchanged after switching back from Spanish", async () => {
+  it("keeps the English cash-in menu names unchanged after switching back from Spanish", async () => {
     const user = userEvent.setup();
     mockLists({ cash: { inflows: [transfer] } });
     await i18n.changeLanguage("en");
     renderPage();
-    await openRecords(user, "Cash-in records");
+    await chooseRowAction(user, /^Edit cash in Transfer from Savings from .*, record 1$/);
 
-    expect(screen.getByRole("heading", { name: "Cash in" })).toBeInTheDocument();
-    expect(screen.getByRole("region", { name: "Cash in table" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Edit cash in Transfer from Savings from 09/01/2026, record 1" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Spending" })).toBeInTheDocument();
+    expect(screen.getByRole("form", { name: "Edit cash in" })).toBeVisible();
+    expect(screen.getByRole("heading", { level: 1, name: "Activity" })).toBeVisible();
   });
 
   it("localizes the timeline row actions and the expense missing message", async () => {
@@ -395,6 +349,7 @@ describe("Activity cash in in Spanish", () => {
     renderPage();
 
     const region = screen.getByRole("region", { name: "Cronología de actividad" });
+    await user.click(within(region).getByRole("button", { name: /^Acciones del gasto Lunch del .*, registro 42$/ }));
     expect(within(region).getByRole("button", { name: /^Editar gasto Lunch del .*, registro 42$/ })).toHaveTextContent("Editar");
     await user.click(within(region).getByRole("button", { name: /^Eliminar gasto Lunch/ }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Este gasto ya no está disponible.");

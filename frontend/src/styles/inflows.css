@@ -100,15 +100,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-.inflow-row--task {
-  background: color-mix(in srgb, var(--color-primary) 8%, var(--color-surface));
-  box-shadow: inset 3px 0 0 var(--color-primary);
-}
-
-.inflow-list__show-all {
-  justify-self: start;
-}
-
 @media (max-width: 760px) {
   .inflow-form__grid {
     grid-template-columns: minmax(0, 1fr);
@@ -147,11 +138,6 @@
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
     background: var(--color-surface);
-  }
-
-  .inflow-table .inflow-row--task {
-    background: color-mix(in srgb, var(--color-primary) 8%, var(--color-surface));
-    border-left-color: var(--color-primary);
   }
 
   .inflow-table .inflow-cell {
