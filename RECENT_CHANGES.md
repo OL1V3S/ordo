@@ -24,6 +24,13 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-09 — Insights declutter
+
+[Issue #215](https://github.com/OL1V3S/ordo/issues/215)
+
+- Insights now has a month picker (earlier/later steps move between months that have recorded data), one status area, flat cash-flow panels, and accessible More spending disclosures.
+- Budget status is a single link to Budgets; Insights no longer reads budget limits. Cash-flow figures, charts and requests are unchanged.
+
 ### 2026-10-09 — Paychecks declutter
 
 [PR #214](https://github.com/OL1V3S/ordo/pull/214) ·
@@ -225,18 +232,3 @@ the permanent, complete archive.
   backend codes still show a readable fallback.
 - The Paychecks page no longer stays English on the Spanish app. Dates keep their
   English `Mon D, YYYY` form and amounts keep `$` formatting in both languages.
-
-### 2026-10-03 — Spanish import preview
-
-[PR #175](https://github.com/OL1V3S/ordo/pull/175) ·
-[Issue #174](https://github.com/OL1V3S/ordo/issues/174)
-
-- Localized the Activity statement import preview (panel, rows, upload and
-  confirmation messages, and row issue, warning, and duplicate text) in English
-  and Spanish through a new `importPreview` catalog namespace.
-- Duplicate and review warnings keep their meaning in Spanish; unknown backend
-  codes still show a readable fallback. English wording, duplicate-safety and
-  confirmation logic, row selection, payloads, and focus behavior are unchanged.
-- The import preview no longer stays English on the Spanish Activity page.
-  User-entered and parsed statement data and browser-formatted timestamps are
-  shown as before.

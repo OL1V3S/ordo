@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
-import { useBudgetLimits } from "../../budgetLimits/hooks/useBudgetLimits";
+import { ChevronDown } from "lucide-react";
 import { useExpenses } from "../../expenses/hooks/useExpenses";
 import { formatExpenseDate } from "../../expenses/utils/calendarDate";
 import { formatExactMoney, formatSignedMoney } from "../../expenses/utils/exactMoney";
@@ -11,22 +11,33 @@ import CashFlowCategories from "../components/CashFlowCategories";
 import CashFlowTrendChart from "../components/CashFlowTrendChart";
 import { cashMonthLabel, localThroughDate } from "../utils/cashFlowPresentation";
 import { displayText } from "../../../utils/text";
-import FormField from "../../../shared/ui/FormField";
+import { DisclosureButton, DisclosurePanel } from "../../../shared/ui/Disclosure";
+import PeriodPicker from "../../../shared/ui/PeriodPicker";
 import StatusMessage from "../../../shared/ui/StatusMessage";
 import {
-  buildBudgetStatuses,
   buildMonthlySpendingInsights,
   formatMonthLabel,
 } from "../utils/monthlySpendingInsights";
-
-const BUDGET_STATUS_KEYS = {
-  "over budget": "overBudget", "near limit": "nearLimit", "on track": "onTrack", unavailable: "unavailable",
-};
 
 function formatPercentage(value, t, { signed = false } = {}) {
   if (value === null) return t("format.notApplicable");
   const sign = signed && value > 0 ? "+" : "";
   return `${sign}${value.toFixed(1)}%`;
+}
+
+// heading > button + adjacent panel (APG accordion); open state is owned by the page.
+function SpendingDisclosure({ id, title, open, onToggle, children }) {
+  return (
+    <section className="analytics-detail" aria-labelledby={`${id}-heading`}>
+      <h3 id={`${id}-heading`} className="analytics-detail__heading">
+        <DisclosureButton controls={`${id}-panel`} open={open} onToggle={() => onToggle(id)} className="analytics-detail__button">
+          <span>{title}</span>
+          <ChevronDown className="analytics-detail__chevron" size={18} aria-hidden="true" />
+        </DisclosureButton>
+      </h3>
+      <DisclosurePanel id={`${id}-panel`} open={open} className="analytics-detail__content">{children}</DisclosurePanel>
+    </section>
+  );
 }
 
 export default function AnalyticsPage() {
@@ -36,19 +47,15 @@ export default function AnalyticsPage() {
   const {
     expenses, loading: expensesLoading, error: expensesError, refresh: refreshExpenses,
   } = useExpenses();
-  const {
-    budgetLimits, loading: limitsLoading, error: limitsError, refresh: refreshLimits,
-  } = useBudgetLimits(selectedMonth);
+  const [openDetails, setOpenDetails] = useState({ comparison: false, "largest-expenses": false });
 
-  const availableMonths = [...new Set([localThroughDate().slice(0, 7), selectedMonth, ...cashFlow.availableMonths])].sort().reverse();
+  const currentMonth = localThroughDate().slice(0, 7);
+  const availableMonths = [...new Set([currentMonth, selectedMonth, ...cashFlow.availableMonths])].sort().reverse();
   const insights = useMemo(
     () => buildMonthlySpendingInsights(expenses, selectedMonth),
     [expenses, selectedMonth]
   );
-  const budgetStatuses = useMemo(
-    () => buildBudgetStatuses(budgetLimits, insights.totalsByCategory),
-    [budgetLimits, insights.totalsByCategory]
-  );
+  const toggleDetail = (id) => setOpenDetails((current) => ({ ...current, [id]: !current[id] }));
 
   async function retryExpenses() {
     try {
@@ -66,29 +73,36 @@ export default function AnalyticsPage() {
           <p className="muted">{t("page.description")}</p>
         </div>
         <div className="analytics-page__controls">
-          <FormField label={t("page.month")}>
-            {(id) => (
-              <select id={id} value={selectedMonth} onChange={(event) => setSelectedMonth(event.target.value)}>
-                {availableMonths.map((month) => (
-                  <option key={month} value={month}>{cashMonthLabel(month, { t })}</option>
-                ))}
-              </select>
-            )}
-          </FormField>
-          {!cashFlow.loading && cashFlow.data ? (
-            <button type="button" className="button-ghost" onClick={cashFlow.refresh}>{t("page.refresh")}</button>
-          ) : null}
+          <PeriodPicker value={selectedMonth} months={availableMonths} currentValue={currentMonth}
+            label={t("page.month")} previousLabel={t("page.earlierMonth")} nextLabel={t("page.laterMonth")}
+            currentLabel={t("page.currentMonth")} emptyLabel=""
+            formatMonth={(month) => cashMonthLabel(month, { t })} onChange={setSelectedMonth} />
         </div>
       </header>
 
-      <section className="cash-flow-region" aria-label={t("cashFlow.regionLabel")} aria-busy={cashFlow.loading}>
+      <div className="analytics-status">
         {cashFlow.loading ? <StatusMessage>{t("cashFlow.loading")}</StatusMessage> : null}
         {!cashFlow.loading && cashFlow.error ? (
-          <div className="card analytics-panel">
+          <>
             <StatusMessage tone="danger">{cashFlow.error}</StatusMessage>
             <button type="button" onClick={cashFlow.refresh}>{t("cashFlow.retry")}</button>
+          </>
+        ) : null}
+        {expensesLoading ? <StatusMessage>{t("spending.loading")}</StatusMessage> : null}
+        {!expensesLoading && expensesError ? (
+          <>
+            <StatusMessage tone="danger">{t("spending.loadError")}</StatusMessage>
+            <button type="button" onClick={retryExpenses}>{t("spending.retry")}</button>
+          </>
+        ) : null}
+        {!cashFlow.loading && cashFlow.data ? (
+          <div className="analytics-status__actions">
+            <button type="button" className="button-ghost" onClick={cashFlow.refresh}>{t("page.refresh")}</button>
           </div>
         ) : null}
+      </div>
+
+      <section className="cash-flow-region" aria-label={t("cashFlow.regionLabel")} aria-busy={cashFlow.loading}>
         {!cashFlow.loading && cashFlow.data ? (
           <>
             <CashFlowSummary data={cashFlow.data} />
@@ -104,68 +118,14 @@ export default function AnalyticsPage() {
         <header className="analytics-more__header">
           <h2 id="more-spending-heading" className="h2">{t("spending.heading")}</h2>
         </header>
-        {expensesLoading ? <StatusMessage>{t("spending.loading")}</StatusMessage> : null}
-        {!expensesLoading && expensesError ? (
-          <div className="analytics-load-state">
-            <StatusMessage tone="danger">{t("spending.loadError")}</StatusMessage>
-            <button type="button" onClick={retryExpenses}>{t("spending.retry")}</button>
-          </div>
-        ) : null}
-
+        <div className="analytics-budget-line">
+          <p>{t("budget.statusFor", { month: cashMonthLabel(selectedMonth, { t }) })}</p>
+          <Link to="/budgets">{t("budget.open")}</Link>
+        </div>
         {!expensesLoading && !expensesError ? (
           <div className="analytics-details">
             {!insights.available && <StatusMessage tone="warning">{t("spending.inexact")}</StatusMessage>}
-            <section className="analytics-detail" aria-labelledby="budget-status-heading">
-              <details>
-                <summary><h3 id="budget-status-heading">{t("budget.heading")}</h3></summary>
-                <div className="analytics-detail__content">
-                  <div className="analytics-panel__header">
-                    <div>
-                      <p className="analytics-kicker">{t("budget.kicker")}</p>
-                    </div>
-                    <Link to="/budgets">{t("budget.manage")}</Link>
-                  </div>
-                  {!limitsLoading && !limitsError && budgetStatuses.length === 0 ? (
-                    <StatusMessage>{t("budget.empty")}</StatusMessage>
-                  ) : null}
-                  {!limitsLoading && !limitsError && budgetStatuses.length > 0 ? (
-                    <ul className="analytics-list">
-                      {budgetStatuses.map((budget) => (
-                        <li key={budget.id ?? budget.category} className="analytics-list__item analytics-budget-row">
-                          <div className="analytics-row">
-                            <strong>{displayText(budget.category)}</strong>
-                            <span className={`analytics-status analytics-status--${budget.status.replace(" ", "-")}`}>{t(`budget.status.${BUDGET_STATUS_KEYS[budget.status]}`)}</span>
-                          </div>
-                          {!budget.available ? (
-                            <p>{t("budget.comparisonUnavailable")}</p>
-                          ) : <>
-                            <p>{t("budget.spentOf", { spent: formatExactMoney(budget.spent, { allowZero: true }), limit: formatExactMoney(budget.limitAmount, { allowZero: true }) })}</p>
-                            <p>{budget.over !== null
-                              ? t("budget.over", { amount: formatExactMoney(budget.over, { allowZero: true }) })
-                              : t("budget.remaining", { amount: formatExactMoney(budget.remaining, { allowZero: true }) })}</p>
-                            <p>{budget.percentage === null
-                              ? t("budget.zeroLimit")
-                              : t("budget.percentUsed", { percent: formatPercentage(budget.percentage, t) })}</p>
-                          </>}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : null}
-                </div>
-              </details>
-              {limitsLoading ? <StatusMessage>{t("budget.loading")}</StatusMessage> : null}
-              {!limitsLoading && limitsError ? (
-                <>
-                  <StatusMessage tone="danger">{t("budget.unavailable")}</StatusMessage>
-                  <button type="button" onClick={refreshLimits}>{t("budget.retry")}</button>
-                </>
-              ) : null}
-            </section>
-
-            <section className="analytics-detail" aria-labelledby="comparison-heading">
-              <details>
-                <summary><h3 id="comparison-heading">{t("comparison.heading")}</h3></summary>
-                <div className="analytics-detail__content">
+            <SpendingDisclosure id="comparison" title={t("comparison.heading")} open={openDetails.comparison} onToggle={toggleDetail}>
                   <p className="analytics-kicker">{t("comparison.kicker", { month: formatMonthLabel(insights.previousMonth, t) })}</p>
                   {!insights.available ? <StatusMessage>{t("comparison.unavailable")}</StatusMessage> : <>
                   <p className="analytics-comparison__value">
@@ -197,14 +157,9 @@ export default function AnalyticsPage() {
                     </div>
                   )}
                   </>}
-                </div>
-              </details>
-            </section>
+            </SpendingDisclosure>
 
-            <section className="analytics-detail" aria-labelledby="largest-expenses-heading">
-              <details>
-                <summary><h3 id="largest-expenses-heading">{t("largest.heading")}</h3></summary>
-                <div className="analytics-detail__content">
+            <SpendingDisclosure id="largest-expenses" title={t("largest.heading")} open={openDetails["largest-expenses"]} onToggle={toggleDetail}>
                   <div className="analytics-panel__header">
                     <div>
                       <p className="analytics-kicker">{t("largest.kicker")}</p>
@@ -225,9 +180,7 @@ export default function AnalyticsPage() {
                       ))}
                     </ol>
                   )}
-                </div>
-              </details>
-            </section>
+            </SpendingDisclosure>
           </div>
         ) : null}
       </section>

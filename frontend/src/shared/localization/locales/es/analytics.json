@@ -40,7 +40,10 @@
     "title": "Análisis",
     "description": "Mira las entradas de dinero y los gastos registrados, mes por mes.",
     "month": "Mes",
-    "refresh": "Actualizar flujo de efectivo"
+    "refresh": "Actualizar flujo de efectivo",
+    "earlierMonth": "Mes anterior con datos",
+    "laterMonth": "Mes siguiente con datos",
+    "currentMonth": "Este mes"
   },
   "cashFlow": {
     "regionLabel": "Flujo de efectivo registrado",
@@ -130,25 +133,8 @@
     "inexact": "No se pudieron verificar con exactitud algunos montos de gastos. Las comparaciones de gastos afectadas no están disponibles."
   },
   "budget": {
-    "heading": "Estado del presupuesto por categoría",
-    "kicker": "Límites configurados",
-    "manage": "Administrar presupuestos",
-    "empty": "No hay límites de presupuesto definidos para este mes.",
-    "loading": "Cargando los límites de presupuesto...",
-    "unavailable": "Los límites de presupuesto no están disponibles. El resto del análisis se sigue mostrando.",
-    "retry": "Intentar de nuevo",
-    "comparisonUnavailable": "La comparación exacta no está disponible. Revisa el límite o el monto del gasto.",
-    "spentOf": "{{spent}} gastado de {{limit}}",
-    "over": "{{amount}} por encima del límite",
-    "remaining": "{{amount}} restante",
-    "zeroLimit": "Porcentaje usado: no aplica para un límite de $0",
-    "percentUsed": "{{percent}} usado",
-    "status": {
-      "overBudget": "Por encima del presupuesto",
-      "nearLimit": "Cerca del límite",
-      "onTrack": "En buen camino",
-      "unavailable": "No disponible"
-    }
+    "statusFor": "Estado del presupuesto de {{month}}",
+    "open": "Abrir presupuestos"
   },
   "comparison": {
     "heading": "Cambio de un mes a otro",

@@ -45,6 +45,12 @@ Hidden content: kit panels set `[hidden] { display: none !important }`, so a
   (`shiftMonthYear` in `shared/utils/monthYear.js`); every text comes from props
   (`label`, `previousLabel`, `nextLabel`, `currentLabel`, `emptyLabel`, `formatMonth`).
   An empty value shows an empty option and disables stepping.
+  Optional `months` (array of `YYYY-MM`): the select lists exactly those months in the caller's
+  order (Insights passes newest first; the default window is ascending); previous/next jump to
+  the nearest listed month, skipping unlisted ones (so label them "Earlier/Later month", not
+  "Previous/Next month") and are disabled when none exists. A `value` missing from `months`
+  appears as an extra leading option; the current button is disabled when `currentValue` is not
+  listed. Without `months` nothing changes (Budgets).
 - **RowActionsMenu**: string-free non-modal disclosure popover (no `menu` role) with Edit
   and Delete items; labels, `canEdit`/`canDelete` and `deleteClassName` come from props, and the
   chosen handler receives the trigger button for focus return. Activity wraps it with its own strings.
@@ -135,3 +141,8 @@ not a `shared/ui` kit component. Labels reuse `destinations.*.label`
 To add a destination, extend `PRIMARY_DESTINATIONS` in `app/navigation.js` (keep
 four to five items so the bottom bar fits at 320px in Spanish) and add its
 labels to both locales.
+
+Used by Insights: `PeriodPicker` in `months` mode (current month, selected month, and months with
+recorded data), `StatusMessage`s in one `.analytics-status` area, flat cash-flow panels (no `.card`),
+and the More spending disclosures as `h3 > DisclosureButton` + adjacent `DisclosurePanel` with
+page-owned open state. Budget status is a link to Budgets only.

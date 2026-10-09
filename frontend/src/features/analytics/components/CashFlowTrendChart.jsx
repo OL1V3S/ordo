@@ -50,7 +50,7 @@ export default function CashFlowTrendChart({ data }) {
   };
 
   return (
-    <section className="card analytics-panel cash-flow-trend" aria-labelledby={headingId}>
+    <section className="analytics-panel cash-flow-trend" aria-labelledby={headingId}>
       <p className="analytics-kicker">{data.months.length === 6 ? t("chart.kickerSixMonths") : t("chart.kickerFromFloor", { count: data.months.length, start: cashMonthLabel("0001-01", { t }) })}</p>
       <h2 id={headingId} className="h2">{t("chart.heading")}</h2>
       <ul className="cash-flow-legend" aria-label={t("chart.legendLabel")}>
