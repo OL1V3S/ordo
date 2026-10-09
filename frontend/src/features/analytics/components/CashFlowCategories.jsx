@@ -13,7 +13,7 @@ export default function CashFlowCategories({ data }) {
   }), [data]);
 
   return (
-    <section className="card analytics-panel cash-flow-categories" aria-labelledby={headingId}>
+    <section className="analytics-panel cash-flow-categories" aria-labelledby={headingId}>
       <div className="analytics-panel__header">
         <div>
           <p className="analytics-kicker">{t("categories.kicker")}</p>

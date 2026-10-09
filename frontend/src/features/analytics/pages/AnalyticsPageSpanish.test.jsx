@@ -14,7 +14,6 @@ vi.mock("../../expenses/hooks/useExpenses", () => ({ useExpenses: vi.fn() }));
 vi.mock("../../budgetLimits/hooks/useBudgetLimits", () => ({ useBudgetLimits: vi.fn() }));
 
 const refreshExpenses = vi.fn();
-const refreshLimits = vi.fn();
 const refreshCashFlow = vi.fn();
 
 function loadedCashFlow(month = "2026-08", overrides = {}) {
@@ -28,9 +27,10 @@ function renderPage() {
 }
 
 function openDetail(name) {
-  const summary = screen.getByRole("heading", { level: 3, name }).closest("summary");
-  fireEvent.click(summary);
-  return summary.closest("details");
+  const button = within(screen.getByRole("heading", { level: 3, name })).getByRole("button");
+  fireEvent.click(button);
+  expect(button).toHaveAttribute("aria-expanded", "true");
+  return document.getElementById(button.getAttribute("aria-controls"));
 }
 
 describe("Analytics page in Spanish", () => {
@@ -45,13 +45,6 @@ describe("Analytics page in Spanish", () => {
         { id: 3, description: "Rent", category: "bills", amount: 75, date: "2026-07-02" },
       ],
       loading: false, error: null, refresh: refreshExpenses,
-    });
-    useBudgetLimits.mockReturnValue({
-      budgetLimits: [
-        { id: 1, category: "food", limitAmount: 100 },
-        { id: 2, category: "transport", limitAmount: 0 },
-      ],
-      loading: false, error: null, refresh: refreshLimits,
     });
     await i18n.changeLanguage("es");
   });
@@ -70,7 +63,12 @@ describe("Analytics page in Spanish", () => {
     expect(selector).toHaveValue("2026-08");
     expect(within(selector).getAllByRole("option").map(({ value, textContent }) => [value, textContent]))
       .toEqual([["2026-08", "agosto de 2026"], ["2026-07", "julio de 2026"]]);
-    expect(useBudgetLimits).toHaveBeenLastCalledWith("2026-08");
+    expect(useBudgetLimits).not.toHaveBeenCalled();
+    expect(screen.getAllByLabelText("Mes")).toHaveLength(1);
+    expect(screen.getByRole("button", { name: "Mes anterior con datos" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Mes siguiente con datos" })).toBeInTheDocument();
+    expect(screen.getByText("Estado de los presupuestos")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Abrir presupuestos" })).toHaveAttribute("href", "/budgets");
     expect(screen.getByRole("button", { name: "Actualizar flujo de efectivo" })).toBeInTheDocument();
     const summary = screen.getByRole("heading", { name: "Entradas de dinero registradas vs. gastado" }).closest("section");
     expect(summary).toHaveTextContent("agosto de 2026");
@@ -87,7 +85,7 @@ describe("Analytics page in Spanish", () => {
   it("follows the selected month and a language change at runtime", async () => {
     renderPage();
     fireEvent.change(screen.getByLabelText("Mes"), { target: { value: "2026-07" } });
-    expect(useBudgetLimits).toHaveBeenLastCalledWith("2026-07");
+    expect(useCashFlow).toHaveBeenLastCalledWith("2026-07");
     const summary = screen.getByRole("heading", { name: "Entradas de dinero registradas vs. gastado" }).closest("section");
     expect(summary).toHaveTextContent("julio de 2026");
     expect(summary).not.toHaveTextContent("Hasta el");
@@ -98,19 +96,8 @@ describe("Analytics page in Spanish", () => {
     expect(screen.getByRole("heading", { name: "Recorded cash in vs Spent" }).closest("section")).toHaveTextContent("July 2026");
   });
 
-  it("renders budget status, month comparison with the previous month name, and largest expenses", () => {
+  it("renders month comparison with the previous month name, and largest expenses", () => {
     renderPage();
-    const budget = openDetail("Estado del presupuesto por categoría");
-    expect(budget).toHaveTextContent("Límites configurados");
-    expect(within(budget).getByRole("link", { name: "Administrar presupuestos" })).toHaveAttribute("href", "/budgets");
-    expect(budget).toHaveTextContent("Cerca del límite");
-    expect(budget).toHaveTextContent("$90.00 gastado de $100.00");
-    expect(budget).toHaveTextContent("$10.00 restante");
-    expect(budget).toHaveTextContent("90.0% usado");
-    expect(budget).toHaveTextContent("Por encima del presupuesto");
-    expect(budget).toHaveTextContent("$10.00 por encima del límite");
-    expect(budget).toHaveTextContent("Porcentaje usado: no aplica para un límite de $0");
-
     const comparison = openDetail("Cambio de un mes a otro");
     expect(comparison).toHaveTextContent("Comparado con julio de 2026");
     expect(comparison).toHaveTextContent("+$25.00");
@@ -140,9 +127,6 @@ describe("Analytics page in Spanish", () => {
       ],
       loading: false, error: null, refresh: refreshExpenses,
     });
-    useBudgetLimits.mockReturnValue({
-      budgetLimits: [{ id: 9, category: "food", limitAmount: "not-a-limit" }], loading: false, error: null, refresh: refreshLimits,
-    });
     renderPage();
     expect(screen.getByText("No se pudieron verificar con exactitud algunos montos de gastos. Las comparaciones de gastos afectadas no están disponibles."))
       .toBeInTheDocument();
@@ -151,9 +135,6 @@ describe("Analytics page in Spanish", () => {
     const largest = openDetail("Gastos más grandes");
     expect(largest).toHaveTextContent("La clasificación exacta de los gastos más grandes no está disponible porque no se pudo verificar un monto.");
     expect(largest).not.toHaveTextContent("No hay gastos para clasificar este mes.");
-    const budget = openDetail("Estado del presupuesto por categoría");
-    expect(budget).toHaveTextContent("No disponible");
-    expect(budget).toHaveTextContent("La comparación exacta no está disponible. Revisa el límite o el monto del gasto.");
   });
 
   it("shows honest Spanish empty states for a month without expenses or limits", () => {
@@ -161,14 +142,11 @@ describe("Analytics page in Spanish", () => {
     empty.categories = [];
     useCashFlow.mockReturnValue(loadedCashFlow("2026-08", { data: empty }));
     useExpenses.mockReturnValue({ expenses: [], loading: false, error: null, refresh: refreshExpenses });
-    useBudgetLimits.mockReturnValue({ budgetLimits: [], loading: false, error: null, refresh: refreshLimits });
     renderPage();
     expect(openDetail("Cambio de un mes a otro")).toHaveTextContent("$0.00");
-    openDetail("Estado del presupuesto por categoría");
     openDetail("Gastos más grandes");
     expect(screen.getAllByText("No hay gastos registrados").length).toBeGreaterThan(0);
     expect(screen.getByText("No hay entradas de dinero registradas")).toBeInTheDocument();
-    expect(screen.getByText("No hay límites de presupuesto definidos para este mes.")).toBeInTheDocument();
     expect(screen.getByText("No hay cambios de categoría para mostrar entre estos meses.")).toBeInTheDocument();
     expect(screen.getByText("No hay gastos para clasificar este mes.")).toBeInTheDocument();
     expect(screen.getByText("Ninguno de los dos meses tiene gastos registrados.")).toBeInTheDocument();
@@ -188,9 +166,8 @@ describe("Analytics page in Spanish", () => {
     expect(refreshCashFlow).toHaveBeenCalledOnce();
   });
 
-  it("renders the spending and budget-limit loading and error states in Spanish", () => {
+  it("renders the spending loading and error states in Spanish in the status area", () => {
     useExpenses.mockReturnValue({ expenses: [], loading: true, error: null, refresh: refreshExpenses });
-    useBudgetLimits.mockReturnValue({ budgetLimits: [], loading: true, error: null, refresh: refreshLimits });
     const { rerender } = renderPage();
     expect(screen.getByText("Cargando el análisis de gastos...")).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "Más detalle de gastos" })).toBeInTheDocument();
@@ -200,16 +177,6 @@ describe("Analytics page in Spanish", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("No pudimos cargar los gastos registrados.");
     fireEvent.click(screen.getByRole("button", { name: "Intentar de nuevo" }));
     expect(refreshExpenses).toHaveBeenCalledOnce();
-
-    useExpenses.mockReturnValue({ expenses: [], loading: false, error: null, refresh: refreshExpenses });
-    useBudgetLimits.mockReturnValue({ budgetLimits: [], loading: true, error: null, refresh: refreshLimits });
-    rerender(<MemoryRouter><AnalyticsPage /></MemoryRouter>);
-    expect(screen.getByText("Cargando los límites de presupuesto...")).toBeInTheDocument();
-
-    useBudgetLimits.mockReturnValue({ budgetLimits: [], loading: false, error: new Error("failed"), refresh: refreshLimits });
-    rerender(<MemoryRouter><AnalyticsPage /></MemoryRouter>);
-    expect(screen.getByRole("alert")).toHaveTextContent("Los límites de presupuesto no están disponibles. El resto del análisis se sigue mostrando.");
-    fireEvent.click(screen.getByRole("button", { name: "Intentar de nuevo" }));
-    expect(refreshLimits).toHaveBeenCalledOnce();
+    expect(useBudgetLimits).not.toHaveBeenCalled();
   });
 });

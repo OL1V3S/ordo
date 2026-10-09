@@ -40,7 +40,10 @@
     "title": "Insights",
     "description": "See recorded cash in and spending, month by month.",
     "month": "Month",
-    "refresh": "Refresh cash flow"
+    "refresh": "Refresh cash flow",
+    "earlierMonth": "Earlier month",
+    "laterMonth": "Later month",
+    "currentMonth": "This month"
   },
   "cashFlow": {
     "regionLabel": "Recorded cash flow",
@@ -130,25 +133,8 @@
     "inexact": "Some Expense amounts could not be verified exactly. Affected spending comparisons are unavailable."
   },
   "budget": {
-    "heading": "Budget status by category",
-    "kicker": "Configured limits",
-    "manage": "Manage budgets",
-    "empty": "No budget limits are set for this month.",
-    "loading": "Loading budget limits...",
-    "unavailable": "Budget limits are unavailable. Other insights are still shown.",
-    "retry": "Try again",
-    "comparisonUnavailable": "Exact comparison unavailable. Review the limit or spending amount.",
-    "spentOf": "{{spent}} spent of {{limit}}",
-    "over": "{{amount}} over",
-    "remaining": "{{amount}} remaining",
-    "zeroLimit": "Percentage used: Not applicable for a $0 limit",
-    "percentUsed": "{{percent}} used",
-    "status": {
-      "overBudget": "Over Budget",
-      "nearLimit": "Near Limit",
-      "onTrack": "On Track",
-      "unavailable": "Unavailable"
-    }
+    "status": "Budget status",
+    "open": "Open Budgets"
   },
   "comparison": {
     "heading": "Month-over-month change",

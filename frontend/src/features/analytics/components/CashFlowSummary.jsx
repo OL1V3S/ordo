@@ -9,7 +9,7 @@ export default function CashFlowSummary({ data }) {
   const maximum = minorUnits(bucket.cashInMinor) > minorUnits(bucket.spentMinor) ? bucket.cashInMinor : bucket.spentMinor;
   const cashInSpent = cashPercentage(bucket.spentMinor, bucket.cashInMinor);
   return (
-    <section className="card analytics-total cash-flow-summary" aria-labelledby={headingId}>
+    <section className="analytics-total cash-flow-summary" aria-labelledby={headingId}>
       <p className="analytics-kicker">{cashMonthLabel(data.month, { t })}</p>
       <h2 id={headingId} className="h2">{t("summary.heading")}</h2>
       {data.month === data.throughDate.slice(0, 7) && <p className="muted">{t("summary.through", { date: cashDateLabel(data.to, { t }) })}</p>}

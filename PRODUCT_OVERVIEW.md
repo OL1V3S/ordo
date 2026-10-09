@@ -66,8 +66,9 @@ silently treating every detected pattern as a financial fact.
   expectations, not guaranteed deposits or employer-verified earnings.
 - **Insights / Analytics:** Compare recorded cash in with spending for a selected
   month and see the difference as net recorded cash flow. Explore a six-month
-  trend and ranked spending categories, with budget usage, month-over-month
-  category changes, and largest expenses available under More spending detail.
+  trend and ranked spending categories, with month-over-month category changes
+  and largest expenses available under More spending detail and a link to
+  Budgets for budget status. Step between months that have recorded data.
   Cash in is split into amounts linked to confirmed
   paychecks and all other recorded inflows.
 - **Statement import:** Open import from Activity and upload a supported,

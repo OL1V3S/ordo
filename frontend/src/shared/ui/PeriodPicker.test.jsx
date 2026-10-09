@@ -64,4 +64,57 @@ describe('PeriodPicker', () => {
     expect(screen.getByRole('button', { name: 'Now' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Back' })).toBeEnabled()
   })
+
+  describe('months mode', () => {
+    const months = ['2026-08', '2026-07', '2026-02']
+    const values = () => Array.from(screen.getByLabelText('Month').options).map((option) => option.value)
+
+    it('lists exactly the given months in the given order', () => {
+      renderPicker({ months, value: '2026-07', currentValue: '2026-08' })
+      expect(values()).toEqual(months)
+    })
+
+    it('steps to the nearest listed month, skipping gaps, and disables at the ends', async () => {
+      const user = userEvent.setup()
+      const { onChange, rerender } = renderPicker({ months, value: '2026-07', currentValue: '2026-08' })
+      await user.click(screen.getByRole('button', { name: 'Back' }))
+      expect(onChange).toHaveBeenLastCalledWith('2026-02')
+      await user.click(screen.getByRole('button', { name: 'Forward' }))
+      expect(onChange).toHaveBeenLastCalledWith('2026-08')
+      const props = { onChange, label: 'Month', previousLabel: 'Back', nextLabel: 'Forward', currentLabel: 'Now', emptyLabel: 'None', formatMonth: (m) => m, months, currentValue: '2026-08' }
+      rerender(<PeriodPicker value="2026-08" {...props} />)
+      expect(screen.getByRole('button', { name: 'Forward' })).toBeDisabled()
+      expect(screen.getByRole('button', { name: 'Back' })).toBeEnabled()
+      expect(screen.getByRole('button', { name: 'Now' })).toBeDisabled()
+      rerender(<PeriodPicker value="2026-02" {...props} />)
+      expect(screen.getByRole('button', { name: 'Back' })).toBeDisabled()
+      expect(screen.getByRole('button', { name: 'Now' })).toBeEnabled()
+    })
+
+    it('shows a value missing from months as an extra leading option and still steps around it', async () => {
+      const user = userEvent.setup()
+      const { onChange } = renderPicker({ months, value: '2026-05', currentValue: '2026-08' })
+      expect(values()).toEqual(['2026-05', ...months])
+      await user.click(screen.getByRole('button', { name: 'Back' }))
+      expect(onChange).toHaveBeenLastCalledWith('2026-02')
+      await user.click(screen.getByRole('button', { name: 'Forward' }))
+      expect(onChange).toHaveBeenLastCalledWith('2026-07')
+    })
+
+    it('disables the current button when currentValue is not listed', () => {
+      renderPicker({ months, value: '2026-07', currentValue: '2027-01' })
+      expect(screen.getByRole('button', { name: 'Now' })).toBeDisabled()
+    })
+
+    it('disables stepping when value is empty in months mode', () => {
+      renderPicker({ months, value: '', currentValue: '2026-08' })
+      expect(screen.getByRole('button', { name: 'Back' })).toBeDisabled()
+      expect(screen.getByRole('button', { name: 'Forward' })).toBeDisabled()
+    })
+
+    it('keeps the default 25-month window when months is absent', () => {
+      renderPicker()
+      expect(values()).toHaveLength(25)
+    })
+  })
 })
