@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
 import SettingsPage from './SettingsPage'
@@ -43,6 +43,15 @@ describe('Settings supported account and appearance behavior', () => {
     await user.selectOptions(control, 'system')
     expect(localStorage.getItem(THEME_STORAGE_KEY)).toBeNull()
     expect(document.documentElement).not.toHaveAttribute('data-theme')
+  })
+
+  it('renders flat named regions for Appearance, Language and Account', () => {
+    const { container } = render(<ThemeProvider><LocaleProvider><SettingsPage email="person@example.com" /></LocaleProvider></ThemeProvider>)
+
+    expect(within(screen.getByRole('region', { name: 'Appearance' })).getByRole('combobox', { name: 'Theme preference' })).toBeInTheDocument()
+    expect(within(screen.getByRole('region', { name: 'Language' })).getByRole('combobox', { name: 'Language preference' })).toBeInTheDocument()
+    expect(within(screen.getByRole('region', { name: 'Account' })).getByText('Signed-in email').tagName).toBe('DT')
+    expect(container.querySelector('.card')).toBeNull()
   })
 
   it('persists the language preference and translates Settings without changing account data', async () => {

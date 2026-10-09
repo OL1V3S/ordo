@@ -1,0 +1,29 @@
+{
+  "title": "Inversiones",
+  "description": "Un espacio futuro para la información de inversiones de las fuentes que elijas.",
+  "status": {
+    "label": "No disponible por ahora",
+    "title": "No hay ninguna fuente de inversiones conectada",
+    "body": "No hay ningún portafolio, correduría de bolsa, proveedor de señales, fuente de datos del mercado ni otra integración de inversiones conectada. No se están obteniendo, importando, infiriendo ni evaluando datos de inversiones."
+  },
+  "capabilities": {
+    "title": "Áreas de funciones previstas",
+    "status": "No disponible",
+    "connections": {
+      "title": "Conexiones",
+      "body": "Las fuentes futuras requerirían un adaptador específico para cada fuente y un contrato normalizado de la aplicación. Hoy no se admite ningún proveedor."
+    },
+    "portfolio": {
+      "title": "Portafolio y posiciones",
+      "body": "No hay valores de portafolio, tenencias ni posiciones disponibles sin una fuente real que los proporcione."
+    },
+    "signals": {
+      "title": "Señales",
+      "body": "No se generan señales de inversión, recomendaciones ni orientación para operar."
+    },
+    "activity": {
+      "title": "Actividad y rendimiento",
+      "body": "No hay información de actividad ni de rendimiento de inversiones disponible para informar."
+    }
+  }
+}
