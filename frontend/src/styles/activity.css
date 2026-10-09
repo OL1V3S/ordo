@@ -33,7 +33,7 @@
 .activity-page .expense-cell--category input { margin-top: var(--space-2); }
 .expense-table .inline-actions { flex-wrap: wrap; }
 @media (max-width: 1000px) {
-  .activity-page .expense-list { padding: 0; border: 0; background: transparent; box-shadow: none; }
+  .activity-page .expense-list { padding: 0; border: 0; background: transparent; }
   .activity-page .expense-list__table-wrapper { overflow: visible; border: 0; background: transparent; }
   .expense-table, .expense-table tbody { display: block; width: 100%; }
   .expense-table thead { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
@@ -43,7 +43,6 @@
   .expense-cell--description, .expense-cell--actions { grid-column: 1 / -1; }
   .expense-cell--description { font-size: var(--text-lg); }
   .expense-cell--description::before { display: none; }
-  .expense-row--editing .expense-cell--description::before { display: block; }
   .expense-cell--amount { font-size: var(--text-lg); }
 }
 @media (max-width: 400px) {

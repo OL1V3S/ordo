@@ -1,29 +1,11 @@
-.inflow-section,
-.inflow-list,
-.inflow-form {
+.inflow-list, .inflow-form {
   display: grid;
   min-width: 0;
   gap: var(--space-4);
 }
 
-.inflow-section__header {
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-}
-
-.inflow-section__header h2,
-.inflow-list__empty,
-.inflow-form__warning,
-.inflow-form__error {
+.inflow-list__empty, .inflow-form__warning, .inflow-form__error {
   margin: 0;
-}
-
-.inflow-section__summary {
-  color: var(--color-text-muted);
-  overflow-wrap: anywhere;
 }
 
 .inflow-form {
@@ -71,8 +53,7 @@
   font-size: var(--text-sm);
 }
 
-.inflow-form__actions,
-.inflow-row__actions {
+.inflow-form__actions {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);

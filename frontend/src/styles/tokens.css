@@ -80,7 +80,6 @@
   --radius-sm: 0.375rem;
   --radius-md: 0.5rem;
   --radius-lg: 0.75rem;
-  --radius-xl: 1rem;
   --radius-pill: 999px;
 
   /* Motion */
@@ -94,18 +93,14 @@
   --card-radius: var(--radius-lg);
   --card-shadow: none;
   --size-touch-target: 44px;
-  --control-radius: var(--radius-md);
   --control-padding-block: 0.65rem;
   --control-padding-inline: var(--space-4);
   --input-padding-inline: var(--space-3);
   --focus-ring-width: 3px;
   --focus-ring-offset: 2px;
   --overlay-radius: var(--radius-lg);
-  --row-padding-block: 0.875rem;
   --table-cell-padding-block: 0.8rem;
   --table-cell-padding-inline: 0.9rem;
-  --badge-padding-block: var(--space-1);
-  --badge-padding-inline: var(--space-2);
   --mobile-nav-clearance: 4.75rem;
   --shell-pagebar-height: 3.75rem;
   --shell-rail-width: 5.5rem;
