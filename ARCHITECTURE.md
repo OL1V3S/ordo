@@ -90,7 +90,8 @@ Desktop retains individual destinations. Home composes existing cash-flow and
 feature list reads with independent loading/error states and session-staleness
 protection. Its financial summary reuses Analytics' exact-cent response; paycheck
 and commitment lists do not invoke candidate or change detection. Theme tokens also
-drive chart presentation in explicit and system appearance modes.
+drive chart presentation in explicit and system appearance modes (see
+[docs/design-tokens.md](docs/design-tokens.md)).
 
 Analytics combines historical cash in and Expenses through an analytics-local
 read API and session-aware snapshot hook. The selected-month comparison and

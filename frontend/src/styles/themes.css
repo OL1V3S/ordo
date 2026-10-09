@@ -1,134 +1,93 @@
+/*
+ * Theme mode switch ("space toggle"). Each semantic color is written once and holds
+ * both values: var(--if-light, <light>) var(--if-dark, <dark>). The mode blocks below
+ * only flip --if-light/--if-dark. An empty value (`--if-dark: ;`) is intentional:
+ * do NOT remove the space or the declaration, or every color breaks.
+ * See docs/design-tokens.md. Mode blocks may contain only these three declarations.
+ */
 :root,
 :root[data-theme="light"] {
   color-scheme: light;
-  --color-bg: #f5f5f1;
-  --color-bg-accent: #eef0fa;
-  --color-surface: #ffffff;
-  --color-surface-raised: #fafaf7;
-  --color-surface-subtle: #f5f5f1;
-  --color-text: #181a20;
-  --color-text-muted: #666873;
-  --color-placeholder: #666873;
-  --color-border: #dedfe2;
-  --color-divider: #e7e8ec;
-  --color-control-border: #8b8d94;
-  --color-primary: #5458c9;
-  --color-primary-hover: #4549ae;
-  --color-on-primary: #ffffff;
-  --color-secondary: #62667f;
-  --color-secondary-soft: #eeeffa;
-  --color-disabled-text: #62667f;
-  --color-disabled-surface: #eeeffa;
-  --color-disabled-border: #8b8d94;
-  --color-danger: #c4324b;
-  --color-danger-soft: #fff0f3;
-  --color-on-danger: #ffffff;
-  --color-warning: #9a5b00;
-  --color-warning-soft: #fff6df;
-  --color-success: #087a55;
-  --color-success-soft: #e8f8f1;
-  --color-info: #566a7a;
-  --color-info-soft: #edf2f5;
-  --color-focus: #5458c9;
-  --chart-paychecks: #24776a;
-  --chart-other: #9b6525;
-  --chart-spent: #5458c9;
-  --chart-limit: #666873;
-  --chart-text: #181a20;
-  --chart-grid: #e7e8ec;
-  --chart-border: #8b8d94;
-  --chart-surface: #ffffff;
-  --shadow-sm: 0 1px 2px rgb(24 26 32 / 5%);
-  --shadow-md: 0 5px 14px rgb(24 26 32 / 7%);
-  --shadow-lg: 0 12px 28px rgb(24 26 32 / 10%);
+  --if-dark: ;
+  --if-light: initial;
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --color-bg: #0d1017;
-  --color-bg-accent: #111622;
-  --color-surface: #151923;
-  --color-surface-raised: #1c2130;
-  --color-surface-subtle: #1c2130;
-  --color-text: #f3f3f0;
-  --color-text-muted: #a1a4ad;
-  --color-placeholder: #a1a4ad;
-  --color-border: #2b3040;
-  --color-divider: #242938;
-  --color-control-border: #666c7d;
-  --color-primary: #8d91ff;
-  --color-primary-hover: #a5a8ff;
-  --color-on-primary: #0d1017;
-  --color-secondary: #b1b5d2;
-  --color-secondary-soft: #262c40;
-  --color-disabled-text: #b1b5d2;
-  --color-disabled-surface: #262c40;
-  --color-disabled-border: #666c7d;
-  --color-danger: #ff7187;
-  --color-danger-soft: #351923;
-  --color-on-danger: #151923;
-  --color-warning: #ffc15c;
-  --color-warning-soft: #302510;
-  --color-success: #55d6a6;
-  --color-success-soft: #102a23;
-  --color-info: #91aab9;
-  --color-info-soft: #1b272e;
-  --color-focus: #8d91ff;
-  --chart-paychecks: #69c5b1;
-  --chart-other: #e1ad69;
-  --chart-spent: #8d91ff;
-  --chart-limit: #a1a4ad;
-  --chart-text: #f3f3f0;
-  --chart-grid: #242938;
-  --chart-border: #666c7d;
-  --chart-surface: #151923;
-  --shadow-sm: 0 1px 2px rgb(0 0 0 / 22%);
-  --shadow-md: 0 14px 34px rgb(0 0 0 / 28%);
-  --shadow-lg: 0 28px 70px rgb(0 0 0 / 36%);
+  --if-light: ;
+  --if-dark: initial;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) {
     color-scheme: dark;
-    --color-bg: #0d1017;
-    --color-bg-accent: #111622;
-    --color-surface: #151923;
-    --color-surface-raised: #1c2130;
-    --color-surface-subtle: #1c2130;
-    --color-text: #f3f3f0;
-    --color-text-muted: #a1a4ad;
-    --color-placeholder: #a1a4ad;
-    --color-border: #2b3040;
-    --color-divider: #242938;
-    --color-control-border: #666c7d;
-    --color-primary: #8d91ff;
-    --color-primary-hover: #a5a8ff;
-    --color-on-primary: #0d1017;
-    --color-secondary: #b1b5d2;
-    --color-secondary-soft: #262c40;
-    --color-disabled-text: #b1b5d2;
-    --color-disabled-surface: #262c40;
-    --color-disabled-border: #666c7d;
-    --color-danger: #ff7187;
-    --color-danger-soft: #351923;
-    --color-on-danger: #151923;
-    --color-warning: #ffc15c;
-    --color-warning-soft: #302510;
-    --color-success: #55d6a6;
-    --color-success-soft: #102a23;
-    --color-info: #91aab9;
-    --color-info-soft: #1b272e;
-    --color-focus: #8d91ff;
-    --chart-paychecks: #69c5b1;
-    --chart-other: #e1ad69;
-    --chart-spent: #8d91ff;
-    --chart-limit: #a1a4ad;
-    --chart-text: #f3f3f0;
-    --chart-grid: #242938;
-    --chart-border: #666c7d;
-    --chart-surface: #151923;
-    --shadow-sm: 0 1px 2px rgb(0 0 0 / 22%);
-    --shadow-md: 0 14px 34px rgb(0 0 0 / 28%);
-    --shadow-lg: 0 28px 70px rgb(0 0 0 / 36%);
+    --if-light: ;
+    --if-dark: initial;
   }
+}
+
+:root {
+  /* Tier 2: semantic colors (light / dark). */
+  --color-canvas: var(--if-light, var(--ivory-100)) var(--if-dark, var(--midnight-950));
+  --color-surface: var(--if-light, var(--ivory-0)) var(--if-dark, var(--midnight-900));
+  --color-surface-raised: var(--if-light, var(--ivory-50)) var(--if-dark, var(--midnight-850));
+  --color-surface-sunken: var(--if-light, var(--ivory-100)) var(--if-dark, var(--midnight-850));
+  --color-accent-subtle: var(--if-light, var(--periwinkle-50)) var(--if-dark, var(--midnight-925));
+  --color-border-subtle: var(--if-light, var(--ink-100)) var(--if-dark, var(--midnight-800));
+  --color-border: var(--if-light, var(--ink-200)) var(--if-dark, var(--midnight-750));
+  --color-border-strong: var(--if-light, var(--ink-400)) var(--if-dark, var(--midnight-500));
+  --color-text: var(--if-light, var(--ink-900)) var(--if-dark, var(--ivory-150));
+  --color-text-muted: var(--if-light, var(--ink-600)) var(--if-dark, var(--ink-300));
+  --color-text-placeholder: var(--if-light, var(--ink-600)) var(--if-dark, var(--ink-300));
+  --color-accent: var(--if-light, var(--periwinkle-600)) var(--if-dark, var(--periwinkle-300));
+  --color-accent-hover: var(--if-light, var(--periwinkle-700)) var(--if-dark, var(--periwinkle-200));
+  --color-on-accent: var(--if-light, var(--ivory-0)) var(--if-dark, var(--midnight-950));
+  --color-amount-in: var(--if-light, var(--green-700)) var(--if-dark, var(--green-300));
+  --color-secondary: var(--if-light, var(--periwinkle-gray-600)) var(--if-dark, var(--periwinkle-gray-300));
+  --color-secondary-soft: var(--if-light, var(--periwinkle-75)) var(--if-dark, var(--midnight-700));
+  --color-disabled-text: var(--if-light, var(--periwinkle-gray-600)) var(--if-dark, var(--periwinkle-gray-300));
+  --color-disabled-surface: var(--if-light, var(--periwinkle-75)) var(--if-dark, var(--midnight-700));
+  --color-disabled-border: var(--if-light, var(--ink-400)) var(--if-dark, var(--midnight-500));
+  --color-danger: var(--if-light, var(--red-600)) var(--if-dark, var(--red-300));
+  --color-danger-soft: var(--if-light, var(--red-50)) var(--if-dark, var(--red-950));
+  --color-on-danger: var(--if-light, var(--ivory-0)) var(--if-dark, var(--midnight-900));
+  --color-warning: var(--if-light, var(--amber-700)) var(--if-dark, var(--amber-300));
+  --color-warning-soft: var(--if-light, var(--amber-50)) var(--if-dark, var(--amber-950));
+  --color-success: var(--if-light, var(--green-700)) var(--if-dark, var(--green-300));
+  --color-success-soft: var(--if-light, var(--green-50)) var(--if-dark, var(--green-950));
+  --color-info: var(--if-light, var(--slate-600)) var(--if-dark, var(--slate-300));
+  --color-info-soft: var(--if-light, var(--slate-50)) var(--if-dark, var(--slate-950));
+  --color-focus: var(--if-light, var(--periwinkle-600)) var(--if-dark, var(--periwinkle-300));
+  --chart-paychecks: var(--if-light, var(--teal-700)) var(--if-dark, var(--teal-300));
+  --chart-other: var(--if-light, var(--ochre-700)) var(--if-dark, var(--ochre-300));
+  --chart-spent: var(--if-light, var(--periwinkle-600)) var(--if-dark, var(--periwinkle-300));
+  --chart-limit: var(--if-light, var(--ink-600)) var(--if-dark, var(--ink-300));
+  --chart-text: var(--if-light, var(--ink-900)) var(--if-dark, var(--ivory-150));
+  --chart-grid: var(--if-light, var(--ink-100)) var(--if-dark, var(--midnight-800));
+  --chart-border: var(--if-light, var(--ink-400)) var(--if-dark, var(--midnight-500));
+  --chart-surface: var(--if-light, var(--ivory-0)) var(--if-dark, var(--midnight-900));
+  --color-amount-out: var(--color-text);
+  --color-danger-hover: color-mix(in srgb, var(--color-danger) 82%, var(--black));
+
+  /* Shadows: overlays only; cards are flat. */
+  --shadow-sm: var(--if-light, 0 1px 2px rgb(var(--shadow-ink) / 5%)) var(--if-dark, 0 1px 2px rgb(var(--shadow-black) / 22%));
+  --shadow-overlay: var(--if-light, 0 5px 14px rgb(var(--shadow-ink) / 7%)) var(--if-dark, 0 14px 34px rgb(var(--shadow-black) / 28%));
+  --shadow-md: var(--shadow-overlay);
+  --shadow-lg: var(--if-light, 0 12px 28px rgb(var(--shadow-ink) / 10%)) var(--if-dark, 0 28px 70px rgb(var(--shadow-black) / 36%));
+  --overlay-shadow: var(--shadow-overlay);
+
+  /* Component tokens that depend on color. */
+  --card-bg: var(--color-surface);
+  --card-border-color: var(--color-border);
+
+  /* Legacy aliases: unmigrated CSS keeps working. */
+  --color-bg: var(--color-canvas);
+  --color-bg-accent: var(--color-accent-subtle);
+  --color-surface-subtle: var(--color-surface-sunken);
+  --color-divider: var(--color-border-subtle);
+  --color-control-border: var(--color-border-strong);
+  --color-placeholder: var(--color-text-placeholder);
+  --color-primary: var(--color-accent);
+  --color-primary-hover: var(--color-accent-hover);
+  --color-on-primary: var(--color-on-accent);
 }
