@@ -26,6 +26,7 @@ the permanent, complete archive.
 
 ### 2026-10-09 — Budgets declutter
 
+[PR #211](https://github.com/OL1V3S/ordo/pull/211) ·
 [Issue #210](https://github.com/OL1V3S/ordo/issues/210)
 
 - Budgets now has a month picker (previous, next, a month list and This month), flat category rows with a "..." Edit/Delete menu, and one status area that also holds Refresh limits and Retry spending.
