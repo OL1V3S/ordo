@@ -26,6 +26,7 @@ the permanent, complete archive.
 
 ### 2026-10-09 — Activity single task area and row menu
 
+[PR #207](https://github.com/OL1V3S/ordo/pull/207) ·
 [Issue #194](https://github.com/OL1V3S/ordo/issues/194)
 
 - Activity is now one list plus one "Current task" area and a status area; the Spending and Cash in sections, Records toggles, expense filters and cash search are gone, and Edit/Delete moved into a "..." menu on each timeline row.
