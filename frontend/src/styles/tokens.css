@@ -1,11 +1,71 @@
 :root {
-  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  /* Tier 1: primitives. Raw values live only in this file and themes.css. */
+  --ivory-0: #ffffff;
+  --ivory-50: #fafaf7;
+  --ivory-100: #f5f5f1;
+  --ivory-150: #f3f3f0;
+  --ink-100: #e7e8ec;
+  --ink-200: #dedfe2;
+  --ink-300: #a1a4ad;
+  --ink-400: #8b8d94;
+  --ink-600: #666873;
+  --ink-900: #181a20;
+  --periwinkle-50: #eef0fa;
+  --periwinkle-75: #eeeffa;
+  --periwinkle-200: #a5a8ff;
+  --periwinkle-300: #8d91ff;
+  --periwinkle-600: #5458c9;
+  --periwinkle-700: #4549ae;
+  --periwinkle-gray-300: #b1b5d2;
+  --periwinkle-gray-600: #62667f;
+  --midnight-500: #666c7d;
+  --midnight-700: #262c40;
+  --midnight-750: #2b3040;
+  --midnight-800: #242938;
+  --midnight-850: #1c2130;
+  --midnight-900: #151923;
+  --midnight-925: #111622;
+  --midnight-950: #0d1017;
+  --red-50: #fff0f3;
+  --red-300: #ff7187;
+  --red-600: #c4324b;
+  --red-950: #351923;
+  --amber-50: #fff6df;
+  --amber-300: #ffc15c;
+  --amber-700: #9a5b00;
+  --amber-950: #302510;
+  --green-50: #e8f8f1;
+  --green-300: #55d6a6;
+  --green-700: #087a55;
+  --green-950: #102a23;
+  --slate-50: #edf2f5;
+  --slate-300: #91aab9;
+  --slate-600: #566a7a;
+  --slate-950: #1b272e;
+  --teal-300: #69c5b1;
+  --teal-700: #24776a;
+  --ochre-300: #e1ad69;
+  --ochre-700: #9b6525;
+  --black: #000000;
+  --shadow-ink: 24 26 32;
+  --shadow-black: 0 0 0;
+
+  /* Typography */
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
   --text-base: 1rem;
-  --text-lg: 1.125rem;
-  --text-xl: 1.375rem;
-  --text-2xl: clamp(1.75rem, 4vw, 2.5rem);
+  --text-lg: 1.2rem;
+  --text-xl: 1.44rem;
+  --text-2xl: 1.75rem;
+  --text-3xl: 2.125rem;
+  --text-display: clamp(2.125rem, 1.6rem + 2.5vw, 3rem);
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  /* Spacing */
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
@@ -13,11 +73,44 @@
   --space-5: 1.5rem;
   --space-6: 2rem;
   --space-7: 3rem;
-  --radius-sm: 0.25rem;
-  --radius-md: 0.25rem;
-  --radius-lg: 0.25rem;
+  --space-8: 4rem;
+
+  /* Radius */
+  --radius-xs: 0.25rem;
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
   --radius-pill: 999px;
+
+  /* Motion */
   --duration-fast: 120ms;
   --duration-normal: 200ms;
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+
+  /* Tier 3: component tokens (non-color). */
+  --card-padding: var(--space-5);
+  --card-padding-compact: var(--space-4);
+  --card-radius: var(--radius-lg);
+  --card-shadow: none;
+  --size-touch-target: 44px;
+  --control-radius: var(--radius-md);
+  --control-padding-block: 0.65rem;
+  --control-padding-inline: var(--space-4);
+  --input-padding-inline: var(--space-3);
+  --focus-ring-width: 3px;
+  --focus-ring-offset: 2px;
+  --overlay-radius: var(--radius-lg);
+  --row-padding-block: 0.875rem;
+  --table-cell-padding-block: 0.8rem;
+  --table-cell-padding-inline: 0.9rem;
+  --badge-padding-block: var(--space-1);
+  --badge-padding-inline: var(--space-2);
+  --mobile-nav-clearance: 4.75rem;
 }
+
+/*
+ * Breakpoint policy (media queries cannot read custom properties):
+ * compact < 600px, medium 600-899px, expanded >= 900px.
+ * Existing off-policy queries are legacy and normalized per page in later slices.
+ */
