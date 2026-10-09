@@ -97,7 +97,8 @@ because each item is a route to its own address. The current link gets
 `aria-current="page"` (Budgets on `/plan`) and a bordered raised segment, so state
 is not colour alone. Targets are 44px, styles are tokens only
 (`styles/plan-switcher.css`), gaps leave room for the focus ring, and there are no
-icons so Spanish labels fit at 320px. It is route-aware and owns i18n, so it is
+icons, and compact widths use `--text-xs` with no inline padding so Spanish labels fit
+at 320px without breaking mid-word. It is route-aware and owns i18n, so it is
 not a `shared/ui` kit component. Labels reuse `destinations.*.label`
 (Commitments is not renamed). The compact "back to Plan" link was removed.
 

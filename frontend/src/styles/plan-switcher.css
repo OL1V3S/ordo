@@ -21,7 +21,7 @@
   justify-content: center;
   min-width: 0;
   min-height: var(--size-touch-target);
-  padding: var(--space-1) var(--space-1);
+  padding: var(--space-1) 0;
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
   color: var(--color-text-muted);
@@ -49,6 +49,12 @@
 @media (max-width: 599.98px) {
   .plan-switcher__list {
     width: 100%;
+  }
+
+  /* Spanish labels ("Presupuestos", "Compromisos") must fit one column at 320px
+     without breaking mid-word; the ring-safe gaps and padding stay at --space-2. */
+  .plan-switcher__link {
+    font-size: var(--text-xs);
   }
 }
 
