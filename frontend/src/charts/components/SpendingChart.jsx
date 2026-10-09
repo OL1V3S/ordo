@@ -9,14 +9,12 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
+import { formatMoneyDecimal } from "../../shared/localization/format";
+import { useLocale } from "../../shared/localization/useLocale";
+import { AMOUNT_NEEDS_REVIEW } from "../../features/expenses/utils/exactMoney";
 import { displayText } from "../../utils/text";
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend);
-
-const currencyFormatter = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-});
 
 const chartColorProperties = {
   spent: "--chart-spent",
@@ -100,6 +98,7 @@ function useChartColors(enabled) {
 
 export default function SpendingChart({ totalsByCategory, budgetLimitsByCategory }) {
   const summaryHeadingId = useId();
+  const { locale } = useLocale();
   const totals = totalsByCategory ?? {};
   const limits = budgetLimitsByCategory ?? {};
 
@@ -165,8 +164,8 @@ export default function SpendingChart({ totalsByCategory, budgetLimitsByCategory
   const chartRows = data.labels.map((label, index) => ({
     categoryKey: categories[index],
     label,
-    spent: spentAmounts[index],
-    limit: limitAmounts[index],
+    spent: formatMoneyDecimal(totals[categories[index]] || 0, locale) ?? AMOUNT_NEEDS_REVIEW,
+    limit: formatMoneyDecimal(limits[categories[index]]?.limitAmount || 0, locale) ?? AMOUNT_NEEDS_REVIEW,
   }));
 
   return (
@@ -180,8 +179,8 @@ export default function SpendingChart({ totalsByCategory, budgetLimitsByCategory
           {chartRows.map((row) => (
             <li key={row.categoryKey} className="chart-summary__item">
               <strong>{row.label}</strong>
-              <span>Spent: {currencyFormatter.format(row.spent)}</span>
-              <span>Budget limit: {currencyFormatter.format(row.limit)}</span>
+              <span>Spent: {row.spent}</span>
+              <span>Budget limit: {row.limit}</span>
             </li>
           ))}
         </ul>

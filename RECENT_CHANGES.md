@@ -24,6 +24,14 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-09 — Language-aware money, percent and date formatting
+
+[PR #224](https://github.com/OL1V3S/ordo/pull/224) ·
+[Issue #223](https://github.com/OL1V3S/ordo/issues/223)
+
+- Money, percentages, dates and import timestamps now follow the app language through one shared formatter. Spanish shows USD amounts as `USD 1,234.56` (so they are not read as pesos) and dates in Mexican Spanish style such as `4 mar 2026`; English text is unchanged apart from a few listed corrections (Budgets reset date, grouped large percentages, import preview amounts, unparseable Commitments amounts).
+- Amounts stay exact at any size and calendar dates do not shift with the machine's timezone; calculations, payloads and the backend are unchanged.
+
 ### 2026-10-09 — CSS cleanup and architecture
 
 [PR #220](https://github.com/OL1V3S/ordo/pull/220) ·
@@ -200,21 +208,3 @@ the permanent, complete archive.
   detection, change-review and decision logic, payloads, element ids, and focus
   behavior are unchanged; `$` amounts and the browser-language date display keep
   their existing form in both languages.
-
-### 2026-10-05 — Spanish Analytics page
-
-[PR #181](https://github.com/OL1V3S/ordo/pull/181) ·
-[Issue #180](https://github.com/OL1V3S/ordo/issues/180)
-
-- Localized the Analytics (Insights) page (the cash-flow summary and its
-  disclosure, category ranking, trend chart with its tooltips, ticks, and
-  accessible table, spending, budget-status, comparison, and largest-expense
-  sections, and the cash-flow load messages) in English and Spanish through a new
-  `analytics` catalog namespace. Month names and the month and date labels built
-  from them follow the language, using catalog month names applied to the
-  existing year-month and date components; English labels are unchanged.
-- Spanish keeps recorded cash in and spending distinct from expectations and an
-  unavailable exact figure distinct from a recorded zero. Cash-flow and spending
-  calculation, comparisons, which month or date each label refers to, payloads,
-  and focus behavior are unchanged; `$` amounts, percentages, and numeric
-  expense dates keep their existing form in both languages.

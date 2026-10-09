@@ -115,18 +115,18 @@ describe("Activity spending in Spanish", () => {
     renderPage();
 
     const table = screen.getByRole("region", { name: "Tabla de gastos" });
-    for (const name of ["Descripción", "Monto ($)", "Fecha", "Categoría", "Acciones"]) {
+    for (const name of ["Descripción", "Monto (USD)", "Fecha", "Categoría", "Acciones"]) {
       expect(within(table).getByRole("columnheader", { name })).toBeInTheDocument();
     }
     expect(within(table).getByRole("cell", { name: "5.00" })).toBeInTheDocument();
-    expect(within(table).getByText("09/01/2026")).toBeInTheDocument();
+    expect(within(table).getByText("01/09/2026")).toBeInTheDocument();
     expect(within(table).getByText("Food")).toBeInTheDocument();
     expect(within(table).getByText("El monto requiere revisión")).toBeInTheDocument();
-    await user.click(within(table).getByRole("button", { name: /^Acciones del gasto Lunch del 09\/01\/2026, registro 42$/ }));
-    expect(within(table).getByRole("button", { name: "Editar gasto Lunch del 09/01/2026, registro 42" })).toBeEnabled();
-    expect(within(table).getByRole("button", { name: "Eliminar gasto Lunch del 09/01/2026, registro 42" })).toBeEnabled();
+    await user.click(within(table).getByRole("button", { name: /^Acciones del gasto Lunch del 01\/09\/2026, registro 42$/ }));
+    expect(within(table).getByRole("button", { name: "Editar gasto Lunch del 01/09/2026, registro 42" })).toBeEnabled();
+    expect(within(table).getByRole("button", { name: "Eliminar gasto Lunch del 01/09/2026, registro 42" })).toBeEnabled();
     await user.click(within(table).getByRole("button", { name: /^Acciones del gasto Odd/ }));
-    expect(within(table).getByRole("button", { name: "Editar gasto Odd del 09/02/2026, registro 43" })).toBeDisabled();
+    expect(within(table).getByRole("button", { name: "Editar gasto Odd del 02/09/2026, registro 43" })).toBeDisabled();
   });
 
   it("renders the add-expense form, its validation messages, and the saved feedback in Spanish", async () => {
@@ -242,12 +242,12 @@ describe("Activity cash in in Spanish", () => {
     for (const name of ["Descripción", "Monto", "Fecha", "Acciones"]) {
       expect(within(table).getByRole("columnheader", { name })).toBeInTheDocument();
     }
-    expect(within(table).getByText("$24.15")).toBeInTheDocument();
-    expect(within(table).getByText("09/01/2026")).toBeInTheDocument();
+    expect(within(table).getByText("USD 24.15")).toBeInTheDocument();
+    expect(within(table).getByText("01/09/2026")).toBeInTheDocument();
     expect(within(table).getByText("El monto requiere revisión")).toBeInTheDocument();
     await user.click(within(table).getByRole("button", { name: /^Acciones de la entrada de dinero Transfer from Savings/ }));
-    expect(within(table).getByRole("button", { name: "Editar entrada de dinero Transfer from Savings del 09/01/2026, registro 1" })).toBeEnabled();
-    expect(within(table).getByRole("button", { name: "Eliminar entrada de dinero Transfer from Savings del 09/01/2026, registro 1" })).toBeEnabled();
+    expect(within(table).getByRole("button", { name: "Editar entrada de dinero Transfer from Savings del 01/09/2026, registro 1" })).toBeEnabled();
+    expect(within(table).getByRole("button", { name: "Eliminar entrada de dinero Transfer from Savings del 01/09/2026, registro 1" })).toBeEnabled();
   });
 
   it("renders the cash-in loading and failure states in Spanish", () => {
@@ -315,7 +315,7 @@ describe("Activity cash in in Spanish", () => {
     renderPage();
 
     await chooseRowAction(user, /^Eliminar entrada de dinero Transfer from Savings del .*, registro 1$/);
-    const confirmation = screen.getByRole("group", { name: "¿Eliminar entrada de dinero: Transfer from Savings (09/01/2026)?" });
+    const confirmation = screen.getByRole("group", { name: "¿Eliminar entrada de dinero: Transfer from Savings (01/09/2026)?" });
 
     expect(within(confirmation).getByText(/Esto elimina el registro del historial de flujo de efectivo\./)).toBeInTheDocument();
     expect(within(confirmation).getByText(/Si esta entrada se importó/)).toBeInTheDocument();

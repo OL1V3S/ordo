@@ -131,7 +131,7 @@ describe("capture-first Home", () => {
 
     const list = await screen.findByRole("list", { name: "Elementos que requieren atención" });
     expect(within(list).getByText("Groceries")).toBeInTheDocument();
-    expect(within(list).getByText("Por encima del límite: se gastaron $110.00 de $100.00.")).toBeInTheDocument();
+    expect(within(list).getByText("Por encima del límite: se gastaron USD 110.00 de USD 100.00.")).toBeInTheDocument();
   });
 
   it("orders budget alerts with commitment reviews and applies the shared two-row cap", async () => {
@@ -205,7 +205,7 @@ describe("capture-first Home", () => {
     renderPage();
 
     const list = await screen.findByRole("list", { name: "Elementos que requieren atención" });
-    expect(within(list).getByText("Se gastaron $1.25 con un límite de cero.")).toBeInTheDocument();
+    expect(within(list).getByText("Se gastaron USD 1.25 con un límite de cero.")).toBeInTheDocument();
     expect(within(list).getByRole("link", { name: "Abrir el presupuesto de Salud" })).toHaveAttribute("href", "/budgets");
     expect(screen.getByText("No se pudieron revisar algunos elementos. Se muestran los que están disponibles.")).toBeInTheDocument();
   });
@@ -304,8 +304,8 @@ describe("capture-first Home", () => {
     renderPage();
     const list = await screen.findByRole("list", { name: "Previsiones de pagos de nómina" });
     expect(screen.getByRole("heading", { name: "Próximos pagos de nómina" })).toBeInTheDocument();
-    expect(within(list).getByText("$9,999,999,999,999,999.99")).toBeInTheDocument();
-    expect(within(list).getByText("Previsto para el 12 sept 2026")).toBeInTheDocument();
+    expect(within(list).getByText("USD 9,999,999,999,999,999.99")).toBeInTheDocument();
+    expect(within(list).getByText("Previsto para el 12 sep 2026")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Ver pagos de nómina" })).toHaveAttribute("href", "/paychecks");
     expect(within(list).getByRole("listitem")).toHaveAccessibleName(/Primary paycheck.*Monto previsto/);
   });

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useLocale } from "../../../shared/localization/useLocale";
 import ListRow from "../../../shared/ui/ListRow";
 import SectionHeader from "../../../shared/ui/SectionHeader";
 import HistoryDisclosure from "./HistoryDisclosure";
@@ -20,14 +21,14 @@ function timingSummary(model, t) {
   return t("timing.compact.dayOfMonth", { day: model.expectedDay, ...window });
 }
 
-function amountSummary(model) {
-  if (model.amountMode === "fixed") return formatMoney(model.expectedAmount);
-  return `${formatMoney(model.expectedMinimumAmount)}–${formatMoney(model.expectedMaximumAmount)}`;
+function amountSummary(model, locale) {
+  if (model.amountMode === "fixed") return formatMoney(model.expectedAmount, locale);
+  return `${formatMoney(model.expectedMinimumAmount, locale)}–${formatMoney(model.expectedMaximumAmount, locale)}`;
 }
 
-function proposedAmountSummary(assessment) {
-  if (assessment.proposedMode === "fixed") return formatDerivedMoney(assessment.proposedAmount);
-  return `${formatDerivedMoney(assessment.proposedMinimumAmount)}–${formatDerivedMoney(assessment.proposedMaximumAmount)}`;
+function proposedAmountSummary(assessment, locale) {
+  if (assessment.proposedMode === "fixed") return formatDerivedMoney(assessment.proposedAmount, locale);
+  return `${formatDerivedMoney(assessment.proposedMinimumAmount, locale)}–${formatDerivedMoney(assessment.proposedMaximumAmount, locale)}`;
 }
 
 function proposedTimingSummary(commitment, assessment, t) {
@@ -73,23 +74,24 @@ function explanation(change, dimension, assessment, t) {
 
 function Comparison({ change, dimension, assessment }) {
   const { t } = useTranslation("commitments");
+  const { locale } = useLocale();
   if (dimension === "missing") {
     return (
       <div className="commitment-change__missing">
         <strong>{assessment.state === "possibly_ended" ? t("changes.possiblyEnded") : t("changes.notSeen")}</strong>
         <span>{t("changes.observationNote")}</span>
         <ul>
-          {assessment.missedSlotAnchors.map((anchor) => <li key={anchor}>{formatDate(anchor, t)}</li>)}
+          {assessment.missedSlotAnchors.map((anchor) => <li key={anchor}>{formatDate(anchor, t, locale)}</li>)}
         </ul>
       </div>
     );
   }
 
   const current = dimension === "amount"
-    ? amountSummary(change.commitment)
+    ? amountSummary(change.commitment, locale)
     : timingSummary(change.commitment, t);
   const proposed = dimension === "amount"
-    ? proposedAmountSummary(assessment)
+    ? proposedAmountSummary(assessment, locale)
     : proposedTimingSummary(change.commitment, assessment, t);
   return (
     <dl className="commitment-change__comparison">
@@ -255,6 +257,7 @@ function ChangeActions({ change, dimension, assessment, state, kept, activeTask,
 
 function ChangeCard({ change, state, kept, activeTask, onTaskChange, onReviewedOpenChange }) {
   const { t } = useTranslation("commitments");
+  const { locale } = useLocale();
   return (
     <ListRow className={`commitment-row commitment-change-row${kept ? " commitment-change-row--kept" : ""}`} titleAs="h3"
       label={kept ? t("changes.eyebrowReviewed") : t("changes.eyebrowPending")} title={change.commitment.name}
@@ -281,7 +284,7 @@ function ChangeCard({ change, state, kept, activeTask, onTaskChange, onReviewedO
                 <summary aria-label={t(`changes.detailsLabel.${dimension}`, { name: change.commitment.name })}>{t("changes.details")}</summary>
                 {evidence.length > 0 && <CommitmentEvidence evidence={evidence} />}
                 <dl className="commitment-change__mechanics">
-                  <div><dt>{t("changes.evaluated")}</dt><dd>{formatDate(state.changeEvaluatedOn, t)}</dd></div>
+                  <div><dt>{t("changes.evaluated")}</dt><dd>{formatDate(state.changeEvaluatedOn, t, locale)}</dd></div>
                   <div><dt>{t("changes.detectionDetails")}</dt><dd>{change.algorithmVersion}</dd></div>
                 </dl>
               </details>

@@ -64,13 +64,13 @@ describe("Paychecks page in Spanish", () => {
     expect(profile.getByText("Monto previsto")).toBeInTheDocument();
     expect(profile.getByText("Próxima ventana prevista")).toBeInTheDocument();
     expect(profile.getByText("Previsto, no garantizado.")).toBeInTheDocument();
-    expect(profile.getByText("Aug 9, 2026–Aug 11, 2026")).toBeInTheDocument();
+    expect(profile.getByText("9 ago 2026–11 ago 2026")).toBeInTheDocument();
     expect(profile.getByText("Confirmado a partir de depósitos")).toBeInTheDocument();
     expect(profile.getByText("Calendario").closest("div")).toHaveTextContent("Mensual, día 10");
     expect(profile.getByText("Ventana de fechas prevista").closest("div")).toHaveTextContent("1 día antes · 1 día después");
     expect(profile.getByText("Depósitos de nómina vinculados").closest("div")).toHaveTextContent("3 depósito(s) vinculado(s)");
     expect(profile.getByText("Depósitos de nómina vinculados (3)")).toBeInTheDocument();
-    expect(profile.getByText("Perfiles evaluados").closest("div")).toHaveTextContent("Jul 12, 2026");
+    expect(profile.getByText("Perfiles evaluados").closest("div")).toHaveTextContent("12 jul 2026");
     expect(profile.getAllByText(/En la fecha del calendario/)).toHaveLength(3);
     expect(profile.getAllByText("Historial de confirmación")).toHaveLength(3);
     expect(profile.getByRole("button", { name: "Editar Acme Payroll", hidden: true })).toBeInTheDocument();
@@ -117,8 +117,8 @@ describe("Paychecks page in Spanish", () => {
     const panel = screen.getByRole("region", { name: "Registrar pago de nómina recibido de Acme Payroll" });
     expect(within(panel).getByRole("heading", { name: "Registrar pago recibido" })).toBeInTheDocument();
     expect(within(panel).getByText("Vincula una entrada de dinero real a este pago de nómina. Esto no cambia la previsión guardada.")).toBeInTheDocument();
-    expect(within(panel).getByRole("option", { name: "Actual: Aug 9, 2026–Aug 11, 2026" })).toBeInTheDocument();
-    expect(within(panel).getByRole("option", { name: "Anterior: Jul 9, 2026–Jul 11, 2026" })).toBeInTheDocument();
+    expect(within(panel).getByRole("option", { name: "Actual: 9 ago 2026–11 ago 2026" })).toBeInTheDocument();
+    expect(within(panel).getByRole("option", { name: "Anterior: 9 jul 2026–11 jul 2026" })).toBeInTheDocument();
     expect(within(panel).getByText("Origen de la entrada de dinero")).toBeInTheDocument();
     expect(within(panel).getByLabelText(/Ingresar una nueva entrada de dinero/)).toBeChecked();
     const form = within(panel).getByRole("form", { name: "Agregar entrada de dinero" });
@@ -171,7 +171,7 @@ describe("Paychecks page in Spanish", () => {
     await user.click(screen.getByRole("button", { name: "Registrar pago recibido de Acme Payroll" }));
     await user.click(screen.getByLabelText(/Usar una entrada de dinero existente/));
     expect(await screen.findByText("Elegir entrada de dinero")).toBeInTheDocument();
-    expect(screen.getByLabelText(/Acme deposit · Aug 10, 2026 · \$2,500\.00/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Acme deposit · 10 ago 2026 · USD 2,500\.00/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Vincular entrada de dinero" })).toBeDisabled();
     await user.type(screen.getByLabelText("Buscar entradas de dinero"), "zzz");
     expect(screen.getByText("Ninguna entrada de dinero disponible coincide.")).toBeInTheDocument();

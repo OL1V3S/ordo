@@ -507,4 +507,8 @@ describe('ImportPreviewPanel confirmation safety', () => {
     expect(screen.getByText(/1 expense and 1 incoming deposit saved/)).toBeInTheDocument()
     expect(screen.getByRole('alert')).toHaveTextContent('The import succeeded')
   })
+  it('groups the row amount like every other amount', () => {
+    render(<ImportPreviewPanel importState={importState({ preview: { ...preview, rows: [{ ...row, amount: 1234.5 }] } })} />)
+    expect(within(tableRegion()).getByText('$1,234.50')).toBeInTheDocument()
+  })
 })

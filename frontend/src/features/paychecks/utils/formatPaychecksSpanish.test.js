@@ -14,20 +14,20 @@ describe("paycheck display helpers in Spanish", () => {
   it("localizes labels while keeping date and money formats", () => {
     expect(cadenceLabel("biweekly", es)).toBe("Cada dos semanas");
     expect(cadenceLabel("unexpected", es)).toBe("Frecuencia desconocida");
-    expect(formatSchedule({ cadence: "weekly", referenceAnchorDate: "2026-01-02" }, es)).toBe("Semanal, fecha de referencia Jan 2, 2026");
+    expect(formatSchedule({ cadence: "weekly", referenceAnchorDate: "2026-01-02" }, es, "es")).toBe("Semanal, fecha de referencia 2 ene 2026");
     expect(formatSchedule({ cadence: "monthly", firstMonthAnchor: { kind: "month_end", day: null } }, es)).toBe("Mensual, fin de mes");
     expect(formatSchedule({ cadence: "semimonthly", firstMonthAnchor: { kind: "day_of_month", day: 15 }, secondMonthAnchor: { kind: "month_end", day: null } }, es))
       .toBe("Dos veces al mes, día 15 y fin de mes");
     expect(formatSchedule(null, es)).toBe("Calendario no disponible");
     expect(formatWindow(1, 3, es)).toBe("1 día antes · 3 días después");
     expect(formatWindow(0, 1, es)).toBe("0 días antes · 1 día después");
-    expect(formatDate("2026-03-08", es)).toBe("Mar 8, 2026");
-    expect(formatDate("2026-02-29", es)).toBe("Fecha desconocida");
-    expect(formatMoney(1234.56, es)).toBe("$1,234.56");
-    expect(formatMoney(1e16, es)).toBe("El monto requiere revisión");
-    expect(formatMoney(null, es)).toBe("Monto no disponible");
-    expect(formatAmount({ mode: "range", minimumAmount: "100.01", maximumAmount: "200.99" }, es)).toBe("$100.01 – $200.99");
-    expect(formatAmount(null, es)).toBe("Monto no disponible");
+    expect(formatDate("2026-03-08", es, "es")).toBe("8 mar 2026");
+    expect(formatDate("2026-02-29", es, "es")).toBe("Fecha desconocida");
+    expect(formatMoney(1234.56, es, "es")).toBe("USD\u00a01,234.56");
+    expect(formatMoney(1e16, es, "es")).toBe("El monto requiere revisión");
+    expect(formatMoney(null, es, "es")).toBe("Monto no disponible");
+    expect(formatAmount({ mode: "range", minimumAmount: "100.01", maximumAmount: "200.99" }, es, "es")).toBe("USD\u00a0100.01 – USD\u00a0200.99");
+    expect(formatAmount(null, es, "es")).toBe("Monto no disponible");
   });
 });
 

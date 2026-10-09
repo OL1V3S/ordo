@@ -1,5 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { formatCalendarDate, formatMonthYear, formatPercentWhole } from "../../../shared/localization/format";
+import { useLocale } from "../../../shared/localization/useLocale";
 import { DEFAULT_CATEGORIES } from "../../../shared/constants/categories";
 import { displayText, normalizeText } from "../../../utils/text";
 import FormField from "../../../shared/ui/FormField";
@@ -23,10 +25,18 @@ function focusAfterRender(target) {
 }
 
 // Visible month label only; the picker values stay exact "YYYY-MM" strings.
-function formatMonthLabel(language, monthYear) {
+function formatMonthLabel(locale, monthYear) {
   const [monthYearYear, monthYearMonth] = monthYear.split("-").map(Number);
-  return new Intl.DateTimeFormat(language, { month: "long", year: "numeric", timeZone: "UTC" })
-    .format(Date.UTC(monthYearYear, monthYearMonth - 1, 1));
+  return formatMonthYear(monthYearYear, monthYearMonth, locale) ?? monthYear;
+}
+
+// First day of the month after the selected "YYYY-MM", in the app language.
+function formatNextResetDate(locale, monthYear) {
+  const [resetYear, resetMonth] = monthYear.split("-").map(Number);
+  const nextYear = resetMonth === 12 ? resetYear + 1 : resetYear;
+  const nextMonth = resetMonth === 12 ? 1 : resetMonth + 1;
+  const iso = `${String(nextYear).padStart(4, "0")}-${String(nextMonth).padStart(2, "0")}-01`;
+  return formatCalendarDate(iso, locale, "short") ?? "";
 }
 
 export default function BudgetLimitsPanel({
@@ -35,7 +45,8 @@ export default function BudgetLimitsPanel({
   spendingLoading = false, spendingError = null, refreshSpending = async () => {},
   totalsByCategory, upsertLimit, deleteLimit,
 }) {
-  const { t, i18n } = useTranslation("budgets");
+  const { t } = useTranslation("budgets");
+  const { locale } = useLocale();
   // Preserve the existing exact category keys and last-record grouping.
   const budgetLimitsByCategory = useMemo(() => {
     const result = {};
@@ -57,8 +68,7 @@ export default function BudgetLimitsPanel({
   const limitsUnavailable = !limitMonthYear || limitsLoading || Boolean(limitsError);
   const mutationDisabled = pending || limitsUnavailable || outcomeNeedsRefresh;
   const spendingAvailable = !spendingLoading && !spendingError;
-  const [year, month] = limitMonthYear.split("-").map(Number);
-  const nextResetDate = limitMonthYear ? new Date(year, month, 1).toLocaleDateString() : "";
+  const nextResetDate = limitMonthYear ? formatNextResetDate(locale, limitMonthYear) : "";
 
   function openAdd() {
     if (task || mutationDisabled) return;
@@ -147,7 +157,7 @@ export default function BudgetLimitsPanel({
           disabled={Boolean(task) || pending || outcomeNeedsRefresh}
           label={t("toolbar.month")} previousLabel={t("toolbar.previousMonth")} nextLabel={t("toolbar.nextMonth")}
           currentLabel={t("toolbar.currentMonth")} emptyLabel={t("toolbar.noMonth")}
-          formatMonth={(month) => formatMonthLabel(i18n.resolvedLanguage, month)}
+          formatMonth={(month) => formatMonthLabel(locale, month)}
           onChange={(next) => { setLimitMonthYear(next); setFeedback(null); }} />
         <button type="button" ref={addButton} aria-expanded={task?.type === "add"} aria-controls="budget-task"
           disabled={Boolean(task) || mutationDisabled} onClick={openAdd}>{t("toolbar.add")}</button>
@@ -229,15 +239,15 @@ export default function BudgetLimitsPanel({
                 <span className="budget-row__status">{t(`card.status.${status}`)}</span>
                 {comparisonAvailable && limitAmount.cents > 0n && <span className="budget-row__progress">
                   <progress max="100" value={Math.min(100, Math.max(0, percentage))} aria-label={t("card.progressLabel", { name })}
-                    aria-valuetext={t("card.progressValue", { used: formatCents(used.cents), limit: formatCents(limitAmount.cents), percent: Math.round(percentage) })} />
-                  <span>{t("card.percentUsed", { percent: Math.round(percentage) })}</span>
+                    aria-valuetext={t("card.progressValue", { used: formatCents(used.cents, locale), limit: formatCents(limitAmount.cents, locale), percent: formatPercentWhole(Math.round(percentage), locale) })} />
+                  <span>{t("card.percentUsed", { percent: formatPercentWhole(Math.round(percentage), locale) })}</span>
                 </span>}
                 {comparisonAvailable && limitAmount.cents === 0n && <span className="budget-row__note">{t("card.zeroLimitNote")}</span>}
                 {spendingAvailable && (!used || !limitAmount) && <span className="budget-row__note">{t("card.comparisonUnavailable")}</span>}
               </>}
               amount={<>
-                <strong>{spendingAvailable && used ? formatCents(used.cents) : t("card.unavailable")}</strong>
-                <span> {t("card.usedOf", { limit: limitAmount ? formatCents(limitAmount.cents) : t("card.unavailable") })}</span>
+                <strong>{spendingAvailable && used ? formatCents(used.cents, locale) : t("card.unavailable")}</strong>
+                <span> {t("card.usedOf", { limit: limitAmount ? formatCents(limitAmount.cents, locale) : t("card.unavailable") })}</span>
               </>}
               actions={<RowActionsMenu
                 triggerLabel={t("card.actionsLabel", { name })}

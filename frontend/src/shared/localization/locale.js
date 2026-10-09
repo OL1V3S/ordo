@@ -2,6 +2,9 @@ export const LOCALE_STORAGE_KEY = "ordo-language";
 export const SUPPORTED_LOCALES = ["en", "es"];
 export const DEFAULT_LOCALE = "en";
 
+// BCP 47 tags used for Intl formatting. This is the only place the regional tags are named.
+export const FORMAT_TAGS = { en: "en-US", es: "es-MX" };
+
 export function isSupportedLocale(locale) {
   return SUPPORTED_LOCALES.includes(locale);
 }

@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { formatPercentTenths } from "../../../shared/localization/format";
+import { useLocale } from "../../../shared/localization/useLocale";
 import { Link } from "react-router-dom";
 import { ChevronDown } from "lucide-react";
 import { useExpenses } from "../../expenses/hooks/useExpenses";
@@ -20,10 +22,16 @@ import {
 } from "../utils/monthlySpendingInsights";
 import "../../../styles/analytics.css";
 
-function formatPercentage(value, t, { signed = false } = {}) {
+function formatPercentage(value, t, locale, { signed = false } = {}) {
   if (value === null) return t("format.notApplicable");
   const sign = signed && value > 0 ? "+" : "";
-  return `${sign}${value.toFixed(1)}%`;
+  // The ratio is already rounded to one decimal; read its digits exactly, falling back to
+  // the plain string for any shape other than -?digits.digit.
+  const fixed = value.toFixed(1);
+  const match = /^(-?)(\d+)\.(\d)$/.exec(fixed);
+  if (!match) return `${sign}${fixed}%`;
+  const tenths = BigInt(match[2]) * 10n + BigInt(match[3]);
+  return `${sign}${formatPercentTenths(match[1] && tenths !== 0n ? -tenths : tenths, locale)}`;
 }
 
 // heading > button + adjacent panel (APG accordion); open state is owned by the page.
@@ -43,6 +51,7 @@ function SpendingDisclosure({ id, title, open, onToggle, children }) {
 
 export default function AnalyticsPage() {
   const { t } = useTranslation("analytics");
+  const { locale } = useLocale();
   const [selectedMonth, setSelectedMonth] = useState(() => localThroughDate().slice(0, 7));
   const cashFlow = useCashFlow(selectedMonth);
   const {
@@ -130,14 +139,14 @@ export default function AnalyticsPage() {
                   <p className="analytics-kicker">{t("comparison.kicker", { month: formatMonthLabel(insights.previousMonth, t) })}</p>
                   {!insights.available ? <StatusMessage>{t("comparison.unavailable")}</StatusMessage> : <>
                   <p className="analytics-comparison__value">
-                    {insights.comparison.isIncrease ? "+" : ""}{formatSignedMoney(insights.comparison.difference)}
+                    {insights.comparison.isIncrease ? "+" : ""}{formatSignedMoney(insights.comparison.difference, locale)}
                   </p>
                   {insights.comparison.previousTotal === "0.00" && insights.total === "0.00" ? (
                     <p className="muted">{t("comparison.neither")}</p>
                   ) : insights.comparison.percentage === null ? (
-                    <p className="muted">{t("comparison.percentageUnavailable")}</p>
+                    <p className="muted">{t("comparison.percentageUnavailable", { amount: formatExactMoney("0.00", { allowZero: true }, locale) })}</p>
                   ) : (
-                    <p className="muted">{t("comparison.percentFrom", { percent: formatPercentage(insights.comparison.percentage, t, { signed: true }), amount: formatExactMoney(insights.comparison.previousTotal, { allowZero: true }) })}</p>
+                    <p className="muted">{t("comparison.percentFrom", { percent: formatPercentage(insights.comparison.percentage, t, locale, { signed: true }), amount: formatExactMoney(insights.comparison.previousTotal, { allowZero: true }, locale) })}</p>
                   )}
                   {insights.increases.length === 0 && insights.decreases.length === 0 ? (
                     <StatusMessage>{t("comparison.empty")}</StatusMessage>
@@ -146,13 +155,13 @@ export default function AnalyticsPage() {
                       <div>
                         <h4>{t("comparison.increases")}</h4>
                         {insights.increases.length === 0 ? <p className="muted">{t("comparison.noIncreases")}</p> : (
-                          <ul>{insights.increases.map((change) => <li key={change.category}>{displayText(change.category)} <strong>+{formatSignedMoney(change.difference)}</strong></li>)}</ul>
+                          <ul>{insights.increases.map((change) => <li key={change.category}>{displayText(change.category)} <strong>+{formatSignedMoney(change.difference, locale)}</strong></li>)}</ul>
                         )}
                       </div>
                       <div>
                         <h4>{t("comparison.decreases")}</h4>
                         {insights.decreases.length === 0 ? <p className="muted">{t("comparison.noDecreases")}</p> : (
-                          <ul>{insights.decreases.map((change) => <li key={change.category}>{displayText(change.category)} <strong>{formatSignedMoney(change.difference)}</strong></li>)}</ul>
+                          <ul>{insights.decreases.map((change) => <li key={change.category}>{displayText(change.category)} <strong>{formatSignedMoney(change.difference, locale)}</strong></li>)}</ul>
                         )}
                       </div>
                     </div>
@@ -175,8 +184,8 @@ export default function AnalyticsPage() {
                     <ol className="analytics-list">
                       {insights.largestExpenses.map((expense) => (
                         <li key={expense.id} className="analytics-list__item analytics-row">
-                          <span><strong>{expense.description}</strong><small>{displayText(expense.category)} · {formatExpenseDate(expense.date)}</small></span>
-                          <strong>{formatExactMoney(expense.amount)}</strong>
+                          <span><strong>{expense.description}</strong><small>{displayText(expense.category)} · {formatExpenseDate(expense.date, locale)}</small></span>
+                          <strong>{formatExactMoney(expense.amount, undefined, locale)}</strong>
                         </li>
                       ))}
                     </ol>

@@ -215,11 +215,11 @@ describe("ActivityTimeline", () => {
     const rows = within(region).getAllByRole("listitem");
     expect(within(rows[0]).getByText("Gasto")).toBeInTheDocument();
     expect(within(rows[0]).getByText("Corner coffee")).toBeInTheDocument();
-    expect(within(rows[0]).getByText("−$12.34")).toBeInTheDocument();
+    expect(within(rows[0]).getByText("−USD 12.34")).toBeInTheDocument();
     expect(within(rows[0]).getByText(/food/)).toBeInTheDocument();
     expect(within(rows[1]).getByText("Entrada de dinero")).toBeInTheDocument();
     expect(within(rows[1]).getByText(/Vinculado a un pago de nómina/)).toBeInTheDocument();
-    expect(within(rows[1]).getByText("+$2,500.00")).toBeInTheDocument();
+    expect(within(rows[1]).getByText("+USD 2,500.00")).toBeInTheDocument();
     expect(within(rows[0]).getByText((_, element) => element?.tagName === "TIME")).toHaveAttribute("datetime", "2026-09-22");
     expect(screen.getByRole("button", { name: "Mostrar actividad anterior" })).toBeInTheDocument();
   });

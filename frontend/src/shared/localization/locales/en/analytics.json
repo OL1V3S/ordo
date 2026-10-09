@@ -141,7 +141,7 @@
     "kicker": "Compared with {{month}}",
     "unavailable": "Exact month-over-month comparison is unavailable.",
     "neither": "Neither month has recorded spending.",
-    "percentageUnavailable": "Percentage comparison is unavailable because the previous month had $0.00 recorded spending.",
+    "percentageUnavailable": "Percentage comparison is unavailable because the previous month had {{amount}} recorded spending.",
     "percentFrom": "{{percent}} from {{amount}}",
     "empty": "No category changes to show between these months.",
     "increases": "Largest increases",

@@ -1,11 +1,13 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useLocale } from "../../../shared/localization/useLocale";
 import FormField from "../../../shared/ui/FormField";
 import { CADENCES, initialPaycheckForm, isUnsafeNumericAmount, validatePaycheckForm } from "../utils/paycheckForm";
 import { cadenceLabel, formatSchedule } from "../utils/formatPaychecks";
 
 export default function PaycheckForm({ mode, model, busy = false, submitDisabled = false, onSubmit, onCancel, formId }) {
   const { t } = useTranslation("paychecks");
+  const { locale } = useLocale();
   const generatedId = useId();
   const [form, setForm] = useState(() => initialPaycheckForm(mode, model));
   const [errors, setErrors] = useState({});
@@ -75,7 +77,7 @@ export default function PaycheckForm({ mode, model, busy = false, submitDisabled
     aria-busy={disabled} onSubmit={handleSubmit} noValidate>
     {mode === "manual" && <p className="paycheck-form__note">{t("form.manualNote")}</p>}
     {mode !== "manual" && <div className="paycheck-form__schedule">
-      <strong>{t("form.scheduleHeading")}</strong><p>{formatSchedule(model?.schedule, t)}</p>
+      <strong>{t("form.scheduleHeading")}</strong><p>{formatSchedule(model?.schedule, t, locale)}</p>
       <p>{mode === "confirm" ? t("form.confirmScheduleNote") : t("form.editScheduleNote")}</p>
     </div>}
     {variable && <p className="paycheck-form__note">{t("form.variableNote")}</p>}
