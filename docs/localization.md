@@ -6,8 +6,8 @@ primary navigation, Plan and More hubs, and Settings were the first localized
 surfaces, and the Home, Activity, statement import, Budgets, Insights, Commitments,
 and Paychecks pages have since followed. The public account-access pages
 (sign-in, registration, email confirmation, and password recovery) are localized
-through the `auth` namespace. The unavailable Investing placeholder page remains
-English until a separately scoped adoption issue moves its complete copy into catalogs.
+through the `auth` namespace. The unavailable Investing placeholder page is localized through the `investing`
+namespace (all copy, unchanged in meaning; no data reads).
 The Activity page is localized through the `activity` namespace: the timeline, the
 row actions menu, the page header and actions, the task area (expense form and edit panel, cash-in form and delete
 confirmation), and the read-only recovery tables, including their feedback and error messages. The statement import
@@ -272,5 +272,6 @@ unchanged. Generic cash-in wording must not imply earned income.
 | Record received | Registrar pago recibido | Links actual cash in; does not change the expectation |
 | Schedule | Calendario | Paycheck schedule |
 | Anchor | Ancla | Schedule anchor day or month end |
+| Investing | Inversiones | Unavailable placeholder destination |
 
 Language option names are autonyms: `English` and `Español` in both catalogs.

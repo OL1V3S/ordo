@@ -24,6 +24,13 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-09 — Settings, auth pages and Investing redesign
+
+[Issue #217](https://github.com/OL1V3S/ordo/issues/217)
+
+- Settings uses flat named sections; the public auth pages now render every status and error through the shared status message with unchanged roles, focus and text; Investing is fully localized (English and Spanish) with flat named regions.
+- No change to sign-in, sessions, error mapping, or theme/language persistence.
+
 ### 2026-10-09 — Insights declutter
 
 [PR #216](https://github.com/OL1V3S/ordo/pull/216) ·
@@ -216,20 +223,3 @@ the permanent, complete archive.
   spending (`gasto`, `gastos registrados`, `usado`). English wording,
   budget-limit validation and calculation, payloads, focus behavior, and money
   and month display are unchanged.
-
-### 2026-10-03 — Spanish Paychecks page
-
-[PR #177](https://github.com/OL1V3S/ordo/pull/177) ·
-[Issue #176](https://github.com/OL1V3S/ordo/issues/176)
-
-- Localized the Paychecks page (profiles, possible and dismissed paychecks,
-  paused and ended groups, linked-deposit evidence, the paycheck form, the
-  record-received panel, and their feedback, validation, and error messages) in
-  English and Spanish through a new `paychecks` catalog namespace.
-- Spanish keeps a paycheck expectation (`previsión`, `previsto`) distinct from
-  money actually recorded (`pago recibido`, `entrada de dinero`). English wording,
-  paycheck detection, projection, confirmation, dismissal, and receipt logic,
-  payloads, focus behavior, and money and date display are unchanged; unknown
-  backend codes still show a readable fallback.
-- The Paychecks page no longer stays English on the Spanish app. Dates keep their
-  English `Mon D, YYYY` form and amounts keep `$` formatting in both languages.
