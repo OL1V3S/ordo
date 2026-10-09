@@ -1,5 +1,6 @@
 import { useId } from "react";
 import { useTranslation } from "react-i18next";
+import { useLocale } from "../../../shared/localization/useLocale";
 import { Bar } from "react-chartjs-2";
 import { Chart as ChartJS, BarElement, CategoryScale, LinearScale, Tooltip, Legend } from "chart.js";
 import { useCashFlowColors } from "../hooks/useCashFlowColors";
@@ -9,6 +10,7 @@ ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend);
 
 export default function CashFlowTrendChart({ data }) {
   const { t } = useTranslation("analytics");
+  const { locale } = useLocale();
   const headingId = useId();
   const tableId = useId();
   const colors = useCashFlowColors();
@@ -42,8 +44,8 @@ export default function CashFlowTrendChart({ data }) {
         borderColor: colors.border, borderWidth: 1,
         callbacks: {
           title: (items) => items.length ? cashMonthLabel(data.months[items[0].dataIndex].month, { t }) : "",
-          label: (context) => t("chart.tooltipValue", { label: context.dataset.label, amount: formatCash(data.months[context.dataIndex][fields[context.datasetIndex]]) }),
-          footer: (items) => items.length ? t("chart.tooltipCashIn", { amount: formatCash(data.months[items[0].dataIndex].cashInMinor) }) : "",
+          label: (context) => t("chart.tooltipValue", { label: context.dataset.label, amount: formatCash(data.months[context.dataIndex][fields[context.datasetIndex]], { locale }) }),
+          footer: (items) => items.length ? t("chart.tooltipCashIn", { amount: formatCash(data.months[items[0].dataIndex].cashInMinor, { locale }) }) : "",
         },
       },
     },
@@ -71,9 +73,9 @@ export default function CashFlowTrendChart({ data }) {
             </tr></thead>
             <tbody>{data.months.map((bucket) => <tr key={bucket.month}>
               <th scope="row">{cashMonthLabel(bucket.month, { t })}</th>
-              <td>{formatCash(bucket.cashInMinor)}</td><td>{formatCash(bucket.paycheckCashInMinor)}</td>
-              <td>{formatCash(bucket.otherCashInMinor)}</td><td>{formatCash(bucket.spentMinor)}</td>
-              <td>{formatCash(bucket.netMinor, { signed: true })}</td><td>{periodNotes(bucket, data.throughDate, { t })}</td>
+              <td>{formatCash(bucket.cashInMinor, { locale })}</td><td>{formatCash(bucket.paycheckCashInMinor, { locale })}</td>
+              <td>{formatCash(bucket.otherCashInMinor, { locale })}</td><td>{formatCash(bucket.spentMinor, { locale })}</td>
+              <td>{formatCash(bucket.netMinor, { signed: true, locale })}</td><td>{periodNotes(bucket, data.throughDate, { t })}</td>
             </tr>)}</tbody>
           </table>
         </div>

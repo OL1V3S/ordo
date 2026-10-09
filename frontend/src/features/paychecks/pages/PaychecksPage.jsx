@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, Plus, WalletCards } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useLocale } from "../../../shared/localization/useLocale";
 import { DisclosureButton, DisclosurePanel } from "../../../shared/ui/Disclosure";
 import ListRow from "../../../shared/ui/ListRow";
 import RowActionsMenu from "../../../shared/ui/RowActionsMenu";
@@ -58,6 +59,7 @@ function lifecycleLabel(lifecycle, t) {
 
 function ReceiptPanel({ profile, busy, submitDisabled, onSubmit, onCancel }) {
   const { t } = useTranslation("paychecks");
+  const { locale } = useLocale();
   const fixed = profile.amount?.mode === "fixed" ? profile.amount.fixedAmount : null;
   const [selectedSlot, setSelectedSlot] = useState(() => profile.receiptSlots?.[0] ?? null);
   const [mode, setMode] = useState("new");
@@ -98,7 +100,7 @@ function ReceiptPanel({ profile, busy, submitDisabled, onSubmit, onCancel }) {
     <h4>{t("receipt.heading")}</h4>
     <p className="muted">{t("receipt.intro")}</p>
     <label className="field">{t("receipt.slotLabel")}<select value={selectedSlot?.anchor ?? ""} onChange={(event) => setSelectedSlot(slotOptions.find((slot) => slot.anchor === event.target.value) ?? null)} disabled={busy}>
-      {slotOptions.map((slot) => <option key={slot.anchor} value={slot.anchor}>{t(`receipt.slot.${slot.relation === "current" ? "current" : "previous"}${selectedSlotIsStale && slot.anchor === selectedSlot.anchor ? "Stale" : ""}`, { from: formatDate(slot.earliestExpectedDate, t), to: formatDate(slot.latestExpectedDate, t) })}</option>)}
+      {slotOptions.map((slot) => <option key={slot.anchor} value={slot.anchor}>{t(`receipt.slot.${slot.relation === "current" ? "current" : "previous"}${selectedSlotIsStale && slot.anchor === selectedSlot.anchor ? "Stale" : ""}`, { from: formatDate(slot.earliestExpectedDate, t, locale), to: formatDate(slot.latestExpectedDate, t, locale) })}</option>)}
     </select></label>
     <fieldset disabled={busy}><legend>{t("receipt.sourceLegend")}</legend>
       <label><input type="radio" name="receipt-source" checked={mode === "new"} onChange={() => setMode("new")} /> {t("receipt.sourceNew")}</label>
@@ -112,7 +114,7 @@ function ReceiptPanel({ profile, busy, submitDisabled, onSubmit, onCancel }) {
       disabled={submitDisabled || !selectedSlot} amountNeedsReview={fixed != null && isUnsafeNumericAmount(fixed)} onSubmit={submitNew} onCancel={onCancel} /> : <div className="paycheck-receipt__existing">
       <label className="field">{t("receipt.search")}<input type="search" value={search} onChange={(event) => setSearch(event.target.value)} /></label>
       {inflowError ? <StatusMessage tone="danger">{t("receipt.loadError")}</StatusMessage> : <fieldset disabled={busy}><legend>{t("receipt.chooseLegend")}</legend>
-        {choices.map((row) => <label key={row.id}><input type="radio" name="existing-inflow" value={row.id} checked={selectedId === String(row.id)} onChange={(event) => setSelectedId(event.target.value)} /> {row.description} · {formatDate(row.date, t)} · {formatMoney(row.amount, t)}</label>)}
+        {choices.map((row) => <label key={row.id}><input type="radio" name="existing-inflow" value={row.id} checked={selectedId === String(row.id)} onChange={(event) => setSelectedId(event.target.value)} /> {row.description} · {formatDate(row.date, t, locale)} · {formatMoney(row.amount, t, locale)}</label>)}
         {!choices.length && <p className="muted">{t("receipt.noMatches")}</p>}
       </fieldset>}
       <div className="inline-actions"><button type="button" disabled={busy || submitDisabled || !selectedSlot || !selectedId} onClick={() => onSubmit({ slotAnchor: selectedSlot.anchor, existingInflowId: Number(selectedId) })}>{t("receipt.link")}</button><button type="button" className="button-ghost" disabled={busy} onClick={onCancel}>{t("receipt.cancel")}</button></div>
@@ -126,6 +128,7 @@ function amountBlock(caption, value) {
 
 function CandidateRow({ candidate, dismissed, evaluatedOn, busy, actionsDisabled, editor, onReview, onCancel, onConfirm, onDecision }) {
   const { t } = useTranslation("paychecks");
+  const { locale } = useLocale();
   const name = candidate.normalizedDescriptionIdentity;
   const reviewing = editor?.mode === "confirm" && editor.key === candidate.fingerprint;
   const observed = candidate.observedAmount;
@@ -143,16 +146,16 @@ function CandidateRow({ candidate, dismissed, evaluatedOn, busy, actionsDisabled
         <span>{cadenceLabel(candidate.schedule.cadence, t)}</span>
         <span>{t(observed.mode === "fixed" ? "card.basedOn" : "card.basedOnVariable", { total: candidate.occurrenceCount })}</span>
       </>}
-      amount={amountBlock(t("card.observedDeposits"), observed.mode === "fixed" ? formatMoney(observed.fixedAmount, t) : `${formatMoney(observed.minimumAmount, t)}–${formatMoney(observed.maximumAmount, t)}`)}
+      amount={amountBlock(t("card.observedDeposits"), observed.mode === "fixed" ? formatMoney(observed.fixedAmount, t, locale) : `${formatMoney(observed.minimumAmount, t, locale)}–${formatMoney(observed.maximumAmount, t, locale)}`)}
       actions={actions}>
       <details className="paycheck-details">
         <summary aria-label={t("card.detailsLabel", { name })}>{t("card.details")}</summary>
         <dl className="paycheck-facts">
-          <div><dt>{t("facts.schedule")}</dt><dd>{formatSchedule(candidate.schedule, t)}</dd></div>
-          <div><dt>{t("facts.recordsCovered")}</dt><dd>{formatDate(candidate.coveredFrom, t)}–{formatDate(candidate.coveredTo, t)}</dd></div>
+          <div><dt>{t("facts.schedule")}</dt><dd>{formatSchedule(candidate.schedule, t, locale)}</dd></div>
+          <div><dt>{t("facts.recordsCovered")}</dt><dd>{formatDate(candidate.coveredFrom, t, locale)}–{formatDate(candidate.coveredTo, t, locale)}</dd></div>
           <div><dt>{t("facts.observedTiming")}</dt><dd>{formatWindow(candidate.windowBeforeDays, candidate.windowAfterDays, t)}</dd></div>
-          <div><dt>{t("facts.observedAmounts")}</dt><dd>{observed.mode === "fixed" ? t("facts.sameAmount") : t("facts.variableAmount", { amount: formatMoney(observed.lowerMedianAmount, t) })}</dd></div>
-          {evaluatedOn && <div><dt>{t("facts.evaluated")}</dt><dd>{formatDate(evaluatedOn, t)}</dd></div>}
+          <div><dt>{t("facts.observedAmounts")}</dt><dd>{observed.mode === "fixed" ? t("facts.sameAmount") : t("facts.variableAmount", { amount: formatMoney(observed.lowerMedianAmount, t, locale) })}</dd></div>
+          {evaluatedOn && <div><dt>{t("facts.evaluated")}</dt><dd>{formatDate(evaluatedOn, t, locale)}</dd></div>}
           <div><dt>{t("facts.detection")}</dt><dd>{candidate.algorithmVersion}</dd></div>
         </dl>
         <PaycheckEvidence evidence={candidate.evidence} disclosure={false} />
@@ -164,6 +167,7 @@ function CandidateRow({ candidate, dismissed, evaluatedOn, busy, actionsDisabled
 
 function ProfileRow({ profile, evaluatedOn, busy, actionsDisabled, receiptSubmitDisabled, ending, onEndingChange, editor, onEdit, onCancel, onSave, onLifecycle, receiving, onReceive, onRecord, onRemoveReceipt }) {
   const { t } = useTranslation("paychecks");
+  const { locale } = useLocale();
   const endConfirm = useRef(null);
   const editing = editor?.mode === "edit" && editor.key === profile.id;
   const projection = profile.lifecycle === "active" ? profile.nextProjection : null;
@@ -205,25 +209,25 @@ function ProfileRow({ profile, evaluatedOn, busy, actionsDisabled, receiptSubmit
         <span>{cadenceLabel(profile.schedule.cadence, t)}</span>
         {projection ? <>
           <span>{t("card.nextWindow")}</span>
-          <span className="paycheck-row__window">{formatDate(projection.earliestExpectedDate, t)}{projection.earliestExpectedDate !== projection.latestExpectedDate && `–${formatDate(projection.latestExpectedDate, t)}`}</span>
+          <span className="paycheck-row__window">{formatDate(projection.earliestExpectedDate, t, locale)}{projection.earliestExpectedDate !== projection.latestExpectedDate && `–${formatDate(projection.latestExpectedDate, t, locale)}`}</span>
           <span>{t("card.notGuaranteed")}</span>
         </> : <span>{profile.lifecycle === "active" ? t("card.noWindowActive") : profile.lifecycle === "paused" ? t("card.noWindowPaused") : profile.lifecycle === "ended" ? t("card.noWindowEnded") : ""}</span>}
       </>}
-      amount={amountBlock(t("card.expectedAmount"), formatAmount(profile.amount, t))}
+      amount={amountBlock(t("card.expectedAmount"), formatAmount(profile.amount, t, locale))}
       actions={actions}>
       <details className="paycheck-details">
         <summary aria-label={t("card.detailsLabel", { name })}>{t("card.details")}</summary>
         <dl className="paycheck-facts">
           <div><dt>{t("facts.source")}</dt><dd>{profile.source === "manual" ? t("facts.sourceManual") : t("facts.sourceConfirmed")}</dd></div>
           {profile.origin?.algorithmVersion && <div><dt>{t("facts.detection")}</dt><dd>{profile.origin.algorithmVersion}</dd></div>}
-          <div><dt>{t("facts.schedule")}</dt><dd>{formatSchedule(profile.schedule, t)}</dd></div>
+          <div><dt>{t("facts.schedule")}</dt><dd>{formatSchedule(profile.schedule, t, locale)}</dd></div>
           <div><dt>{t("facts.expectedWindow")}</dt><dd>{formatWindow(profile.windowBeforeDays, profile.windowAfterDays, t)}</dd></div>
           <div><dt>{t("facts.linkedDeposits")}</dt><dd>{t("facts.linkedCount", { total: profile.evidence.length })}</dd></div>
-          {evaluatedOn && <div><dt>{t("facts.profilesEvaluated")}</dt><dd>{formatDate(evaluatedOn, t)}</dd></div>}
+          {evaluatedOn && <div><dt>{t("facts.profilesEvaluated")}</dt><dd>{formatDate(evaluatedOn, t, locale)}</dd></div>}
           {projection && <>
-            <div><dt>{t("facts.projectionAmount")}</dt><dd>{formatAmount(projection.amount, t)}</dd></div>
-            <div><dt>{t("facts.scheduleDate")}</dt><dd>{formatDate(projection.anchor, t)}</dd></div>
-            <div><dt>{t("facts.projectionEvaluated")}</dt><dd>{formatDate(projection.evaluatedOn, t)}</dd></div>
+            <div><dt>{t("facts.projectionAmount")}</dt><dd>{formatAmount(projection.amount, t, locale)}</dd></div>
+            <div><dt>{t("facts.scheduleDate")}</dt><dd>{formatDate(projection.anchor, t, locale)}</dd></div>
+            <div><dt>{t("facts.projectionEvaluated")}</dt><dd>{formatDate(projection.evaluatedOn, t, locale)}</dd></div>
             <div><dt>{t("facts.projectionDetails")}</dt><dd>{projection.algorithmVersion}</dd></div>
           </>}
         </dl>

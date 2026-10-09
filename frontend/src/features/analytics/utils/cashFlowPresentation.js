@@ -1,3 +1,4 @@
+import { formatMoneyCents, formatPercentTenths } from "../../../shared/localization/format";
 import i18n from "../../../shared/localization/i18n";
 
 // Callers that render localized copy pass their own `t`. Callers that have not adopted
@@ -11,22 +12,21 @@ export function minorUnits(value) {
   return BigInt(value);
 }
 
-export function formatCash(value, { signed = false } = {}) {
+export function formatCash(value, { signed = false, locale = "en" } = {}) {
   const amount = minorUnits(value);
   const absolute = amount < 0n ? -amount : amount;
-  const dollars = (absolute / 100n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   const sign = amount < 0n ? "−" : signed && amount > 0n ? "+" : "";
-  return `${sign}$${dollars}.${(absolute % 100n).toString().padStart(2, "0")}`;
+  return `${sign}${formatMoneyCents(absolute, locale)}`;
 }
 
 // Round the exact ratio to one percentage decimal, with halfway values upward.
 // Never convert a financial amount or ratio intermediate to Number.
-export function cashPercentage(numerator, denominator) {
+export function cashPercentage(numerator, denominator, locale = "en") {
   const part = minorUnits(numerator);
   const whole = minorUnits(denominator);
   if (whole <= 0n) return null;
   const tenths = (part * 2000n + whole) / (whole * 2n);
-  return `${tenths / 10n}.${tenths % 10n}%`;
+  return formatPercentTenths(tenths, locale);
 }
 
 // Approximation is exclusively for decorative chart/bar geometry.

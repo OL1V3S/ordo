@@ -116,7 +116,7 @@
     "caption": "Gastos",
     "columns": {
       "description": "Descripción",
-      "amount": "Monto ($)",
+      "amount": "Monto (USD)",
       "date": "Fecha",
       "category": "Categoría",
       "actions": "Acciones"

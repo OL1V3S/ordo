@@ -1,5 +1,6 @@
+import { formatCalendarDate, formatMoneyDecimal } from "../../../shared/localization/format";
 import i18n from "../../../shared/localization/i18n";
-import { formatExactMoney } from "../../expenses/utils/exactMoney";
+import { AMOUNT_NEEDS_REVIEW, formatExactMoney } from "../../expenses/utils/exactMoney";
 
 const CADENCES = new Set(["weekly", "monthly", "yearly"]);
 const LIFECYCLES = new Set(["active", "paused", "ended"]);
@@ -10,22 +11,19 @@ const EVIDENCE_RULES = new Set(["consecutive_calendar_months", "weekly_six_to_ei
 // localization yet keep the English catalog wording, read from the same English catalog.
 export const englishT = (key, options) => i18n.getFixedT("en", "commitments")(key, options);
 
-export function formatMoney(value) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Number(value));
+// Missing or unparseable amounts show the shared "Amount needs review" label instead of
+// a fabricated $0.00 or $NaN.
+export function formatMoney(value, locale = "en") {
+  return formatMoneyDecimal(value, locale) ?? AMOUNT_NEEDS_REVIEW;
 }
 
-export function formatDerivedMoney(value) {
-  return formatExactMoney(value);
+export function formatDerivedMoney(value, locale = "en") {
+  return formatExactMoney(value, undefined, locale);
 }
 
-// Date display intentionally keeps the browser language; only the fallback label is localized.
-export function formatDate(value, t = englishT) {
+export function formatDate(value, t = englishT, locale = "en") {
   if (!value) return t("format.unknownDate");
-  return new Date(`${value}T00:00:00`).toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
+  return formatCalendarDate(value, locale, "short") ?? t("format.unknownDate");
 }
 
 // Readable fallback for a stable backend value that has no catalog label.
