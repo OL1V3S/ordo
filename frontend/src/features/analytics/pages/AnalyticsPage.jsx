@@ -18,6 +18,7 @@ import {
   buildMonthlySpendingInsights,
   formatMonthLabel,
 } from "../utils/monthlySpendingInsights";
+import "../../../styles/analytics.css";
 
 function formatPercentage(value, t, { signed = false } = {}) {
   if (value === null) return t("format.notApplicable");

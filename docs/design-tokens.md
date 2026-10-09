@@ -53,6 +53,28 @@ Cards are flat: opaque `--color-surface`, 1px `--color-border`, `--card-shadow: 
 Only overlays (menus) use `--shadow-overlay`. Buttons do not lift on hover; transitions
 cover background, border and color only. Reduced motion is respected globally.
 
+## CSS architecture and load order
+
+`src/index.css` imports the global sheets in this order: `tokens.css`, `themes.css`,
+`globals.css`, `layout.css`, `components.css` (shared primitives, shell navigation,
+buttons, the shared 520px tail rule), `ui-kit.css`, `paychecks.css`. Page-owned
+sheets are imported by the component that owns them, so they load after every global
+sheet, in import order (children before the importing page):
+
+- `analytics.css` by `AnalyticsPage.jsx`, `commitments.css` by `CommitmentsPage.jsx`
+- `import-preview.css`, `activity.css`, `inflows.css` by `TransactionsPage.jsx` (in that
+  order); `inflows.css` also by `PaychecksPage.jsx`
+- `budgets.css` by `BudgetsPage.jsx`, `home-capture.css` by `OverviewPage.jsx`,
+  `secondary-pages.css` by Settings, Investing and More, `plan-switcher.css` by `PlanLayout.jsx`
+
+Rule of thumb: moving a rule into a page-owned sheet moves it later in the cascade.
+Before moving or splitting a sheet, check equal-specificity rules on the same element
+and property (for example `.budget-row--warning` stays in `components.css` because it
+ties with `.ui-list-row` in `ui-kit.css`). Keep feature selectors scoped under the
+feature's own root class, and delete a selector when its class has no consumer in
+`src` (dynamic `prefix-${x}` class names count as consumers). The no-literals
+allowlist is keyed by the file that contains the declaration.
+
 ## No-literals rule and allowlist
 
 `src/styles/tokenLiterals.test.js` fails on raw colors, weights, font sizes, radii,
