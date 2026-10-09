@@ -26,6 +26,7 @@ the permanent, complete archive.
 
 ### 2026-10-09 — Settings, auth pages and Investing redesign
 
+[PR #218](https://github.com/OL1V3S/ordo/pull/218) ·
 [Issue #217](https://github.com/OL1V3S/ordo/issues/217)
 
 - Settings uses flat named sections; the public auth pages now render every status and error through the shared status message with unchanged roles, focus and text; Investing is fully localized (English and Spanish) with flat named regions.
