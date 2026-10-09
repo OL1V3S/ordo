@@ -37,6 +37,7 @@
     "none": "No possible paychecks need review. You can still add a manual expectation.",
     "dismissedHeading": "Dismissed possible paychecks",
     "dismissedIntro": "Dismissal applies to the exact evidence reviewed. Reconsider a possible paycheck to review it again.",
+    "dismissedLocked": "Dismissed possible paychecks stay open while a decision is saving.",
     "dismissedNone": "No dismissed possible paychecks."
   },
   "card": {
@@ -76,6 +77,7 @@
     "projectionDetails": "Projection details"
   },
   "actions": {
+    "menuLabel": "Actions for {{name}}",
     "reviewConfirm": "Review and confirm",
     "reviewConfirmLabel": "Review and confirm {{name}}",
     "dismiss": "Dismiss",

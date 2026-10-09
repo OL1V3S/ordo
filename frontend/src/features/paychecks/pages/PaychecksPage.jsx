@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { Plus, WalletCards } from "lucide-react";
+import { ChevronDown, Plus, WalletCards } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import Card from "../../../shared/ui/Card";
+import { DisclosureButton, DisclosurePanel } from "../../../shared/ui/Disclosure";
+import ListRow from "../../../shared/ui/ListRow";
+import RowActionsMenu from "../../../shared/ui/RowActionsMenu";
+import SectionHeader from "../../../shared/ui/SectionHeader";
 import StatusMessage from "../../../shared/ui/StatusMessage";
 import PaycheckEvidence from "../components/PaycheckEvidence";
 import PaycheckForm from "../components/PaycheckForm";
@@ -117,25 +120,31 @@ function ReceiptPanel({ profile, busy, submitDisabled, onSubmit, onCancel }) {
   </section>;
 }
 
-function CandidateCard({ candidate, dismissed, evaluatedOn, busy, actionsDisabled, editor, onReview, onCancel, onConfirm, onDecision }) {
+function amountBlock(caption, value) {
+  return <><span className="paycheck-row__caption">{caption}</span><strong className="paycheck-row__amount">{value}</strong></>;
+}
+
+function CandidateRow({ candidate, dismissed, evaluatedOn, busy, actionsDisabled, editor, onReview, onCancel, onConfirm, onDecision }) {
   const { t } = useTranslation("paychecks");
   const name = candidate.normalizedDescriptionIdentity;
   const reviewing = editor?.mode === "confirm" && editor.key === candidate.fingerprint;
   const observed = candidate.observedAmount;
+  const actions = reviewing ? null : dismissed ? (
+    <button type="button" disabled={actionsDisabled} onClick={() => onDecision(candidate, true)} aria-label={t("actions.reconsiderLabel", { name })}>{t("actions.reconsider")}</button>
+  ) : <>
+    <button type="button" disabled={actionsDisabled} onClick={(event) => onReview(candidate, event.currentTarget)} aria-label={t("actions.reviewConfirmLabel", { name })}>{t("actions.reviewConfirm")}</button>
+    <RowActionsMenu triggerLabel={t("actions.menuLabel", { name })} items={[
+      { key: "dismiss", label: t("actions.dismissLabel", { name }), text: t("actions.dismiss"), className: "button-ghost", disabled: actionsDisabled, onSelect: () => onDecision(candidate, false) },
+    ]} />
+  </>;
   return (
-    <Card as="article" className="paycheck-card">
-      <header className="paycheck-card__header">
-        <div>
-          {dismissed && <p className="paycheck-status">{t("card.dismissedStatus")}</p>}
-          <h3>{name}</h3>
-          <p className="muted">{cadenceLabel(candidate.schedule.cadence, t)}</p>
-        </div>
-        <div className="paycheck-card__amount">
-          <span>{t("card.observedDeposits")}</span>
-          <strong>{observed.mode === "fixed" ? formatMoney(observed.fixedAmount, t) : `${formatMoney(observed.minimumAmount, t)}–${formatMoney(observed.maximumAmount, t)}`}</strong>
-        </div>
-      </header>
-      <p className="paycheck-candidate-count">{t(observed.mode === "fixed" ? "card.basedOn" : "card.basedOnVariable", { total: candidate.occurrenceCount })}</p>
+    <ListRow className={`paycheck-row${dismissed ? " paycheck-row--dismissed" : ""}`} titleAs="h3" label={dismissed ? t("card.dismissedStatus") : null} title={name}
+      meta={<>
+        <span>{cadenceLabel(candidate.schedule.cadence, t)}</span>
+        <span>{t(observed.mode === "fixed" ? "card.basedOn" : "card.basedOnVariable", { total: candidate.occurrenceCount })}</span>
+      </>}
+      amount={amountBlock(t("card.observedDeposits"), observed.mode === "fixed" ? formatMoney(observed.fixedAmount, t) : `${formatMoney(observed.minimumAmount, t)}–${formatMoney(observed.maximumAmount, t)}`)}
+      actions={actions}>
       <details className="paycheck-details">
         <summary aria-label={t("card.detailsLabel", { name })}>{t("card.details")}</summary>
         <dl className="paycheck-facts">
@@ -148,31 +157,18 @@ function CandidateCard({ candidate, dismissed, evaluatedOn, busy, actionsDisable
         </dl>
         <PaycheckEvidence evidence={candidate.evidence} disclosure={false} />
       </details>
-      {reviewing ? (
-        <PaycheckForm key={candidate.fingerprint} mode="confirm" model={editor.model} busy={busy} onSubmit={onConfirm} onCancel={onCancel} />
-      ) : (
-        <div className="inline-actions paycheck-actions">
-          {dismissed ? (
-            <button type="button" disabled={actionsDisabled} onClick={() => onDecision(candidate, true)} aria-label={t("actions.reconsiderLabel", { name })}>{t("actions.reconsider")}</button>
-          ) : (
-            <>
-              <button type="button" disabled={actionsDisabled} onClick={(event) => onReview(candidate, event.currentTarget)} aria-label={t("actions.reviewConfirmLabel", { name })}>{t("actions.reviewConfirm")}</button>
-              <button type="button" className="button-ghost" disabled={actionsDisabled} onClick={() => onDecision(candidate, false)} aria-label={t("actions.dismissLabel", { name })}>{t("actions.dismiss")}</button>
-            </>
-          )}
-        </div>
-      )}
-    </Card>
+      {reviewing && <PaycheckForm key={candidate.fingerprint} mode="confirm" model={editor.model} busy={busy} onSubmit={onConfirm} onCancel={onCancel} />}
+    </ListRow>
   );
 }
 
-function ProfileCard({ profile, evaluatedOn, busy, actionsDisabled, receiptSubmitDisabled, ending, onEndingChange, editor, onEdit, onCancel, onSave, onLifecycle, receiving, onReceive, onRecord, onRemoveReceipt }) {
+function ProfileRow({ profile, evaluatedOn, busy, actionsDisabled, receiptSubmitDisabled, ending, onEndingChange, editor, onEdit, onCancel, onSave, onLifecycle, receiving, onReceive, onRecord, onRemoveReceipt }) {
   const { t } = useTranslation("paychecks");
-  const detailsRef = useRef(null);
-  const endTrigger = useRef(null);
   const endConfirm = useRef(null);
   const editing = editor?.mode === "edit" && editor.key === profile.id;
   const projection = profile.lifecycle === "active" ? profile.nextProjection : null;
+  const name = profile.displayName;
+  const menuLabel = t("actions.menuLabel", { name });
 
   useEffect(() => {
     if (ending) endConfirm.current?.focus();
@@ -183,27 +179,40 @@ function ProfileCard({ profile, evaluatedOn, busy, actionsDisabled, receiptSubmi
     if (result?.ok) onEndingChange(null);
   }
 
+  // The row actions are unmounted while this record's own task is open, so End cancel re-finds the
+  // remounted menu trigger by label inside this row instead of holding a stale node.
+  function cancelEnding(event) {
+    const row = event.currentTarget.closest("li");
+    onEndingChange(null);
+    requestAnimationFrame(() => {
+      Array.from(row?.querySelectorAll("button[aria-label]") ?? []).find((button) => button.getAttribute("aria-label") === menuLabel)?.focus();
+    });
+  }
+
+  const edit = { key: "edit", label: t("actions.editLabel", { name }), text: t("actions.edit"), className: "button-ghost", disabled: actionsDisabled, onSelect: (trigger) => onEdit(profile, trigger) };
+  const pause = { key: "pause", label: t("actions.pauseLabel", { name }), text: t("actions.pause"), className: "button-ghost", disabled: actionsDisabled, onSelect: () => onLifecycle(profile.id, "paused") };
+  const endItem = { key: "end", label: t("actions.endLabel", { name }), text: t("actions.end"), className: "button-ghost", disabled: actionsDisabled, onSelect: () => onEndingChange({ id: profile.id, lifecycle: profile.lifecycle }) };
+  const items = profile.lifecycle === "active" ? [edit, pause, endItem] : profile.lifecycle === "paused" ? [edit, endItem] : [edit, pause];
+  const actions = editing || ending || receiving ? null : <>
+    {profile.lifecycle === "active" && profile.receiptSlots?.length > 0 && <button type="button" disabled={actionsDisabled} onClick={(event) => onReceive(profile, event.currentTarget)} aria-label={t("actions.recordReceivedLabel", { name })}>{t("actions.recordReceived")}</button>}
+    {profile.lifecycle !== "active" && <button type="button" disabled={actionsDisabled} onClick={() => onLifecycle(profile.id, "active")} aria-label={t("actions.reactivateLabel", { name })}>{t("actions.reactivate")}</button>}
+    <RowActionsMenu triggerLabel={menuLabel} items={items} />
+  </>;
+
   return (
-    <Card as="article" className={`paycheck-card paycheck-card--${profile.lifecycle}`}>
-      <header className="paycheck-card__header">
-        <div>
-          <p className="paycheck-status">{lifecycleLabel(profile.lifecycle, t)}</p>
-          <h3>{profile.displayName}</h3>
-          <p className="muted">{cadenceLabel(profile.schedule.cadence, t)}</p>
-        </div>
-        <div className="paycheck-card__amount"><span>{t("card.expectedAmount")}</span><strong>{formatAmount(profile.amount, t)}</strong></div>
-      </header>
-      {projection ? (
-        <div className="paycheck-projection">
-          <p className="muted">{t("card.nextWindow")}</p>
-          <p className="paycheck-projection__date">{formatDate(projection.earliestExpectedDate, t)}{projection.earliestExpectedDate !== projection.latestExpectedDate && `–${formatDate(projection.latestExpectedDate, t)}`}</p>
-          <p>{t("card.notGuaranteed")}</p>
-        </div>
-      ) : (
-        <p className="paycheck-inactive">{profile.lifecycle === "active" ? t("card.noWindowActive") : profile.lifecycle === "paused" ? t("card.noWindowPaused") : profile.lifecycle === "ended" ? t("card.noWindowEnded") : ""}</p>
-      )}
-      <details ref={detailsRef} className="paycheck-details">
-        <summary aria-label={t("card.detailsLabel", { name: profile.displayName })}>{t("card.details")}</summary>
+    <ListRow className={`paycheck-row paycheck-row--${profile.lifecycle}`} titleAs="h3" label={lifecycleLabel(profile.lifecycle, t)} title={name}
+      meta={<>
+        <span>{cadenceLabel(profile.schedule.cadence, t)}</span>
+        {projection ? <>
+          <span>{t("card.nextWindow")}</span>
+          <span className="paycheck-row__window">{formatDate(projection.earliestExpectedDate, t)}{projection.earliestExpectedDate !== projection.latestExpectedDate && `–${formatDate(projection.latestExpectedDate, t)}`}</span>
+          <span>{t("card.notGuaranteed")}</span>
+        </> : <span>{profile.lifecycle === "active" ? t("card.noWindowActive") : profile.lifecycle === "paused" ? t("card.noWindowPaused") : profile.lifecycle === "ended" ? t("card.noWindowEnded") : ""}</span>}
+      </>}
+      amount={amountBlock(t("card.expectedAmount"), formatAmount(profile.amount, t))}
+      actions={actions}>
+      <details className="paycheck-details">
+        <summary aria-label={t("card.detailsLabel", { name })}>{t("card.details")}</summary>
         <dl className="paycheck-facts">
           <div><dt>{t("facts.source")}</dt><dd>{profile.source === "manual" ? t("facts.sourceManual") : t("facts.sourceConfirmed")}</dd></div>
           {profile.origin?.algorithmVersion && <div><dt>{t("facts.detection")}</dt><dd>{profile.origin.algorithmVersion}</dd></div>}
@@ -220,33 +229,33 @@ function ProfileCard({ profile, evaluatedOn, busy, actionsDisabled, receiptSubmi
         </dl>
         <PaycheckEvidence evidence={profile.evidence} confirmed disclosure={false} disabled={busy} onRemove={onRemoveReceipt} />
         <p className="muted paycheck-schedule-note">{t("card.scheduleNote")}</p>
-        {!editing && !ending && !receiving && <div className="inline-actions paycheck-actions">
-          {profile.lifecycle === "ended" && <button type="button" className="button-ghost" disabled={actionsDisabled} onClick={() => onLifecycle(profile.id, "paused")} aria-label={t("actions.pauseLabel", { name: profile.displayName })}>{t("actions.pause")}</button>}
-          {profile.lifecycle !== "ended" && <button ref={endTrigger} type="button" className="button-ghost" disabled={actionsDisabled} onClick={() => onEndingChange({ id: profile.id, lifecycle: profile.lifecycle })} aria-label={t("actions.endLabel", { name: profile.displayName })}>{t("actions.end")}</button>}
-        </div>}
       </details>
       {receiving ? <ReceiptPanel profile={profile} busy={busy} submitDisabled={receiptSubmitDisabled} onSubmit={onRecord} onCancel={onCancel} /> : editing ? (
         <PaycheckForm key={profile.id} mode="edit" model={editor.model} busy={busy} onSubmit={(payload) => onSave(profile.id, payload)} onCancel={onCancel} />
-      ) : ending ? (
-        <div className="paycheck-end-confirmation" role="group" aria-label={t("actions.endLabel", { name: profile.displayName })}>
-          <p>{t("actions.endPrompt", { name: profile.displayName })}</p>
+      ) : ending && (
+        <div className="paycheck-end-confirmation" role="group" aria-label={t("actions.endLabel", { name })}>
+          <p>{t("actions.endPrompt", { name })}</p>
           <div className="inline-actions">
             <button ref={endConfirm} type="button" disabled={busy} onClick={end}>{t("actions.confirmEnd")}</button>
-            <button type="button" className="button-ghost" disabled={busy} onClick={() => { onEndingChange(null); if (detailsRef.current) detailsRef.current.open = true; requestAnimationFrame(() => endTrigger.current?.focus()); }}>{t("actions.cancelEnding")}</button>
+            <button type="button" className="button-ghost" disabled={busy} onClick={cancelEnding}>{t("actions.cancelEnding")}</button>
           </div>
         </div>
-      ) : (
-        <div className="inline-actions paycheck-actions">
-          {profile.lifecycle === "active" && profile.receiptSlots?.length > 0 && <button type="button" disabled={actionsDisabled} onClick={(event) => onReceive(profile, event.currentTarget)} aria-label={t("actions.recordReceivedLabel", { name: profile.displayName })}>{t("actions.recordReceived")}</button>}
-          <button type="button" className="button-ghost" disabled={actionsDisabled} onClick={(event) => onEdit(profile, event.currentTarget)} aria-label={t("actions.editLabel", { name: profile.displayName })}>{t("actions.edit")}</button>
-          {profile.lifecycle !== "active" ? (
-            <button type="button" disabled={actionsDisabled} onClick={() => onLifecycle(profile.id, "active")} aria-label={t("actions.reactivateLabel", { name: profile.displayName })}>{t("actions.reactivate")}</button>
-          ) : (
-            <button type="button" className="button-ghost" disabled={actionsDisabled} onClick={() => onLifecycle(profile.id, "paused")} aria-label={t("actions.pauseLabel", { name: profile.displayName })}>{t("actions.pause")}</button>
-          )}
-        </div>
       )}
-    </Card>
+    </ListRow>
+  );
+}
+
+function HistoryDisclosure({ headingId, panelId, lockNoteId, title, count, open, locked = false, onToggle, children }) {
+  return (
+    <section className="paycheck-history" aria-labelledby={headingId}>
+      <h2 id={headingId} className="paycheck-history__heading">
+        <DisclosureButton controls={panelId} open={open} forced={locked} hintId={lockNoteId} onToggle={onToggle} className="paycheck-history__button">
+          <span>{title} <span className="paycheck-history__count">({count})</span></span>
+          <ChevronDown className="paycheck-history__chevron" size={18} aria-hidden="true" />
+        </DisclosureButton>
+      </h2>
+      <DisclosurePanel id={panelId} open={open} className="paycheck-history__content">{children}</DisclosurePanel>
+    </section>
   );
 }
 
@@ -261,7 +270,6 @@ export default function PaychecksPage() {
   const editorLocation = useRef(null);
   const profilesHeading = useRef(null);
   const candidatesHeading = useRef(null);
-  const dismissedSummary = useRef(null);
   const feedback = useRef(null);
   const busy = Boolean(state.busyKey) || state.loading || state.refreshing;
   const actionsDisabled = busy || Boolean(editor) || endingTarget !== null || receiptTarget !== null || state.uncertainReceipt;
@@ -280,7 +288,7 @@ export default function PaychecksPage() {
 
   function openEditor(mode, model, trigger) {
     editorTrigger.current = trigger;
-    editorLocation.current = { container: trigger.closest("article"), label: trigger.getAttribute("aria-label") };
+    editorLocation.current = { container: trigger.closest("li"), label: trigger.getAttribute("aria-label") };
     state.clearMessages();
     setEditor({ mode, model, key: mode === "confirm" ? model.fingerprint : model?.id ?? "manual" });
   }
@@ -318,7 +326,9 @@ export default function PaychecksPage() {
     const tuple = { algorithmVersion: candidate.algorithmVersion, cadence: candidate.schedule.cadence, fingerprint: candidate.fingerprint };
     const result = await (reconsider ? state.reconsiderCandidate(tuple) : state.dismissCandidate(tuple));
     if (result?.ok && !reconsider) setHistory("dismissed", true);
-    focus(result?.ok ? (reconsider ? candidatesHeading : dismissedSummary) : feedback);
+    if (result?.ok && !reconsider) {
+      requestAnimationFrame(() => document.getElementById("paycheck-dismissed-heading")?.querySelector(":scope > .ui-disclosure__button")?.focus());
+    } else focus(result?.ok ? candidatesHeading : feedback);
   }
 
   async function lifecycle(id, value) {
@@ -334,18 +344,23 @@ export default function PaychecksPage() {
     setHistoryOpen((current) => current[kind] === open ? current : { ...current, [kind]: open });
   }
 
-  function profileCard(profile) {
-    return <ProfileCard key={profile.id} profile={profile} evaluatedOn={state.paychecksEvaluatedOn}
+  function profileRow(profile) {
+    return <ProfileRow key={profile.id} profile={profile} evaluatedOn={state.paychecksEvaluatedOn}
       busy={busy} actionsDisabled={actionsDisabled} receiptSubmitDisabled={state.uncertainReceipt} ending={endingTarget?.id === profile.id && endingTarget.lifecycle === profile.lifecycle} onEndingChange={setEndingTarget}
       editor={editor} onEdit={(model, trigger) => openEditor("edit", model, trigger)} onCancel={cancelEditor}
       onSave={(id, payload) => submit(() => state.updatePaycheck(id, payload))} onLifecycle={lifecycle}
       receiving={receiptTarget?.id === profile.id}
-      onReceive={(model, trigger) => { editorTrigger.current = trigger; editorLocation.current = { container: trigger.closest("article"), label: trigger.getAttribute("aria-label") }; state.clearMessages(); setReceiptTarget(model); }}
+      onReceive={(model, trigger) => { editorTrigger.current = trigger; editorLocation.current = { container: trigger.closest("li"), label: trigger.getAttribute("aria-label") }; state.clearMessages(); setReceiptTarget(model); }}
       onRecord={(payload) => submit(() => state.recordReceipt(profile.id, payload))}
       onRemoveReceipt={(accountInflowId) => submit(() => state.removeReceipt(profile.id, accountInflowId))} />;
   }
 
+  function candidateRow(candidate, dismissed = false) {
+    return <CandidateRow key={candidate.fingerprint} candidate={candidate} evaluatedOn={state.candidatesEvaluatedOn} dismissed={dismissed} busy={busy} actionsDisabled={actionsDisabled} editor={editor} onReview={(model, trigger) => openEditor("confirm", model, trigger)} onCancel={cancelEditor} onConfirm={(payload) => submit(() => state.confirmCandidate(payload))} onDecision={decide} />;
+  }
+
   const activeProfiles = state.paychecks.filter((profile) => profile.lifecycle === "active");
+  const dismissedBusy = Boolean(state.busyKey?.startsWith("reconsider:"));
 
   return (
     <div className="container paychecks-page">
@@ -359,14 +374,17 @@ export default function PaychecksPage() {
         </button>
       </header>
 
-      <div ref={feedback} tabIndex={-1} className="paycheck-feedback">
+      <div id="paychecks-feedback" ref={feedback} tabIndex={-1} className="paycheck-feedback">
         {state.loadError && <StatusMessage tone="danger">{state.loadError}</StatusMessage>}
         {state.actionError && <StatusMessage tone="danger">{state.actionError}</StatusMessage>}
         {state.notice && <StatusMessage tone="success">{state.notice}</StatusMessage>}
-        {(state.loadError || state.actionError) && <button type="button" className="button-ghost" disabled={busy} onClick={() => state.refresh()}>{t("page.refresh")}</button>}
-        {state.uncertainCreate && <button type="button" className="button-ghost" disabled={busy} onClick={state.acknowledgeUncertainCreate}>{t("page.acknowledgeCreate")}</button>}
-        {state.busyKey && <StatusMessage>{t("page.saving")}</StatusMessage>}
+        {state.loading && <StatusMessage>{t("page.loading")}</StatusMessage>}
         {state.refreshing && <StatusMessage>{t("page.refreshing")}</StatusMessage>}
+        {state.busyKey && <StatusMessage>{t("page.saving")}</StatusMessage>}
+        {(state.loadError || state.actionError || state.uncertainCreate) && <div className="paycheck-feedback__actions">
+          {(state.loadError || state.actionError) && <button type="button" className="button-ghost" disabled={busy} onClick={() => state.refresh()}>{t("page.refresh")}</button>}
+          {state.uncertainCreate && <button type="button" className="button-ghost" disabled={busy} onClick={state.acknowledgeUncertainCreate}>{t("page.acknowledgeCreate")}</button>}
+        </div>}
       </div>
 
       {editor?.mode === "manual" && (
@@ -377,51 +395,43 @@ export default function PaychecksPage() {
         </section>
       )}
 
-      {state.loading && <StatusMessage>{t("page.loading")}</StatusMessage>}
       {showContent && (
         <>
           <section className="paycheck-section" aria-labelledby="paycheck-profiles-heading" aria-busy={Boolean(state.busyKey)}>
-            <header className="paycheck-section__header">
-              <h2 id="paycheck-profiles-heading" ref={profilesHeading} tabIndex={-1}>{t("profiles.heading")}</h2>
-            </header>
+            <SectionHeader id="paycheck-profiles-heading" headingRef={profilesHeading} focusable title={t("profiles.heading")} />
             {activeProfiles.length === 0 ? (
               <div className="paycheck-empty"><WalletCards size={28} aria-hidden="true" /><h3>{state.paychecks.length === 0 ? t("profiles.emptyNone") : t("profiles.emptyNoActive")}</h3><p>{t("profiles.emptyBody")}</p></div>
             ) : (
-              <div className="paycheck-group" role="group" aria-label={t("groups.active")}>
-                {activeProfiles.map(profileCard)}
-              </div>
+              <div role="group" aria-label={t("groups.active")}><ul className="paycheck-rows">{activeProfiles.map(profileRow)}</ul></div>
             )}
           </section>
 
           <section className="paycheck-section" aria-labelledby="paycheck-candidates-heading">
-            <header className="paycheck-section__header">
-              <div><h2 id="paycheck-candidates-heading" ref={candidatesHeading} tabIndex={-1}>{t("candidates.heading")}</h2><p className="muted">{t("candidates.intro")}</p></div>
-              {state.candidates.length > 0 && <p className="muted">{t("candidates.toReview", { total: state.candidates.length })}</p>}
-            </header>
-            {state.candidates.length === 0 ? <p className="paycheck-empty">{t("candidates.none")}</p> : state.candidates.map((candidate) => <CandidateCard key={candidate.fingerprint} candidate={candidate} evaluatedOn={state.candidatesEvaluatedOn} busy={busy} actionsDisabled={actionsDisabled} editor={editor} onReview={(model, trigger) => openEditor("confirm", model, trigger)} onCancel={cancelEditor} onConfirm={(payload) => submit(() => state.confirmCandidate(payload))} onDecision={decide} />)}
+            <SectionHeader id="paycheck-candidates-heading" headingRef={candidatesHeading} focusable title={t("candidates.heading")} action={state.candidates.length > 0 ? <span className="paycheck-count">{t("candidates.toReview", { total: state.candidates.length })}</span> : null} />
+            <p className="muted">{t("candidates.intro")}</p>
+            {state.candidates.length === 0 ? <p className="paycheck-empty">{t("candidates.none")}</p> : <ul className="paycheck-rows">{state.candidates.map((candidate) => candidateRow(candidate))}</ul>}
           </section>
 
           {["paused", "ended"].map((kind) => {
             const profiles = state.paychecks.filter((profile) => profile.lifecycle === kind);
             const locked = profiles.some((profile) => (endingTarget?.id === profile.id && endingTarget.lifecycle === profile.lifecycle) || (editor?.mode === "edit" && editor.key === profile.id) || state.busyKey === `lifecycle:${profile.id}`);
             return profiles.length > 0 && (
-              <details key={kind} className="paycheck-history" open={historyOpen[kind] || locked} onToggle={(event) => { if (!locked) setHistory(kind, event.currentTarget.open); }}>
-                <summary aria-disabled={locked || undefined} onClick={(event) => { if (locked) event.preventDefault(); }}><h2>{t(`groups.${kind}`)} <span>({profiles.length})</span></h2></summary>
-                <div className="paycheck-history__content paycheck-group" role="group" aria-label={t(`groups.${kind}`)}>
-                  {locked && <p className="muted paycheck-history-note">{t("groups.locked")}</p>}
-                  {profiles.map(profileCard)}
+              <HistoryDisclosure key={kind} headingId={`paycheck-${kind}-heading`} panelId={`paycheck-${kind}-panel`} lockNoteId={`paycheck-${kind}-lock-note`}
+                title={t(`groups.${kind}`)} count={profiles.length} open={historyOpen[kind] || locked} locked={locked} onToggle={() => setHistory(kind, !historyOpen[kind])}>
+                <div className="paycheck-history__group" role="group" aria-label={t(`groups.${kind}`)}>
+                  {locked && <p id={`paycheck-${kind}-lock-note`} className="muted paycheck-history-note">{t("groups.locked")}</p>}
+                  <ul className="paycheck-rows">{profiles.map(profileRow)}</ul>
                 </div>
-              </details>
+              </HistoryDisclosure>
             );
           })}
 
-          <details className="paycheck-history" open={historyOpen.dismissed || state.busyKey?.startsWith("reconsider:")} onToggle={(event) => { if (!state.busyKey?.startsWith("reconsider:")) setHistory("dismissed", event.currentTarget.open); }}>
-            <summary ref={dismissedSummary} aria-disabled={state.busyKey?.startsWith("reconsider:") || undefined} onClick={(event) => { if (state.busyKey?.startsWith("reconsider:")) event.preventDefault(); }}><h2 id="paycheck-dismissed-heading">{t("candidates.dismissedHeading")} <span>({state.dismissedCandidates.length})</span></h2></summary>
-            <div className="paycheck-history__content">
-              <p className="muted">{t("candidates.dismissedIntro")}</p>
-              {state.dismissedCandidates.length === 0 ? <p className="muted">{t("candidates.dismissedNone")}</p> : state.dismissedCandidates.map((candidate) => <CandidateCard key={candidate.fingerprint} candidate={candidate} evaluatedOn={state.candidatesEvaluatedOn} dismissed busy={busy} actionsDisabled={actionsDisabled} onDecision={decide} />)}
-            </div>
-          </details>
+          <HistoryDisclosure headingId="paycheck-dismissed-heading" panelId="paycheck-dismissed-panel" lockNoteId="paycheck-dismissed-lock-note"
+            title={t("candidates.dismissedHeading")} count={state.dismissedCandidates.length} open={historyOpen.dismissed || dismissedBusy} locked={dismissedBusy} onToggle={() => setHistory("dismissed", !historyOpen.dismissed)}>
+            {dismissedBusy && <p id="paycheck-dismissed-lock-note" className="muted paycheck-history-note">{t("candidates.dismissedLocked")}</p>}
+            <p className="muted">{t("candidates.dismissedIntro")}</p>
+            {state.dismissedCandidates.length === 0 ? <p className="muted">{t("candidates.dismissedNone")}</p> : <ul className="paycheck-rows">{state.dismissedCandidates.map((candidate) => candidateRow(candidate, true))}</ul>}
+          </HistoryDisclosure>
         </>
       )}
     </div>
