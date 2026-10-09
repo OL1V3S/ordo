@@ -26,6 +26,7 @@ the permanent, complete archive.
 
 ### 2026-10-09 — Commitments declutter
 
+[PR #213](https://github.com/OL1V3S/ordo/pull/213) ·
 [Issue #212](https://github.com/OL1V3S/ordo/issues/212)
 
 - Commitments now has one status area, flat rows with one main action and a "..." actions menu, inline change-review decisions, and collapsed Paused, Ended, Reviewed and Dismissed sections.
