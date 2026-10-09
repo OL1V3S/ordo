@@ -2,7 +2,11 @@ import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocale } from "../../../shared/localization/useLocale";
 import ActivityTimelineFilters from "./ActivityTimelineFilters";
+import EmptyState from "../../../shared/ui/EmptyState";
+import ListRow from "../../../shared/ui/ListRow";
+import SectionHeader from "../../../shared/ui/SectionHeader";
 import StatusMessage from "../../../shared/ui/StatusMessage";
+import StatusStrip from "../../../shared/ui/StatusStrip";
 import { isTimelineFilterActive } from "../utils/timelineFilter";
 import { formatTimelineAmount, formatTimelineDate, timelineItemKey } from "../utils/timelinePresentation";
 
@@ -41,7 +45,7 @@ export default function ActivityTimeline({ timeline, filters = null, uncertain =
   return (
     <section id="activity-timeline" className="activity-timeline" aria-labelledby="activity-timeline-heading"
       aria-busy={loading || loadingMore}>
-      <h2 id="activity-timeline-heading" ref={headingRef} tabIndex={-1}>{t("activity:timeline.heading")}</h2>
+      <SectionHeader id="activity-timeline-heading" headingRef={headingRef} focusable title={t("activity:timeline.heading")} />
       <p className="muted">{t("activity:timeline.intro")}</p>
       {filters && <ActivityTimelineFilters filters={filters} />}
       {loading && <StatusMessage>{t(showRows ? "activity:timeline.refreshing" : "activity:timeline.loading")}</StatusMessage>}
@@ -58,10 +62,9 @@ export default function ActivityTimeline({ timeline, filters = null, uncertain =
         <button type="button" onClick={() => void refresh()}>{t("activity:timeline.retry")}</button>
       </div>}
       {/* Always mounted so assistive technology is already watching it when the notice appears. */}
-      <div className="activity-timeline__live" aria-live="polite">
-        {uncertain && <p className="status-message status-message--warning">{t("activity:timeline.maybeStale")}</p>}
-      </div>
-      {settled && !refreshFailed && items.length === 0 && <p className="muted">{t(noMatches ? "activity:timeline.filters.noMatches" : "activity:timeline.empty")}</p>}
+      <StatusStrip className="activity-timeline__live"
+        messages={uncertain ? [{ id: "maybeStale", tone: "warning", text: t("activity:timeline.maybeStale") }] : []} />
+      {settled && !refreshFailed && items.length === 0 && <EmptyState>{t(noMatches ? "activity:timeline.filters.noMatches" : "activity:timeline.empty")}</EmptyState>}
       {showRows && <ul className="activity-timeline__list" aria-label={t("activity:timeline.listLabel")}>
         {items.map((item) => {
           const amount = formatTimelineAmount(item.amount, item.kind, moneyLocale);
@@ -70,33 +73,26 @@ export default function ActivityTimeline({ timeline, filters = null, uncertain =
           const labelValues = { description: item.description, date: date ?? t("home:activity.dateUnknown"), id: item.recordId };
           const expenseRow = item.kind === "expense";
           return (
-            <li key={timelineItemKey(item)} className={`activity-timeline__row activity-timeline__row--${item.kind}`}>
-              <div className="activity-timeline__main">
-                <span className="activity-timeline__kind">
-                  {t(item.kind === "expense" ? "home:activity.expense" : "home:activity.cashIn")}
-                </span>
-                <strong className="activity-timeline__description">{item.description}</strong>
-                <p className="activity-timeline__meta">
-                  {date ? <time dateTime={item.date}>{date}</time> : t("home:activity.dateUnknown")}
-                  {item.kind === "expense" && item.category && <> · {item.category}</>}
-                  {item.paycheck && <> · {t("home:activity.paycheckLinked")}</>}
-                </p>
-              </div>
-              <div className="activity-timeline__amount">
-                {amount ? <strong>{amount}</strong> : <>
-                  <strong>{t("home:activity.amountReview")}</strong>
-                  <span className="activity-timeline__stored-amount">{item.amount}</span>
-                </>}
-              </div>
-              {actionState && <div className="activity-timeline__actions">
+            <ListRow key={timelineItemKey(item)} className={`activity-timeline__row activity-timeline__row--${item.kind}`}
+              label={t(item.kind === "expense" ? "home:activity.expense" : "home:activity.cashIn")}
+              title={item.description}
+              meta={<>
+                {date ? <time dateTime={item.date}>{date}</time> : t("home:activity.dateUnknown")}
+                {item.kind === "expense" && item.category && <> · {item.category}</>}
+                {item.paycheck && <> · {t("home:activity.paycheckLinked")}</>}
+              </>}
+              amount={amount ? <strong>{amount}</strong> : <>
+                <strong>{t("home:activity.amountReview")}</strong>
+                <span className="activity-timeline__stored-amount">{item.amount}</span>
+              </>}
+              actions={actionState ? <>
                 <button type="button" disabled={!actionState.canEdit}
                   aria-label={t(expenseRow ? "activity:timeline.actions.editExpense" : "activity:timeline.actions.editCashIn", labelValues)}
                   onClick={(event) => rowActions.onEdit(item, event.currentTarget)}>{t("activity:timeline.actions.edit")}</button>
                 <button type="button" className={expenseRow ? "button-danger" : "button-ghost"} disabled={!actionState.canDelete}
                   aria-label={t(expenseRow ? "activity:timeline.actions.deleteExpense" : "activity:timeline.actions.deleteCashIn", labelValues)}
                   onClick={(event) => rowActions.onDelete(item, event.currentTarget)}>{t("activity:timeline.actions.delete")}</button>
-              </div>}
-            </li>
+              </> : null} />
           );
         })}
       </ul>}

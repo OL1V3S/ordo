@@ -3,4 +3,5 @@
 @import "./styles/globals.css";
 @import "./styles/layout.css";
 @import "./styles/components.css";
+@import "./styles/ui-kit.css";
 @import "./styles/paychecks.css";

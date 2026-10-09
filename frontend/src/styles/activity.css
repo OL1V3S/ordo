@@ -1,5 +1,5 @@
 .activity-page { display: grid; min-width: 0; grid-template-columns: minmax(0, 1fr); gap: var(--space-6); }
-.activity-page > *, .activity-page .page-header > *, .activity-spending > *, .activity-spending__body > *, .activity-cash-in__body > *, .activity-timeline__filter-panel > * { min-width: 0; }
+.activity-page > *, .activity-page .page-header > *, .activity-spending > *, .activity-spending__body > *, .activity-cash-in__body > * { min-width: 0; }
 .activity-page [hidden] { display: none !important; }
 .activity-page .page-header { margin-bottom: 0; }
 .activity-page .section { margin-block: 0; }
@@ -31,8 +31,6 @@
   .activity-spending__header > button { align-self: start; }
   .activity-records-controls { align-items: stretch; flex-direction: column; }
   .activity-task-openers { align-items: stretch; flex-direction: column; }
-  .activity-timeline__filter-fields { align-items: stretch; flex-direction: column; }
-  .activity-timeline__chip-remove { min-width: var(--size-touch-target); }
 }
 .expense-filters__primary { display: flex; align-items: end; flex-wrap: wrap; gap: var(--space-3); }
 .expense-filters__primary > label { flex: 1 1 240px; min-width: 0; }
@@ -107,25 +105,5 @@
 .activity-timeline__live > p { margin: 0; }
 .activity-timeline__live:empty { position: absolute; }
 .activity-timeline__list { display: grid; margin: 0; padding: 0; gap: var(--space-2); list-style: none; }
-.activity-timeline__row { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-4); padding: var(--space-3) var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); }
-.activity-timeline__main { display: grid; min-width: 0; gap: var(--space-1); }
-.activity-timeline__kind { color: var(--color-text-muted); font-size: var(--text-xs); font-weight: var(--weight-bold); letter-spacing: 0.04em; text-transform: uppercase; }
-.activity-timeline__description { overflow-wrap: anywhere; }
-.activity-timeline__meta { margin: 0; color: var(--color-text-muted); font-size: var(--text-sm); overflow-wrap: anywhere; }
-.activity-timeline__amount { display: grid; flex: 0 0 auto; justify-items: end; max-width: 50%; font-variant-numeric: tabular-nums; text-align: right; overflow-wrap: anywhere; }
-.activity-timeline__actions { display: flex; flex: 0 0 auto; flex-wrap: wrap; gap: var(--space-2); }
 .activity-timeline__stored-amount { color: var(--color-text-muted); font-size: var(--text-sm); }
-@media (max-width: 400px) {
-  .activity-timeline__row { flex-direction: column; }
-  .activity-timeline__amount { justify-items: start; max-width: 100%; text-align: left; }
-}
-.activity-timeline__filter-panel { display: grid; min-width: 0; gap: var(--space-3); }
-.activity-timeline__filters { display: grid; min-width: 0; gap: var(--space-3); }
-.activity-timeline__filter-fields { align-items: end; }
-.activity-timeline__periods { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2); }
-.activity-timeline__periods-label { font-weight: var(--weight-semibold); }
-.activity-timeline__period[aria-pressed="true"] { border-color: var(--color-focus); font-weight: var(--weight-bold); }
-.activity-timeline__chips { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2); }
-.activity-timeline__chip { display: inline-flex; align-items: center; gap: var(--space-1); padding-left: var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius-pill); background: var(--color-surface); overflow-wrap: anywhere; }
-.activity-timeline__chip-remove { min-width: var(--size-touch-target); min-height: var(--size-touch-target); padding: 0; border: 0; background: transparent; cursor: pointer; }
-.activity-timeline__filters button:focus-visible, .activity-records-controls button:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 3px; }
+.activity-records-controls button:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 3px; }

@@ -2,6 +2,7 @@
 
 Ordo's styling lives in `frontend/src/styles`. Feature CSS uses tokens, never raw
 colors, radii, weights, or (mostly) spacing. `tokenLiterals.test.js` enforces this.
+Shared components built on these tokens are documented in [ui-kit.md](ui-kit.md).
 
 ## Tiers and files
 

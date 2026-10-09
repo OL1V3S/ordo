@@ -24,6 +24,17 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-09 — Shared UI component kit
+
+[PR #202](https://github.com/OL1V3S/ordo/pull/202) ·
+[Issue #201](https://github.com/OL1V3S/ordo/issues/201)
+
+- Added presentational components in `frontend/src/shared/ui` (Disclosure,
+  FilterBar, StatusStrip, SectionHeader, ListRow, EmptyState, TaskArea) with unit
+  tests, token-only `ui-kit.css`, and `docs/ui-kit.md`.
+- Moved the Activity timeline and Records toggles onto the kit with no behavior,
+  copy, request, or accessible-name change.
+
 ### 2026-10-09 — Design token foundation
 
 [PR #200](https://github.com/OL1V3S/ordo/pull/200) ·
@@ -255,15 +266,3 @@ the permanent, complete archive.
   that requires a successful full-list Activity review and explicit acknowledgment.
 - Added English and Spanish Home copy with exact money/date display, and removed
   the dashboard reads for cash flow, paychecks, budgets, and commitments from Home.
-
-### 2026-09-23 — Home semantic read-model foundation
-
-[PR #154](https://github.com/OL1V3S/ordo/pull/154) ·
-[Issue #153](https://github.com/OL1V3S/ordo/issues/153)
-
-- Added an authenticated Home contract with an explicit local activity cutoff
-  and UTC paycheck-evaluation horizon.
-- Composed bounded exact recent activity and paycheck-only upcoming items while
-  keeping linked inflows single and owner-scoped.
-- Added explicit partial-availability metadata and empty attention coverage on
-  independent read-only snapshots without changing financial semantics.
