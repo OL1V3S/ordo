@@ -19,7 +19,7 @@ import { useTranslation } from "react-i18next";
 import { useActivityTimeline } from "../../activity/hooks/useActivityTimeline";
 import { useTimelineFilters } from "../../activity/hooks/useTimelineFilters";
 import ActivityTimeline from "../../activity/components/ActivityTimeline";
-import RecordsToggle from "../../activity/components/RecordsToggle";
+import { DisclosureButton } from "../../../shared/ui/Disclosure";
 import { parseExpenseAmount } from "../../expenses/utils/exactMoney";
 import StatusMessage from "../../../shared/ui/StatusMessage";
 import "../../../styles/activity.css";
@@ -361,8 +361,10 @@ export default function TransactionsPage() {
         <div className="activity-spending__header">
           <h2 id="spending-activity-heading" ref={activityHeading} tabIndex={-1}>{ta("spending.heading")}</h2>
           <div className="activity-records-controls">
-            <RecordsToggle label={ta("spending.recordsToggle")} hint={ta("spending.recordsHint")} bodyId="spending-records"
-              open={spendingOpen || spendingForced} forced={spendingForced} onToggle={() => setSpendingOpen((open) => !open)} />
+            <DisclosureButton controls="spending-records" hint={ta("spending.recordsHint")}
+              open={spendingOpen || spendingForced} forced={spendingForced} onToggle={() => setSpendingOpen((open) => !open)}>
+              {ta("spending.recordsToggle")}
+            </DisclosureButton>
             <button type="button" className="button-ghost" disabled={expensesLoading || expenseCapture.pending}
               onClick={expenseCapture.refreshRecovery}>{ta("spending.refresh")}</button>
           </div>
@@ -390,8 +392,10 @@ export default function TransactionsPage() {
         <div className="activity-spending__header">
           <h2 id="cash-in-heading" ref={inflowCapture.fallbackFocusRef} tabIndex={-1}>{ta("cashIn.heading")}</h2>
           <div className="activity-records-controls">
-            <RecordsToggle label={ta("cashIn.recordsToggle")} hint={ta("cashIn.recordsHint")} bodyId="cash-in-records"
-              open={cashOpen || cashForced} forced={cashForced} onToggle={() => setCashOpen((open) => !open)} />
+            <DisclosureButton controls="cash-in-records" hint={ta("cashIn.recordsHint")}
+              open={cashOpen || cashForced} forced={cashForced} onToggle={() => setCashOpen((open) => !open)}>
+              {ta("cashIn.recordsToggle")}
+            </DisclosureButton>
           <button type="button" className="button-ghost" disabled={cash.loading || inflowCapture.pending} onClick={inflowCapture.refreshRecovery}>{ta("cashIn.refresh")}</button>
           </div>
         </div>
