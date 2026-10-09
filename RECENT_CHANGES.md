@@ -26,6 +26,7 @@ the permanent, complete archive.
 
 ### 2026-10-09 — Plan hub
 
+[PR #206](https://github.com/OL1V3S/ordo/pull/206) ·
 [Issue #205](https://github.com/OL1V3S/ordo/issues/205)
 
 - Plan now opens on Budgets, and a Budgets / Commitments / Paychecks switcher at the top of each planning page moves between them; each page keeps its own address.
