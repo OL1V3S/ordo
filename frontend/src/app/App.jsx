@@ -16,7 +16,7 @@ import ProtectedRoute from "./ProtectedRoute";
 import OverviewPage from "./pages/OverviewPage";
 import InvestingPage from "./pages/InvestingPage";
 import SettingsPage from "./pages/SettingsPage";
-import PlanPage from "./pages/PlanPage";
+import PlanLayout from "./PlanLayout";
 import MorePage from "./pages/MorePage";
 
 export default function App() {
@@ -44,12 +44,14 @@ export default function App() {
         <Route element={<AppShell email={session.email} onLogout={clearSession} />}>
           <Route path="/overview" element={<OverviewPage />} />
           <Route path="/transactions" element={<TransactionsPage />} />
-          <Route path="/budgets" element={<BudgetsPage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />
-          <Route path="/plan" element={<PlanPage />} />
+          <Route element={<PlanLayout />}>
+            <Route path="/plan" element={<BudgetsPage key="plan" />} />
+            <Route path="/budgets" element={<BudgetsPage />} />
+            <Route path="/commitments" element={<CommitmentsPage />} />
+            <Route path="/paychecks" element={<PaychecksPage />} />
+          </Route>
           <Route path="/more" element={<MorePage />} />
-          <Route path="/commitments" element={<CommitmentsPage />} />
-          <Route path="/paychecks" element={<PaychecksPage />} />
           <Route path="/investing" element={<InvestingPage />} />
           <Route path="/settings" element={<SettingsPage email={session.email} />} />
         </Route>

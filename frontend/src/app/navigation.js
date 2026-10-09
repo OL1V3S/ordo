@@ -23,6 +23,7 @@ export const APP_DESTINATIONS = [
 
 export const PLAN_DESTINATIONS = APP_DESTINATIONS.filter(({ to }) =>
   ["/budgets", "/commitments", "/paychecks"].includes(to));
+export const PLAN_DEFAULT_PATH = "/budgets";
 export const MORE_DESTINATIONS = ["/settings", "/investing"]
   .map((to) => APP_DESTINATIONS.find((destination) => destination.to === to));
 

@@ -123,7 +123,7 @@ describe('application routes and shell', () => {
     ['/transactions', 'Transactions workspace'],
     ['/budgets', 'Budgets workspace'],
     ['/analytics', 'Analytics workspace'],
-    ['/plan', 'Plan'],
+    ['/plan', 'Budgets workspace'],
     ['/more', 'More'],
     ['/commitments', 'Commitments workspace'],
     ['/paychecks', 'Paychecks workspace'],
@@ -206,24 +206,64 @@ describe('application routes and shell', () => {
   })
 
   it.each([
-    ['/budgets', 'Plan', '/plan'], ['/commitments', 'Plan', '/plan'], ['/paychecks', 'Plan', '/plan'],
-  ])('provides a deterministic parent link for direct bookmark %s', async (path, parent, target) => {
+    ['/budgets', 'Budgets', 'Commitments', '/commitments', 'Commitments workspace'],
+    ['/commitments', 'Commitments', 'Paychecks', '/paychecks', 'Paychecks workspace'],
+    ['/paychecks', 'Paychecks', 'Budgets', '/budgets', 'Budgets workspace'],
+  ])('switches Plan pages from direct bookmark %s through the Plan switcher', async (path, currentLabel, nextLabel, target, heading) => {
     const user = userEvent.setup()
     localStorage.setItem('token', 'synthetic-session')
     renderAt(path)
     const main = screen.getByRole('main')
-    const link = within(main).getByRole('link', { name: parent })
-    expect(link).toHaveAttribute('href', target)
-    await user.click(link)
-    expect(within(main).getByRole('heading', { level: 1, name: parent })).toBeInTheDocument()
+    const switcher = within(main).getByRole('navigation', { name: 'Planning tools' })
+    const links = within(switcher).getAllByRole('link')
+    expect(links.map((link) => link.getAttribute('href'))).toEqual(['/budgets', '/commitments', '/paychecks'])
+    expect(links.filter((link) => link.getAttribute('aria-current') === 'page')).toHaveLength(1)
+    expect(within(switcher).getByRole('link', { name: currentLabel })).toHaveAttribute('aria-current', 'page')
+    window.scrollTo.mockClear()
+    await user.click(within(switcher).getByRole('link', { name: nextLabel }))
     expect(screen.getByTestId('location')).toHaveTextContent(target)
+    expect(within(main).getByRole('heading', { level: 1, name: heading })).toBeInTheDocument()
     expect(main).toHaveFocus()
+    expect(window.scrollTo).toHaveBeenCalledWith({ top: 0, behavior: 'instant' })
+    expect(within(screen.getByRole('navigation', { name: 'Primary navigation' })).getByRole('link', { name: 'Plan' }))
+      .toHaveAttribute('aria-current', 'location')
   })
 
-  it.each(['/investing', '/settings'])('renders no parent link in the page content for %s', (path) => {
+  it.each(['/plan', '/budgets', '/commitments', '/paychecks'])('renders one h1 and one Planning tools navigation, switcher first, on %s', (path) => {
     localStorage.setItem('token', 'synthetic-session')
     renderAt(path)
-    expect(document.querySelector('.mobile-parent-link')).toBeNull()
+    const main = screen.getByRole('main')
+    expect(within(main).getAllByRole('heading', { level: 1 })).toHaveLength(1)
+    const navs = within(main).getAllByRole('navigation', { name: 'Planning tools' })
+    expect(navs).toHaveLength(1)
+    const heading = within(main).getByRole('heading', { level: 1 })
+    expect(navs[0].compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(main.querySelector('.mobile-parent-link')).toBeNull()
+  })
+
+  it('opens /plan on Budgets with Budgets marked current in the switcher', () => {
+    localStorage.setItem('token', 'synthetic-session')
+    renderAt('/plan')
+    const switcher = screen.getByRole('navigation', { name: 'Planning tools' })
+    expect(screen.getByRole('heading', { level: 1, name: 'Budgets workspace' })).toBeInTheDocument()
+    expect(within(switcher).getByRole('link', { name: 'Budgets' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByTestId('location')).toHaveTextContent('/plan')
+  })
+
+  it('localizes the Plan switcher in Spanish', async () => {
+    localStorage.setItem('token', 'synthetic-session')
+    await i18n.changeLanguage('es')
+    renderAt('/plan')
+    const switcher = screen.getByRole('navigation', { name: 'Herramientas de planificación' })
+    expect(within(switcher).getByRole('link', { name: 'Presupuestos' })).toHaveAttribute('href', '/budgets')
+    expect(within(switcher).getByRole('link', { name: 'Compromisos' })).toHaveAttribute('href', '/commitments')
+    expect(within(switcher).getByRole('link', { name: 'Pagos de nómina' })).toHaveAttribute('href', '/paychecks')
+  })
+
+  it.each(['/overview', '/transactions', '/analytics', '/more', '/investing', '/settings'])('renders no Planning tools navigation for %s', (path) => {
+    localStorage.setItem('token', 'synthetic-session')
+    renderAt(path)
+    expect(screen.queryByRole('navigation', { name: 'Planning tools' })).not.toBeInTheDocument()
   })
 
   it('navigates hubs and history with main focus, and opens Settings from the Account menu', async () => {
@@ -236,6 +276,9 @@ describe('application routes and shell', () => {
     await user.click(within(mobile).getByRole('link', { name: 'Plan' }))
     expect(main).toHaveFocus()
     expect(window.scrollTo).toHaveBeenCalledWith({ top: 0, behavior: 'instant' })
+    expect(within(main).getByRole('heading', { name: 'Budgets workspace', level: 1 })).toBeInTheDocument()
+    expect(within(within(main).getByRole('navigation', { name: 'Planning tools' })).getByRole('link', { name: 'Budgets' }))
+      .toHaveAttribute('aria-current', 'page')
     window.scrollTo.mockClear()
     await user.click(within(main).getByRole('link', { name: /Paychecks/ }))
     expect(screen.getByTestId('location')).toHaveTextContent('/paychecks')
@@ -243,7 +286,7 @@ describe('application routes and shell', () => {
     expect(window.scrollTo).toHaveBeenCalledWith({ top: 0, behavior: 'instant' })
     window.scrollTo.mockClear()
     await user.click(screen.getByRole('button', { name: 'Test history back' }))
-    expect(within(main).getByRole('heading', { name: 'Plan', level: 1 })).toBeInTheDocument()
+    expect(within(main).getByRole('heading', { name: 'Budgets workspace', level: 1 })).toBeInTheDocument()
     expect(main).toHaveFocus()
     expect(window.scrollTo).toHaveBeenCalledWith({ top: 0, behavior: 'instant' })
     window.scrollTo.mockClear()
