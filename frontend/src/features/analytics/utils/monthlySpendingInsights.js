@@ -1,7 +1,7 @@
 import { formatLocalCalendarDate } from "../../expenses/utils/calendarDate";
 import { cashMonthLabel } from "./cashFlowPresentation";
 import {
-  compareCents, decimalFromCents, parseBudgetLimit, parseExactMoney,
+  compareCents, decimalFromCents,
   parseExpenseAmount, percentageFromRatio,
 } from "../../expenses/utils/exactMoney";
 
@@ -139,32 +139,4 @@ export function buildMonthlySpendingInsights(expenses, selectedMonth, now = new 
     largestExpensesAvailable,
     largestExpenses,
   };
-}
-
-export function buildBudgetStatuses(budgetLimits, totalsByCategory) {
-  return (budgetLimits ?? []).map((limit) => {
-    const spent = parseExactMoney(
-      totalsByCategory?.[limit.category] === undefined ? "0.00" : totalsByCategory[limit.category],
-      { allowZero: true }
-    );
-    const limitAmount = parseBudgetLimit(limit.limitAmount);
-    if (!spent || !limitAmount) {
-      return { ...limit, available: false, spent: spent?.value ?? null, limitAmount: null,
-        percentage: null, status: "unavailable", remaining: null, over: null };
-    }
-    const isOver = spent.cents > limitAmount.cents;
-    const percentage = limitAmount.cents === 0n ? null : percentageFromRatio(spent.cents, limitAmount.cents);
-    const status = isOver ? "over budget"
-      : spent.cents * 100n >= limitAmount.cents * 90n && limitAmount.cents > 0n ? "near limit" : "on track";
-    const difference = isOver ? spent.cents - limitAmount.cents : limitAmount.cents - spent.cents;
-    return {
-      ...limit, available: true, spent: spent.value, limitAmount: limitAmount.value,
-      percentage: limitAmount.cents === 0n && spent.cents === 0n ? 0 : percentage, status,
-      remaining: isOver ? null : decimalFromCents(difference),
-      over: isOver ? decimalFromCents(difference) : null,
-    };
-  }).sort((left, right) => {
-    const priority = { "over budget": 0, "near limit": 1, "on track": 2, unavailable: 3 };
-    return priority[left.status] - priority[right.status] || compareCategoryNames(left.category, right.category);
-  });
 }
