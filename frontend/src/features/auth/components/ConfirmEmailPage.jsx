@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { authApi } from "../../../shared/api/authApi";
+import StatusMessage from "../../../shared/ui/StatusMessage";
 import { useTranslation } from "react-i18next";
 import AuthShell from "./AuthShell";
 
@@ -41,13 +42,9 @@ export default function ConfirmEmailPage() {
 
   return (
     <AuthShell title={t(`confirmEmail.${status}.title`)} focusKey={status}>
-      <p
-        className={`auth-status auth-status--${tone}`}
-        role={tone === "danger" ? "alert" : "status"}
-        aria-live={tone === "danger" ? "assertive" : "polite"}
-      >
+      <StatusMessage tone={tone} aria-live={tone === "danger" ? "assertive" : "polite"}>
         {t(`confirmEmail.${status}.message`)}
-      </p>
+      </StatusMessage>
 
       <div className="auth-actions auth-actions--secondary">
         <button

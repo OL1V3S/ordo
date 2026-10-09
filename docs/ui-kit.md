@@ -146,3 +146,11 @@ Used by Insights: `PeriodPicker` in `months` mode (current month, selected month
 recorded data), `StatusMessage`s in one `.analytics-status` area, flat cash-flow panels (no `.card`),
 and the More spending disclosures as `h3 > DisclosureButton` + adjacent `DisclosurePanel` with
 page-owned open state. Budget status is a link to Budgets only.
+
+Used by Settings, auth pages and Investing: `StatusMessage` passes extra props (`ref`, `tabIndex`,
+`aria-*`, `id`) and an optional `className` to its `<p>`, while `role` always follows `tone`
+(danger is `alert`, otherwise `status`). The auth pages use it for every status and error; the
+scoped `.auth-card .status-message` rule keeps `white-space: pre-line` (multi-descriptor errors),
+zero margin and `overflow-wrap: anywhere`. Settings uses flat named sections with `SectionHeader`
+(appearance, language, account `dl`). Investing uses `SectionHeader` plus `ListRow` (`titleAs="h3"`)
+in named regions.

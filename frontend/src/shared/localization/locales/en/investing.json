@@ -1,0 +1,29 @@
+{
+  "title": "Investing",
+  "description": "A future home for investment information from sources you may choose.",
+  "status": {
+    "label": "Unavailable today",
+    "title": "No investment source connected",
+    "body": "No portfolio, brokerage, signal provider, market-data source, or other investment integration is connected. No investment data is being fetched, imported, inferred, or evaluated."
+  },
+  "capabilities": {
+    "title": "Planned capability areas",
+    "status": "Not available",
+    "connections": {
+      "title": "Connections",
+      "body": "Future sources would require a source-specific adapter and a normalized application contract. No provider is supported today."
+    },
+    "portfolio": {
+      "title": "Portfolio and positions",
+      "body": "No portfolio values, holdings, or positions are available without a real source supplying them."
+    },
+    "signals": {
+      "title": "Signals",
+      "body": "No investment signals, recommendations, or trading guidance are generated."
+    },
+    "activity": {
+      "title": "Activity and performance",
+      "body": "No investment activity or performance information is available to report."
+    }
+  }
+}

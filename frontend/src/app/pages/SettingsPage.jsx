@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import LanguageControl from "../../shared/localization/LanguageControl";
-import Card from "../../shared/ui/Card";
+import SectionHeader from "../../shared/ui/SectionHeader";
 import ThemeControl from "../../shared/theme/ThemeControl";
 import "../../styles/secondary-pages.css";
 
@@ -16,20 +16,20 @@ export default function SettingsPage({ email }) {
       </header>
 
       <div className="settings-page__content">
-        <Card as="section" className="settings-page__appearance">
-          <h2 className="h2">{t("appearance.title", { ns: "settings" })}</h2>
+        <section className="settings-section settings-page__appearance" aria-labelledby="settings-appearance-heading">
+          <SectionHeader level={2} id="settings-appearance-heading" title={t("appearance.title", { ns: "settings" })} />
           <ThemeControl label={t("theme.preferenceLabel", { ns: "common" })} className="theme-control--settings" />
           <p className="muted settings-page__helper">{t("appearance.helper", { ns: "settings" })}</p>
-        </Card>
+        </section>
 
-        <Card as="section" className="settings-page__language">
-          <h2 className="h2">{t("language.title", { ns: "settings" })}</h2>
+        <section className="settings-section settings-page__language" aria-labelledby="settings-language-heading">
+          <SectionHeader level={2} id="settings-language-heading" title={t("language.title", { ns: "settings" })} />
           <LanguageControl className="language-control--settings" />
           <p className="muted settings-page__helper">{t("language.helper", { ns: "settings" })}</p>
-        </Card>
+        </section>
 
-        <section className="settings-page__account" aria-labelledby="settings-account-heading">
-          <h2 className="h2" id="settings-account-heading">{t("account.title", { ns: "settings" })}</h2>
+        <section className="settings-section settings-page__account" aria-labelledby="settings-account-heading">
+          <SectionHeader level={2} id="settings-account-heading" title={t("account.title", { ns: "settings" })} />
           <dl className="settings-page__account-row">
             <dt>{t("account.signedInEmail", { ns: "settings" })}</dt>
             <dd>{email}</dd>
