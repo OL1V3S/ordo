@@ -102,9 +102,3 @@
 .expense-edit-panel h2 { margin: 0; }
 .expense-edit-panel__fields { display: grid; gap: var(--space-3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); }
 .expense-edit-panel__fields input, .expense-edit-panel__fields select { max-width: 100%; min-width: 0; }
-.row-actions-menu { position: relative; }
-.row-actions-menu__trigger:focus-visible, .row-actions-menu__panel button:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 3px; }
-.row-actions-menu__panel { position: absolute; z-index: 30; inset-block-start: 100%; inset-inline-end: 0; display: grid; min-width: 9rem; gap: var(--space-2); padding: var(--space-2); border: 1px solid var(--color-border); border-radius: var(--overlay-radius); background: var(--color-surface-raised); box-shadow: var(--overlay-shadow); }
-@media (max-width: 400px) {
-  .row-actions-menu__panel { position: static; inset-inline-start: 0; margin-top: var(--space-2); }
-}
