@@ -118,14 +118,18 @@ displays backend ProblemDetails text.
 `frontend/src/features/activity/` owns the timeline API module, a session-scoped
 hook (request-id, abort, and session staleness guards; first page, load older,
 refresh resets to the first page), a timeline-specific response validator, and
-the presentation component. The Activity page renders it above Spending (no section
-navigation); the per-type lists, forms, gates, and write payloads are unchanged, so
-every record also appears in its per-type list. The Spending and Cash in lists sit in
-closed-by-default "Spending records" and "Cash-in records" disclosures that open
-automatically, and stay open, when an edit/delete task, a load error, an unknown or
-refresh gate, or write recovery needs them (the toggle is then aria-disabled with an
-explanatory hint). Loading and error lines, Refresh, task forms, and focus targets stay
-outside the collapsed bodies.
+the presentation component. The Activity page is one list plus one task area: a status area
+(feedback, load errors with Try again, Refresh activity and Refresh cash in, the cash-in
+disclaimer, which stays visible when idle), a "Current task" area (expense edit panel, Add
+expense, the cash-in task, statement import; today's locks are unchanged, so tasks stack as
+before) and the timeline. There are no Spending or Cash in sections, Records toggles, expense
+filters or per-type search. Read-only full per-type tables (all rows, no actions) appear only
+when needed: in the Home recovery region for the marked type; under "Check your records" while
+an in-page write is unconfirmed (expense `recoveryRequired`, or a cash unknown/refresh/missing
+gate), and for as long as the "refreshed, check the records" feedback shows; and, with the same
+row menu driven by the same adapter, as a fallback when the timeline fails to load (error with no
+rows, or malformed), so editing and deleting stay reachable. Write payloads, gates and the
+recovery acknowledgment are unchanged. The page heading (h1) is the last-resort focus target.
 
 - Filters: search is always visible; a Filters disclosure holds Period chips (All, Last 7
   days, Last 30 days, This month, Custom) and Type; From/To appear for Custom. The panel
@@ -146,16 +150,16 @@ outside the collapsed bodies.
   and vice versa. States are loading, ready, empty, initial failure
   with retry, failed refresh with the last rows kept, failed older-page load with
   an inline retry, and a malformed response.
-- Row actions: an optional `rowActions` prop adds Edit and Delete buttons per row
-  (accessible names state the type, description, date, and record id; expense Delete
-  uses the danger style, cash-in Delete the ghost style, as in the lists). They are
-  dispatched by `kind` (an expense and a cash in can share an id) to the existing
-  Spending edit, Spending delete (native confirm), and Cash in task handlers, so the
-  edit or confirmation opens in its per-type list (which opens automatically), with the same payloads and
-  guards. Enabled state mirrors the per-type lists; an expense whose amount needs
-  review can be deleted but not edited. Cancel returns focus to the timeline button
-  when it is still mounted, else to the Spending or Cash in heading. No timeline
-  write path exists, and the lists stay the source for drafts.
+- Row actions: an optional `rowActions` prop adds one "..." overflow trigger per row ("Actions
+  for expense|cash in {description} from {date}, record {id}"), a non-modal disclosure popover (not an
+  ARIA menu; no focus trap) like the account menu. It holds Edit and Delete with unchanged
+  accessible names (type, description, date, record id; expense Delete danger, cash-in Delete
+  ghost). It closes on Escape (focus to the trigger), outside pointerdown, or focus leaving it, and
+  the trigger is disabled when both actions are. Choosing an item focuses the trigger first, then
+  dispatches by `kind` to the existing expense edit, expense delete (native confirm kept) and cash
+  task handlers with the trigger as opener; payloads and guards are unchanged. An expense whose
+  amount needs review can be deleted but not edited. Cancel returns focus to the trigger when it
+  is connected and enabled, else to the page heading. No timeline write path exists.
 - An expense update or delete answered with 404 shows "This expense is no longer
   available", closes any open inline edit, moves focus to the feedback region, and
   keeps writes blocked until the Spending list is refreshed. Create flows (including
@@ -183,8 +187,8 @@ dates in both languages. See [`localization.md`](localization.md).
 
 ## Non-goals
 
-In-place timeline editing or menus, merging the per-type lists, concurrent-edit detection, a category filter, numbered pages, day grouping,
-replacing the per-type lists, totals, net, balance, reconciliation, Safe-to-Spend,
+In-place timeline editing, concurrent-edit detection, a category filter on the timeline (the former expense category dropdown and per-type search were removed by owner decision), numbered pages, day grouping,
+totals, net, balance, reconciliation, Safe-to-Spend,
 import redesign, and any change to Home's UI. The only existing-endpoint change is
 that `GET /api/expenses` now guarantees date-descending, id-descending order. Any of
 the financial figures would be a financial-semantics change requiring renewed
