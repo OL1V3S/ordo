@@ -24,6 +24,13 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-09 — Design token foundation
+
+[Issue #199](https://github.com/OL1V3S/ordo/issues/199)
+
+- Colors, radii, type, weights and spacing now come from tiered design tokens; each theme color is written once and a CSS-only mode switch serves light, dark and system dark (see [docs/design-tokens.md](docs/design-tokens.md)).
+- Visual: flat opaque cards, no button hover lift or body gradient, no page bar/bottom nav shadows, 6/8/12px radii, smaller headings, 700 max font weight (except statement import), system font. A lint test blocks new raw literals.
+
 ### 2026-10-08 — Visual hygiene fixes (warning style, dark divider, tokens)
 
 [PR #198](https://github.com/OL1V3S/ordo/pull/198) ·
@@ -259,15 +266,3 @@ the permanent, complete archive.
   keeping linked inflows single and owner-scoped.
 - Added explicit partial-availability metadata and empty attention coverage on
   independent read-only snapshots without changing financial semantics.
-
-### 2026-09-22 — Exact Expense precision across browser boundaries
-
-[PR #152](https://github.com/OL1V3S/ordo/pull/152) ·
-[Issue #151](https://github.com/OL1V3S/ordo/issues/151)
-
-- Encoded Expense request and response amounts as canonical decimal strings,
-  while retaining compatible legacy numeric requests and the existing full monetary range.
-- Kept Expense entry, editing, aggregation, ordering, display, and selected
-  Expense-derived commitment evidence exact with integer minor-unit arithmetic.
-- Made ambiguous legacy Expense and BudgetLimit numbers fail closed instead of
-  driving approximate edits, commitment decisions, budget classifications, or attention.
