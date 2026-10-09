@@ -24,6 +24,13 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-09 — Plan hub
+
+[Issue #205](https://github.com/OL1V3S/ordo/issues/205)
+
+- Plan now opens on Budgets, and a Budgets / Commitments / Paychecks switcher at the top of each planning page moves between them; each page keeps its own address.
+- Replaced the Plan link list and the compact back-to-Plan link; `/plan` now performs the Budgets page's existing reads.
+
 ### 2026-10-09 — Navigation shell
 
 [PR #204](https://github.com/OL1V3S/ordo/pull/204) ·
@@ -250,15 +257,3 @@ the permanent, complete archive.
   Commitments decision workflow.
 - Kept Home attention independently available, privacy-minimal, bilingual, and
   read-only, with a compact two-group presentation and explicit review focus.
-
-### 2026-09-25 — Coming Up paycheck expectations
-
-[PR #158](https://github.com/OL1V3S/ordo/pull/158) ·
-[Issue #157](https://github.com/OL1V3S/ordo/issues/157)
-
-- Added a quiet Home Coming Up section for up to two backend-ranked paycheck
-  expectations with exact fixed or range amounts and localized expected dates.
-- Kept projections distinct from recorded activity and made malformed or
-  unavailable Upcoming data fail closed without hiding valid Recent Activity.
-- Added English and Spanish copy, accessible responsive presentation, and
-  focused tests without adding Home network requests or changing the API.

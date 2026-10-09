@@ -78,7 +78,7 @@ silently treating every detected pattern as a financial fact.
 - **Settings and account access:** Choose a System, Light, or Dark theme and an
   English or Spanish interface preference for this browser, then view your
   signed-in email in a compact account section. The language preference updates
-  the authenticated shell, primary navigation, Account menu, Plan hub, Settings, and
+  the authenticated shell, primary navigation, Account menu, Settings, and
   the Home, Activity, Statement import, Budgets, Insights, Commitments, and Paychecks
   pages and the public account-access pages (a language selector is also available
   before sign-in); the unavailable Investing placeholder page remains English during
@@ -91,7 +91,9 @@ silently treating every detected pattern as a financial fact.
 Navigation has four destinations everywhere: Home, Activity, Plan, and
 Insights. They appear as a bottom bar on phones, a labelled side rail on
 tablets, and a sidebar on desktop, where Plan also lists Budgets, Commitments,
-and Paychecks. The Account menu holds Settings, the explicitly unavailable
+and Paychecks. Plan opens on Budgets, and a Budgets / Commitments / Paychecks
+switcher at the top of each planning page moves between them; each keeps its
+own address, and on phones it replaces the back-to-Plan link. The Account menu holds Settings, the explicitly unavailable
 Investing placeholder, theme and language choices, and sign out. The older More
 page still works if opened by its address, but the app no longer links to it.
 Details and history expand on demand, while active tasks, errors, and review
