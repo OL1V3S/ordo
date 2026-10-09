@@ -43,8 +43,6 @@
   --color-accent-hover: var(--if-light, var(--periwinkle-700)) var(--if-dark, var(--periwinkle-200));
   --color-on-accent: var(--if-light, var(--ivory-0)) var(--if-dark, var(--midnight-950));
   --color-amount-in: var(--if-light, var(--green-700)) var(--if-dark, var(--green-300));
-  --color-secondary: var(--if-light, var(--periwinkle-gray-600)) var(--if-dark, var(--periwinkle-gray-300));
-  --color-secondary-soft: var(--if-light, var(--periwinkle-75)) var(--if-dark, var(--midnight-700));
   --color-disabled-text: var(--if-light, var(--periwinkle-gray-600)) var(--if-dark, var(--periwinkle-gray-300));
   --color-disabled-surface: var(--if-light, var(--periwinkle-75)) var(--if-dark, var(--midnight-700));
   --color-disabled-border: var(--if-light, var(--ink-400)) var(--if-dark, var(--midnight-500));
@@ -70,10 +68,8 @@
   --color-danger-hover: color-mix(in srgb, var(--color-danger) 82%, var(--black));
 
   /* Shadows: overlays only; cards are flat. */
-  --shadow-sm: var(--if-light, 0 1px 2px rgb(var(--shadow-ink) / 5%)) var(--if-dark, 0 1px 2px rgb(var(--shadow-black) / 22%));
   --shadow-overlay: var(--if-light, 0 5px 14px rgb(var(--shadow-ink) / 7%)) var(--if-dark, 0 14px 34px rgb(var(--shadow-black) / 28%));
   --shadow-md: var(--shadow-overlay);
-  --shadow-lg: var(--if-light, 0 12px 28px rgb(var(--shadow-ink) / 10%)) var(--if-dark, 0 28px 70px rgb(var(--shadow-black) / 36%));
   --overlay-shadow: var(--shadow-overlay);
 
   /* Component tokens that depend on color. */

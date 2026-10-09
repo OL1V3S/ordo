@@ -13,6 +13,7 @@ import { cadenceLabel, evidenceRuleLabel, formatDate, formatDerivedMoney, format
 import groupCommitmentChanges from "../utils/groupCommitmentChanges";
 import { displayText } from "../../../utils/text";
 import { useLocation } from "react-router-dom";
+import "../../../styles/commitments.css";
 
 function timingSummary(model, t) {
   const window = {

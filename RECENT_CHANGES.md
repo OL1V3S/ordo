@@ -24,6 +24,14 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-09 — CSS cleanup and architecture
+
+[PR #220](https://github.com/OL1V3S/ordo/pull/220) ·
+[Issue #219](https://github.com/OL1V3S/ordo/issues/219)
+
+- Removed dead CSS (pre-V2 Home, navigation hub, settings and import-card rules), redundant `box-shadow`/`transform: none` overrides, nine unused design tokens, an unused `saved.timingPattern` string and the unused `buildBudgetStatuses` helper; split `components.css` into page-owned `analytics.css`, `commitments.css` and `import-preview.css` and documented the CSS architecture in `docs/design-tokens.md`.
+- The only visible change is spacing between Investing capability list items; no behaviour, markup, API or dependency changes.
+
 ### 2026-10-09 — Settings, auth pages and Investing redesign
 
 [PR #218](https://github.com/OL1V3S/ordo/pull/218) ·
@@ -210,17 +218,3 @@ the permanent, complete archive.
   calculation, comparisons, which month or date each label refers to, payloads,
   and focus behavior are unchanged; `$` amounts, percentages, and numeric
   expense dates keep their existing form in both languages.
-
-### 2026-10-04 — Spanish Budgets page
-
-[PR #179](https://github.com/OL1V3S/ordo/pull/179) ·
-[Issue #178](https://github.com/OL1V3S/ordo/issues/178)
-
-- Localized the Budgets page (headings, month and category form, validation,
-  feedback, loading, error, and empty states, budget status labels, progress
-  text, accessible names, and the delete confirmation) in English and Spanish
-  through a new `budgets` catalog namespace.
-- Spanish keeps a budget limit (`límite`, `monto límite`) distinct from recorded
-  spending (`gasto`, `gastos registrados`, `usado`). English wording,
-  budget-limit validation and calculation, payloads, focus behavior, and money
-  and month display are unchanged.

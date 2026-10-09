@@ -21,6 +21,7 @@ import ActivityTimeline from "../../activity/components/ActivityTimeline";
 import TaskArea from "../../../shared/ui/TaskArea";
 import { parseExpenseAmount } from "../../expenses/utils/exactMoney";
 import StatusMessage from "../../../shared/ui/StatusMessage";
+import "../../../styles/import-preview.css";
 import "../../../styles/activity.css";
 import "../../../styles/inflows.css";
 

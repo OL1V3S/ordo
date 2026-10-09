@@ -107,7 +107,6 @@
     "emptyNone": "Aún no hay compromisos confirmados.",
     "emptyNoActive": "No hay compromisos activos.",
     "expectedAmount": "Monto previsto",
-    "timingPattern": "Patrón de fechas guardado",
     "details": "Detalles",
     "detailsLabel": "Detalles de {{name}}",
     "recordsUsed": "Registros usados para confirmar",

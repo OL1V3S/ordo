@@ -107,7 +107,6 @@
     "emptyNone": "No commitments confirmed yet.",
     "emptyNoActive": "No active commitments.",
     "expectedAmount": "Expected amount",
-    "timingPattern": "Saved timing pattern",
     "details": "Details",
     "detailsLabel": "Details for {{name}}",
     "recordsUsed": "Records used to confirm",

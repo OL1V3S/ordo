@@ -16,13 +16,13 @@ Shared components built on these tokens are documented in [ui-kit.md](ui-kit.md)
    colors (`danger`, `warning`, `success`, `info`, each with `-soft`), `--chart-*`,
    `--shadow-overlay`.
 3. **Component tokens** (`tokens.css`, `themes.css`): `--card-*`, `--control-*`,
-   `--focus-ring-*`, `--size-touch-target`, `--row-padding-block`, `--table-cell-*`, ...
+   `--focus-ring-*`, `--size-touch-target`, `--table-cell-*`, ...
 
 New and migrated CSS uses the semantic names. Legacy aliases keep unmigrated rules
 working: `--color-bg` (canvas), `-bg-accent` (accent-subtle), `-surface-subtle`
 (surface-sunken), `-divider` (border-subtle), `-control-border` (border-strong),
 `-placeholder` (text-placeholder), `-primary`, `-primary-hover`, `-on-primary`
-(accent family), `--shadow-sm/md/lg` (`--shadow-md` equals `--shadow-overlay`).
+(accent family), `--shadow-md` (equals `--shadow-overlay`).
 
 ## Mode switch (do not break)
 
@@ -39,7 +39,7 @@ computed values with surrounding whitespace and `.trim()` them.
 
 ## Scales
 
-- Radius: xs 4px, sm 6px, md 8px, lg 12px, xl 16px, pill. Cards use `--card-radius`.
+- Radius: xs 4px, sm 6px, md 8px, lg 12px, pill. Cards use `--card-radius`.
 - Type: xs .75, sm .875, base 1, lg 1.2, xl 1.44, 2xl 1.75, 3xl 2.125rem, display fluid.
 - Weight: regular 400, medium 500, semibold 600, bold 700 (nothing heavier).
 - Spacing: `--space-1` .25rem through `--space-8` 4rem.
@@ -52,6 +52,28 @@ computed values with surrounding whitespace and `.trim()` them.
 Cards are flat: opaque `--color-surface`, 1px `--color-border`, `--card-shadow: none`.
 Only overlays (menus) use `--shadow-overlay`. Buttons do not lift on hover; transitions
 cover background, border and color only. Reduced motion is respected globally.
+
+## CSS architecture and load order
+
+`src/index.css` imports the global sheets in this order: `tokens.css`, `themes.css`,
+`globals.css`, `layout.css`, `components.css` (shared primitives, shell navigation,
+buttons, the shared 520px tail rule), `ui-kit.css`, `paychecks.css`. Page-owned
+sheets are imported by the component that owns them, so they load after every global
+sheet, in import order (children before the importing page):
+
+- `analytics.css` by `AnalyticsPage.jsx`, `commitments.css` by `CommitmentsPage.jsx`
+- `import-preview.css`, `activity.css`, `inflows.css` by `TransactionsPage.jsx` (in that
+  order); `inflows.css` also by `PaychecksPage.jsx`
+- `budgets.css` by `BudgetsPage.jsx`, `home-capture.css` by `OverviewPage.jsx`,
+  `secondary-pages.css` by Settings, Investing and More, `plan-switcher.css` by `PlanLayout.jsx`
+
+Rule of thumb: moving a rule into a page-owned sheet moves it later in the cascade.
+Before moving or splitting a sheet, check equal-specificity rules on the same element
+and property (for example `.budget-row--warning` stays in `components.css` because it
+ties with `.ui-list-row` in `ui-kit.css`). Keep feature selectors scoped under the
+feature's own root class, and delete a selector when its class has no consumer in
+`src` (dynamic `prefix-${x}` class names count as consumers). The no-literals
+allowlist is keyed by the file that contains the declaration.
 
 ## No-literals rule and allowlist
 

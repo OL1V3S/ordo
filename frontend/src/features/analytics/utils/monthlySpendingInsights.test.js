@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  buildBudgetStatuses,
   buildMonthlySpendingInsights,
   getAvailableMonths,
   getPreviousMonth,
@@ -80,37 +79,5 @@ describe("monthly spending insights", () => {
     expect(result.decreases).toEqual([]);
     expect(result.largestExpensesAvailable).toBe(false);
     expect(result.largestExpenses).toEqual([]);
-  });
-});
-
-describe("budget status", () => {
-  it("uses the approved status threshold and uncapped percentage", () => {
-    const statuses = buildBudgetStatuses([
-      { id: 1, category: "over", limitAmount: 100 },
-      { id: 2, category: "near", limitAmount: 100 },
-      { id: 3, category: "track", limitAmount: 100 },
-    ], { over: 125, near: 90, track: 20 });
-    expect(statuses.map(({ category, status }) => ({ category, status }))).toEqual([
-      { category: "over", status: "over budget" },
-      { category: "near", status: "near limit" },
-      { category: "track", status: "on track" },
-    ]);
-    expect(statuses[0]).toMatchObject({ percentage: 125, over: "25.00", remaining: null });
-  });
-
-  it("implements the approved zero-dollar limit presentation", () => {
-    const statuses = buildBudgetStatuses([
-      { id: 1, category: "spent", limitAmount: 0 },
-      { id: 2, category: "empty", limitAmount: 0 },
-    ], { spent: 12 });
-    expect(statuses[0]).toMatchObject({ category: "spent", status: "over budget", percentage: null, over: "12.00" });
-    expect(statuses[1]).toMatchObject({ category: "empty", status: "on track", percentage: 0, remaining: "0.00" });
-  });
-
-  it("fails closed instead of classifying an unsafe BudgetLimit number", () => {
-    const [status] = buildBudgetStatuses([
-      { id: 1, category: "food", limitAmount: Number("9999999999999999") },
-    ], { food: "90.00" });
-    expect(status).toMatchObject({ available: false, status: "unavailable", percentage: null, over: null, remaining: null });
   });
 });
