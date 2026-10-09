@@ -8,8 +8,8 @@
 :root,
 :root[data-theme="light"] {
   color-scheme: light;
-  --if-light: initial;
   --if-dark: ;
+  --if-light: initial;
 }
 
 :root[data-theme="dark"] {

@@ -4,7 +4,7 @@
 .budget-workspace > *, .budgets-page .page-header > * { min-width: 0; }
 .budget-workspace [hidden] { display: none !important; }
 .budget-workspace h2, .budget-workspace h3, .budget-workspace p { overflow-wrap: anywhere; }
-.budget-workspace button { min-height: 44px; max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+.budget-workspace button { min-height: var(--size-touch-target); max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
 .budget-toolbar, .budget-section-header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: var(--space-4); }
 .budget-toolbar > .field { width: min(100%, 16rem); }
 .budget-toolbar input { min-width: 0; max-width: 100%; }
@@ -23,7 +23,7 @@
 .budget-card--warning { border-color: var(--color-warning); }
 .budget-card__header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--space-2); }
 .budget-card__header h3 { margin: 0; }
-.budget-card__status { font-size: var(--text-sm); font-weight: 700; color: var(--color-text-muted); }
+.budget-card__status { font-size: var(--text-sm); font-weight: var(--weight-bold); color: var(--color-text-muted); }
 .budget-card--warning .budget-card__status { color: var(--color-warning); }
 .budget-card__amounts { margin: 0; font-variant-numeric: tabular-nums; }
 .budget-card__amounts strong { font-size: var(--text-2xl); }
@@ -37,7 +37,7 @@
 .budget-card--warning progress::-moz-progress-bar { background: var(--color-warning); }
 .budget-card__note { margin: 0; font-size: var(--text-sm); }
 .budget-explanation { border-top: 1px solid var(--color-border); }
-.budget-explanation summary { min-height: 44px; padding-block: var(--space-3); cursor: pointer; overflow-wrap: anywhere; }
+.budget-explanation summary { min-height: var(--size-touch-target); padding-block: var(--space-3); cursor: pointer; overflow-wrap: anywhere; }
 .budget-explanation summary:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 3px; }
 .budget-explanation p { color: var(--color-text-muted); }
 @media (max-width: 520px) {

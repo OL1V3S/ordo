@@ -10,17 +10,17 @@
 .paycheck-section h2 { margin-bottom: var(--space-2); }
 .paycheck-section header p { margin-bottom: 0; }
 .paycheck-evaluated { min-width: 0; padding-top: var(--space-1); color: var(--color-text-muted); font-size: var(--text-sm); overflow-wrap: anywhere; }
-.paycheck-group__label { display: flex; gap: var(--space-2); align-items: center; margin: var(--space-2) 0 0; font-weight: 800; }
+.paycheck-group__label { display: flex; gap: var(--space-2); align-items: center; margin: var(--space-2) 0 0; font-weight: var(--weight-bold); }
 .paycheck-group__label span { display: inline-grid; place-items: center; min-width: 26px; min-height: 26px; border-radius: var(--radius-pill); background: var(--color-surface-raised); font-size: var(--text-sm); }
-.paycheck-card { display: grid; min-width: 0; gap: var(--space-4); box-shadow: var(--shadow-sm); }
+.paycheck-card { display: grid; min-width: 0; gap: var(--space-4); }
 .paycheck-card--active { border-left: 3px solid var(--color-primary); }
 .paycheck-card__header { display: flex; align-items: start; justify-content: space-between; gap: var(--space-4); }
 .paycheck-card__header > div { min-width: 0; }
 .paycheck-card h3, .paycheck-card p, .paycheck-card dd { overflow-wrap: anywhere; }
 .paycheck-card h3 { margin-bottom: var(--space-2); font-size: var(--text-xl); }
-.paycheck-eyebrow { margin: 0 0 var(--space-2); color: var(--color-text-muted); font-size: var(--text-xs); letter-spacing: .06em; text-transform: uppercase; font-weight: 800; }
-.paycheck-status { margin: 0 0 var(--space-1); color: var(--color-text-muted); font-size: var(--text-sm); font-weight: 700; }
-.paycheck-candidate-count { margin: 0; color: var(--color-text-muted); font-size: var(--text-sm); font-weight: 700; }
+.paycheck-eyebrow { margin: 0 0 var(--space-2); color: var(--color-text-muted); font-size: var(--text-xs); letter-spacing: .06em; text-transform: uppercase; font-weight: var(--weight-bold); }
+.paycheck-status { margin: 0 0 var(--space-1); color: var(--color-text-muted); font-size: var(--text-sm); font-weight: var(--weight-bold); }
+.paycheck-candidate-count { margin: 0; color: var(--color-text-muted); font-size: var(--text-sm); font-weight: var(--weight-bold); }
 .paycheck-card__amount { display: grid; min-width: 0; max-width: 50%; gap: var(--space-1); flex: 0 1 auto; text-align: right; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .paycheck-card__amount span { color: var(--color-text-muted); font-size: var(--text-xs); }
 .paycheck-card__amount strong { min-width: 0; font-variant-numeric: tabular-nums; font-size: var(--text-xl); overflow-wrap: anywhere; }
@@ -31,34 +31,34 @@
 .paycheck-projection { min-width: 0; padding: var(--space-2) 0 var(--space-2) var(--space-3); border-left: 2px solid color-mix(in srgb, var(--color-primary) 45%, var(--color-border)); }
 .paycheck-projection p { margin-bottom: var(--space-2); }
 .paycheck-projection p:last-child { margin: 0; font-size: var(--text-sm); }
-.paycheck-projection__date { font-size: var(--text-xl); font-weight: 800; font-variant-numeric: tabular-nums; }
+.paycheck-projection__date { font-size: var(--text-xl); font-weight: var(--weight-bold); font-variant-numeric: tabular-nums; }
 .paycheck-inactive { padding: var(--space-3); margin: 0; border: 1px solid var(--color-divider); color: var(--color-text-muted); border-radius: var(--radius-sm); }
 .paycheck-details { min-width: 0; border-top: 1px solid var(--color-divider); }
-.paycheck-details > summary { width: fit-content; max-width: 100%; padding-inline: var(--space-1); border-radius: var(--radius-sm); color: var(--color-primary); font-weight: 700; overflow-wrap: anywhere; }
+.paycheck-details > summary { width: fit-content; max-width: 100%; padding-inline: var(--space-1); border-radius: var(--radius-sm); color: var(--color-primary); font-weight: var(--weight-bold); overflow-wrap: anywhere; }
 .paycheck-details > summary::marker { color: var(--color-primary); }
 .paycheck-details[open] > summary { margin-bottom: var(--space-3); }
 .paycheck-details > .paycheck-facts { margin-bottom: var(--space-3); }
 .paycheck-evidence { min-width: 0; border-block: 1px solid var(--color-divider); padding-block: var(--space-3); }
-.paycheck-evidence summary { width: fit-content; max-width: 100%; min-height: 44px; cursor: pointer; font-weight: 700; }
+.paycheck-evidence summary { width: fit-content; max-width: 100%; min-height: var(--size-touch-target); cursor: pointer; font-weight: var(--weight-bold); }
 .paycheck-evidence--inline { border-block: 0; padding-block: 0; }
 .paycheck-evidence__list { display: grid; gap: var(--space-3); margin: var(--space-3) 0 0; padding: 0; list-style: none; }
 .paycheck-evidence__row { display: flex; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) 0; border-top: 1px solid var(--color-divider); overflow-wrap: anywhere; }
 .paycheck-evidence__row > div { display: grid; min-width: 0; gap: var(--space-1); }
 .paycheck-evidence__row span { color: var(--color-text-muted); font-size: var(--text-sm); }
 .paycheck-evidence__row > strong { min-width: 0; flex: 0 1 auto; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
-.paycheck-evidence__row .paycheck-evidence__edited { color: var(--color-text); font-weight: 700; }
+.paycheck-evidence__row .paycheck-evidence__edited { color: var(--color-text); font-weight: var(--weight-bold); }
 .paycheck-actions { min-width: 0; flex-wrap: wrap; }
 .paycheck-schedule-note { margin: 0; font-size: var(--text-sm); }
 .paycheck-receipt { display: grid; gap: var(--space-3); margin-top: var(--space-3); padding-top: var(--space-3); border-top: 1px solid var(--color-divider); }
 .paycheck-receipt fieldset { display: grid; gap: var(--space-2); margin: 0; padding: 0; border: 0; }
-.paycheck-receipt fieldset label { display: flex; align-items: center; gap: var(--space-2); min-height: 44px; }
+.paycheck-receipt fieldset label { display: flex; align-items: center; gap: var(--space-2); min-height: var(--size-touch-target); }
 .paycheck-receipt__existing { display: grid; gap: var(--space-3); }
 .paycheck-history { min-width: 0; border-top: 1px solid var(--color-divider); }
 .paycheck-history > summary { width: 100%; padding: var(--space-3) var(--space-2); border-radius: var(--radius-sm); overflow-wrap: anywhere; }
 .paycheck-history > summary::marker { color: var(--color-primary); }
 .paycheck-history > summary:hover { background: var(--color-surface-subtle); }
 .paycheck-history > summary h2 { display: inline; margin: 0; font-size: var(--text-lg); }
-.paycheck-history > summary span { margin-left: var(--space-2); color: var(--color-text-muted); font-size: var(--text-sm); font-weight: 700; }
+.paycheck-history > summary span { margin-left: var(--space-2); color: var(--color-text-muted); font-size: var(--text-sm); font-weight: var(--weight-bold); }
 .paycheck-history > summary[aria-disabled="true"] { cursor: default; color: var(--color-text-muted); }
 .paycheck-history__content { display: grid; min-width: 0; gap: var(--space-4); padding-top: var(--space-3); }
 .paycheck-history-note { margin: 0; padding: var(--space-3); border-left: 2px solid var(--color-border); color: var(--color-text-muted); font-size: var(--text-sm); overflow-wrap: anywhere; }
