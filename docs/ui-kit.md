@@ -33,7 +33,9 @@ Hidden content: kit panels set `[hidden] { display: none !important }`, so a
 - **SectionHeader**: heading (`level`, `id`, `headingRef`, `focusable` for
   `tabIndex=-1`) plus at most one `action` node, inside a wrapper div.
 - **ListRow**: `li` with `label`, `title`, `meta`, `amount` (tabular numerals) and
-  optional `actions` (omitted when falsy). Mobile stacking uses the legacy 400px
+  optional `actions` (omitted when falsy). The amount box is also omitted when
+  `amount` is null/undefined, and extra props (such as `aria-label`) are passed to the
+  `li` without overriding its computed class. Mobile stacking uses the legacy 400px
   breakpoint to stay pixel-identical; normalize with the breakpoint pass.
 - **EmptyState**: `inline` (muted paragraph) or `block` (`.empty-state` with
   optional title and action). No role.
@@ -47,6 +49,12 @@ Hidden content: kit panels set `[hidden] { display: none !important }`, so a
 Used by Activity: `TaskArea` (the single "Current task" area, with `autoFocus={false}` because each task owns its focus; the prop defaults to true), `DisclosureButton`,
 `FilterBar`, `StatusStrip` (live notice and filter status), `SectionHeader`
 (timeline heading), `ListRow`, inline `EmptyState`.
+
+Used by Home: `SectionHeader` (Needs Attention, Recent activity, Coming Up), `ListRow`
+for all three lists (Coming Up rows carry their own `aria-label`), and `DisclosureButton`
+with `useForcedOpen` as the mobile-only "Add" entry (forced open and described while a
+capture form is active so the opener buttons are never hidden). The composed `Disclosure`
+remains unadopted.
 
 Built but not yet adopted, verified by unit tests only:
 `useFocusReturn`, the composed `Disclosure`, `StatusStrip` `action`/`limit`/

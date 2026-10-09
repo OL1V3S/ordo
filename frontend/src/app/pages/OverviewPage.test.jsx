@@ -80,8 +80,8 @@ describe("capture-first Home", () => {
     expect(screen.getByRole("heading", { name: "Needs Attention" })).toBeInTheDocument();
     expect(screen.getByText("No upcoming paycheck expectations to show.")).toBeInTheDocument();
     const headingOrder = screen.getAllByRole("heading").map((heading) => heading.textContent);
-    expect(headingOrder.indexOf("Capture")).toBeLessThan(headingOrder.indexOf("Recent activity"));
-    expect(headingOrder.indexOf("Capture")).toBeLessThan(headingOrder.indexOf("Needs Attention"));
+    const captureRegion = screen.getByRole("region", { name: "Capture" });
+    expect(captureRegion.compareDocumentPosition(screen.getByRole("region", { name: "Needs Attention" })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(headingOrder.indexOf("Needs Attention")).toBeLessThan(headingOrder.indexOf("Recent activity"));
     expect(headingOrder.indexOf("Recent activity")).toBeLessThan(headingOrder.indexOf("Coming Up"));
     expect(paychecksApi.getPaychecks).not.toHaveBeenCalled();
@@ -229,10 +229,11 @@ describe("capture-first Home", () => {
     expect(items).toHaveLength(2);
     expect(items[0]).toHaveAccessibleName(/Primary paycheck.*Expected amount: \$9,999,999,999,999,999\.99/);
     expect(items[0]).toHaveTextContent("Expected window Sep 11, 2026–Sep 13, 2026");
-    expect(items[0]).toHaveTextContent("Cadence: Every two weeks");
+    expect(items[0]).toHaveTextContent("Every two weeks");
+    expect(items[0]).toHaveAccessibleName(/Cadence: Every two weeks/);
     expect(items[1]).toHaveAccessibleName(/Second paycheck.*Expected range: \$1,234\.56–\$1,234\.57/);
     expect(items[1]).toHaveTextContent("Expected window Sep 9, 2026–Sep 12, 2026");
-    expect(items[1]).toHaveTextContent("Cadence: Monthly");
+    expect(items[1]).toHaveTextContent("Monthly");
     expect(screen.getByRole("link", { name: "View paychecks" })).toHaveAttribute("href", "/paychecks");
     expect(homeApi.getHome).toHaveBeenCalledTimes(1);
     expect(paychecksApi.getPaychecks).not.toHaveBeenCalled();
@@ -303,7 +304,7 @@ describe("capture-first Home", () => {
     renderPage();
     const list = await screen.findByRole("list", { name: "Previsiones de pagos de nómina" });
     expect(screen.getByRole("heading", { name: "Próximos pagos de nómina" })).toBeInTheDocument();
-    expect(within(list).getByText("Monto previsto: $9,999,999,999,999,999.99")).toBeInTheDocument();
+    expect(within(list).getByText("$9,999,999,999,999,999.99")).toBeInTheDocument();
     expect(within(list).getByText("Previsto para el 12 sept 2026")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Ver pagos de nómina" })).toHaveAttribute("href", "/paychecks");
     expect(within(list).getByRole("listitem")).toHaveAccessibleName(/Primary paycheck.*Monto previsto/);
@@ -429,5 +430,95 @@ describe("capture-first Home", () => {
     expect(await screen.findByText(/Cash in saved\. Home activity could not be refreshed/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Add expense" })).toBeDisabled();
     expect(sessionStorage.length).toBe(0);
+  });
+
+  it("has one h1, no intro or Capture heading, and a labelled Capture region", async () => {
+    renderPage();
+    await screen.findByText("Cash deposit");
+    expect(screen.getAllByRole("heading", { level: 1 }).map((h) => h.textContent)).toEqual(["Home"]);
+    expect(screen.queryByRole("heading", { name: "Capture" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Keep today’s money activity current.")).not.toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Capture" })).toBeInTheDocument();
+  });
+
+  it("exposes a single Add disclosure that toggles the expense-first options group", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    const toggle = screen.getByRole("button", { name: "Add" });
+    const group = document.getElementById("home-add-options");
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(toggle).toHaveAttribute("aria-controls", "home-add-options");
+    expect(group).toHaveAttribute("data-collapsed", "true");
+    const labels = within(group).getAllByRole("button").map((b) => b.textContent);
+    expect(labels).toEqual(["Add expense", "Add cash in"]);
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(group).not.toHaveAttribute("data-collapsed");
+    expect(toggle).toHaveFocus();
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(group).toHaveAttribute("data-collapsed", "true");
+  });
+
+  it("forces the Add group open while a capture is active and announces the lock once", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    const toggle = screen.getByRole("button", { name: "Add" });
+    await user.click(toggle);
+    await user.click(toggle);
+    const opener = screen.getByRole("button", { name: "Add cash in" });
+    await user.click(toggle);
+    await user.click(opener);
+    expect(toggle).toHaveAttribute("aria-disabled", "true");
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(toggle).toHaveAccessibleDescription("Finish or cancel the open capture before starting another.");
+    expect(screen.getAllByText("Finish or cancel the open capture before starting another.").filter((n) => n.classList.contains("sr-only"))).toHaveLength(1);
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(document.getElementById("home-add-options")).not.toHaveAttribute("data-collapsed");
+    const form = screen.getByRole("form", { name: "Add cash in" });
+    await user.click(within(form).getByRole("button", { name: "Cancel" }));
+    await waitFor(() => expect(opener).toHaveFocus());
+    expect(document.getElementById("home-add-options")).not.toHaveAttribute("data-collapsed");
+  });
+
+  it("shows only the value in Coming Up amounts and one compact meta line per row", async () => {
+    const second = projection({
+      paycheckProfileId: "c375a2a2-3f95-43b0-985e-a9360237b0b7", displayName: "Second paycheck", cadence: "monthly",
+      anchorDate: "2026-09-10", earliestExpectedDate: "2026-09-09", latestExpectedDate: "2026-09-12",
+      amount: { mode: "range", fixedAmount: null, minimumAmount: "1234.56", maximumAmount: "1234.57" },
+    });
+    homeApi.getHome.mockResolvedValue(response(home([], availableUpcoming([projection(), second]))));
+    renderPage();
+    const list = await screen.findByRole("list", { name: "Expected paycheck projections" });
+    const items = within(list).getAllByRole("listitem");
+    for (const item of items) expect(item.querySelectorAll(".ui-list-row__meta")).toHaveLength(1);
+    expect(items[0].querySelector(".ui-list-row__amount")).toHaveTextContent(/^\$9,999,999,999,999,999\.99$/);
+    expect(items[1].querySelector(".ui-list-row__amount")).toHaveTextContent(/^\$1,234\.56–\$1,234\.57$/);
+    expect(items[0].querySelector(".ui-list-row__meta")).toHaveTextContent("Every two weeks · Expected window Sep 11, 2026–Sep 13, 2026");
+    expect(list).not.toHaveTextContent("+");
+  });
+
+  it("localizes the Add entry and Capture region in Spanish", async () => {
+    await i18n.changeLanguage("es");
+    homeApi.getHome.mockResolvedValue(response(home([], availableUpcoming([projection()]))));
+    renderPage();
+    expect(screen.getByRole("button", { name: "Agregar" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Registrar" })).toBeInTheDocument();
+    const list = await screen.findByRole("list", { name: "Previsiones de pagos de nómina" });
+    expect(list).toHaveTextContent("Cada dos semanas");
+  });
+
+  it("renders the recovery heading as a level-2 heading", async () => {
+    const user = userEvent.setup();
+    expensesApi.create.mockRejectedValue(new Error("network outcome unknown"));
+    renderPage();
+    await user.click(screen.getByRole("button", { name: "Add expense" }));
+    await user.type(screen.getByLabelText("Description"), "Lunch");
+    await user.type(screen.getByLabelText("Amount"), "12.50");
+    await user.type(screen.getByLabelText("Date"), "2026-09-01");
+    await user.selectOptions(screen.getByLabelText("Category"), "food");
+    await user.click(screen.getByRole("button", { name: "Save expense" }));
+    expect(await screen.findByRole("heading", { level: 2, name: "Check the complete activity list" })).toBeInTheDocument();
   });
 });
