@@ -9,9 +9,8 @@ and Paychecks pages have since followed. The public account-access pages
 through the `auth` namespace. The unavailable Investing placeholder page remains
 English until a separately scoped adoption issue moves its complete copy into catalogs.
 The Activity page is localized through the `activity` namespace: the timeline, the
-Records disclosures, the page header and actions, the spending area (expense form,
-filters, list, and row editing), and the cash-in area (form, list, and delete
-confirmation), including their feedback and error messages. The statement import
+row actions menu, the page header and actions, the task area (expense form and edit panel, cash-in form and delete
+confirmation), and the read-only recovery tables, including their feedback and error messages. The statement import
 preview is localized through the `importPreview` namespace: the import panel, its
 rows, and the safe upload, confirmation, and row-warning messages that the hook
 maps from stable backend codes, so the import preview no longer stays English on
@@ -112,7 +111,7 @@ import/export them, but the runtime must not depend on a translation service.
   until formatters adopt the direction below. Row counts are count-aware messages;
   English keeps `N rows` (including `1 rows`) as before localization, and Spanish
   uses `1 fila` and `N filas`.
-- Activity spending and cash-in lists keep their existing `$` amounts and
+- Activity spending and cash-in tables keep their existing `$` amounts and
   `MM/DD/YYYY` dates in both languages until formatters adopt the direction below.
 - Paychecks messages are keyed by stable code (`feedback.errors.*`,
   `feedback.notices.*`, `form.errors.*`, `receipt.cashInErrors.*`) and never by raw

@@ -5,7 +5,8 @@
     "addCashIn": "Add cash in",
     "importStatement": "Import statement",
     "closeImport": "Close import",
-    "cashTaskLock": "Finish the cash-in task or its refresh check before starting an expense or import task."
+    "cashTaskLock": "Finish the cash-in task or its refresh check before starting an expense or import task.",
+    "taskArea": "Current task"
   },
   "timeline": {
     "heading": "Activity timeline",
@@ -17,7 +18,7 @@
     "unavailable": "We couldn’t load the activity timeline.",
     "malformed": "The activity timeline could not be verified, so it is hidden.",
     "refreshFailed": "The activity timeline could not be refreshed. Showing the records loaded earlier.",
-    "maybeStale": "The activity timeline may be out of date. Check the lists below before trying again.",
+    "maybeStale": "The activity timeline may be out of date. Check the records above before trying again.",
     "retry": "Try again",
     "showOlder": "Show older activity",
     "loadingMore": "Loading older activity…",
@@ -59,7 +60,9 @@
       "editExpense": "Edit expense {{description}} from {{date}}, record {{id}}",
       "deleteExpense": "Delete expense {{description}} from {{date}}, record {{id}}",
       "editCashIn": "Edit cash in {{description}} from {{date}}, record {{id}}",
-      "deleteCashIn": "Delete cash in {{description}} from {{date}}, record {{id}}"
+      "deleteCashIn": "Delete cash in {{description}} from {{date}}, record {{id}}",
+      "moreExpense": "Actions for expense {{description}} from {{date}}, record {{id}}",
+      "moreCashIn": "Actions for cash in {{description}} from {{date}}, record {{id}}"
     }
   },
   "categories": {
@@ -76,7 +79,6 @@
     "refreshing": "Refreshing expenses…",
     "loadError": "We couldn’t load your expenses.",
     "retry": "Try again",
-    "pinnedEdit": "Your open edit stays here while the list changes.",
     "deleteConfirm": "Delete this expense?",
     "feedback": {
       "unknown": "We couldn’t confirm the change. Refresh activity and check the records before trying again.",
@@ -88,9 +90,7 @@
       "updatedRefreshFailed": "Expense updated. Activity could not be refreshed. Refresh the list before making another change.",
       "deletedRefreshFailed": "Expense deleted. Activity could not be refreshed. Refresh the list before making another change.",
       "missing": "This expense is no longer available. Refresh spending activity before making another change."
-    },
-    "recordsToggle": "Spending records",
-    "recordsHint": "Kept open while a task, error or recovery needs it."
+    }
   },
   "expenseForm": {
     "title": "Add expense",
@@ -110,40 +110,10 @@
     "saving": "Saving…",
     "cancel": "Cancel"
   },
-  "expenseFilters": {
-    "searchLabel": "Search expenses",
-    "searchPlaceholder": "Search description or category...",
-    "clear": "Clear filters",
-    "activeFilters": "Active filters:",
-    "disclosure": "Filter by date or category",
-    "dateRange": "Date range",
-    "startDate": "Start date",
-    "endDate": "End date",
-    "category": "Category",
-    "allCategories": "All",
-    "dateOptions": {
-      "all": "All Time",
-      "last7": "Last 7 Days",
-      "last30": "Last 30 Days",
-      "thisMonth": "This Month",
-      "custom": "Custom Range"
-    },
-    "summary": {
-      "last7": "Last 7 days",
-      "last30": "Last 30 days",
-      "thisMonth": "This month",
-      "custom": "Custom range",
-      "customWithRange": "Custom range: {{range}}",
-      "search": "Search: “{{term}}”",
-      "category": "Category: {{category}}"
-    }
-  },
   "expenseList": {
-    "noMatches": "No expenses match these filters.",
     "none": "No expenses recorded yet.",
     "tableLabel": "Expenses table",
     "caption": "Expenses",
-    "showMore": "Show More",
     "columns": {
       "description": "Description",
       "amount": "Amount ($)",
@@ -163,11 +133,7 @@
     "categoryPlaceholder": "Category",
     "customCategoryPlaceholder": "Custom Category",
     "save": "Save",
-    "cancel": "Cancel",
-    "edit": "Edit",
-    "delete": "Delete",
-    "editLabel": "Edit expense {{description}} from {{date}}, row {{row}}",
-    "deleteLabel": "Delete expense {{description}} from {{date}}, row {{row}}"
+    "cancel": "Cancel"
   },
   "cashIn": {
     "heading": "Cash in",
@@ -175,11 +141,9 @@
     "intro": "Recorded incoming money, including transfers and refunds. A cash-in record is not automatically income or a paycheck.",
     "viewInsights": "View Insights",
     "checked": "I checked cash in",
-    "search": "Search cash in",
     "loading": "Loading cash in…",
     "refreshing": "Refreshing cash in…",
     "loadError": "We couldn’t load cash in. Refresh cash in to try again.",
-    "pinned": "Your open cash-in record stays visible while the list changes.",
     "targetMissing": "This entry is no longer in the current list. Cancel this task to choose another record.",
     "delete": {
       "heading": "Delete cash in: {{description}} ({{date}})?",
@@ -228,15 +192,9 @@
       "cancel": "Cancel"
     },
     "list": {
-      "noMatches": "No cash in matches this search.",
       "none": "No cash in recorded yet.",
       "tableLabel": "Cash in table",
       "caption": "Cash in",
-      "showAll": "Show all cash in",
-      "edit": "Edit",
-      "delete": "Delete",
-      "editLabel": "Edit cash in {{description}} from {{date}}, record {{id}}",
-      "deleteLabel": "Delete cash in {{description}} from {{date}}, record {{id}}",
       "amountReview": "Amount needs review",
       "unknownDate": "Unknown date",
       "columns": {
@@ -245,8 +203,15 @@
         "date": "Date",
         "actions": "Actions"
       }
-    },
-    "recordsToggle": "Cash-in records",
-    "recordsHint": "Kept open while a task, error or recovery needs it."
+    }
+  },
+  "expenseEdit": {
+    "title": "Edit expense"
+  },
+  "checkRecords": {
+    "heading": "Check your records"
+  },
+  "timelineFallback": {
+    "heading": "Your records"
   }
 }

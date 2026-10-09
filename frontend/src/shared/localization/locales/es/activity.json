@@ -5,7 +5,8 @@
     "addCashIn": "Agregar entrada de dinero",
     "importStatement": "Importar estado de cuenta",
     "closeImport": "Cerrar importación",
-    "cashTaskLock": "Termina la tarea de entrada de dinero o su revisión de actualización antes de iniciar una tarea de gasto o de importación."
+    "cashTaskLock": "Termina la tarea de entrada de dinero o su revisión de actualización antes de iniciar una tarea de gasto o de importación.",
+    "taskArea": "Tarea actual"
   },
   "timeline": {
     "heading": "Cronología de actividad",
@@ -17,7 +18,7 @@
     "unavailable": "No pudimos cargar la cronología de actividad.",
     "malformed": "No se pudo verificar la cronología de actividad, por lo que está oculta.",
     "refreshFailed": "No se pudo actualizar la cronología de actividad. Se muestran los registros cargados antes.",
-    "maybeStale": "Es posible que la cronología de actividad esté desactualizada. Revisa las listas de más abajo antes de intentarlo de nuevo.",
+    "maybeStale": "Es posible que la cronología de actividad esté desactualizada. Revisa los registros de arriba antes de intentarlo de nuevo.",
     "retry": "Intentar de nuevo",
     "showOlder": "Mostrar actividad anterior",
     "loadingMore": "Cargando actividad anterior…",
@@ -59,7 +60,9 @@
       "editExpense": "Editar gasto {{description}} del {{date}}, registro {{id}}",
       "deleteExpense": "Eliminar gasto {{description}} del {{date}}, registro {{id}}",
       "editCashIn": "Editar entrada de dinero {{description}} del {{date}}, registro {{id}}",
-      "deleteCashIn": "Eliminar entrada de dinero {{description}} del {{date}}, registro {{id}}"
+      "deleteCashIn": "Eliminar entrada de dinero {{description}} del {{date}}, registro {{id}}",
+      "moreExpense": "Acciones del gasto {{description}} del {{date}}, registro {{id}}",
+      "moreCashIn": "Acciones de la entrada de dinero {{description}} del {{date}}, registro {{id}}"
     }
   },
   "categories": {
@@ -76,7 +79,6 @@
     "refreshing": "Actualizando gastos…",
     "loadError": "No pudimos cargar tus gastos.",
     "retry": "Intentar de nuevo",
-    "pinnedEdit": "Tu edición abierta se mantiene aquí mientras cambia la lista.",
     "deleteConfirm": "¿Eliminar este gasto?",
     "feedback": {
       "unknown": "No pudimos confirmar el cambio. Actualiza la actividad y revisa los registros antes de intentarlo de nuevo.",
@@ -88,9 +90,7 @@
       "updatedRefreshFailed": "Gasto actualizado. No se pudo actualizar la actividad. Actualiza la lista antes de hacer otro cambio.",
       "deletedRefreshFailed": "Gasto eliminado. No se pudo actualizar la actividad. Actualiza la lista antes de hacer otro cambio.",
       "missing": "Este gasto ya no está disponible. Actualiza la actividad de gastos antes de hacer otro cambio."
-    },
-    "recordsToggle": "Registros de gastos",
-    "recordsHint": "Se mantiene abierto mientras una tarea, un error o una recuperación lo necesita."
+    }
   },
   "expenseForm": {
     "title": "Agregar gasto",
@@ -110,40 +110,10 @@
     "saving": "Guardando…",
     "cancel": "Cancelar"
   },
-  "expenseFilters": {
-    "searchLabel": "Buscar gastos",
-    "searchPlaceholder": "Buscar por descripción o categoría...",
-    "clear": "Borrar filtros",
-    "activeFilters": "Filtros activos:",
-    "disclosure": "Filtrar por fecha o categoría",
-    "dateRange": "Rango de fechas",
-    "startDate": "Fecha de inicio",
-    "endDate": "Fecha de fin",
-    "category": "Categoría",
-    "allCategories": "Todas",
-    "dateOptions": {
-      "all": "Todo el tiempo",
-      "last7": "Últimos 7 días",
-      "last30": "Últimos 30 días",
-      "thisMonth": "Este mes",
-      "custom": "Rango personalizado"
-    },
-    "summary": {
-      "last7": "Últimos 7 días",
-      "last30": "Últimos 30 días",
-      "thisMonth": "Este mes",
-      "custom": "Rango personalizado",
-      "customWithRange": "Rango personalizado: {{range}}",
-      "search": "Búsqueda: “{{term}}”",
-      "category": "Categoría: {{category}}"
-    }
-  },
   "expenseList": {
-    "noMatches": "Ningún gasto coincide con estos filtros.",
     "none": "Todavía no hay gastos registrados.",
     "tableLabel": "Tabla de gastos",
     "caption": "Gastos",
-    "showMore": "Mostrar más",
     "columns": {
       "description": "Descripción",
       "amount": "Monto ($)",
@@ -163,11 +133,7 @@
     "categoryPlaceholder": "Categoría",
     "customCategoryPlaceholder": "Categoría personalizada",
     "save": "Guardar",
-    "cancel": "Cancelar",
-    "edit": "Editar",
-    "delete": "Eliminar",
-    "editLabel": "Editar gasto {{description}} del {{date}}, fila {{row}}",
-    "deleteLabel": "Eliminar gasto {{description}} del {{date}}, fila {{row}}"
+    "cancel": "Cancelar"
   },
   "cashIn": {
     "heading": "Entradas de dinero",
@@ -175,11 +141,9 @@
     "intro": "Dinero entrante registrado, incluidas transferencias y reembolsos. Una entrada de dinero no es automáticamente un ingreso ni un pago de nómina.",
     "viewInsights": "Ver Análisis",
     "checked": "Revisé las entradas de dinero",
-    "search": "Buscar entradas de dinero",
     "loading": "Cargando entradas de dinero…",
     "refreshing": "Actualizando entradas de dinero…",
     "loadError": "No pudimos cargar las entradas de dinero. Actualízalas para intentarlo de nuevo.",
-    "pinned": "Tu entrada de dinero abierta sigue visible mientras cambia la lista.",
     "targetMissing": "Esta entrada ya no está en la lista actual. Cancela esta tarea para elegir otro registro.",
     "delete": {
       "heading": "¿Eliminar entrada de dinero: {{description}} ({{date}})?",
@@ -228,15 +192,9 @@
       "cancel": "Cancelar"
     },
     "list": {
-      "noMatches": "Ninguna entrada de dinero coincide con esta búsqueda.",
       "none": "Todavía no hay entradas de dinero registradas.",
       "tableLabel": "Tabla de entradas de dinero",
       "caption": "Entradas de dinero",
-      "showAll": "Mostrar todas las entradas de dinero",
-      "edit": "Editar",
-      "delete": "Eliminar",
-      "editLabel": "Editar entrada de dinero {{description}} del {{date}}, registro {{id}}",
-      "deleteLabel": "Eliminar entrada de dinero {{description}} del {{date}}, registro {{id}}",
       "amountReview": "El monto requiere revisión",
       "unknownDate": "Fecha desconocida",
       "columns": {
@@ -245,8 +203,15 @@
         "date": "Fecha",
         "actions": "Acciones"
       }
-    },
-    "recordsToggle": "Registros de entradas de dinero",
-    "recordsHint": "Se mantiene abierto mientras una tarea, un error o una recuperación lo necesita."
+    }
+  },
+  "expenseEdit": {
+    "title": "Editar gasto"
+  },
+  "checkRecords": {
+    "heading": "Revisa tus registros"
+  },
+  "timelineFallback": {
+    "heading": "Tus registros"
   }
 }

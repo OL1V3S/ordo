@@ -34,13 +34,11 @@ silently treating every detected pattern as a financial fact.
   before deciding whether to retry.
 - **Activity / Transactions:** An Activity timeline lists recorded expenses and
   cash in together, newest first, with exact signed amounts and older activity
-  loaded on request, and can be searched, with type and period (last 7/30 days, this month, custom) filters behind a Filters disclosure shown as removable chips; each row has Edit and Delete buttons that open the matching list's existing edit or delete flow, and it shows no totals or balance. The expenses list is newest first. Below it,
-  scan recorded spending, search descriptions and categories, and expand
-  date/category filters when needed. The Spending and Cash in lists are collapsed "Records" disclosures that open automatically when needed. A separate Cash in
-  section lists recorded incoming money with its own search. Add, edit, or delete
-  expenses and cash in, or open Import statement. Cash-in edits and deletions can
+  loaded on request, and can be searched, with type and period (last 7/30 days, this month, custom) filters behind a Filters disclosure shown as removable chips; it shows no totals or balance. Each row has a "..." actions menu with Edit and Delete. Add expense, Add cash in, edits and Import statement open in one "Current task" area; a status area carries save feedback, load errors and Refresh. Cash-in edits and deletions can
   affect imported records and supporting paycheck links; visible warnings explain
-  these effects. Active drafts and import review stay visible while you work.
+  these effects. The timeline is the only list; full read-only expense and cash-in
+  tables appear only when a save could not be confirmed, after a Home recovery
+  prompt, or if the timeline cannot load. Active drafts and import review stay visible while you work.
 - **Budgets:** Review category spending against the selected month’s limits,
   with visible progress and near-limit or over-limit status. Open add or edit
   when needed; drafts keep their original month. Zero limits remain explicit

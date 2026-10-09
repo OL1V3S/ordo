@@ -44,13 +44,13 @@ Hidden content: kit panels set `[hidden] { display: none !important }`, so a
 
 ## Adoption status
 
-Used by Activity (and the Transactions Records toggles): `DisclosureButton`,
+Used by Activity: `TaskArea` (the single "Current task" area, with `autoFocus={false}` because each task owns its focus; the prop defaults to true), `DisclosureButton`,
 `FilterBar`, `StatusStrip` (live notice and filter status), `SectionHeader`
 (timeline heading), `ListRow`, inline `EmptyState`.
 
-Built but not yet adopted, verified by unit tests only: `TaskArea`,
+Built but not yet adopted, verified by unit tests only:
 `useFocusReturn`, the composed `Disclosure`, `StatusStrip` `action`/`limit`/
-`assertive`, and block `EmptyState`. Planned for the single task area slice.
+`assertive`, and block `EmptyState`. The Activity row "..." menu is a feature component (`RowActionsMenu`), a non-modal disclosure popover in the `AccountMenu` pattern.
 The Activity timeline error/refresh notices keep `StatusMessage` roles.
 
 ## App shell and navigation

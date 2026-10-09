@@ -24,6 +24,14 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-09 — Activity single task area and row menu
+
+[PR #207](https://github.com/OL1V3S/ordo/pull/207) ·
+[Issue #194](https://github.com/OL1V3S/ordo/issues/194)
+
+- Activity is now one list plus one "Current task" area and a status area; the Spending and Cash in sections, Records toggles, expense filters and cash search are gone, and Edit/Delete moved into a "..." menu on each timeline row.
+- Full read-only expense and cash-in tables appear only for Home recovery, unconfirmed saves and a failed timeline; write payloads, recovery and import are unchanged.
+
 ### 2026-10-09 — Plan hub
 
 [PR #206](https://github.com/OL1V3S/ordo/pull/206) ·
@@ -247,14 +255,3 @@ the permanent, complete archive.
   ranking.
 - Kept budget and commitment attention independently available, read-only, and
   bilingual, within Home's existing two-row limit.
-
-### 2026-09-28 — Home commitment-change reviews
-
-[PR #160](https://github.com/OL1V3S/ordo/pull/160) ·
-[Issue #159](https://github.com/OL1V3S/ordo/issues/159)
-
-- Added the first Home Needs Attention family for authoritative pending
-  commitment-change reviews, grouped by commitment and linked to the existing
-  Commitments decision workflow.
-- Kept Home attention independently available, privacy-minimal, bilingual, and
-  read-only, with a compact two-group presentation and explicit review focus.

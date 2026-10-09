@@ -4,99 +4,47 @@ import { describe, expect, it, vi } from "vitest";
 import ExpenseList from "./ExpenseList";
 import "../../../shared/localization/i18n";
 
-const expense = {
-  id: 7,
-  description: "coffee",
-  amount: 4.5,
-  date: "2026-08-14",
-  category: "food",
-};
+const expense = { id: 7, description: "coffee", amount: 4.5, date: "2026-08-14", category: "food" };
 
-function listProps(overrides = {}) {
-  return {
-    expenses: [expense],
-    totalCount: 1,
-    filteredCount: 1,
-    entriesPerPage: 10,
-    showAll: false,
-    onShowAll: vi.fn(),
-    editingExpenseId: null,
-    editingExpenseData: {},
-    setEditingExpenseData: vi.fn(),
-    onStartEdit: vi.fn(),
-    onSave: vi.fn(),
-    onCancel: vi.fn(),
-    onDelete: vi.fn(),
-    ...overrides,
-  };
-}
-
-describe("ExpenseList", () => {
-  it("distinguishes an empty collection from filters with no matches", () => {
-    const { rerender } = render(<ExpenseList {...listProps({ expenses: [], totalCount: 0 })} />);
-    expect(screen.getByText("No expenses recorded yet.")).toBeInTheDocument();
-
-    rerender(<ExpenseList {...listProps({ expenses: [], totalCount: 3 })} />);
-    expect(screen.getByText("No expenses match these filters.")).toBeInTheDocument();
+describe("ExpenseList (read-only table)", () => {
+  it("shows the empty text and no match/filter wording", () => {
+    render(<ExpenseList expenses={[]} />);
+    expect(screen.getByText("No expenses recorded yet.")).toBeVisible();
   });
 
-  it("keeps one table DOM with mobile labels and passes the edit opener", async () => {
-    const user = userEvent.setup();
-    const onStartEdit = vi.fn();
-    render(<ExpenseList {...listProps({ onStartEdit })} />);
-
+  it("keeps one table DOM with mobile labels and no Actions column or buttons", () => {
+    render(<ExpenseList expenses={[expense]} />);
     const tableRegion = screen.getByRole("region", { name: "Expenses table" });
     const row = within(tableRegion).getByText("Coffee").closest("tr");
     expect(within(tableRegion).getByText("Expenses", { selector: "caption" })).toBeInTheDocument();
     expect(row.querySelector('[data-label="Amount ($)"]')).toHaveTextContent("4.50");
-
-    const editButton = within(row).getByRole("button", {
-      name: "Edit expense Coffee from 08/14/2026, row 1",
-    });
-    await user.click(editButton);
-    expect(onStartEdit).toHaveBeenCalledWith(expense, editButton);
+    expect(within(tableRegion).queryByRole("columnheader", { name: "Actions" })).toBeNull();
+    expect(within(tableRegion).queryAllByRole("button")).toHaveLength(0);
   });
 
-  it("renders high-value strings exactly and blocks edits of ambiguous legacy numbers", () => {
-    const highExpense = { ...expense, amount: "9999999999999999.99" };
-    const { rerender } = render(<ExpenseList {...listProps({ expenses: [highExpense] })} />);
+  it("renders high-value strings exactly and flags ambiguous legacy numbers for review", () => {
+    const { rerender } = render(<ExpenseList expenses={[{ ...expense, amount: "9999999999999999.99" }]} />);
     expect(screen.getByText("9,999,999,999,999,999.99")).toBeVisible();
-    expect(screen.getByRole("button", { name: /Edit expense Coffee/ })).toBeEnabled();
-
-    rerender(<ExpenseList {...listProps({ expenses: [{ ...expense, amount: Number("9999999999999999") }] })} />);
+    rerender(<ExpenseList expenses={[{ ...expense, amount: Number("9999999999999999") }]} />);
     expect(screen.getByText("Amount needs review")).toBeVisible();
-    expect(screen.getByRole("button", { name: /Edit expense Coffee/ })).toBeDisabled();
   });
 
-  it("locks other row actions and keeps an unavailable read draft cancelable", () => {
-    const { rerender } = render(<ExpenseList {...listProps({ taskLocked: true })} />);
-    expect(screen.getByRole("button", { name: "Edit expense Coffee from 08/14/2026, row 1" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Delete expense Coffee from 08/14/2026, row 1" })).toBeDisabled();
-
-    rerender(<ExpenseList {...listProps({ editingExpenseId: 7, readUnavailable: true })} />);
-    expect(screen.getByLabelText("Edit description")).toHaveFocus();
-    expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Cancel" })).toBeEnabled();
-
-    rerender(<ExpenseList {...listProps({ editingExpenseId: 7, busy: true })} />);
-    expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
-    expect(screen.getByLabelText("Edit description")).toBeDisabled();
-    expect(screen.getByLabelText("Edit amount")).toBeDisabled();
-    expect(screen.getByLabelText("Edit date")).toBeDisabled();
-    expect(screen.getByLabelText("Edit category")).toBeDisabled();
-  });
-
-  it("renders rows in the order received (the backend sends newest first)", () => {
-    const rows = [
-      { ...expense, id: 3, description: "newest", date: "2026-08-14" },
-      { ...expense, id: 2, description: "middle", date: "2026-08-10" },
-      { ...expense, id: 1, description: "oldest", date: "2026-08-01" },
-    ];
-    render(<ExpenseList {...listProps({ expenses: rows, totalCount: 3, filteredCount: 3 })} />);
-
+  it("renders every row in the order received (newest first from the backend)", () => {
+    const rows = Array.from({ length: 12 }, (_, i) => ({ ...expense, id: 12 - i, description: `item${12 - i}` }));
+    render(<ExpenseList expenses={rows} />);
     const body = screen.getAllByRole("rowgroup").at(-1);
-    expect(within(body).getAllByRole("row").map((row) => within(row).getByText(/Newest|Middle|Oldest/).textContent))
-      .toEqual(["Newest", "Middle", "Oldest"]);
+    const names = within(body).getAllByRole("row").map((row) => row.querySelector("td").textContent);
+    expect(names).toEqual(rows.map((r) => `Item${r.id}`));
+  });
+
+  it("adds the row menu with the unchanged action names only when rowActions is provided", async () => {
+    const user = userEvent.setup();
+    const rowActions = { getState: vi.fn(() => ({ canEdit: true, canDelete: true })), onEdit: vi.fn(), onDelete: vi.fn() };
+    render(<ExpenseList expenses={[expense]} rowActions={rowActions} />);
+    expect(screen.getByRole("columnheader", { name: "Actions" })).toBeVisible();
+    const trigger = screen.getByRole("button", { name: "Actions for expense Coffee from 08/14/2026, record 7" });
+    await user.click(trigger);
+    await user.click(screen.getByRole("button", { name: "Edit expense Coffee from 08/14/2026, record 7" }));
+    expect(rowActions.onEdit).toHaveBeenCalledWith({ kind: "expense", recordId: 7 }, trigger);
   });
 });
