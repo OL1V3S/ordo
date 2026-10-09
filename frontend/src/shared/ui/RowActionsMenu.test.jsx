@@ -54,4 +54,40 @@ describe('shared RowActionsMenu', () => {
     renderMenu({ canEdit: false, canDelete: false })
     expect(screen.getByRole('button', { name: 'More' })).toBeDisabled()
   })
+
+  describe('generic items mode', () => {
+    function renderItems(items) {
+      render(<div><h1 tabIndex={-1}>Page</h1><RowActionsMenu triggerLabel="Actions for Rent" items={items} /></div>)
+    }
+
+    it('renders the given items with their accessible names instead of Edit and Delete', async () => {
+      const user = userEvent.setup()
+      renderItems([
+        { key: 'a', label: 'Pause Rent', text: 'Pause', onSelect: vi.fn() },
+        { key: 'b', label: 'End Rent', text: 'End', className: 'button-danger', disabled: true, onSelect: vi.fn() },
+      ])
+      await user.click(screen.getByRole('button', { name: 'Actions for Rent' }))
+      expect(screen.getByRole('button', { name: 'Pause Rent' })).toBeEnabled()
+      expect(screen.getByRole('button', { name: 'End Rent' })).toBeDisabled()
+      expect(screen.getByRole('button', { name: 'End Rent' })).toHaveClass('button-danger')
+      expect(screen.queryByRole('button', { name: 'Edit it' })).not.toBeInTheDocument()
+    })
+
+    it('disables the trigger only when every item is disabled', () => {
+      renderItems([{ key: 'a', label: 'A', text: 'A', disabled: true, onSelect: vi.fn() }])
+      expect(screen.getByRole('button', { name: 'Actions for Rent' })).toBeDisabled()
+    })
+
+    it('closes, focuses the trigger and calls onSelect with it when an item is chosen', async () => {
+      const user = userEvent.setup()
+      const onSelect = vi.fn()
+      renderItems([{ key: 'a', label: 'Pause Rent', text: 'Pause', onSelect }])
+      const trigger = screen.getByRole('button', { name: 'Actions for Rent' })
+      await user.click(trigger)
+      await user.click(screen.getByRole('button', { name: 'Pause Rent' }))
+      expect(onSelect).toHaveBeenCalledWith(trigger)
+      expect(trigger).toHaveFocus()
+      expect(trigger).toHaveAttribute('aria-expanded', 'false')
+    })
+  })
 })

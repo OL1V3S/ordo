@@ -42,6 +42,12 @@ describe('DisclosureButton', () => {
     expect(button).toHaveFocus()
   })
 
+  it('renders no hint span without a hint but still points aria-describedby at hintId', () => {
+    render(<><p id="note">Visible note</p><DisclosureButton controls="body" hintId="note" open forced onToggle={() => {}}>Records</DisclosureButton></>)
+    expect(document.querySelectorAll('.sr-only')).toHaveLength(0)
+    expect(screen.getByRole('button', { name: 'Records' })).toHaveAttribute('aria-describedby', 'note')
+  })
+
   it('supports a custom hint id', () => {
     render(<DisclosureButton controls="body" hintId="custom" open forced hint="Why" onToggle={() => {}}>Records</DisclosureButton>)
     expect(screen.getByRole('button')).toHaveAttribute('aria-describedby', 'custom')
