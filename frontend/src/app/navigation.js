@@ -1,7 +1,7 @@
 import {
   BarChart3,
+  ClipboardList,
   ChartNoAxesCombined,
-  Ellipsis,
   Landmark,
   LayoutDashboard,
   ReceiptText,
@@ -26,15 +26,33 @@ export const PLAN_DESTINATIONS = APP_DESTINATIONS.filter(({ to }) =>
 export const MORE_DESTINATIONS = ["/settings", "/investing"]
   .map((to) => APP_DESTINATIONS.find((destination) => destination.to === to));
 
-export const MOBILE_DESTINATIONS = [
+export const ACCOUNT_DESTINATIONS = MORE_DESTINATIONS;
+
+export const PRIMARY_DESTINATIONS = [
   { to: "/overview", labelKey: "destinations.home.label", icon: LayoutDashboard, paths: ["/overview"] },
   { to: "/transactions", labelKey: "destinations.activity.label", icon: ReceiptText, paths: ["/transactions"] },
-  { to: "/plan", labelKey: "destinations.plan.label", icon: WalletCards, paths: ["/plan", ...PLAN_DESTINATIONS.map(({ to }) => to)] },
+  {
+    to: "/plan",
+    labelKey: "destinations.plan.label",
+    icon: ClipboardList,
+    paths: ["/plan", ...PLAN_DESTINATIONS.map(({ to }) => to)],
+    children: PLAN_DESTINATIONS,
+  },
   { to: "/analytics", labelKey: "destinations.insights.label", icon: ChartNoAxesCombined, paths: ["/analytics"] },
-  { to: "/more", labelKey: "destinations.more.label", icon: Ellipsis, paths: ["/more", ...MORE_DESTINATIONS.map(({ to }) => to)] },
 ];
 
-export function getMobileDestination(pathname) {
-  const path = pathname.replace(/\/+$/, "") || "/";
-  return MOBILE_DESTINATIONS.find(({ paths }) => paths.includes(path));
+export function normalizePath(pathname) {
+  return pathname.replace(/\/+$/, "") || "/";
+}
+
+export function getPrimaryDestination(pathname) {
+  const path = normalizePath(pathname);
+  return PRIMARY_DESTINATIONS.find(({ paths }) => paths.includes(path));
+}
+
+export function getPageLabelKey(pathname) {
+  const path = normalizePath(pathname);
+  return APP_DESTINATIONS.find((destination) => destination.to === path)?.labelKey
+    ?? getPrimaryDestination(path)?.labelKey
+    ?? (path === "/more" ? "destinations.more.label" : null);
 }

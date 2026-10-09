@@ -107,6 +107,9 @@
   --badge-padding-block: var(--space-1);
   --badge-padding-inline: var(--space-2);
   --mobile-nav-clearance: 4.75rem;
+  --shell-pagebar-height: 3.75rem;
+  --shell-rail-width: 5.5rem;
+  --shell-sidebar-width: 13.5rem;
 }
 
 /*
