@@ -275,8 +275,10 @@ summary { min-height: var(--size-touch-target); padding-block: .625rem; cursor: 
 .commitment-count { color: var(--color-text-muted); font-size: var(--text-sm); font-weight: var(--weight-semibold); overflow-wrap: anywhere; }
 .commitment-section .ui-section-header h2:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 4px; }
 .commitment-section > p { max-width: 760px; margin: 0; }
-.commitment-rows { display: grid; min-width: 0; margin: 0; padding: 0; list-style: none; }
-.commitment-row { padding-inline: 0; border: 0; border-top: 1px solid var(--color-divider); border-radius: 0; background: transparent; }
+.commitment-rows { display: grid; grid-template-columns: minmax(0, 1fr); min-width: 0; margin: 0; padding: 0; list-style: none; }
+.commitment-rows > .commitment-row { min-width: 0; padding-inline: 0; border: 0; border-top: 1px solid var(--color-divider); border-radius: 0; background: transparent; }
+.commitment-rows > .commitment-row:first-child { border-top: 0; }
+.commitment-history__button.commitment-history__button { border: 0; background: transparent; }
 .commitment-row .ui-list-row__label { color: var(--color-primary); letter-spacing: .05em; }
 .commitment-row--paused .ui-list-row__label, .commitment-row--ended .ui-list-row__label, .commitment-row--dismissed .ui-list-row__label, .commitment-change-row--kept .ui-list-row__label { color: var(--color-text-muted); }
 .commitment-row .ui-list-row__title { margin: 0; font-size: var(--text-base); }
