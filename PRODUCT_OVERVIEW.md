@@ -78,7 +78,7 @@ silently treating every detected pattern as a financial fact.
 - **Settings and account access:** Choose a System, Light, or Dark theme and an
   English or Spanish interface preference for this browser, then view your
   signed-in email in a compact account section. The language preference updates
-  the authenticated shell, primary navigation, Plan and More hubs, Settings, and
+  the authenticated shell, primary navigation, Account menu, Plan hub, Settings, and
   the Home, Activity, Statement import, Budgets, Insights, Commitments, and Paychecks
   pages and the public account-access pages (a language selector is also available
   before sign-in); the unavailable Investing placeholder page remains English during
@@ -88,12 +88,14 @@ silently treating every detected pattern as a financial fact.
   email. Settings currently provides email display, appearance, and language controls,
   rather than a full account-management area.
 
-Navigation uses Home, Activity, and Insights consistently across screen sizes.
-On smaller screens, Plan is a simple hub for Budgets, Commitments, and Paychecks.
-More places Settings ahead of the explicitly unavailable Investing placeholder;
-these destinations also sit below the main desktop navigation. Details and
-history expand on demand, while active tasks, errors, and review warnings stay
-visible. The underlying financial workflows are the same.
+Navigation has four destinations everywhere: Home, Activity, Plan, and
+Insights. They appear as a bottom bar on phones, a labelled side rail on
+tablets, and a sidebar on desktop, where Plan also lists Budgets, Commitments,
+and Paychecks. The Account menu holds Settings, the explicitly unavailable
+Investing placeholder, theme and language choices, and sign out. The older More
+page still works if opened by its address, but the app no longer links to it.
+Details and history expand on demand, while active tasks, errors, and review
+warnings stay visible. The underlying financial workflows are the same.
 
 ## What the figures mean
 

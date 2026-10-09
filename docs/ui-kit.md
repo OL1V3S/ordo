@@ -52,3 +52,36 @@ Built but not yet adopted, verified by unit tests only: `TaskArea`,
 `useFocusReturn`, the composed `Disclosure`, `StatusStrip` `action`/`limit`/
 `assertive`, and block `EmptyState`. Planned for the single task area slice.
 The Activity timeline error/refresh notices keep `StatusMessage` roles.
+
+## App shell and navigation
+
+The shell (`frontend/src/app/AppShell.jsx`) renders one "Primary navigation"
+landmark; CSS alone switches the layout (no JavaScript layout switch):
+
+- Compact (< 600px): fixed bottom bar, four equal columns, 56px targets.
+- Medium (600-899px): sticky labelled rail (`--shell-rail-width`); the Account
+  trigger stays in the page bar.
+- Expanded (>= 900px): sidebar (`--shell-sidebar-width`) with Plan's children
+  indented, the Account trigger pinned at the bottom, and the page title in the
+  page bar. The sidebar does not scroll itself (the nav list does), so the
+  Account popover is never clipped.
+
+Links are plain `Link`s with explicit `aria-current`: `page` on the exact
+route, and `location` on Plan while a child route is current. There is no
+visually hidden "Current page" text.
+
+`AccountMenu` (`app/AccountMenu.jsx`) is a non-modal disclosure popover: a
+trigger with `aria-expanded` and `aria-controls`, a `role="group"` panel (no
+ARIA menu role, no focus trap). Escape closes and focuses the trigger, an
+outside pointerdown or focus leaving the wrapper closes it, and a same-path link
+click returns focus to the trigger. The panel holds identity, Settings,
+Investing, Theme, Language, and Logout.
+
+`html` has `scroll-padding-top` for the sticky page bar and
+`html:has(.app-shell)` has `scroll-padding-bottom` for the compact bottom bar
+(`--shell-pagebar-height`, `--mobile-nav-clearance`). Route changes still focus
+`<main>` and scroll to top.
+
+To add a destination, extend `PRIMARY_DESTINATIONS` in `app/navigation.js` (keep
+four to five items so the bottom bar fits at 320px in Spanish) and add its
+labels to both locales.

@@ -24,6 +24,13 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-09 — Navigation shell
+
+[Issue #203](https://github.com/OL1V3S/ordo/issues/203)
+
+- One Primary navigation with Home, Activity, Plan (Budgets, Commitments, Paychecks) and Insights: bottom bar on phones, labelled rail on tablets, sidebar on desktop. Settings, Investing, theme, language and sign out moved into a new Account menu; `/more` still works by URL but is no longer linked.
+- Fixed page-bar and bottom-bar scroll padding so focused controls stay visible.
+
 ### 2026-10-09 — Shared UI component kit
 
 [PR #202](https://github.com/OL1V3S/ordo/pull/202) ·
@@ -254,15 +261,3 @@ the permanent, complete archive.
   unavailable Upcoming data fail closed without hiding valid Recent Activity.
 - Added English and Spanish copy, accessible responsive presentation, and
   focused tests without adding Home network requests or changing the API.
-
-### 2026-09-23 — Capture-first Home and mixed Recent Activity
-
-[PR #156](https://github.com/OL1V3S/ordo/pull/156) ·
-[Issue #155](https://github.com/OL1V3S/ordo/issues/155)
-
-- Reframed Home around quick Expense and Cash In capture, followed by the
-  backend-ordered mixed recent-activity feed and a quieter Insights link.
-- Reused shared capture flows and added account-scoped uncertain-write recovery
-  that requires a successful full-list Activity review and explicit acknowledgment.
-- Added English and Spanish Home copy with exact money/date display, and removed
-  the dashboard reads for cash flow, paychecks, budgets, and commitments from Home.
