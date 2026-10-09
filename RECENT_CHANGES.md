@@ -26,6 +26,7 @@ the permanent, complete archive.
 
 ### 2026-10-09 — Navigation shell
 
+[PR #204](https://github.com/OL1V3S/ordo/pull/204) ·
 [Issue #203](https://github.com/OL1V3S/ordo/issues/203)
 
 - One Primary navigation with Home, Activity, Plan (Budgets, Commitments, Paychecks) and Insights: bottom bar on phones, labelled rail on tablets, sidebar on desktop. Settings, Investing, theme, language and sign out moved into a new Account menu; `/more` still works by URL but is no longer linked.
