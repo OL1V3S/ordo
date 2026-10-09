@@ -32,8 +32,6 @@
   },
   "hubs": {
     "plan": {
-      "title": "Plan",
-      "description": "Choose an area to plan.",
       "ariaLabel": "Planning tools"
     },
     "more": {

@@ -1,5 +1,4 @@
 import { useEffect, useRef } from "react";
-import { ArrowLeft } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link, Outlet, useLocation } from "react-router-dom";
 import AccountMenu from "./AccountMenu";
@@ -27,8 +26,6 @@ export default function AppShell({ email, onLogout }) {
   const { pathname } = useLocation();
   const path = normalizePath(pathname);
   const primaryDestination = getPrimaryDestination(pathname);
-  const parentDestination = primaryDestination?.to !== path && primaryDestination?.paths.length > 1
-    ? primaryDestination : null;
   const currentPageKey = getPageLabelKey(pathname);
   const currentPage = currentPageKey ? tNavigation(currentPageKey) : tNavigation("workspace");
 
@@ -79,12 +76,6 @@ export default function AppShell({ email, onLogout }) {
           </div>
         </header>
         <main className="app-content" id="main-content" tabIndex={-1} ref={mainRef}>
-          {parentDestination && (
-            <Link className="mobile-parent-link" to={parentDestination.to}>
-              <ArrowLeft size={16} aria-hidden="true" />
-              {tNavigation(parentDestination.labelKey)}
-            </Link>
-          )}
           <Outlet />
         </main>
       </div>

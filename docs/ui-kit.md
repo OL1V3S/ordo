@@ -82,6 +82,26 @@ Investing, Theme, Language, and Logout.
 (`--shell-pagebar-height`, `--mobile-nav-clearance`). Route changes still focus
 `<main>` and scroll to top.
 
+### Plan switcher
+
+`PlanLayout` (`app/PlanLayout.jsx`) is a pathless layout route inside the shell
+that wraps `/plan`, `/budgets`, `/commitments` and `/paychecks`. It renders a
+fragment (`PlanSwitcher` then `<Outlet />`), never a wrapper element, so the page
+`.container` stays a direct child of `<main>` and `.app-content > .container`
+keeps its zero margin and padding. `/plan` renders the Budgets page (with
+`key="plan"` so `/plan` and `/budgets` each mount it fresh) with no redirect; the
+page bar still says "Plan" while the h1 says "Budgets".
+
+`PlanSwitcher` is a `nav` landmark ("Planning tools") of links, not ARIA tabs,
+because each item is a route to its own address. The current link gets
+`aria-current="page"` (Budgets on `/plan`) and a bordered raised segment, so state
+is not colour alone. Targets are 44px, styles are tokens only
+(`styles/plan-switcher.css`), gaps leave room for the focus ring, and there are no
+icons, and compact widths use `--text-xs` with no inline padding so Spanish labels fit
+at 320px without breaking mid-word. It is route-aware and owns i18n, so it is
+not a `shared/ui` kit component. Labels reuse `destinations.*.label`
+(Commitments is not renamed). The compact "back to Plan" link was removed.
+
 To add a destination, extend `PRIMARY_DESTINATIONS` in `app/navigation.js` (keep
 four to five items so the bottom bar fits at 320px in Spanish) and add its
 labels to both locales.

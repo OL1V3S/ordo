@@ -26,10 +26,6 @@
   list-style: none;
 }
 
-.secondary-links--plan {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
 .secondary-link {
   display: flex;
   min-width: 0;
@@ -151,10 +147,6 @@
 }
 
 @media (max-width: 600px) {
-  .secondary-links--plan {
-    grid-template-columns: 1fr;
-  }
-
   .settings-page__account-row {
     grid-template-columns: 1fr;
   }

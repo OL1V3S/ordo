@@ -32,8 +32,6 @@
   },
   "hubs": {
     "plan": {
-      "title": "Plan",
-      "description": "Elige un área para planificar.",
       "ariaLabel": "Herramientas de planificación"
     },
     "more": {
