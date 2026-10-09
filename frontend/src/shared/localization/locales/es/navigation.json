@@ -1,9 +1,6 @@
 {
   "aria": {
-    "primary": "Navegación principal",
-    "secondary": "Navegación secundaria",
-    "mobile": "Navegación móvil",
-    "currentPage": "Página actual"
+    "primary": "Navegación principal"
   },
   "workspace": "Espacio de trabajo",
   "destinations": {

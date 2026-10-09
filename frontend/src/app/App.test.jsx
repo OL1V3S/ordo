@@ -139,14 +139,12 @@ describe('application routes and shell', () => {
 
   it.each([
     ['/overview', 'Home'], ['/transactions', 'Activity'], ['/analytics', 'Insights'],
-  ])('uses the same customer label in both navigation surfaces and the pagebar for %s', (path, label) => {
+  ])('uses the same customer label in the primary navigation and the pagebar for %s', (path, label) => {
     localStorage.setItem('token', 'jwt-value')
     renderAt(path)
-    for (const name of ['Primary navigation', 'Mobile navigation']) {
-      const link = within(screen.getByRole('navigation', { name })).getByRole('link', { name: new RegExp(label) })
-      expect(link).toHaveAttribute('href', path)
-      expect(link).toHaveAttribute('aria-current', 'page')
-    }
+    const link = within(screen.getByRole('navigation', { name: 'Primary navigation' })).getByRole('link', { name: new RegExp(label) })
+    expect(link).toHaveAttribute('href', path)
+    expect(link).toHaveAttribute('aria-current', 'page')
     expect(within(screen.getByRole('banner')).getByText(label)).toBeVisible()
   })
 
@@ -158,32 +156,33 @@ describe('application routes and shell', () => {
     expect(document.getElementById('main-content')).toHaveAttribute('id', 'main-content')
   })
 
-  it('exposes five labeled mobile destinations while preserving desktop destination order', () => {
+  it('exposes four primary destinations with Plan children in one navigation landmark', () => {
     localStorage.setItem('token', 'jwt-value')
     renderAt('/overview')
-    const navigation = screen.getByRole('navigation', { name: 'Mobile navigation' })
-    expect(navigation).toBeInTheDocument()
-    expect(navigation.querySelectorAll('a')).toHaveLength(5)
-    expect([...navigation.querySelectorAll('a')].map((link) => link.getAttribute('href'))).toEqual(['/overview', '/transactions', '/plan', '/analytics', '/more'])
-    for (const label of ['Home', 'Activity', 'Plan', 'Insights', 'More']) {
+    const navigation = screen.getByRole('navigation', { name: 'Primary navigation' })
+    expect(screen.getAllByRole('navigation')).toHaveLength(1)
+    const topLevel = [...navigation.querySelectorAll('.app-nav__list > li > a')]
+    expect(topLevel.map((link) => link.getAttribute('href'))).toEqual(['/overview', '/transactions', '/plan', '/analytics'])
+    for (const label of ['Home', 'Activity', 'Plan', 'Insights']) {
       const link = within(navigation).getByRole('link', { name: label })
-      expect(within(link).getByText(label, { selector: 'span:not(.sr-only)' })).toBeInTheDocument()
+      expect(within(link).getByText(label, { selector: 'span' })).toBeInTheDocument()
     }
-    const desktop = screen.getByRole('navigation', { name: 'Primary navigation' })
-    expect([...desktop.querySelectorAll('a')].map((link) => link.getAttribute('href'))).toEqual(['/overview', '/transactions', '/budgets', '/analytics', '/commitments', '/paychecks'])
-    const secondary = screen.getByRole('navigation', { name: 'Secondary navigation' })
-    expect([...secondary.querySelectorAll('a')].map((link) => link.getAttribute('href'))).toEqual(['/settings', '/investing'])
-    expect(screen.getAllByRole('link', { name: /Settings/ })).toHaveLength(2)
+    expect([...navigation.querySelectorAll('a')].map((link) => link.getAttribute('href')))
+      .toEqual(['/overview', '/transactions', '/plan', '/budgets', '/commitments', '/paychecks', '/analytics'])
+    expect(screen.queryByRole('navigation', { name: 'Secondary navigation' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('navigation', { name: 'Mobile navigation' })).not.toBeInTheDocument()
+    expect(screen.queryAllByRole('link', { name: /Settings/ })).toHaveLength(0)
+    expect(document.querySelector('a[href="/more"]')).toBeNull()
   })
 
-  it('opens Paychecks through desktop navigation and marks the mobile Plan group current', async () => {
+  it('opens Paychecks through desktop navigation and marks the Plan group current', async () => {
     const user = userEvent.setup()
     localStorage.setItem('token', 'jwt-value')
     renderAt('/overview')
     await user.click(within(screen.getByRole('navigation', { name: 'Primary navigation' })).getByRole('link', { name: /Paychecks/ }))
     expect(await screen.findByRole('heading', { name: 'Paychecks workspace' })).toBeInTheDocument()
     expect(within(screen.getByRole('navigation', { name: 'Primary navigation' })).getByRole('link', { name: /Paychecks/ })).toHaveAttribute('aria-current', 'page')
-    expect(within(screen.getByRole('navigation', { name: 'Mobile navigation' })).getByRole('link', { name: 'Plan' })).toHaveAttribute('aria-current', 'location')
+    expect(within(screen.getByRole('navigation', { name: 'Primary navigation' })).getByRole('link', { name: 'Plan' })).toHaveAttribute('aria-current', 'location')
   })
 
   it.each([
@@ -191,18 +190,23 @@ describe('application routes and shell', () => {
     ['/plan', 'Plan', 'page'], ['/budgets', 'Plan', 'location'],
     ['/commitments', 'Plan', 'location'], ['/paychecks', 'Plan', 'location'],
     ['/paychecks/?source=bookmark', 'Plan', 'location'], ['/analytics', 'Insights', 'page'],
-    ['/more', 'More', 'page'], ['/investing', 'More', 'location'], ['/settings', 'More', 'location'],
-  ])('selects only the correct mobile destination for %s', (path, label, current) => {
+  ])('marks only the correct primary destination for %s', (path, label, current) => {
     localStorage.setItem('token', 'synthetic-session')
     renderAt(path)
-    const mobile = screen.getByRole('navigation', { name: 'Mobile navigation' })
-    expect(mobile.querySelectorAll('[aria-current]')).toHaveLength(1)
-    expect(within(mobile).getByRole('link', { name: label })).toHaveAttribute('aria-current', current)
+    const primary = screen.getByRole('navigation', { name: 'Primary navigation' })
+    const marked = [...primary.querySelectorAll('[aria-current]')]
+    expect(marked.filter((link) => link.getAttribute('aria-current') === 'page')).toHaveLength(1)
+    expect(within(primary).getByRole('link', { name: label })).toHaveAttribute('aria-current', current)
+  })
+
+  it.each(['/more', '/investing', '/settings'])('marks no primary destination for %s', (path) => {
+    localStorage.setItem('token', 'synthetic-session')
+    renderAt(path)
+    expect(screen.getByRole('navigation', { name: 'Primary navigation' }).querySelectorAll('[aria-current]')).toHaveLength(0)
   })
 
   it.each([
     ['/budgets', 'Plan', '/plan'], ['/commitments', 'Plan', '/plan'], ['/paychecks', 'Plan', '/plan'],
-    ['/investing', 'More', '/more'], ['/settings', 'More', '/more'],
   ])('provides a deterministic parent link for direct bookmark %s', async (path, parent, target) => {
     const user = userEvent.setup()
     localStorage.setItem('token', 'synthetic-session')
@@ -216,11 +220,17 @@ describe('application routes and shell', () => {
     expect(main).toHaveFocus()
   })
 
-  it('navigates hubs and history with main focus, without treating More as a modal', async () => {
+  it.each(['/investing', '/settings'])('renders no parent link in the page content for %s', (path) => {
+    localStorage.setItem('token', 'synthetic-session')
+    renderAt(path)
+    expect(document.querySelector('.mobile-parent-link')).toBeNull()
+  })
+
+  it('navigates hubs and history with main focus, and opens Settings from the Account menu', async () => {
     const user = userEvent.setup()
     localStorage.setItem('token', 'synthetic-session')
     renderAt('/overview')
-    const mobile = screen.getByRole('navigation', { name: 'Mobile navigation' })
+    const mobile = screen.getByRole('navigation', { name: 'Primary navigation' })
     const main = screen.getByRole('main')
     window.scrollTo.mockClear()
     await user.click(within(mobile).getByRole('link', { name: 'Plan' }))
@@ -242,13 +252,10 @@ describe('application routes and shell', () => {
     expect(main).toHaveFocus()
     expect(window.scrollTo).toHaveBeenCalledWith({ top: 0, behavior: 'instant' })
     window.scrollTo.mockClear()
-    await user.click(within(mobile).getByRole('link', { name: 'More' }))
+    await user.click(screen.getByRole('button', { name: 'Account menu' }))
+    await user.click(within(screen.getByRole('group', { name: 'Account options' })).getByRole('link', { name: 'Settings' }))
+    expect(screen.queryByRole('group', { name: 'Account options' })).not.toBeInTheDocument()
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-    expect(within(main).getByRole('heading', { name: 'More', level: 1 })).toBeInTheDocument()
-    expect(main).toHaveFocus()
-    expect(window.scrollTo).toHaveBeenCalledWith({ top: 0, behavior: 'instant' })
-    window.scrollTo.mockClear()
-    await user.click(within(main).getByRole('link', { name: /Settings/ }))
     expect(screen.getByTestId('location')).toHaveTextContent('/settings')
     expect(main).toHaveFocus()
     expect(window.scrollTo).toHaveBeenCalledWith({ top: 0, behavior: 'instant' })
@@ -263,7 +270,9 @@ describe('application routes and shell', () => {
     const draft = screen.getByRole('textbox', { name: 'Transaction draft' })
     await user.type(draft, 'Preserved draft')
     expect(draft).toHaveFocus()
-    const theme = screen.getByRole('combobox', { name: 'Theme' })
+    window.scrollTo.mockClear()
+    await user.click(screen.getByRole('button', { name: 'Account menu' }))
+    const theme = within(screen.getByRole('group', { name: 'Account options' })).getByRole('combobox', { name: 'Theme' })
     await user.selectOptions(theme, 'dark')
     expect(theme).toHaveFocus()
     expect(draft).toHaveValue('Preserved draft')
@@ -277,6 +286,7 @@ describe('application routes and shell', () => {
     renderAt('/overview')
 
     expect(screen.getByText('person@example.com')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Account person@example.com' }))
     await user.click(screen.getByRole('button', { name: 'Logout' }))
 
     expect(localStorage.getItem('token')).toBeNull()
@@ -455,12 +465,16 @@ describe('application routes and shell', () => {
     localStorage.setItem('token', 'jwt-value')
     renderAt('/settings')
 
-    const shellControl = screen.getByRole('combobox', { name: 'Theme' })
+    await user.click(screen.getByRole('button', { name: 'Account menu' }))
+    const shellControl = within(screen.getByRole('group', { name: 'Account options' })).getByRole('combobox', { name: 'Theme' })
     const settingsControl = screen.getByRole('combobox', { name: 'Theme preference' })
     expect(shellControl.id).not.toBe(settingsControl.id)
 
     await user.selectOptions(settingsControl, 'dark')
-    expect(shellControl).toHaveValue('dark')
+    // Interacting outside the popover closes it; reopen to read the shell control.
+    expect(screen.queryByRole('group', { name: 'Account options' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Account menu' }))
+    expect(within(screen.getByRole('group', { name: 'Account options' })).getByRole('combobox', { name: 'Theme' })).toHaveValue('dark')
     expect(settingsControl).toHaveValue('dark')
     expect(document.documentElement).toHaveAttribute('data-theme', 'dark')
     expect(localStorage.getItem('budget-planner-theme')).toBe('dark')
@@ -480,13 +494,43 @@ describe('application routes and shell', () => {
     expect(localStorage.getItem('ordo-language')).toBe('es')
     expect(screen.getByRole('heading', { name: 'Configuración', level: 1 })).toBeInTheDocument()
     expect(screen.getByRole('navigation', { name: 'Navegación principal' })).toBeInTheDocument()
-    expect(screen.getByRole('navigation', { name: 'Navegación móvil' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Saltar al contenido principal' })).toHaveAttribute('href', '#main-content')
     expect(screen.getByRole('button', { name: 'Menú de la cuenta' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Cerrar sesión' })).toBeInTheDocument()
-    expect(screen.getAllByRole('link', { name: /Configuración/ })).toHaveLength(2)
     expect(screen.getAllByText('person@example.com')).toHaveLength(2)
+    for (const name of ['Inicio', 'Actividad', 'Plan', 'Análisis']) {
+      expect(within(screen.getByRole('navigation', { name: 'Navegación principal' })).getByRole('link', { name })).toBeInTheDocument()
+    }
+    await user.click(screen.getByRole('button', { name: 'Menú de la cuenta' }))
+    const panel = screen.getByRole('group', { name: 'Opciones de la cuenta' })
+    expect(within(panel).getAllByRole('link', { name: /Configuración/ })).toHaveLength(1)
+    expect(within(panel).getByRole('button', { name: 'Cerrar sesión' })).toBeInTheDocument()
     expect(screen.getByTestId('location')).toHaveTextContent('/settings')
+  })
+
+  it('lists account destinations and controls in the Account menu without fetching', async () => {
+    const user = userEvent.setup()
+    const fetchSpy = vi.fn()
+    vi.stubGlobal('fetch', fetchSpy)
+    localStorage.setItem('token', 'jwt-value')
+    localStorage.setItem('email', 'person@example.com')
+    renderAt('/overview')
+    expect(within(screen.getByRole('banner')).queryByRole('combobox')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Account menu' }))
+    const panel = screen.getByRole('group', { name: 'Account options' })
+    expect(panel).toHaveTextContent('person@example.com')
+    expect(within(panel).getByRole('link', { name: 'Settings' })).toHaveAttribute('href', '/settings')
+    expect(within(panel).getByRole('link', { name: /Investing/ })).toHaveTextContent('Unavailable')
+    expect(within(panel).getByRole('combobox', { name: 'Theme' })).toBeInTheDocument()
+    expect(within(panel).getByRole('combobox', { name: 'Language' })).toBeInTheDocument()
+    expect(within(panel).getByRole('button', { name: 'Logout' })).toBeInTheDocument()
+    expect(fetchSpy).not.toHaveBeenCalled()
+  })
+
+  it('keeps /more routed but unlinked from the shell', () => {
+    localStorage.setItem('token', 'jwt-value')
+    renderAt('/more')
+    expect(screen.getByRole('heading', { name: 'More', level: 1 })).toBeInTheDocument()
+    expect(document.querySelector('.app-sidebar a[href="/more"], .app-pagebar a[href="/more"]')).toBeNull()
   })
 
   it('renders the honest Investing surface without starting an integration request', async () => {
