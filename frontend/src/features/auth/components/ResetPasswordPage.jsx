@@ -1,6 +1,7 @@
 import { useId, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { authApi } from "../../../shared/api/authApi";
+import StatusMessage from "../../../shared/ui/StatusMessage";
 import { useTranslation } from "react-i18next";
 import AuthShell from "./AuthShell";
 import PasswordField from "./PasswordField";
@@ -58,12 +59,9 @@ export default function ResetPasswordPage() {
       </form>
 
       {message && (
-        <p
-          className={`auth-status auth-status--${messageTone}`}
-          role={messageTone === "danger" ? "alert" : "status"}
-        >
+        <StatusMessage tone={messageTone}>
           {t(message.key)}
-        </p>
+        </StatusMessage>
       )}
 
       <div className="auth-actions auth-actions--secondary">

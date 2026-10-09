@@ -252,6 +252,44 @@ describe('existing authentication flows', () => {
     alert.mockRestore()
   })
 
+  it('renders the form error as a focusable danger status message that keeps multi-line descriptors', async () => {
+    const user = userEvent.setup()
+    authApi.register.mockRejectedValue({
+      response: { status: 400, data: [
+        { code: 'PasswordRequiresDigit', description: 'Passwords must have at least one digit' },
+        { code: 'PasswordRequiresUpper', description: 'Passwords must have at least one uppercase' },
+      ] },
+    })
+    renderAt(<AuthPage onLogin={vi.fn()} />)
+    await user.click(screen.getByRole('button', { name: 'Need an account? Register' }))
+    await user.type(screen.getByLabelText('Email'), 'person@example.com')
+    await user.type(screen.getByLabelText('Password'), 'Secret1!')
+    await user.type(screen.getByLabelText('Confirm password'), 'Secret1!')
+    await user.click(screen.getByRole('button', { name: 'Register' }))
+
+    const error = await screen.findByRole('alert')
+    expect(error).toHaveClass('status-message', 'status-message--danger')
+    expect(error.className).not.toMatch(/auth-status/)
+    expect(error).toHaveAttribute('tabindex', '-1')
+    expect(error).toHaveFocus()
+    // The joined descriptors rely on the scoped .auth-card .status-message white-space: pre-line rule.
+    expect(error.textContent).toContain('\n')
+    expect(error.closest('.auth-card')).not.toBeNull()
+  })
+
+  it('keeps explicit live-region politeness on the confirmation status', async () => {
+    authApi.confirmEmail.mockResolvedValue({ data: { message: 'ok' } })
+    const success = renderAt(<ConfirmEmailPage />, '/confirm-email?userId=u&token=t')
+    expect(await screen.findByRole('heading', { name: 'Email confirmed', level: 1 })).toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveAttribute('aria-live', 'polite')
+    expect(screen.getByRole('status')).toHaveClass('status-message--success')
+    success.unmount()
+
+    renderAt(<ConfirmEmailPage />, '/confirm-email?userId=u')
+    expect(screen.getByRole('alert')).toHaveAttribute('aria-live', 'assertive')
+    expect(screen.getByRole('alert')).toHaveClass('status-message--danger')
+  })
+
   it('preserves native required and email validation before login submission', async () => {
     const user = userEvent.setup()
     renderAt(<AuthPage onLogin={vi.fn()} />)

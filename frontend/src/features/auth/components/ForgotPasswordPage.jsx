@@ -1,6 +1,7 @@
 import { useId, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { authApi } from "../../../shared/api/authApi";
+import StatusMessage from "../../../shared/ui/StatusMessage";
 import { mapResendFailure } from "../authMessages";
 import { useTranslation } from "react-i18next";
 import AuthShell from "./AuthShell";
@@ -74,12 +75,9 @@ export default function ForgotPasswordPage() {
       </form>
 
       {message && (
-        <p
-          className={`auth-status auth-status--${messageTone}`}
-          role={messageTone === "danger" ? "alert" : "status"}
-        >
+        <StatusMessage tone={messageTone}>
           {t(message.key)}
-        </p>
+        </StatusMessage>
       )}
 
       <section className="auth-secondary" aria-label={t("forgotPassword.recovery.label")}>
@@ -102,12 +100,9 @@ export default function ForgotPasswordPage() {
           </div>
         </details>
         {resendMessage && (
-          <p
-            className={`auth-status auth-status--${resendTone}`}
-            role={resendTone === "danger" ? "alert" : "status"}
-          >
+          <StatusMessage tone={resendTone}>
             {t(resendMessage.key)}
-          </p>
+          </StatusMessage>
         )}
       </section>
 

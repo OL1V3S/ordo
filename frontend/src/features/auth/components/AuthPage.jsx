@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Trans, useTranslation } from "react-i18next";
 import { authApi } from "../../../shared/api/authApi";
 import { establishSession } from "../../../shared/auth/session";
+import StatusMessage from "../../../shared/ui/StatusMessage";
 import AuthShell from "./AuthShell";
 import PasswordField from "./PasswordField";
 import { mapResendFailure, mapSubmitError, translateDescriptors } from "../authMessages";
@@ -111,9 +112,9 @@ export default function AuthPage({ onLogin }) {
   if (mode === "check-email") {
     return (
       <AuthShell title={t("checkEmail.title")} focusKey="check-email">
-        <p className="auth-status auth-status--info" role="status">
+        <StatusMessage tone="info">
           {confirmationMessage && t(confirmationMessage.key, confirmationMessage.values)}
-        </p>
+        </StatusMessage>
         <p className="auth-help">
           <Trans
             t={t}
@@ -123,12 +124,9 @@ export default function AuthPage({ onLogin }) {
           />
         </p>
         {resendMessage && (
-          <p
-            className={`auth-status auth-status--${resendTone}`}
-            role={resendTone === "danger" ? "alert" : "status"}
-          >
+          <StatusMessage tone={resendTone}>
             {t(resendMessage.key)}
-          </p>
+          </StatusMessage>
         )}
         <div className="auth-actions">
           <button
@@ -224,14 +222,9 @@ export default function AuthPage({ onLogin }) {
         )}
 
         {formError && (
-          <p
-            ref={formErrorRef}
-            className="auth-status auth-status--danger"
-            role="alert"
-            tabIndex="-1"
-          >
+          <StatusMessage ref={formErrorRef} tone="danger" tabIndex="-1">
             {translateDescriptors(t, formError)}
-          </p>
+          </StatusMessage>
         )}
 
         <button type="submit" className="auth-primary-action">
