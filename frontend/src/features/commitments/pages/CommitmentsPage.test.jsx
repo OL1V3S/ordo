@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useCommitments } from "../hooks/useCommitments";
@@ -64,10 +64,15 @@ function state(overrides = {}) {
   };
 }
 
-const card = (name) => screen.getByRole("heading", { name, exact: true }).closest("article");
+const card = (name) => screen.getByRole("heading", { name, exact: true }).closest("li");
 const disclosure = (name) => screen.getByLabelText(`Details for ${name}`).closest("details");
 const historyHeading = (name) => screen.getByRole("heading", { level: 2, name: new RegExp(`^${name} \\(\\d+\\)$`) });
-const history = (name) => historyHeading(name).closest("details");
+const history = (name) => historyHeading(name).closest("section");
+const historyButton = (name) => within(historyHeading(name)).getByRole("button");
+async function menuAction(user, name, action) {
+  await user.click(screen.getByRole("button", { name: `Actions for ${name}` }));
+  await user.click(screen.getByRole("button", { name: action }));
+}
 
 function renderCommitmentsPage(initialEntries = ["/commitments"]) {
   return render(<CommitmentsPage />, {
@@ -109,8 +114,9 @@ describe("Commitments workspace", () => {
     expect(saved.getAllByText("$1,200.00")[0]).toBeVisible();
     expect(saved.getByText("Housing · Monthly")).toBeVisible();
     expect(saved.getByText("Day 1, with a 1-day before / 1-day after window")).toBeVisible();
-    expect(saved.getByRole("button", { name: "Edit Rent" })).toBeVisible();
-    expect(saved.getByRole("button", { name: "Pause Rent" })).toBeVisible();
+    expect(saved.getByRole("button", { name: "Actions for Rent" })).toBeVisible();
+    expect(saved.getByRole("button", { name: "Edit Rent", hidden: true })).not.toBeVisible();
+    expect(saved.getByRole("button", { name: "Pause Rent", hidden: true })).not.toBeVisible();
     expect(saved.getByText("Records used to confirm", { selector: "h4" })).not.toBeVisible();
     expect(disclosure("Rent")).not.toHaveAttribute("open");
     await user.click(saved.getByLabelText("Details for Rent"));
@@ -134,16 +140,15 @@ describe("Commitments workspace", () => {
     expect(possible.getByText("Sunflower statement")).toBeVisible();
 
     for (const name of ["Paused commitments", "Ended commitments", "Reviewed changes", "Dismissed possible commitments"]) {
-      expect(history(name)).not.toHaveAttribute("open");
-      expect(historyHeading(name).closest("summary")).toHaveProperty("tabIndex", 0);
+      expect(historyButton(name)).toHaveAttribute("aria-expanded", "false");
     }
-    expect(screen.getByRole("heading", { name: "Paused rent" })).not.toBeVisible();
-    expect(screen.getByRole("heading", { name: "Ended rent" })).not.toBeVisible();
-    expect(screen.getByRole("heading", { name: "Streaming service" })).not.toBeVisible();
-    await user.click(historyHeading("Paused commitments").closest("summary"));
-    await user.click(historyHeading("Ended commitments").closest("summary"));
-    await user.click(historyHeading("Reviewed changes").closest("summary"));
-    await user.click(historyHeading("Dismissed possible commitments").closest("summary"));
+    expect(screen.getByRole("heading", { name: "Paused rent", hidden: true })).not.toBeVisible();
+    expect(screen.getByRole("heading", { name: "Ended rent", hidden: true })).not.toBeVisible();
+    expect(screen.getByRole("heading", { name: "Streaming service", hidden: true })).not.toBeVisible();
+    await user.click(historyButton("Paused commitments"));
+    await user.click(historyButton("Ended commitments"));
+    await user.click(historyButton("Reviewed changes"));
+    await user.click(historyButton("Dismissed possible commitments"));
     expect(screen.getByRole("heading", { name: "Paused rent" })).toBeVisible();
     expect(screen.getByRole("heading", { name: "Ended rent" })).toBeVisible();
     expect(screen.getByRole("heading", { name: "Streaming service" })).toBeVisible();
@@ -223,7 +228,7 @@ describe("Commitments workspace", () => {
     expect(screen.getByLabelText("Name")).toHaveValue("Draft gym plan");
     expect(screen.getByRole("button", { name: "Confirm commitment" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Cancel" })).toBeEnabled();
-    expect(screen.getByRole("button", { name: "Edit Rent" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Edit Rent", hidden: true })).toBeDisabled();
     await user.click(screen.getByRole("button", { name: "Cancel" }));
     expect(screen.queryByRole("form", { name: "Confirm commitment" })).not.toBeInTheDocument();
     await waitFor(() => expect(document.getElementById("commitments-feedback")).toHaveFocus());
@@ -234,9 +239,9 @@ describe("Commitments workspace", () => {
     let current = state({ commitments: [{ ...commitment, lifecycle: "paused", name: "Paused rent" }], candidates: [] });
     useCommitments.mockImplementation(() => current);
     const { rerender } = renderCommitmentsPage();
-    const pausedSummary = historyHeading("Paused commitments").closest("summary");
+    const pausedSummary = historyButton("Paused commitments");
     await user.click(pausedSummary);
-    await user.click(screen.getByRole("button", { name: "Edit Paused rent" }));
+    await menuAction(user, "Paused rent", "Edit Paused rent");
     const form = screen.getByRole("form", { name: "Save changes" });
     expect(history("Paused commitments")).toContainElement(form);
     expect(disclosure("Paused rent")).not.toContainElement(form);
@@ -244,11 +249,11 @@ describe("Commitments workspace", () => {
     await user.clear(within(form).getByLabelText("Name"));
     await user.type(within(form).getByLabelText("Name"), "Paused draft");
     await user.click(pausedSummary);
-    expect(history("Paused commitments")).toHaveAttribute("open");
+    expect(pausedSummary).toHaveAttribute("aria-expanded", "true");
     current = { ...current, loading: true };
     rerender(<CommitmentsPage />);
     expect(screen.getByLabelText("Name")).toHaveValue("Paused draft");
-    expect(history("Paused commitments")).toHaveAttribute("open");
+    expect(pausedSummary).toHaveAttribute("aria-expanded", "true");
   });
 
   it("preserves a dirty edit when the same commitment moves from active to paused during refresh", async () => {
@@ -256,7 +261,7 @@ describe("Commitments workspace", () => {
     let current = state({ candidates: [] });
     useCommitments.mockImplementation(() => current);
     const { rerender } = renderCommitmentsPage();
-    await user.click(screen.getByRole("button", { name: "Edit Rent" }));
+    await menuAction(user, "Rent", "Edit Rent");
     const originalForm = screen.getByRole("form", { name: "Save changes" });
     await user.clear(within(originalForm).getByLabelText("Name"));
     await user.type(within(originalForm).getByLabelText("Name"), "Moved rent draft");
@@ -267,14 +272,14 @@ describe("Commitments workspace", () => {
     rerender(<CommitmentsPage />);
 
     const movedForm = screen.getByRole("form", { name: "Save changes" });
-    const pausedSummary = historyHeading("Paused commitments").closest("summary");
-    expect(history("Paused commitments")).toHaveAttribute("open");
+    const pausedSummary = historyButton("Paused commitments");
+    expect(pausedSummary).toHaveAttribute("aria-expanded", "true");
     expect(history("Paused commitments")).toContainElement(movedForm);
     expect(pausedSummary).toHaveAttribute("aria-disabled", "true");
     expect(within(movedForm).getByLabelText("Name")).toHaveValue("Moved rent draft");
     expect(within(movedForm).getByLabelText("Category")).toHaveValue("home");
     await user.click(pausedSummary);
-    expect(history("Paused commitments")).toHaveAttribute("open");
+    expect(pausedSummary).toHaveAttribute("aria-expanded", "true");
 
     await user.click(within(movedForm).getByRole("button", { name: "Save changes" }));
     expect(current.updateCommitment).toHaveBeenCalledExactlyOnceWith("commitment-1", {
@@ -310,11 +315,11 @@ describe("Commitments workspace", () => {
     const current = state();
     useCommitments.mockReturnValue(current);
     renderCommitmentsPage();
-    await user.click(screen.getByRole("button", { name: "Edit Rent" }));
+    await menuAction(user, "Rent", "Edit Rent");
     expect(screen.getByLabelText("Name")).toHaveFocus();
     await user.click(screen.getByRole("button", { name: "Cancel" }));
-    await waitFor(() => expect(screen.getByRole("button", { name: "Edit Rent" })).toHaveFocus());
-    await user.click(screen.getByRole("button", { name: "Edit Rent" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Actions for Rent" })).toHaveFocus());
+    await menuAction(user, "Rent", "Edit Rent");
     const form = screen.getByRole("form", { name: "Save changes" });
     await user.clear(within(form).getByLabelText("Name"));
     await user.type(within(form).getByLabelText("Name"), "Apartment rent");
@@ -333,17 +338,16 @@ describe("Commitments workspace", () => {
     const current = state({ commitments: [commitment, paused, ended], candidates: [] });
     useCommitments.mockReturnValue(current);
     renderCommitmentsPage();
-    await user.click(screen.getByRole("button", { name: "Pause Rent" }));
+    await menuAction(user, "Rent", "Pause Rent");
     expect(current.updateLifecycle).toHaveBeenLastCalledWith("commitment-1", "paused");
-    await user.click(historyHeading("Paused commitments").closest("summary"));
+    // A successful pause auto-opens the Paused disclosure.
+    expect(historyButton("Paused commitments")).toHaveAttribute("aria-expanded", "true");
     await user.click(screen.getByRole("button", { name: "Reactivate Paused rent" }));
     expect(current.updateLifecycle).toHaveBeenLastCalledWith("commitment-2", "active");
-    await user.click(historyHeading("Ended commitments").closest("summary"));
-    await user.click(screen.getByLabelText("Details for Ended rent"));
-    await user.click(screen.getByRole("button", { name: "Pause Ended rent" }));
+    await user.click(historyButton("Ended commitments"));
+    await menuAction(user, "Ended rent", "Pause Ended rent");
     expect(current.updateLifecycle).toHaveBeenLastCalledWith("commitment-3", "paused");
-    await user.click(screen.getByLabelText("Details for Rent"));
-    await user.click(screen.getByRole("button", { name: "End Rent" }));
+    await menuAction(user, "Rent", "End Rent");
     const confirmation = screen.getByRole("group", { name: "End Rent" });
     expect(confirmation.closest("details")).toBeNull();
     expect(within(confirmation).getByRole("button", { name: "Confirm end" })).toHaveFocus();
@@ -351,21 +355,21 @@ describe("Commitments workspace", () => {
     expect(current.updateLifecycle).toHaveBeenLastCalledWith("commitment-1", "ended");
   });
 
-  it("locks competing actions during edit and restores the Details end trigger after cancellation", async () => {
+  it("locks competing actions during edit and restores the actions menu trigger after cancelling edit and end", async () => {
     const user = userEvent.setup();
     useCommitments.mockReturnValue(state({ commitmentChanges: [commitmentChange] }));
     renderCommitmentsPage();
-    await user.click(screen.getByRole("button", { name: "Edit Rent" }));
+    await menuAction(user, "Rent", "Edit Rent");
     expect(screen.getByRole("button", { name: "Review and confirm Gym membership" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Dismiss Gym membership" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Dismiss Gym membership", hidden: true })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Accept amount change for Gym plan" })).toBeDisabled();
     await user.click(screen.getByRole("button", { name: "Cancel" }));
-    await user.click(screen.getByLabelText("Details for Rent"));
-    await user.click(screen.getByRole("button", { name: "End Rent" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Actions for Rent" })).toHaveFocus());
+    await menuAction(user, "Rent", "End Rent");
     expect(screen.getByRole("button", { name: "Confirm end" })).toHaveFocus();
     await user.click(screen.getByRole("button", { name: "Cancel ending" }));
-    await waitFor(() => expect(screen.getByRole("button", { name: "End Rent" })).toHaveFocus());
-    expect(disclosure("Rent")).toHaveAttribute("open");
+    await waitFor(() => expect(screen.getByRole("button", { name: "Actions for Rent" })).toHaveFocus());
+    expect(disclosure("Rent")).not.toHaveAttribute("open");
   });
 
   it("dismisses and reconsiders only exact candidate fingerprints and focuses the disclosed destination", async () => {
@@ -373,10 +377,10 @@ describe("Commitments workspace", () => {
     const current = state();
     useCommitments.mockReturnValue(current);
     renderCommitmentsPage();
-    await user.click(screen.getByRole("button", { name: "Dismiss Gym membership" }));
+    await menuAction(user, "Gym membership", "Dismiss Gym membership");
     expect(current.dismissCandidate).toHaveBeenCalledExactlyOnceWith("fingerprint-1");
-    expect(history("Dismissed possible commitments")).toHaveAttribute("open");
-    await waitFor(() => expect(historyHeading("Dismissed possible commitments").closest("summary")).toHaveFocus());
+    expect(historyButton("Dismissed possible commitments")).toHaveAttribute("aria-expanded", "true");
+    await waitFor(() => expect(historyButton("Dismissed possible commitments")).toHaveFocus());
     await user.click(screen.getByRole("button", { name: "Reconsider Streaming service" }));
     expect(current.reconsiderCandidate).toHaveBeenCalledExactlyOnceWith("fingerprint-2");
     await waitFor(() => expect(screen.getByRole("heading", { name: "Possible commitments" })).toHaveFocus());
@@ -436,5 +440,53 @@ describe("Commitments workspace", () => {
     expect(screen.queryByText("No commitments confirmed yet.")).not.toBeInTheDocument();
     await userEvent.setup().click(screen.getByRole("button", { name: "Try again" }));
     expect(refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders every status message in one area in a fixed order with its role and the recovery action last", () => {
+    let current = state();
+    useCommitments.mockImplementation(() => current);
+    const { rerender } = renderCommitmentsPage();
+    current = state({ loading: true, busyKey: "lifecycle:commitment-1", loadError: "Load failed.", actionError: "Action failed.", notice: "Saved it." });
+    rerender(<CommitmentsPage />);
+    const area = document.getElementById("commitments-feedback");
+    expect([...area.children].map((node) => node.textContent)).toEqual([
+      "Load failed.", expect.stringContaining("may be out of date"), "Action failed.", "Saved it.",
+      "Refreshing commitments...", "Saving your decision...", "Refresh commitments",
+    ]);
+    expect([...area.querySelectorAll("[role]")].map((node) => node.getAttribute("role"))).toEqual(["alert", "alert", "status", "status", "status"]);
+    expect(area.lastElementChild).toContainElement(screen.getByRole("button", { name: "Refresh commitments" }));
+  });
+
+  it("exposes each record action in one place: a primary button for reactivate and review, the rest in the menu", async () => {
+    const user = userEvent.setup();
+    const paused = { ...commitment, id: "commitment-2", name: "Paused rent", lifecycle: "paused" };
+    const ended = { ...commitment, id: "commitment-3", name: "Ended rent", lifecycle: "ended" };
+    useCommitments.mockReturnValue(state({ commitments: [commitment, paused, ended] }));
+    renderCommitmentsPage();
+    await user.click(historyButton("Paused commitments"));
+    await user.click(historyButton("Ended commitments"));
+    const menuNames = (name) => within(card(name)).getAllByRole("button", { hidden: true }).map((button) => button.getAttribute("aria-label"))
+      .filter((label) => label && !label.startsWith("Actions for") && !label.startsWith("Details for"));
+    expect(menuNames("Rent")).toEqual(["Edit Rent", "Pause Rent", "End Rent"]);
+    expect(menuNames("Paused rent")).toEqual(["Reactivate Paused rent", "Edit Paused rent", "End Paused rent"]);
+    expect(menuNames("Ended rent")).toEqual(["Reactivate Ended rent", "Edit Ended rent", "Pause Ended rent"]);
+    expect(within(card("Paused rent")).getByRole("button", { name: "Reactivate Paused rent" })).toBeVisible();
+    expect(within(card("Gym membership")).getByRole("button", { name: "Review and confirm Gym membership" })).toBeVisible();
+    expect(within(card("Gym membership")).getByRole("button", { name: "Dismiss Gym membership", hidden: true })).not.toBeVisible();
+  });
+
+  it("keeps headings out of summaries and announces locked history as a disabled button with the lock note", async () => {
+    const user = userEvent.setup();
+    const { container } = renderCommitmentsPage();
+    expect(container.querySelector("summary h2, summary h3")).toBeNull();
+    useCommitments.mockReturnValue(state({ busyKey: "reconsider:fingerprint-2" }));
+    cleanup();
+    renderCommitmentsPage();
+    const button = historyButton("Dismissed possible commitments");
+    expect(button).toHaveAttribute("aria-disabled", "true");
+    expect(button).toHaveAttribute("aria-expanded", "true");
+    expect(button).toHaveAccessibleDescription("Dismissed possible commitments stay open while a decision is saving.");
+    await user.click(button);
+    expect(button).toHaveAttribute("aria-expanded", "true");
   });
 });

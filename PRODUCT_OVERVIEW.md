@@ -48,8 +48,9 @@ silently treating every detected pattern as a financial fact.
 - **Commitments:** See active saved expectations, amounts, and timing patterns
   first, then review supported changes and possible recurring expenses. Edit,
   pause, reactivate, or end saved commitments; confirm or dismiss suggestions.
-  Details disclose supporting records, while inactive, reviewed, and dismissed
-  history sits in expandable groups. Amount and timing comparisons and payments
+  Rows show one main action with the rest in an actions menu, details disclose
+  supporting records, and inactive, reviewed, and dismissed history sits in
+  collapsed sections. Amount and timing comparisons and payments
   not seen recently stay visible for review; accepting a change remains your
   decision. Saved timing describes a pattern, not an upcoming payment forecast.
 - **Paychecks:** See active saved expectations first, with expected amounts and

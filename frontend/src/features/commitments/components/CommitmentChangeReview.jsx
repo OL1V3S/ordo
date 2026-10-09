@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import Card from "../../../shared/ui/Card";
+import ListRow from "../../../shared/ui/ListRow";
+import SectionHeader from "../../../shared/ui/SectionHeader";
+import HistoryDisclosure from "./HistoryDisclosure";
 import CommitmentEvidence from "./CommitmentEvidence";
 import { cadenceLabel, formatDate, formatDerivedMoney, formatMoney, weekdayLabel } from "../utils/formatCommitments";
 import groupCommitmentChanges from "../utils/groupCommitmentChanges";
@@ -133,7 +135,7 @@ function ChangeActions({ change, dimension, assessment, state, kept, activeTask,
       if (hasError) feedback.focus();
       else {
         const target = document.getElementById(focusId);
-        (focusId === "kept-changes-heading" ? target?.closest("summary") : target)?.focus();
+        (focusId === "kept-changes-heading" ? target?.querySelector(":scope > .ui-disclosure__button") ?? target : target)?.focus();
       }
     });
   }
@@ -254,15 +256,9 @@ function ChangeActions({ change, dimension, assessment, state, kept, activeTask,
 function ChangeCard({ change, state, kept, activeTask, onTaskChange, onReviewedOpenChange }) {
   const { t } = useTranslation("commitments");
   return (
-    <Card as="article" className={`commitment-card commitment-change-card${kept ? " commitment-change-card--kept" : ""}`}>
-      <div className="commitment-card__header">
-        <div>
-          <p className="commitment-card__eyebrow">{kept ? t("changes.eyebrowReviewed") : t("changes.eyebrowPending")}</p>
-          <h3>{change.commitment.name}</h3>
-          <p className="muted">{displayText(change.commitment.category)} · {cadenceLabel(change.commitment.cadence, t)}</p>
-        </div>
-      </div>
-
+    <ListRow className={`commitment-row commitment-change-row${kept ? " commitment-change-row--kept" : ""}`} titleAs="h3"
+      label={kept ? t("changes.eyebrowReviewed") : t("changes.eyebrowPending")} title={change.commitment.name}
+      meta={<span>{displayText(change.commitment.category)} · {cadenceLabel(change.commitment.cadence, t)}</span>}>
       <div className="commitment-change__panels">
         {change.assessments.map(({ dimension, assessment }) => {
           const evidence = evidenceFor(change, assessment);
@@ -295,7 +291,7 @@ function ChangeCard({ change, state, kept, activeTask, onTaskChange, onReviewedO
           );
         })}
       </div>
-    </Card>
+    </ListRow>
   );
 }
 
@@ -307,12 +303,12 @@ function ChangeList({ changes, state, kept = false, activeTask, onTaskChange, on
   const { t } = useTranslation("commitments");
   if (changes.length === 0) return <p className="empty-state">{kept ? t("changes.emptyReviewed") : t("changes.emptyPending")}</p>;
   return (
-    <div className="commitment-list">
+    <ul className="commitment-rows">
       {changes.map((change) => (
         <ChangeCard key={change.commitment.id} change={change} state={state} kept={kept}
           activeTask={activeTask} onTaskChange={onTaskChange} onReviewedOpenChange={onReviewedOpenChange} />
       ))}
-    </div>
+    </ul>
   );
 }
 
@@ -320,13 +316,8 @@ function PendingChanges({ changes, state, activeTask, onTaskChange, onReviewedOp
   const { t } = useTranslation("commitments");
   return (
     <section className="commitment-section" aria-labelledby="changes-review-heading">
-      <div className="commitment-section__header">
-        <div>
-          <h2 id="changes-review-heading" tabIndex="-1">{t("changes.heading")}</h2>
-          <p className="muted">{t("changes.intro")}</p>
-        </div>
-        <span className="commitment-count">{changeCount(changes)}</span>
-      </div>
+      <SectionHeader id="changes-review-heading" focusable title={t("changes.heading")} action={<span className="commitment-count">{changeCount(changes)}</span>} />
+      <p className="muted">{t("changes.intro")}</p>
       <ChangeList changes={changes} state={state} activeTask={activeTask}
         onTaskChange={onTaskChange} onReviewedOpenChange={onReviewedOpenChange} />
     </section>
@@ -337,18 +328,13 @@ function ReviewedChanges({ changes, state, activeTask, onTaskChange, open, onOpe
   const { t } = useTranslation("commitments");
   const locked = Boolean(state.busyKey?.includes(":reconsider:"));
   return (
-    <details className="commitment-section commitment-change-history" open={open || locked}
-      onToggle={(event) => { if (!locked) onOpenChange(event.currentTarget.open); }}>
-      <summary aria-disabled={locked || undefined} onClick={(event) => { if (locked) event.preventDefault(); }}>
-        <h2 id="kept-changes-heading">{t("changes.reviewedHeading")} <span>({changeCount(changes)})</span></h2>
-      </summary>
-      <div className="commitment-change-history__content">
-        <p className="muted">{t("changes.reviewedIntro")}</p>
-        {locked && <p className="muted">{t("changes.reviewedLocked")}</p>}
-        <ChangeList changes={changes} state={state} kept activeTask={activeTask}
-          onTaskChange={onTaskChange} onReviewedOpenChange={onReviewedOpenChange} />
-      </div>
-    </details>
+    <HistoryDisclosure className="commitment-change-history" headingId="kept-changes-heading" panelId="commitments-reviewed-panel" lockNoteId="commitments-reviewed-lock-note"
+      title={t("changes.reviewedHeading")} count={changeCount(changes)} open={open || locked} locked={locked} onToggle={() => onOpenChange(!open)}>
+      <p className="muted">{t("changes.reviewedIntro")}</p>
+      {locked && <p id="commitments-reviewed-lock-note" className="muted">{t("changes.reviewedLocked")}</p>}
+      <ChangeList changes={changes} state={state} kept activeTask={activeTask}
+        onTaskChange={onTaskChange} onReviewedOpenChange={onReviewedOpenChange} />
+    </HistoryDisclosure>
   );
 }
 

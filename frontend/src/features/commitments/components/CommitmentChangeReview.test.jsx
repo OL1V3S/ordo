@@ -92,7 +92,8 @@ function reviewState(overrides = {}) {
 }
 
 const reviewedHeading = () => screen.getByRole("heading", { level: 2, name: /Reviewed changes \(\d+\)/ });
-const reviewedHistory = () => reviewedHeading().closest("details");
+const reviewedHistory = () => reviewedHeading().closest("section");
+const reviewedButton = () => within(reviewedHeading()).getByRole("button");
 
 describe("commitment change review", () => {
   it("groups only actionable exact assessments by pending and kept decision state", () => {
@@ -111,7 +112,7 @@ describe("commitment change review", () => {
     render(<CommitmentChangeReview state={reviewState()} />);
 
     const pendingSection = screen.getByRole("heading", { name: "Changes to review" }).closest("section");
-    const pendingGym = within(pendingSection).getByRole("heading", { name: "Gym plan", level: 3 }).closest("article");
+    const pendingGym = within(pendingSection).getByRole("heading", { name: "Gym plan", level: 3 }).closest("li");
 
     const currentExpectation = within(pendingGym).getByText("Current expectation").closest("div");
     const observedProposal = within(pendingGym).getByText("Observed change").closest("div");
@@ -131,9 +132,9 @@ describe("commitment change review", () => {
     expect(within(amountDetails).getByText("Detection details").closest("div")).toHaveTextContent("commitment-change-v1");
 
     expect(reviewedHeading()).toHaveAccessibleName("Reviewed changes (1)");
-    expect(reviewedHistory()).not.toHaveAttribute("open");
-    await user.click(reviewedHeading().closest("summary"));
-    const keptGym = within(reviewedHistory()).getByRole("heading", { name: "Gym plan", level: 3 }).closest("article");
+    expect(reviewedButton()).toHaveAttribute("aria-expanded", "false");
+    await user.click(reviewedButton());
+    const keptGym = within(reviewedHistory()).getByRole("heading", { name: "Gym plan", level: 3 }).closest("li");
     expect(within(keptGym).getByText("Reviewed change")).toBeVisible();
     expect(within(keptGym).getByText("Health · Monthly")).toBeVisible();
     const timingDetails = within(keptGym).getByLabelText("Details for timing change for Gym plan").closest("details");
@@ -143,7 +144,7 @@ describe("commitment change review", () => {
     expect(within(keptGym).getByText(/Sep 17, 2026/)).toBeVisible();
     expect(within(keptGym).getByText(/Oct 17, 2026/)).toBeVisible();
 
-    const insurance = within(pendingSection).getByRole("heading", { name: "Insurance", level: 3 }).closest("article");
+    const insurance = within(pendingSection).getByRole("heading", { name: "Insurance", level: 3 }).closest("li");
     expect(within(insurance).getByText("Possibly ended")).toBeVisible();
     expect(within(insurance).getByText("This is an observation, not an automatic status change.")).toBeVisible();
     expect(within(insurance).getByText("3 expected monthly dates have passed without a matching expense.")).toBeVisible();
@@ -162,8 +163,8 @@ describe("commitment change review", () => {
 
     await user.click(screen.getByRole("button", { name: "Keep current amount for Gym plan" }));
     expect(state.keepChange).toHaveBeenCalledWith("commitment-1", "amount", "amount-fingerprint");
-    expect(reviewedHistory()).toHaveAttribute("open");
-    await waitFor(() => expect(reviewedHeading().closest("summary")).toHaveFocus());
+    expect(reviewedButton()).toHaveAttribute("aria-expanded", "true");
+    await waitFor(() => expect(reviewedButton()).toHaveFocus());
 
     await user.click(screen.getByRole("button", { name: "Reconsider timing change for Gym plan" }));
     expect(state.reconsiderChange).toHaveBeenCalledWith("commitment-1", "timing", "timing-fingerprint");
@@ -171,7 +172,7 @@ describe("commitment change review", () => {
 
     await user.click(screen.getByRole("button", { name: "Keep active for Insurance" }));
     expect(state.keepChange).toHaveBeenCalledWith("commitment-2", "missing", "missing-fingerprint");
-    await waitFor(() => expect(reviewedHeading().closest("summary")).toHaveFocus());
+    await waitFor(() => expect(reviewedButton()).toHaveFocus());
   });
 
   it("does not let delayed destination focus steal a newly opened end confirmation", async () => {
@@ -307,18 +308,18 @@ describe("commitment change review", () => {
     );
     expect(screen.queryByRole("heading", { name: "Changes to review" })).not.toBeInTheDocument();
     expect(reviewedHeading()).toHaveAccessibleName("Reviewed changes (1)");
-    expect(reviewedHistory()).not.toHaveAttribute("open");
+    expect(reviewedButton()).toHaveAttribute("aria-expanded", "false");
   });
 
   it("locks reviewed history open while reconsidering", async () => {
     const user = userEvent.setup();
     render(<CommitmentChangeReview view="reviewed" state={reviewState({ busyKey: "change:timing:reconsider:commitment-1:timing-fingerprint" })} />);
-    const summary = reviewedHeading().closest("summary");
-    expect(reviewedHistory()).toHaveAttribute("open");
+    const summary = reviewedButton();
+    expect(reviewedButton()).toHaveAttribute("aria-expanded", "true");
     expect(summary).toHaveAttribute("aria-disabled", "true");
     expect(screen.getByRole("button", { name: "Reconsider timing change for Gym plan" })).toBeDisabled();
     await user.click(summary);
-    expect(reviewedHistory()).toHaveAttribute("open");
+    expect(reviewedButton()).toHaveAttribute("aria-expanded", "true");
   });
 
   it("clears only its exact End task when the pending assessment disappears", async () => {
@@ -355,10 +356,12 @@ describe("commitment change review", () => {
     expect(screen.getByText("No commitment changes need your review.")).toBeInTheDocument();
     expect(screen.getByText("No reviewed changes.")).toBeInTheDocument();
     expect(reviewedHeading()).toHaveAccessibleName("Reviewed changes (0)");
-    expect(reviewedHistory()).not.toHaveAttribute("open");
+    expect(reviewedButton()).toHaveAttribute("aria-expanded", "false");
 
     rerender(<CommitmentChangeReview state={reviewState({ busyKey: "change:amount:accept" })} />);
-    expect(screen.getAllByRole("button")).not.toHaveLength(0);
-    expect(screen.getAllByRole("button").every((button) => button.disabled)).toBe(true);
+    // Disclosure toggles are not decisions; they stay operable.
+    const decisions = screen.getAllByRole("button", { hidden: true }).filter((button) => !button.classList.contains("ui-disclosure__button"));
+    expect(decisions).not.toHaveLength(0);
+    expect(decisions.every((button) => button.disabled)).toBe(true);
   });
 });

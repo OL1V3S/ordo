@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import Card from "../../../shared/ui/Card";
+import ListRow from "../../../shared/ui/ListRow";
+import RowActionsMenu from "../../../shared/ui/RowActionsMenu";
+import SectionHeader from "../../../shared/ui/SectionHeader";
 import StatusMessage from "../../../shared/ui/StatusMessage";
 import CommitmentEvidence from "../components/CommitmentEvidence";
 import CommitmentChangeReview from "../components/CommitmentChangeReview";
 import CommitmentForm from "../components/CommitmentForm";
+import HistoryDisclosure from "../components/HistoryDisclosure";
 import { useCommitments } from "../hooks/useCommitments";
 import { cadenceLabel, evidenceRuleLabel, formatDate, formatDerivedMoney, formatMoney, lifecycleLabel, weekdayLabel } from "../utils/formatCommitments";
 import groupCommitmentChanges from "../utils/groupCommitmentChanges";
@@ -31,23 +34,30 @@ function amountSummary(model) {
   return `${formatDerivedMoney(model.observedMinimumAmount)}–${formatDerivedMoney(model.observedMaximumAmount)}`;
 }
 
-function CandidateCard({ candidate, dismissed, state, task, disabled, onOpen, onCancel, onDraftChange, onSubmit, onDecision }) {
+function CandidateRow({ candidate, dismissed, state, task, disabled, onOpen, onCancel, onDraftChange, onSubmit, onDecision }) {
   const { t } = useTranslation("commitments");
   const reviewing = task?.mode === "confirm" && task.key === candidate.fingerprint;
   const busy = Boolean(state.busyKey) || state.loading;
+  const name = candidate.description;
+  const review = (event) => onOpen({ mode: "confirm", key: candidate.fingerprint, model: candidate }, event.currentTarget);
+  const actions = reviewing ? null : dismissed ? (
+    <button type="button" disabled={disabled} aria-label={t("candidates.reconsiderLabel", { name })} onClick={() => onDecision(candidate.fingerprint, true)}>{t("candidates.reconsider")}</button>
+  ) : <>
+    <button type="button" disabled={disabled} aria-label={t("candidates.reviewAndConfirmLabel", { name })} onClick={review}>{t("candidates.reviewAndConfirm")}</button>
+    <RowActionsMenu triggerLabel={t("actions.menuLabel", { name })} items={[
+      { key: "dismiss", label: t("candidates.dismissLabel", { name }), text: t("candidates.dismiss"), className: "button-ghost", disabled, onSelect: () => onDecision(candidate.fingerprint, false) },
+    ]} />
+  </>;
   return (
-    <Card as="article" className="commitment-card">
-      <div className="commitment-card__header">
-        <div>
-          {dismissed && <p className="commitment-status">{t("candidates.dismissedStatus")}</p>}
-          <h3>{candidate.description}</h3>
-          <p className="muted">{displayText(candidate.category)} · {cadenceLabel(candidate.cadence, t)}</p>
-        </div>
-        <div className="commitment-card__value"><span>{candidate.observedAmountMode === "fixed" ? t("candidates.observedAmount") : t("candidates.observedAmountRange")}</span><strong className="commitment-card__amount">{amountSummary(candidate)}</strong></div>
-      </div>
-      <p className="commitment-support">{t(candidate.observedAmountMode === "fixed" ? "candidates.basedOnFixed" : "candidates.basedOnRange", { count: candidate.occurrenceCount })}</p>
+    <ListRow className={`commitment-row${dismissed ? " commitment-row--dismissed" : ""}`} titleAs="h3" label={dismissed ? t("candidates.dismissedStatus") : null} title={name}
+      meta={<>
+        <span>{displayText(candidate.category)} · {cadenceLabel(candidate.cadence, t)}</span>
+        <span>{t(candidate.observedAmountMode === "fixed" ? "candidates.basedOnFixed" : "candidates.basedOnRange", { count: candidate.occurrenceCount })}</span>
+      </>}
+      amount={<><span className="commitment-row__caption">{candidate.observedAmountMode === "fixed" ? t("candidates.observedAmount") : t("candidates.observedAmountRange")}</span><strong className="commitment-row__amount">{amountSummary(candidate)}</strong></>}
+      actions={actions}>
       <details className="commitment-details">
-        <summary aria-label={t("saved.detailsLabel", { name: candidate.description })}>{t("saved.details")}</summary>
+        <summary aria-label={t("saved.detailsLabel", { name })}>{t("saved.details")}</summary>
         <dl className="commitment-facts">
           <div><dt>{t("candidates.evidence")}</dt><dd>{t("candidates.evidenceSummary", { count: candidate.occurrenceCount, rule: evidenceRuleLabel(candidate.evidenceRule, t) })}</dd></div>
           <div><dt>{t("candidates.coveredPeriod")}</dt><dd>{formatDate(candidate.coveredFrom, t)}–{formatDate(candidate.coveredTo, t)}</dd></div>
@@ -57,77 +67,57 @@ function CandidateCard({ candidate, dismissed, state, task, disabled, onOpen, on
         </dl>
         <CommitmentEvidence evidence={candidate.evidence} />
       </details>
-      {reviewing ? (
-        <CommitmentForm model={task.model} fingerprint={candidate.fingerprint} submitLabel={t("candidates.confirmCommitment")} busy={busy} submitDisabled={Boolean(state.loadError)} initialDraft={task.draft} onDraftChange={onDraftChange} onSubmit={(payload) => onSubmit(() => state.confirmCandidate(payload))} onCancel={onCancel} />
-      ) : (
-        <div className="inline-actions commitment-card__actions">
-          {dismissed ? (
-            <button type="button" disabled={disabled} aria-label={t("candidates.reconsiderLabel", { name: candidate.description })} onClick={() => onDecision(candidate.fingerprint, true)}>{t("candidates.reconsider")}</button>
-          ) : <>
-            <button type="button" disabled={disabled} aria-label={t("candidates.reviewAndConfirmLabel", { name: candidate.description })} onClick={(event) => onOpen({ mode: "confirm", key: candidate.fingerprint, model: candidate }, event.currentTarget)}>{t("candidates.reviewAndConfirm")}</button>
-            <button type="button" className="button-ghost" disabled={disabled} aria-label={t("candidates.dismissLabel", { name: candidate.description })} onClick={() => onDecision(candidate.fingerprint, false)}>{t("candidates.dismiss")}</button>
-          </>}
-        </div>
-      )}
-    </Card>
+      {reviewing && <CommitmentForm model={task.model} fingerprint={candidate.fingerprint} submitLabel={t("candidates.confirmCommitment")} busy={busy} submitDisabled={Boolean(state.loadError)} initialDraft={task.draft} onDraftChange={onDraftChange} onSubmit={(payload) => onSubmit(() => state.confirmCandidate(payload))} onCancel={onCancel} />}
+    </ListRow>
   );
 }
 
-function ConfirmedCommitmentCard({ commitment, state, task, disabled, onOpen, onCancel, onDraftChange, onSubmit, onLifecycle }) {
+function ConfirmedCommitmentRow({ commitment, state, task, disabled, onOpen, onCancel, onDraftChange, onSubmit, onLifecycle }) {
   const { t } = useTranslation("commitments");
-  const detailsRef = useRef(null);
   const confirmRef = useRef(null);
   const editing = task?.mode === "edit" && task.key === commitment.id;
   const ending = task?.mode === "end" && task.key === commitment.id && task.lifecycle === commitment.lifecycle;
   const busy = Boolean(state.busyKey) || state.loading;
+  const name = commitment.name;
   useEffect(() => { if (ending) confirmRef.current?.focus(); }, [ending]);
 
+  const edit = { key: "edit", label: t("saved.editLabel", { name }), text: t("saved.edit"), className: "button-ghost", disabled, onSelect: (trigger) => onOpen({ mode: "edit", key: commitment.id, model: commitment }, trigger) };
+  const pause = { key: "pause", label: t("saved.pauseLabel", { name }), text: t("saved.pause"), className: "button-ghost", disabled, onSelect: () => onLifecycle(commitment.id, "paused") };
+  const end = { key: "end", label: t("saved.endLabel", { name }), text: t("saved.end"), className: "button-ghost", disabled, onSelect: (trigger) => onOpen({ mode: "end", key: commitment.id, lifecycle: commitment.lifecycle }, trigger) };
+  const items = commitment.lifecycle === "active" ? [edit, pause, end] : commitment.lifecycle === "paused" ? [edit, end] : [edit, pause];
+  // Row actions stay unmounted during this record's own task, as the footer buttons did.
+  const actions = editing || ending ? null : <>
+    {commitment.lifecycle !== "active" && <button type="button" disabled={disabled} aria-label={t("saved.reactivateLabel", { name })} onClick={() => onLifecycle(commitment.id, "active")}>{t("saved.reactivate")}</button>}
+    <RowActionsMenu triggerLabel={t("actions.menuLabel", { name })} items={items} />
+  </>;
+
   return (
-    <Card as="article" className={`commitment-card commitment-card--${commitment.lifecycle}`}>
-      <div className="commitment-card__header">
-        <div>
-          <p className="commitment-status">{lifecycleLabel(commitment.lifecycle, t)}</p>
-          <h3>{commitment.name}</h3>
-          <p className="muted">{displayText(commitment.category)} · {cadenceLabel(commitment.cadence, t)}</p>
-        </div>
-        <div className="commitment-card__value"><span>{t("saved.expectedAmount")}</span><strong className="commitment-card__amount">{amountSummary(commitment)}</strong></div>
-      </div>
-      <div className="commitment-timing"><span>{t("saved.timingPattern")}</span><p>{timingSummary(commitment, t)}</p></div>
-      <details ref={detailsRef} className="commitment-details">
-        <summary aria-label={t("saved.detailsLabel", { name: commitment.name })}>{t("saved.details")}</summary>
+    <ListRow className={`commitment-row commitment-row--${commitment.lifecycle}`} titleAs="h3" label={lifecycleLabel(commitment.lifecycle, t)} title={name}
+      meta={<>
+        <span>{displayText(commitment.category)} · {cadenceLabel(commitment.cadence, t)}</span>
+        <span>{timingSummary(commitment, t)}</span>
+      </>}
+      amount={<><span className="commitment-row__caption">{t("saved.expectedAmount")}</span><strong className="commitment-row__amount">{amountSummary(commitment)}</strong></>}
+      actions={actions}>
+      <details className="commitment-details">
+        <summary aria-label={t("saved.detailsLabel", { name })}>{t("saved.details")}</summary>
         <dl className="commitment-facts">
           <div><dt>{t("saved.recordsUsed")}</dt><dd>{t("saved.linkedExpenses", { count: commitment.evidence.length })}</dd></div>
         </dl>
         <CommitmentEvidence evidence={commitment.evidence} heading={t("saved.recordsUsed")} />
-        {!editing && !ending && <div className="inline-actions commitment-card__actions">
-          {commitment.lifecycle === "ended" ? (
-            <button type="button" className="button-ghost" disabled={disabled} aria-label={t("saved.pauseLabel", { name: commitment.name })} onClick={() => onLifecycle(commitment.id, "paused")}>{t("saved.pause")}</button>
-          ) : (
-            <button type="button" className="button-ghost" disabled={disabled} aria-label={t("saved.endLabel", { name: commitment.name })} onClick={(event) => onOpen({ mode: "end", key: commitment.id, lifecycle: commitment.lifecycle }, event.currentTarget)}>{t("saved.end")}</button>
-          )}
-        </div>}
       </details>
       {editing ? (
         <CommitmentForm model={task.model} submitLabel={t("saved.saveChanges")} busy={busy} submitDisabled={Boolean(state.loadError)} initialDraft={task.draft} onDraftChange={onDraftChange} onSubmit={(payload) => onSubmit(() => state.updateCommitment(commitment.id, payload))} onCancel={onCancel} />
-      ) : ending ? (
-        <div className="commitment-change__confirmation" role="group" aria-label={t("saved.endLabel", { name: commitment.name })}>
-          <p>{t("saved.endPrompt", { name: commitment.name })}</p>
+      ) : ending && (
+        <div className="commitment-change__confirmation" role="group" aria-label={t("saved.endLabel", { name })}>
+          <p>{t("saved.endPrompt", { name })}</p>
           <div className="inline-actions">
             <button ref={confirmRef} type="button" disabled={busy || Boolean(state.loadError)} onClick={() => onLifecycle(commitment.id, "ended")}>{t("saved.confirmEnd")}</button>
-            <button type="button" className="button-ghost" disabled={busy} onClick={() => { if (detailsRef.current) detailsRef.current.open = true; onCancel(); }}>{t("saved.cancelEnd")}</button>
+            <button type="button" className="button-ghost" disabled={busy} onClick={onCancel}>{t("saved.cancelEnd")}</button>
           </div>
         </div>
-      ) : (
-        <div className="inline-actions commitment-card__actions">
-          <button type="button" className="button-ghost" disabled={disabled} aria-label={t("saved.editLabel", { name: commitment.name })} onClick={(event) => onOpen({ mode: "edit", key: commitment.id, model: commitment }, event.currentTarget)}>{t("saved.edit")}</button>
-          {commitment.lifecycle === "active" ? (
-            <button type="button" className="button-ghost" disabled={disabled} aria-label={t("saved.pauseLabel", { name: commitment.name })} onClick={() => onLifecycle(commitment.id, "paused")}>{t("saved.pause")}</button>
-          ) : (
-            <button type="button" disabled={disabled} aria-label={t("saved.reactivateLabel", { name: commitment.name })} onClick={() => onLifecycle(commitment.id, "active")}>{t("saved.reactivate")}</button>
-          )}
-        </div>
       )}
-    </Card>
+    </ListRow>
   );
 }
 
@@ -168,7 +158,7 @@ export default function CommitmentsPage() {
       if (document.activeElement !== previousFocus && document.activeElement !== document.body) return;
       const feedback = document.getElementById("commitments-feedback");
       const destination = document.getElementById(id);
-      const target = preferError && feedback?.querySelector('[role="alert"]') ? feedback : destination?.closest("summary") ?? destination;
+      const target = preferError && feedback?.querySelector('[role="alert"]') ? feedback : destination?.querySelector(":scope > .ui-disclosure__button") ?? destination;
       target?.focus();
     });
   }
@@ -223,12 +213,12 @@ export default function CommitmentsPage() {
     setHistoryOpen((current) => current[kind] === open ? current : { ...current, [kind]: open });
   }
 
-  function savedCard(commitment) {
-    return <ConfirmedCommitmentCard key={commitment.id} commitment={commitment} state={state} task={activeTask} disabled={disabled} onOpen={openTask} onCancel={cancelTask} onDraftChange={saveDraft} onSubmit={submit} onLifecycle={lifecycle} />;
+  function savedRow(commitment) {
+    return <ConfirmedCommitmentRow key={commitment.id} commitment={commitment} state={state} task={activeTask} disabled={disabled} onOpen={openTask} onCancel={cancelTask} onDraftChange={saveDraft} onSubmit={submit} onLifecycle={lifecycle} />;
   }
 
-  function candidateCard(candidate, dismissed = false) {
-    return <CandidateCard key={candidate.fingerprint} candidate={candidate} dismissed={dismissed} state={state} task={activeTask} disabled={disabled} onOpen={openTask} onCancel={cancelTask} onDraftChange={saveDraft} onSubmit={submit} onDecision={decide} />;
+  function candidateRow(candidate, dismissed = false) {
+    return <CandidateRow key={candidate.fingerprint} candidate={candidate} dismissed={dismissed} state={state} task={activeTask} disabled={disabled} onOpen={openTask} onCancel={cancelTask} onDraftChange={saveDraft} onSubmit={submit} onDecision={decide} />;
   }
 
   const active = state.commitments.filter((commitment) => commitment.lifecycle === "active");
@@ -243,9 +233,9 @@ export default function CommitmentsPage() {
         {state.loadError && hasLoaded && <p className="muted">{t("feedback.outOfDate")}</p>}
         {state.actionError && <StatusMessage tone="danger">{state.actionError}</StatusMessage>}
         {state.notice && <StatusMessage tone="success">{state.notice}</StatusMessage>}
-        {(state.loadError || state.actionError) && <button type="button" disabled={busy} onClick={() => state.refresh()}>{hasLoaded ? t("feedback.refresh") : t("feedback.tryAgain")}</button>}
         {state.loading && <StatusMessage>{hasLoaded ? t("feedback.refreshing") : t("feedback.loading")}</StatusMessage>}
         {state.busyKey && <StatusMessage>{t("feedback.saving")}</StatusMessage>}
+        {(state.loadError || state.actionError) && <div className="commitment-feedback__actions"><button type="button" disabled={busy} onClick={() => state.refresh()}>{hasLoaded ? t("feedback.refresh") : t("feedback.tryAgain")}</button></div>}
       </div>
       {showContent && <>
         {(pendingCount > 0 || state.candidates.length > 0) && <nav className="commitment-review-links" aria-label={t("page.reviewLinks")}>
@@ -253,33 +243,33 @@ export default function CommitmentsPage() {
           {state.candidates.length > 0 && <a href="#candidate-heading" onClick={() => focusDestination("candidate-heading", false)}>{t("page.possibleLink", { count: state.candidates.length })}</a>}
         </nav>}
         <section className="commitment-section" aria-labelledby="confirmed-heading">
-          <div className="commitment-section__header"><h2 id="confirmed-heading" tabIndex={-1}>{t("saved.heading")}</h2></div>
-          {active.length > 0 ? <div className="commitment-list" role="group" aria-label={t("saved.activeGroup")}>{active.map(savedCard)}</div> : <p className="empty-state">{state.commitments.length === 0 ? t("saved.emptyNone") : t("saved.emptyNoActive")}</p>}
+          <SectionHeader id="confirmed-heading" focusable title={t("saved.heading")} />
+          {active.length > 0 ? <div role="group" aria-label={t("saved.activeGroup")}><ul className="commitment-rows">{active.map(savedRow)}</ul></div> : <p className="empty-state">{state.commitments.length === 0 ? t("saved.emptyNone") : t("saved.emptyNoActive")}</p>}
         </section>
         <CommitmentChangeReview {...reviewProps} view="pending" />
         <section className="commitment-section" aria-labelledby="candidate-heading">
-          <div className="commitment-section__header"><div><h2 id="candidate-heading" tabIndex={-1}>{t("candidates.heading")}</h2><p className="muted">{t("candidates.intro")}</p></div>{state.candidates.length > 0 && <span className="commitment-count">{t("candidates.toReview", { count: state.candidates.length })}</span>}</div>
-          {state.candidates.length === 0 ? <p className="empty-state">{t("candidates.empty")}</p> : <div className="commitment-list">{state.candidates.map((candidate) => candidateCard(candidate))}</div>}
+          <SectionHeader id="candidate-heading" focusable title={t("candidates.heading")} action={state.candidates.length > 0 ? <span className="commitment-count">{t("candidates.toReview", { count: state.candidates.length })}</span> : null} />
+          <p className="muted">{t("candidates.intro")}</p>
+          {state.candidates.length === 0 ? <p className="empty-state">{t("candidates.empty")}</p> : <ul className="commitment-rows">{state.candidates.map((candidate) => candidateRow(candidate))}</ul>}
         </section>
         {["paused", "ended"].map((kind) => {
           const commitments = state.commitments.filter((commitment) => commitment.lifecycle === kind);
           const locked = commitments.some((commitment) => ((activeTask?.mode === "edit" || activeTask?.mode === "end") && activeTask.key === commitment.id) || state.busyKey === `lifecycle:${commitment.id}`);
-          return commitments.length > 0 && <details key={kind} className="commitment-history" open={historyOpen[kind] || locked} onToggle={(event) => { if (!locked) setHistory(kind, event.currentTarget.open); }}>
-            <summary aria-disabled={locked || undefined} onClick={(event) => { if (locked) event.preventDefault(); }}><h2>{t(`history.${kind}`)} <span>({commitments.length})</span></h2></summary>
-            <div className="commitment-history__content commitment-list" role="group" aria-label={t(`history.${kind}`)}>
-              {locked && <p className="muted">{t("history.locked")}</p>}
-              {commitments.map(savedCard)}
+          return commitments.length > 0 && <HistoryDisclosure key={kind} headingId={`commitments-${kind}-heading`} panelId={`commitments-${kind}-panel`} lockNoteId={`commitments-${kind}-lock-note`}
+            title={t(`history.${kind}`)} count={commitments.length} open={historyOpen[kind] || locked} locked={locked} onToggle={() => setHistory(kind, !historyOpen[kind])}>
+            <div role="group" aria-label={t(`history.${kind}`)} className="commitment-history__group">
+              {locked && <p id={`commitments-${kind}-lock-note`} className="muted">{t("history.locked")}</p>}
+              <ul className="commitment-rows">{commitments.map(savedRow)}</ul>
             </div>
-          </details>;
+          </HistoryDisclosure>;
         })}
         <CommitmentChangeReview {...reviewProps} view="reviewed" />
-        <details className="commitment-history" open={historyOpen.dismissed || dismissedBusy} onToggle={(event) => { if (!dismissedBusy) setHistory("dismissed", event.currentTarget.open); }}>
-          <summary aria-disabled={dismissedBusy || undefined} onClick={(event) => { if (dismissedBusy) event.preventDefault(); }}><h2 id="dismissed-heading">{t("history.dismissedHeading")} <span>({state.dismissedCandidates.length})</span></h2></summary>
-          <div className="commitment-history__content">
-            <p className="muted">{t("history.dismissedIntro")}</p>
-            {state.dismissedCandidates.length === 0 ? <p className="empty-state">{t("history.dismissedEmpty")}</p> : <div className="commitment-list">{state.dismissedCandidates.map((candidate) => candidateCard(candidate, true))}</div>}
-          </div>
-        </details>
+        <HistoryDisclosure headingId="dismissed-heading" panelId="commitments-dismissed-panel" lockNoteId="commitments-dismissed-lock-note"
+          title={t("history.dismissedHeading")} count={state.dismissedCandidates.length} open={historyOpen.dismissed || dismissedBusy} locked={dismissedBusy} onToggle={() => setHistory("dismissed", !historyOpen.dismissed)}>
+          {dismissedBusy && <p id="commitments-dismissed-lock-note" className="muted">{t("history.dismissedLocked")}</p>}
+          <p className="muted">{t("history.dismissedIntro")}</p>
+          {state.dismissedCandidates.length === 0 ? <p className="empty-state">{t("history.dismissedEmpty")}</p> : <ul className="commitment-rows">{state.dismissedCandidates.map((candidate) => candidateRow(candidate, true))}</ul>}
+        </HistoryDisclosure>
       </>}
     </div>
   );

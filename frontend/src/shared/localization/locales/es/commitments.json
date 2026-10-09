@@ -154,7 +154,11 @@
     "reconsider": "Reconsiderar",
     "reconsiderLabel": "Reconsiderar {{name}}"
   },
+  "actions": {
+    "menuLabel": "Acciones para {{name}}"
+  },
   "history": {
+    "dismissedLocked": "Los posibles compromisos descartados permanecen abiertos mientras se guarda una decisión.",
     "paused": "Compromisos pausados",
     "ended": "Compromisos finalizados",
     "locked": "Termina o cancela la acción abierta antes de cerrar este grupo.",
