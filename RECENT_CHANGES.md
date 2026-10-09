@@ -26,6 +26,7 @@ the permanent, complete archive.
 
 ### 2026-10-09 — Home declutter
 
+[PR #209](https://github.com/OL1V3S/ordo/pull/209) ·
 [Issue #208](https://github.com/OL1V3S/ordo/issues/208)
 
 - Home drops its intro line and "Capture" heading, uses the shared section headers and rows, and shows each Coming Up item as a compact two-line row.
