@@ -133,7 +133,7 @@
     "inexact": "Some Expense amounts could not be verified exactly. Affected spending comparisons are unavailable."
   },
   "budget": {
-    "statusFor": "Budget status for {{month}}",
+    "status": "Budget status",
     "open": "Open Budgets"
   },
   "comparison": {

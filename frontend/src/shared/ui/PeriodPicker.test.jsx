@@ -101,9 +101,15 @@ describe('PeriodPicker', () => {
       expect(onChange).toHaveBeenLastCalledWith('2026-07')
     })
 
-    it('disables the current button when currentValue is not listed and stepping when empty', () => {
+    it('disables the current button when currentValue is not listed', () => {
       renderPicker({ months, value: '2026-07', currentValue: '2027-01' })
       expect(screen.getByRole('button', { name: 'Now' })).toBeDisabled()
+    })
+
+    it('disables stepping when value is empty in months mode', () => {
+      renderPicker({ months, value: '', currentValue: '2026-08' })
+      expect(screen.getByRole('button', { name: 'Back' })).toBeDisabled()
+      expect(screen.getByRole('button', { name: 'Forward' })).toBeDisabled()
     })
 
     it('keeps the default 25-month window when months is absent', () => {

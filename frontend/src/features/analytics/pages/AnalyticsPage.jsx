@@ -119,7 +119,7 @@ export default function AnalyticsPage() {
           <h2 id="more-spending-heading" className="h2">{t("spending.heading")}</h2>
         </header>
         <div className="analytics-budget-line">
-          <p>{t("budget.statusFor", { month: cashMonthLabel(selectedMonth, { t }) })}</p>
+          <p>{t("budget.status")}</p>
           <Link to="/budgets">{t("budget.open")}</Link>
         </div>
         {!expensesLoading && !expensesError ? (

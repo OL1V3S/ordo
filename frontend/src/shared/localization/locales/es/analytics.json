@@ -133,7 +133,7 @@
     "inexact": "No se pudieron verificar con exactitud algunos montos de gastos. Las comparaciones de gastos afectadas no están disponibles."
   },
   "budget": {
-    "statusFor": "Estado del presupuesto de {{month}}",
+    "status": "Estado de los presupuestos",
     "open": "Abrir presupuestos"
   },
   "comparison": {

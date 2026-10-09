@@ -80,7 +80,7 @@ describe("monthly spending insights page", () => {
     expect(rows[0]).toHaveTextContent("$90.00 · 90.0%");
     expect(rows[1]).toHaveTextContent("Transport");
 
-    expect(screen.getByText("Budget status for August 2026")).toBeInTheDocument();
+    expect(screen.getByText("Budget status")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Open Budgets" })).toHaveAttribute("href", "/budgets");
     expect(screen.queryByText("Near Limit")).not.toBeInTheDocument();
 

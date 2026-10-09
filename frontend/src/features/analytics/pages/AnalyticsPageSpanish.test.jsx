@@ -67,7 +67,7 @@ describe("Analytics page in Spanish", () => {
     expect(screen.getAllByLabelText("Mes")).toHaveLength(1);
     expect(screen.getByRole("button", { name: "Mes anterior con datos" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Mes siguiente con datos" })).toBeInTheDocument();
-    expect(screen.getByText("Estado del presupuesto de agosto de 2026")).toBeInTheDocument();
+    expect(screen.getByText("Estado de los presupuestos")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Abrir presupuestos" })).toHaveAttribute("href", "/budgets");
     expect(screen.getByRole("button", { name: "Actualizar flujo de efectivo" })).toBeInTheDocument();
     const summary = screen.getByRole("heading", { name: "Entradas de dinero registradas vs. gastado" }).closest("section");
