@@ -626,7 +626,7 @@ describe("Paychecks page", () => {
     await waitFor(() => expect(screen.getByRole("button", { name: "Record received Acme Payroll" })).toHaveFocus());
   });
 
-  it("keeps every status message in one area in a fixed order, including Loading and the uncertain-create acknowledgement", async () => {
+  it("keeps the uncertain-create alert, acknowledgement and Refresh inside the single status area", async () => {
     const user = userEvent.setup();
     loadState();
     paychecksApi.createPaycheck.mockRejectedValue(new Error("network lost"));
@@ -654,5 +654,25 @@ describe("Paychecks page", () => {
     expect(names("Acme Payroll")).toEqual(["Record received Acme Payroll", "Edit Acme Payroll", "Pause Acme Payroll", "End Acme Payroll"]);
     expect(names("Paused pay")).toEqual(["Reactivate Paused pay", "Edit Paused pay", "End Paused pay"]);
     expect(screen.getAllByText("Expected, not guaranteed.")).toHaveLength(1);
+  });
+
+  it("shows Reactivate as the visible action for an ended paycheck with Edit and Pause in the menu", async () => {
+    const user = userEvent.setup();
+    loadState({ paychecks: [makePaycheck({ id: "33333333-3333-3333-3333-333333333333", displayName: "Ended pay", lifecycle: "ended", nextProjection: null })] });
+    await renderPage();
+    await user.click(historyButton("Ended paychecks"));
+    expect(screen.getByRole("button", { name: "Reactivate Ended pay" })).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Actions for Ended pay" }));
+    expect(screen.getByRole("button", { name: "Edit Ended pay" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Pause Ended pay" })).toBeVisible();
+  });
+
+  it("shows Review and confirm as the visible candidate action with Dismiss in the menu", async () => {
+    const user = userEvent.setup();
+    loadState({ paychecks: [] });
+    await renderPage();
+    expect(screen.getByRole("button", { name: "Review and confirm acme payroll" })).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Actions for acme payroll" }));
+    expect(screen.getByRole("button", { name: "Dismiss acme payroll" })).toBeVisible();
   });
 });

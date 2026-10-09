@@ -70,6 +70,7 @@
 .paycheck-end-confirmation p { margin-bottom: var(--space-3); }
 .paychecks-page h2:focus-visible, .paychecks-page h2:focus, .paycheck-feedback:focus { outline: 3px solid var(--color-focus); outline-offset: 3px; }
 @media (max-width: 720px) {
+  .paycheck-evidence__row { flex-direction: column; }
   .paycheck-facts, .paycheck-form__grid { grid-template-columns: minmax(0, 1fr); }
   .paycheck-manual { padding: var(--space-4); }
 }
