@@ -59,7 +59,8 @@ silently treating every detected pattern as a financial fact.
   paycheck by entering actual cash in or linking an existing unclaimed cash-in
   record. Actual dates and amounts may differ from the expectation without
   rewriting it; a mistaken receipt link can be removed without deleting the
-  cash-in record. Paused, ended, and dismissed items sit in expandable groups.
+  cash-in record. Rows show one main action with the rest in an actions menu,
+  and paused, ended, and dismissed items sit in collapsed sections.
   Card Details reveal linked records and schedule information. Profiles support
   several pay schedules and fixed amounts or expected ranges. These are
   expectations, not guaranteed deposits or employer-verified earnings.

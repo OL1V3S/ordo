@@ -74,7 +74,7 @@ Used by Budgets: `SectionHeader` (Category budgets, focusable), `ListRow` for th
 `RowActionsMenu`. `StatusStrip` is not used there because the Budgets notices keep
 `role=alert`/`status` via `StatusMessage`.
 
-Used by Commitments: `SectionHeader`, `ListRow` (`titleAs="h3"` and `children`) for flat rows, `RowActionsMenu` in `items` mode (one visible primary action plus the menu), and the
+Used by Commitments and Paychecks: `SectionHeader`, `ListRow` (`titleAs="h3"` and `children`) for flat rows, `RowActionsMenu` in `items` mode (one visible primary action plus the menu), and the
 "h2 > `DisclosureButton`" history pattern (no `hint`: `hintId` points to the visible lock note). `DisclosureButton` renders its sr-only hint only when `hint` is given.
 Create actions, where a page has one, sit in the header, right-aligned, primary style.
 
