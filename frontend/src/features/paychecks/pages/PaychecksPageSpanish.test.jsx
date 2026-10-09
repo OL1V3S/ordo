@@ -15,7 +15,7 @@ vi.mock("../api/paychecksApi", () => ({ paychecksApi: {
 vi.mock("../../inflows/api/inflowsApi", () => ({ inflowsApi: { getAll: vi.fn() } }));
 
 const response = (data) => ({ data });
-const card = (name) => screen.getByRole("heading", { name, exact: true }).closest("article");
+const card = (name) => screen.getByRole("heading", { name, exact: true }).closest("li");
 
 function loadState({ candidates = [makeCandidate()], dismissedCandidates = [], paychecks = [makePaycheck()] } = {}) {
   paychecksApi.getCandidates.mockResolvedValue(response(makeCandidateResponse({ candidates, dismissedCandidates })));
@@ -50,8 +50,8 @@ describe("Paychecks page in Spanish", () => {
     expect(screen.getByText("Administra los pagos de nómina previstos y revisa los posibles pagos de nómina.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Agregar pago de nómina manualmente" })).toBeEnabled();
     expect(screen.getByRole("group", { name: "Pagos de nómina activos" })).toBeInTheDocument();
-    expect(screen.getByRole("group", { name: "Pagos de nómina pausados" })).toBeInTheDocument();
-    expect(screen.getByRole("group", { name: "Pagos de nómina finalizados" })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "Pagos de nómina pausados", hidden: true })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "Pagos de nómina finalizados", hidden: true })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: /^Pagos de nómina pausados \(1\)$/ })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: /^Posibles pagos de nómina descartados \(0\)$/ })).toBeInTheDocument();
     expect(screen.getByText("Los pagos de nómina pausados no tienen una ventana prevista activa.")).toBeInTheDocument();
@@ -73,8 +73,8 @@ describe("Paychecks page in Spanish", () => {
     expect(profile.getByText("Perfiles evaluados").closest("div")).toHaveTextContent("Jul 12, 2026");
     expect(profile.getAllByText(/En la fecha del calendario/)).toHaveLength(3);
     expect(profile.getAllByText("Historial de confirmación")).toHaveLength(3);
-    expect(profile.getByRole("button", { name: "Editar Acme Payroll" })).toBeInTheDocument();
-    expect(profile.getByRole("button", { name: "Pausar Acme Payroll" })).toBeInTheDocument();
+    expect(profile.getByRole("button", { name: "Editar Acme Payroll", hidden: true })).toBeInTheDocument();
+    expect(profile.getByRole("button", { name: "Pausar Acme Payroll", hidden: true })).toBeInTheDocument();
     expect(profile.getByRole("button", { name: "Registrar pago recibido de Acme Payroll" })).toBeInTheDocument();
 
     const candidate = within(card("acme payroll"));
@@ -82,7 +82,7 @@ describe("Paychecks page in Spanish", () => {
     expect(candidate.getByText("Basado en 3 depósitos")).toBeInTheDocument();
     expect(candidate.getByText("Depósitos por revisar (3)")).toBeInTheDocument();
     expect(candidate.getByRole("button", { name: "Revisar y confirmar acme payroll" })).toBeInTheDocument();
-    expect(candidate.getByRole("button", { name: "Descartar acme payroll" })).toBeInTheDocument();
+    expect(candidate.getByRole("button", { name: "Descartar acme payroll", hidden: true })).toBeInTheDocument();
 
     for (const english of ["Expected amount", "Possible paychecks", "Your paychecks", "Active paychecks", "Next expected window"])
       expect(screen.queryByText(english)).not.toBeInTheDocument();
@@ -226,6 +226,7 @@ describe("Paychecks page in Spanish", () => {
   it("localizes the end confirmation", async () => {
     const user = userEvent.setup();
     await renderPage();
+    await user.click(screen.getByRole("button", { name: "Acciones para Acme Payroll" }));
     await user.click(screen.getByRole("button", { name: "Finalizar Acme Payroll" }));
     const group = screen.getByRole("group", { name: "Finalizar Acme Payroll" });
     expect(group).toHaveTextContent("¿Finalizar Acme Payroll? Su proyección se detendrá. El perfil y la evidencia vinculada se mantendrán, y podrás reactivarlo.");

@@ -37,6 +37,7 @@
     "none": "Ningún posible pago de nómina requiere revisión. Aún puedes agregar una previsión manual.",
     "dismissedHeading": "Posibles pagos de nómina descartados",
     "dismissedIntro": "El descarte se aplica a la evidencia exacta revisada. Reconsidera un posible pago de nómina para revisarlo de nuevo.",
+    "dismissedLocked": "Los posibles pagos de nómina descartados permanecen abiertos mientras se guarda una decisión.",
     "dismissedNone": "No hay posibles pagos de nómina descartados."
   },
   "card": {
@@ -76,6 +77,7 @@
     "projectionDetails": "Detalles de la proyección"
   },
   "actions": {
+    "menuLabel": "Acciones para {{name}}",
     "reviewConfirm": "Revisar y confirmar",
     "reviewConfirmLabel": "Revisar y confirmar {{name}}",
     "dismiss": "Descartar",
