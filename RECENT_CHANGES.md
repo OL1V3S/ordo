@@ -26,6 +26,7 @@ the permanent, complete archive.
 
 ### 2026-10-09 — Language-aware money, percent and date formatting
 
+[PR #224](https://github.com/OL1V3S/ordo/pull/224) ·
 [Issue #223](https://github.com/OL1V3S/ordo/issues/223)
 
 - Money, percentages, dates and import timestamps now follow the app language through one shared formatter. Spanish shows USD amounts as `USD 1,234.56` (so they are not read as pesos) and dates in Mexican Spanish style such as `4 mar 2026`; English text is unchanged apart from a few listed corrections (Budgets reset date, grouped large percentages, import preview amounts, unparseable Commitments amounts).
