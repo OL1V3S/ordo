@@ -107,3 +107,5 @@
 .expense-edit-panel h2 { margin: 0; }
 .expense-edit-panel__fields { display: grid; gap: var(--space-3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); }
 .expense-edit-panel__fields input, .expense-edit-panel__fields select { max-width: 100%; min-width: 0; }
+.activity-import-prompt { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); margin-block: var(--space-4); }
+.activity-import-prompt p { flex: 1 1 16rem; margin: 0; }

@@ -1,11 +1,23 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { formatDateTime } from "../../../shared/localization/format";
 import { useLocale } from "../../../shared/localization/useLocale";
 import { DEFAULT_CATEGORIES } from "../../../shared/constants/categories";
 import Card from "../../../shared/ui/Card";
 import { isDefaultCategory, normalizeText } from "../../../utils/text";
+import {
+  bulkClearTargets,
+  bulkSelectableExpenses,
+  filterCounts,
+  rowMatchesFilter,
+  selectedTotals,
+  summarize,
+} from "../utils/importReview";
+import ImportConfirmBar from "./ImportConfirmBar";
 import ImportPreviewRow from "./ImportPreviewRow";
+import ImportResults from "./ImportResults";
+import ImportReviewFilters from "./ImportReviewFilters";
+import ImportReviewSummary from "./ImportReviewSummary";
 
 function createRowDraft(row, outcome = "idle") {
   const category = row.category ?? "uncategorized";
@@ -62,7 +74,7 @@ function focusAfterRender(ref) {
   else window.setTimeout(focus, 0);
 }
 
-export default function ImportPreviewPanel({ importState, onImportConfirmed = async () => {}, externalLocked = false, isExternallyLocked = () => false }) {
+export default function ImportPreviewPanel({ importState, onImportConfirmed = async () => {}, onViewActivity, onDone, externalLocked = false, isExternallyLocked = () => false }) {
   const { t } = useTranslation("importPreview");
   const { locale } = useLocale();
   const externallyBlocked = () => externalLocked || isExternallyLocked();
@@ -74,6 +86,7 @@ export default function ImportPreviewPanel({ importState, onImportConfirmed = as
     error,
     confirming,
     confirmation,
+    confirmedRows = null,
     confirmationIssue,
     selectedCount,
     selectSource,
@@ -82,10 +95,19 @@ export default function ImportPreviewPanel({ importState, onImportConfirmed = as
     updateRow,
     confirm,
     clearForReupload,
+    dismissConfirmation,
   } = importState;
   const [dragging, setDragging] = useState(false);
   const [rowDrafts, setRowDrafts] = useState({ batchId: null, rows: {} });
   const [refreshError, setRefreshError] = useState("");
+  // Filter and pinned rows belong to one batch; a different batch derives back to "all".
+  const [view, setView] = useState({ batchId: null, filter: "all", pinned: [] });
+  const [bulkRunning, setBulkRunning] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState(null);
+  const [bulkOutcome, setBulkOutcome] = useState(null);
+  const bulkRunningRef = useRef(false);
+  const mountedRef = useRef(true);
+  const latest = useRef(null);
   const rowUpdatesInFlight = useRef(new Set());
   const fileInput = useRef(null);
   const resultsHeading = useRef(null);
@@ -104,6 +126,11 @@ export default function ImportPreviewPanel({ importState, onImportConfirmed = as
       return { batchId: preview.batchId, rows };
     });
   }, [preview]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   useEffect(() => {
     if (!confirmation) setRefreshError("");
@@ -235,11 +262,101 @@ export default function ImportPreviewPanel({ importState, onImportConfirmed = as
   const confirmDisabled = externalLocked || selectedCount === 0
     || hasPendingRows
     || hasDirtyRows
+    || bulkRunning
     || confirming
     || confirmationNeedsRefresh;
 
+  const currentBatchId = preview?.batchId ?? null;
+  const filter = view.batchId === currentBatchId ? view.filter : "all";
+  const pinned = view.batchId === currentBatchId ? view.pinned : [];
+
+  function changeFilter(next) {
+    setView({ batchId: currentBatchId, filter: next, pinned: [] });
+  }
+
+  function pinRows(rowIds) {
+    setView((current) => {
+      const batchId = latest.current?.preview?.batchId ?? null;
+      const same = current.batchId === batchId;
+      return {
+        batchId,
+        filter: same ? current.filter : "all",
+        pinned: [...new Set([...(same ? current.pinned : []), ...rowIds])],
+      };
+    });
+  }
+
+  // The bulk loop reads everything through this ref so each iteration sees the latest preview,
+  // batch, lock and confirm state, and uses handlers bound to that render.
+  useLayoutEffect(() => {
+    latest.current = {
+      preview,
+      confirming,
+      confirmationNeedsRefresh,
+      externallyBlocked,
+      updateSelection,
+    };
+  });
+
+  async function runBulk(kind) {
+    const start = latest.current;
+    if (bulkRunningRef.current || !start?.preview) return;
+    if (start.externallyBlocked() || start.confirming || start.confirmationNeedsRefresh) return;
+    const batchId = start.preview.batchId;
+    const select = kind === "select";
+    const targets = select ? bulkSelectableExpenses(start.preview.rows) : bulkClearTargets(start.preview.rows);
+    if (targets.length === 0) return;
+
+    bulkRunningRef.current = true;
+    setBulkRunning(true);
+    setBulkOutcome(null);
+    if (!(kind === "clear" && filter === "selected")) pinRows(targets.map((row) => row.rowId));
+    const total = targets.length;
+    let done = 0;
+    let stopped = false;
+    let abandoned = false;
+    try {
+      for (const target of targets) {
+        const before = latest.current;
+        if (!mountedRef.current || before.preview?.batchId !== batchId) { abandoned = true; break; }
+        if (before.externallyBlocked() || before.confirming || before.confirmationNeedsRefresh) { stopped = true; break; }
+        const row = before.preview.rows.find((candidate) => candidate.rowId === target.rowId);
+        if (!row) { stopped = true; break; }
+        setBulkProgress({ done: done + 1, total });
+        const updated = await before.updateSelection(row, select);
+        const after = latest.current;
+        // A late response for a preview that was cancelled, replaced, or unmounted is ignored.
+        if (!mountedRef.current || after.preview?.batchId !== batchId) { abandoned = true; break; }
+        if (!updated) { stopped = true; break; }
+        done += 1;
+      }
+    } finally {
+      bulkRunningRef.current = false;
+      if (mountedRef.current) {
+        setBulkRunning(false);
+        setBulkProgress(null);
+        if (!abandoned) {
+          setBulkOutcome({
+            batchId,
+            kind: stopped ? "stopped" : select ? "selectedDone" : "clearedDone",
+            done,
+            total,
+            hiddenByFilter: !stopped && kind === "clear" && filter === "selected",
+          });
+        }
+      }
+    }
+  }
+
+  function bulkMessage() {
+    if (!bulkOutcome || bulkOutcome.batchId !== currentBatchId) return "";
+    if (bulkOutcome.kind === "stopped") return t("bulk.stopped", { done: bulkOutcome.done, total: bulkOutcome.total });
+    const text = t(`bulk.${bulkOutcome.kind}`, { count: bulkOutcome.done });
+    return bulkOutcome.hiddenByFilter ? `${text} ${t("filters.clearedHidden")}` : text;
+  }
+
   async function handleConfirm() {
-    if (externallyBlocked() || confirmDisabled || rowUpdatesInFlight.current.size > 0) return;
+    if (externallyBlocked() || confirmDisabled || bulkRunningRef.current || rowUpdatesInFlight.current.size > 0) return;
     setRefreshError("");
     const result = await confirm();
     if (!result) {
@@ -259,13 +376,16 @@ export default function ImportPreviewPanel({ importState, onImportConfirmed = as
     }
   }
 
-  const selectedExpenseCount = preview?.rows.filter((row) => row.isEligible && row.selectedForImport).length ?? 0;
-  const selectedInflowCount = preview?.rows.filter((row) => row.isInflowEligible && row.selectedForInflow).length ?? 0;
+  const rows = preview?.rows ?? [];
+  const summary = summarize(rows);
+  const selectedExpenseCount = summary.expensesSelected;
+  const selectedInflowCount = summary.depositsSelected;
   const selectedItemsLabel = formatSelectionCounts(t, selectedExpenseCount, selectedInflowCount);
 
   function confirmationGuidance() {
     if (externalLocked) return t("results.guidance.externalLocked");
     if (confirmationNeedsRefresh) return t("results.guidance.needsRefresh");
+    if (bulkRunning) return t("results.guidance.bulk");
     if (hasPendingRows) return t("results.guidance.pending");
     if (hasDirtyRows) return t("results.guidance.dirty");
     if (selectedCount === 0) return t("results.guidance.noneSelected");
@@ -276,6 +396,13 @@ export default function ImportPreviewPanel({ importState, onImportConfirmed = as
     return confirmationIssue?.rows.find((row) => row.rowId === rowId)?.codes ?? [];
   }
 
+  const pinnedIds = new Set(pinned);
+  const visibleRows = rows.filter((row) => {
+    if (filter === "all" || rowMatchesFilter(row, filter, confirmationCodesFor(row.rowId)) || pinnedIds.has(row.rowId)) return true;
+    const draft = rowDrafts.batchId === currentBatchId ? rowDrafts.rows[row.rowId] : null;
+    return Boolean(draft?.dirty || draft?.pending);
+  });
+
   function renderRow(row) {
     return (
       <ImportPreviewRow
@@ -283,10 +410,10 @@ export default function ImportPreviewPanel({ importState, onImportConfirmed = as
         row={row}
         draft={draftFor(row)}
         confirmationCodes={confirmationCodesFor(row.rowId)}
-        disabled={externalLocked || confirming || confirmationNeedsRefresh}
+        disabled={externalLocked || confirming || confirmationNeedsRefresh || bulkRunning}
         onDraftChange={(changes) => changeDraft(row, changes)}
         onSave={() => saveRow(row)}
-        onSelectionChange={(selected) => updateSelection(row, selected)}
+        onSelectionChange={(selected) => { pinRows([row.rowId]); return updateSelection(row, selected); }}
       />
     );
   }
@@ -305,7 +432,7 @@ export default function ImportPreviewPanel({ importState, onImportConfirmed = as
           <button
             type="button"
             className="button-ghost"
-            disabled={externalLocked || confirming || hasPendingRows || hasDirtyRows}
+            disabled={externalLocked || confirming || hasPendingRows || hasDirtyRows || bulkRunning}
             onClick={() => { if (!externallyBlocked()) clearForReupload(); }}
           >
             {t("panel.chooseAnother")}
@@ -326,6 +453,14 @@ export default function ImportPreviewPanel({ importState, onImportConfirmed = as
           </h3>
           <p>{completionMessage(t, confirmation, locale)}</p>
         </div>
+      )}
+      {confirmation && (
+        <ImportResults
+          confirmation={confirmation}
+          savedRows={confirmedRows}
+          onViewActivity={onViewActivity ? () => { dismissConfirmation?.(); onViewActivity(); } : undefined}
+          onDone={() => { dismissConfirmation?.(); onDone?.(); }}
+        />
       )}
 
       {refreshError && <div className="status-message status-message--danger" role="alert">{refreshError}</div>}
@@ -393,33 +528,44 @@ export default function ImportPreviewPanel({ importState, onImportConfirmed = as
               <h3 className="h3" ref={resultsHeading} tabIndex="-1">{t("results.heading")}</h3>
               <p className="muted">{t("results.meta", { count: preview.rows.length, expires: formatDateTime(preview.expiresAt, locale) ?? String(preview.expiresAt) })}</p>
             </div>
-            <div className="import-confirmation-actions">
-              <p className="import-confirmation-actions__selection">
-                <Trans t={t} i18nKey="results.selected" values={{ items: selectedItemsLabel }} components={{ strong: <strong /> }} />
-              </p>
-              <p id="import-confirmation-guidance" className="muted" role="status" aria-live="polite">
-                {confirmationGuidance()}
-              </p>
-              <button
-                type="button"
-                disabled={confirmDisabled}
-                aria-busy={confirming}
-                aria-describedby="import-confirmation-guidance"
-                onClick={handleConfirm}
-              >
-                {confirming
-                  ? t("results.saving", { items: selectedItemsLabel })
-                  : t("results.save", { items: selectedItemsLabel })}
-              </button>
+          </div>
+          <ImportReviewSummary summary={summary} />
+          <ImportReviewFilters
+            filter={filter}
+            counts={filterCounts(rows, confirmationCodesFor)}
+            shown={visibleRows.length}
+            total={rows.length}
+            hardLocked={externalLocked || confirming || confirmationNeedsRefresh}
+            bulkRunning={bulkRunning}
+            bulkProgress={bulkProgress}
+            bulkMessage={bulkMessage()}
+            selectableCount={bulkSelectableExpenses(rows).length}
+            selectedCount={selectedCount}
+            onFilterChange={changeFilter}
+            onSelectAll={() => runBulk("select")}
+            onClear={() => runBulk("clear")}
+          />
+          {visibleRows.length === 0 && <p className="muted">{t("filters.empty")}</p>}
+          {visibleRows.length > 0 && (
+            <div className="table-wrapper import-preview-table" role="region" aria-label={t("results.regionLabel")} tabIndex="0">
+              <table className="data-table">
+                <caption>{t("results.caption")}</caption>
+                <thead><tr><th>{t("columns.transaction")}</th><th>{t("columns.status")}</th><th>{t("columns.selection")}</th><th>{t("columns.fields")}</th></tr></thead>
+                <tbody>{visibleRows.map((row) => renderRow(row))}</tbody>
+              </table>
             </div>
-          </div>
-          <div className="table-wrapper import-preview-table" role="region" aria-label={t("results.regionLabel")} tabIndex="0">
-            <table className="data-table">
-              <caption>{t("results.caption")}</caption>
-              <thead><tr><th>{t("columns.transaction")}</th><th>{t("columns.status")}</th><th>{t("columns.selection")}</th><th>{t("columns.fields")}</th></tr></thead>
-              <tbody>{preview.rows.map((row) => renderRow(row))}</tbody>
-            </table>
-          </div>
+          )}
+          <ImportConfirmBar
+            selectedItemsLabel={selectedItemsLabel}
+            totals={selectedTotals(rows)}
+            guidance={confirmationGuidance()}
+            disabled={confirmDisabled}
+            confirming={confirming}
+            confirmLabel={confirming
+              ? t("results.saving", { items: selectedItemsLabel })
+              : t("results.save", { items: selectedItemsLabel })}
+            onConfirm={handleConfirm}
+          />
         </div>
       )}
     </Card>

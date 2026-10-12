@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { useTranslation } from "react-i18next";
 import { importPreviewApi } from "../api/importPreviewApi";
+import { snapshotSavedRows } from "../utils/importReview";
 
 const SAFE_ERROR_CODES = new Set([
   "upload_too_large",
@@ -118,6 +119,7 @@ export function useImportPreview() {
   const [error, setError] = useState("");
   const [confirming, setConfirming] = useState(false);
   const [confirmation, setConfirmation] = useState(null);
+  const [confirmedRows, setConfirmedRows] = useState(null);
   const [confirmationIssue, setConfirmationIssue] = useState(null);
   const processingController = useRef(null);
   const confirmationInFlight = useRef(false);
@@ -160,6 +162,7 @@ export function useImportPreview() {
     setPreview(null);
     setError("");
     setConfirmation(null);
+    setConfirmedRows(null);
     setConfirmationIssue(null);
     if (!nextSourceType) {
       setLoading(false);
@@ -195,6 +198,7 @@ export function useImportPreview() {
     setProcessing(true);
     setError("");
     setConfirmation(null);
+    setConfirmedRows(null);
     setConfirmationIssue(null);
     try {
       const response = await importPreviewApi.upload(sourceType, file, controller.signal);
@@ -221,10 +225,11 @@ export function useImportPreview() {
     setError("");
     try {
       const response = await importPreviewApi.updateRow(preview.batchId, rowId, payload);
-      setPreview((current) => ({
+      // A late response must never write to a preview that has since been cleared.
+      setPreview((current) => current && {
         ...current,
         rows: current.rows.map((row) => row.rowId === rowId ? response.data : row),
-      }));
+      });
       setConfirmationIssue((current) => {
         if (!current) return null;
         if (current.code === "no_rows_selected"
@@ -261,6 +266,7 @@ export function useImportPreview() {
         return null;
       }
 
+      setConfirmedRows(snapshotSavedRows(preview));
       setConfirmation(response.data);
       setPreview(null);
       forgetBatch();
@@ -292,8 +298,14 @@ export function useImportPreview() {
     setPreview(null);
     setError("");
     setConfirmation(null);
+    setConfirmedRows(null);
     setConfirmationIssue(null);
     forgetBatch();
+  }, []);
+
+  const dismissConfirmation = useCallback(() => {
+    setConfirmation(null);
+    setConfirmedRows(null);
   }, []);
 
   const selectedCount = preview?.rows.filter((row) =>
@@ -308,6 +320,7 @@ export function useImportPreview() {
     error,
     confirming,
     confirmation,
+    confirmedRows,
     confirmationIssue,
     selectedCount,
     selectSource,
@@ -316,5 +329,6 @@ export function useImportPreview() {
     updateRow,
     confirm,
     clearForReupload,
+    dismissConfirmation,
   };
 }

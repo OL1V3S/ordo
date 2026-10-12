@@ -197,6 +197,21 @@ export default function TransactionsPage() {
     return { failedLists: requests.filter((_, index) => outcomes[index].status === "rejected").map(({ name }) => name) };
   }
 
+  function openImport() {
+    if (cashLock.current) { inflowCapture.focusTask(); return; }
+    legacyLock.current = true;
+    setImportOpen(true);
+    focusAfterRender(() => importRegion.current);
+  }
+  function viewImportedActivity() {
+    setImportOpen(false);
+    focusAfterRender(() => document.getElementById("activity-timeline-heading") ?? inflowCapture.fallbackFocusRef.current);
+  }
+  function finishImportReview() {
+    setImportOpen(false);
+    focusAfterRender(() => importButton.current);
+  }
+
   function openAdd() {
     if (cashLock.current) { inflowCapture.focusTask(); return; }
     legacyLock.current = true;
@@ -291,6 +306,10 @@ export default function TransactionsPage() {
   const checkCash = !captureRecovery.source && !timelineFailed
     && (Boolean(inflowCapture.gate) || ["refreshed", "unknown_checked", "retry_available"].includes(cashOutcome));
 
+  const showImportPrompt = !showImport && !captureRecovery.source
+    && !expensesLoading && !expensesError && !cash.loading && !cash.error
+    && expenses.length === 0 && cash.inflows.length === 0;
+
   return (
     <div className="container activity-page">
       <header className="page-header">
@@ -302,10 +321,11 @@ export default function TransactionsPage() {
           <button type="button" ref={cashAddButton} aria-expanded={inflowCapture.task?.type === "create"} aria-controls="cash-in-task"
             disabled={cashReadUnavailable || inflowCapture.pending || Boolean(inflowCapture.gate) || Boolean(captureRecovery.source)}
             onClick={(event) => openCashTask("create", null, event.currentTarget)}>{ta("page.addCashIn")}</button>
-          <button type="button" className="button-ghost" ref={importButton} disabled={Boolean(captureRecovery.source)} aria-expanded={showImport} aria-controls="statement-import-task"
-            onClick={() => { if (cashLock.current) { inflowCapture.focusTask(); return; } legacyLock.current = true; setImportOpen(true); focusAfterRender(() => importRegion.current); }}>
+          <button type="button" ref={importButton} disabled={Boolean(captureRecovery.source)} aria-expanded={showImport} aria-controls="statement-import-task"
+            aria-describedby="import-statement-hint" onClick={openImport}>
             {ta("page.importStatement")}
           </button>
+          <span id="import-statement-hint" className="sr-only">{ta("page.importHint")}</span>
         </div>
       </header>
       {captureRecovery.source && <section ref={recoveryRegion} tabIndex={-1} className="card home-recovery" role="region" aria-labelledby="capture-recovery-heading">
@@ -350,6 +370,10 @@ export default function TransactionsPage() {
         </div>
         <p className="muted">{ta("cashIn.intro")}</p>
       </div>
+      {showImportPrompt && <section className="card activity-import-prompt" aria-label={ta("page.importPromptAction")}>
+        <p>{ta("page.importPrompt")}</p>
+        <button type="button" onClick={openImport}>{ta("page.importPromptAction")}</button>
+      </section>}
       {(checkExpenses || checkCash) && <section className="activity-check-records" aria-labelledby="check-records-heading">
         <h2 id="check-records-heading">{ta("checkRecords.heading")}</h2>
         {checkExpenses && expenseTableReady && <div className="activity-records"><h3>{ta("spending.heading")}</h3><ExpenseList expenses={expenses} /></div>}
@@ -393,6 +417,7 @@ export default function TransactionsPage() {
         </div>
         <div id="statement-import-task" ref={importRegion} tabIndex={-1} hidden={!showImport} className="activity-import-task">
           <ImportPreviewPanel importState={importState} onImportConfirmed={refreshImportedActivity}
+            onViewActivity={viewImportedActivity} onDone={finishImportReview}
             externalLocked={cashLocked || Boolean(captureRecovery.source)}
             isExternallyLocked={() => cashLock.current || Boolean(captureRecovery.source)} />
           {!importMustStayVisible && <button type="button" className="button-ghost" onClick={() => {

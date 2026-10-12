@@ -97,7 +97,8 @@
       "pending": "Wait for every row update to finish before confirming.",
       "dirty": "Save every row with unsaved changes before confirming.",
       "noneSelected": "Select at least one eligible row to import.",
-      "ready": "Review the selected records, then save them together."
+      "ready": "Review the selected records, then save them together.",
+      "bulk": "Wait for the selection update to finish before confirming."
     }
   },
   "columns": {
@@ -195,5 +196,53 @@
       "saveRow": "Save row",
       "saveRowAria": "Save row for {{row}}"
     }
+  },
+  "summary": {
+    "heading": "Statement summary",
+    "expensesSelected": "Expenses selected",
+    "depositsSelected": "Incoming deposits selected",
+    "possibleDuplicates": "Possible duplicates",
+    "needsReview": "Needs review or invalid",
+    "cannotBeSelected": "Cannot be selected, includes rows needing review"
+  },
+  "filters": {
+    "legend": "Show rows",
+    "all": "All",
+    "attention": "Needs attention",
+    "duplicates": "Possible duplicates",
+    "deposits": "Incoming deposits",
+    "selected": "Selected",
+    "option": "{{label}} ({{count}})",
+    "showing": "Showing {{shown}} of {{count}} rows",
+    "empty": "No rows match this filter. Filtering never changes what is selected.",
+    "clearedHidden": "Selection cleared. The Selected filter now has no rows to show."
+  },
+  "bulk": {
+    "heading": "Bulk selection",
+    "selectAll": "Select all eligible expenses ({{count}})",
+    "hint": "Skips possible duplicates and incoming deposits. Select those yourself.",
+    "clear": "Clear selection",
+    "progress": "Updating row {{done}} of {{total}}…",
+    "selectedDone_one": "Selected {{count}} expense.",
+    "selectedDone_other": "Selected {{count}} expenses.",
+    "clearedDone_one": "Cleared the selection of {{count}} row.",
+    "clearedDone_other": "Cleared the selection of {{count}} rows.",
+    "stopped": "Stopped after {{done}} of {{total}} rows. Rows already updated stay as shown. Try again."
+  },
+  "bar": {
+    "label": "Confirm import",
+    "expensesToSave": "Expenses to save: {{count}} · {{total}}",
+    "depositsToSave": "Incoming deposits to save: {{count}} · {{total}}",
+    "totalUnavailable": "Total unavailable"
+  },
+  "saved": {
+    "heading": "Rows saved from this review",
+    "expense": "Expense",
+    "deposit": "Incoming deposit",
+    "expenseTotal": "Expenses saved: {{count}} · {{total}}",
+    "depositTotal": "Incoming deposits saved: {{count}} · {{total}}",
+    "unavailable": "The list of saved rows is not available. Open Activity to see your records.",
+    "viewActivity": "View in Activity",
+    "done": "Done"
   }
 }
