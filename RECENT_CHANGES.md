@@ -24,7 +24,7 @@ the permanent, complete archive.
 
 ## History
 
-### 2026-10-09 — Language-aware money, percent and date formatting
+### 2026-10-12 — Language-aware money, percent and date formatting
 
 [PR #224](https://github.com/OL1V3S/ordo/pull/224) ·
 [Issue #223](https://github.com/OL1V3S/ordo/issues/223)
