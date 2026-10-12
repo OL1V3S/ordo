@@ -84,7 +84,7 @@ describe("ActivityTimeline", () => {
   it("shows a calm empty state", () => {
     renderTimeline(state());
 
-    expect(screen.getByText("No transactions yet.")).toBeInTheDocument();
+    expect(screen.getByText("No transactions yet. Add an expense or a deposit to get started.")).toBeInTheDocument();
     expect(screen.queryByRole("list")).not.toBeInTheDocument();
     expect(screen.getByRole("region", { name: "All transactions" })).toHaveAttribute("aria-busy", "false");
   });
@@ -96,14 +96,14 @@ describe("ActivityTimeline", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("We couldn’t load your transactions.");
     fireEvent.click(screen.getByRole("button", { name: "Try again" }));
     expect(timeline.refresh).toHaveBeenCalledOnce();
-    expect(screen.queryByText("No transactions yet.")).not.toBeInTheDocument();
+    expect(screen.queryByText("No transactions yet. Add an expense or a deposit to get started.")).not.toBeInTheDocument();
   });
 
   it("fails closed on a malformed response with no rows and a retry", () => {
     const timeline = state({ malformed: true, items: [expense()] });
     renderTimeline(timeline);
 
-    expect(screen.getByRole("alert")).toHaveTextContent("could not be verified");
+    expect(screen.getByRole("alert")).toHaveTextContent("couldn’t check these transactions");
     expect(screen.queryByRole("list")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Try again" }));
     expect(timeline.refresh).toHaveBeenCalledOnce();
@@ -113,7 +113,7 @@ describe("ActivityTimeline", () => {
     const timeline = state({ items: [expense()], refreshFailed: true });
     renderTimeline(timeline);
 
-    expect(screen.getByRole("status")).toHaveTextContent("could not be refreshed. Showing the ones loaded earlier.");
+    expect(screen.getByRole("status")).toHaveTextContent("couldn’t refresh your transactions. Showing the ones loaded earlier.");
     expect(screen.getAllByRole("listitem")).toHaveLength(1);
     fireEvent.click(screen.getByRole("button", { name: "Try again" }));
     expect(timeline.refresh).toHaveBeenCalledOnce();
@@ -190,7 +190,7 @@ describe("ActivityTimeline", () => {
 
     await waitFor(() => expect(screen.getByRole("heading", { name: "All transactions" })).toHaveFocus());
     expect(screen.queryByRole("button", { name: "Show older transactions" })).not.toBeInTheDocument();
-    expect(screen.getByText("That is all of your transactions.")).toBeInTheDocument();
+    expect(screen.getByText("That’s all your transactions.")).toBeInTheDocument();
   });
 
   it("explains an older-page failure inline and offers a retry on the same button", async () => {
@@ -229,7 +229,7 @@ describe("ActivityTimeline", () => {
     renderTimeline(state({ items: [expense({ amount: "-5.00" })], refreshFailed: true }));
 
     expect(screen.getByText("Monto exacto no disponible")).toBeInTheDocument();
-    expect(screen.getByRole("status")).toHaveTextContent("No se pudieron actualizar los movimientos");
+    expect(screen.getByRole("status")).toHaveTextContent("No pudimos actualizar tus movimientos");
   });
 
   it("has no hard-coded English: every visible string comes from a catalog or from the record", () => {
@@ -368,7 +368,7 @@ describe("ActivityTimeline", () => {
     it("explains invalid filters in the live region and opens the panel so the field is visible", () => {
       renderTimeline(state(), { filters: filtersOf({ error: "range", active: true, period: "custom" }) });
 
-      expect(screen.getByText(/Check the filters/).closest("[aria-live='polite']")).not.toBeNull();
+      expect(screen.getByText(/Check your filters/).closest("[aria-live='polite']")).not.toBeNull();
       const toggle = screen.getByRole("button", { name: "Filters" });
       expect(toggle).toHaveAttribute("aria-expanded", "true");
       expect(toggle).toHaveAttribute("aria-disabled", "true");
@@ -379,11 +379,11 @@ describe("ActivityTimeline", () => {
     it("distinguishes no matches under a filter from no recorded activity", () => {
       const applied = { q: "zzz", kind: "", from: "", to: "" };
       const { rerenderTimeline } = renderTimeline(state({ appliedFilter: emptyFilter }));
-      expect(screen.getByText("No transactions yet.")).toBeInTheDocument();
+      expect(screen.getByText("No transactions yet. Add an expense or a deposit to get started.")).toBeInTheDocument();
 
       rerenderTimeline(state({ appliedFilter: applied }), { filters: filtersOf({ applied, draft: applied, active: true }) });
       expect(screen.getByText("No transactions match these filters.")).toBeInTheDocument();
-      expect(screen.queryByText("No transactions yet.")).not.toBeInTheDocument();
+      expect(screen.queryByText("No transactions yet. Add an expense or a deposit to get started.")).not.toBeInTheDocument();
       expect(screen.queryByText(/\d+ (results|matches)/i)).not.toBeInTheDocument();
     });
 
@@ -391,7 +391,7 @@ describe("ActivityTimeline", () => {
       const draft = { ...emptyFilter, q: "typing" };
       renderTimeline(state({ appliedFilter: emptyFilter }), { filters: filtersOf({ draft, active: true }) });
 
-      expect(screen.getByText("No transactions yet.")).toBeInTheDocument();
+      expect(screen.getByText("No transactions yet. Add an expense or a deposit to get started.")).toBeInTheDocument();
     });
 
     it("renders the controls in Spanish", async () => {
@@ -422,12 +422,12 @@ describe("ActivityTimeline", () => {
     it("names each trigger and action by type, record and date, even when an expense and a cash in share an id", async () => {
       const user = userEvent.setup();
       renderTimeline(state({ items: [expense({ recordId: 3 }), inflow({ recordId: 3 })] }), { rowActions: actions() });
-      await user.click(screen.getByRole("button", { name: "Actions for expense Corner coffee, Sep 22, 2026 (no. 3)" }));
-      expect(screen.getByRole("button", { name: "Edit expense Corner coffee, Sep 22, 2026 (no. 3)" })).toHaveTextContent("Edit");
-      expect(screen.getByRole("button", { name: "Delete expense Corner coffee, Sep 22, 2026 (no. 3)" })).toHaveClass("button-danger");
-      await user.click(screen.getByRole("button", { name: "Actions for deposit Payroll deposit, Sep 21, 2026 (no. 3)" }));
-      expect(screen.getByRole("button", { name: "Edit deposit Payroll deposit, Sep 21, 2026 (no. 3)" })).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "Delete deposit Payroll deposit, Sep 21, 2026 (no. 3)" })).toHaveClass("button-ghost");
+      await user.click(screen.getByRole("button", { name: "Actions for expense Corner coffee, Sep 22, 2026 (number 3)" }));
+      expect(screen.getByRole("button", { name: "Edit expense Corner coffee, Sep 22, 2026 (number 3)" })).toHaveTextContent("Edit");
+      expect(screen.getByRole("button", { name: "Delete expense Corner coffee, Sep 22, 2026 (number 3)" })).toHaveClass("button-danger");
+      await user.click(screen.getByRole("button", { name: "Actions for deposit Payroll deposit, Sep 21, 2026 (number 3)" }));
+      expect(screen.getByRole("button", { name: "Edit deposit Payroll deposit, Sep 21, 2026 (number 3)" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Delete deposit Payroll deposit, Sep 21, 2026 (number 3)" })).toHaveClass("button-ghost");
     });
 
     it("applies getState per row, keeping Delete enabled for an amount that needs review", async () => {
@@ -458,8 +458,8 @@ describe("ActivityTimeline", () => {
       const user = userEvent.setup();
       await i18n.changeLanguage("es");
       renderTimeline(state({ items: [expense({ recordId: 3 })] }), { rowActions: actions() });
-      await user.click(screen.getByRole("button", { name: /^Acciones del gasto Corner coffee, .* \(núm\. 3\)$/ }));
-      expect(screen.getByRole("button", { name: /^Editar gasto Corner coffee, .* \(núm\. 3\)$/ })).toHaveTextContent("Editar");
+      await user.click(screen.getByRole("button", { name: /^Acciones del gasto Corner coffee, .* \(número 3\)$/ }));
+      expect(screen.getByRole("button", { name: /^Editar gasto Corner coffee, .* \(número 3\)$/ })).toHaveTextContent("Editar");
       expect(screen.getByRole("button", { name: /^Eliminar gasto/ })).toHaveTextContent("Eliminar");
     });
   });

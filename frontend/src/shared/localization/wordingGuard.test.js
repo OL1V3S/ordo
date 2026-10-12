@@ -81,6 +81,37 @@ const CORE_BANNED_ES = [
   ["pagos recurrentes", term("pagos? recurrentes?")],
 ];
 
+// Area terms: enabled per namespace as the area PRs of the #229 series land. PR 2 covers
+// activity and importPreview; the other namespaces join in PRs 3 to 5.
+const AREA_NAMESPACES = ["activity", "importPreview"];
+
+const AREA_BANNED_EN = [
+  ["candidate", term("candidates?")],
+  ["proposal", term("proposals?")],
+  ["anchor", term("anchors?")],
+  ["cadence", term("cadences?")],
+  ["eligible", term("eligible")],
+  ["evidence", term("evidence")],
+  ["(s)", /\(s\)/],
+  ["...", /\.\.\./],
+  ["Retry", term("retry")],
+  ["MTD", term("mtd")],
+];
+
+const AREA_BANNED_ES = [
+  ["ancla", term("anclas?")],
+  ["elegible", term("elegibles?")],
+  ["evidencia", term("evidencias?")],
+  ["(s)", /\(s\)/],
+  ["...", /\.\.\./],
+  ["informe", term("informes?")],
+  ["Período", term("período")],
+];
+
+const inAreaNamespaces = (catalog) => Object.fromEntries(
+  Object.entries(catalog).filter(([key]) => AREA_NAMESPACES.includes(key.split(":")[0])),
+);
+
 // A bare "pago"/"pagos" (not followed by "de nómina") is never used for money in or out.
 const BARE_PAGO = /(?<![\p{L}\p{N}_])pagos?(?![\p{L}\p{N}_])(?! de nómina)/iu;
 
@@ -115,6 +146,14 @@ describe("wording guard: core terms", () => {
 
   it("keeps the Spanish core banned terms out of every namespace", () => {
     expect(violations(es, "es", CORE_BANNED_ES)).toEqual([]);
+  });
+
+  it("keeps the area banned terms out of the activity and importPreview namespaces (en)", () => {
+    expect(violations(inAreaNamespaces(en), "en", AREA_BANNED_EN)).toEqual([]);
+  });
+
+  it("keeps the area banned terms out of the activity and importPreview namespaces (es)", () => {
+    expect(violations(inAreaNamespaces(es), "es", AREA_BANNED_ES)).toEqual([]);
   });
 
   it("never uses a bare pago in Spanish outside the allowlist", () => {
@@ -191,6 +230,16 @@ describe("wording guard: semantic anchors", () => {
     });
   }
 
+  it("never claims nothing was imported when the import outcome is unknown", () => {
+    const key = "importPreview:confirmation.confirmation_failed";
+    expect(en[key]).toMatch(/couldn[’']t confirm/i);
+    expect(en[key]).toMatch(/nothing is shown as imported/i);
+    expect(en[key]).not.toMatch(/nothing was (?:imported|saved)/i);
+    expect(es[key]).toMatch(/no pudimos confirmar/i);
+    expect(es[key]).toMatch(/no se muestra nada como importado/i);
+    expect(es[key]).not.toMatch(/no se (?:import|guard)ó nada/i);
+  });
+
   it("keeps unavailable data distinct from a zero limit in Budgets", () => {
     expect(en["budgets:card.status.zeroLimit"]).toMatch(/zero limit/i);
     expect(es["budgets:card.status.zeroLimit"]).toMatch(/cero/i);
@@ -225,6 +274,17 @@ describe("wording guard: label in name", () => {
     ["paychecks:actions.recordReceived", "paychecks:actions.recordReceivedLabel"],
     ["paychecks:actions.reviewConfirm", "paychecks:actions.reviewConfirmLabel"],
     ["importPreview:row.depositLabel", "importPreview:row.depositAria"],
+    ["activity:timeline.actions.edit", "activity:timeline.actions.editExpense"],
+    ["activity:timeline.actions.edit", "activity:timeline.actions.editCashIn"],
+    ["activity:timeline.actions.delete", "activity:timeline.actions.deleteExpense"],
+    ["activity:timeline.actions.delete", "activity:timeline.actions.deleteCashIn"],
+    ["importPreview:row.selectLabel", "importPreview:row.selectAria"],
+    ["importPreview:row.notSelectableLabel", "importPreview:row.notSelectableAria"],
+    ["importPreview:row.sourceDetails.summary", "importPreview:row.sourceDetails.aria"],
+    ["importPreview:row.fields.description", "importPreview:row.fields.descriptionAria"],
+    ["importPreview:row.fields.category", "importPreview:row.fields.categoryAria"],
+    ["importPreview:row.fields.customCategory", "importPreview:row.fields.customCategoryAria"],
+    ["importPreview:row.fields.saveRow", "importPreview:row.fields.saveRowAria"],
   ];
 
   for (const language of ["en", "es"]) {

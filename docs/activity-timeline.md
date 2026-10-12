@@ -151,7 +151,7 @@ recovery acknowledgment are unchanged. The page heading (h1) is the last-resort 
   with retry, failed refresh with the last rows kept, failed older-page load with
   an inline retry, and a malformed response.
 - Row actions: an optional `rowActions` prop adds one "..." overflow trigger per row ("Actions
-  for expense|deposit {description}, {date} (no. {id})"), a non-modal disclosure popover (not an
+  for expense|deposit {description}, {date} (number {id})"), a non-modal disclosure popover (not an
   ARIA menu; no focus trap) like the account menu. It holds Edit and Delete with unchanged
   accessible names (type, description, date, record id; expense Delete danger, cash-in Delete
   ghost). It closes on Escape (focus to the trigger), outside pointerdown, or focus leaving it, and

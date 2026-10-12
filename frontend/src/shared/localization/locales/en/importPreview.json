@@ -1,34 +1,34 @@
 {
   "errors": {
-    "upload_too_large": "Choose a PDF that is 10 MiB or smaller.",
-    "invalid_pdf": "This file is not a valid supported PDF.",
-    "encrypted_pdf": "Encrypted or password-protected PDFs are not supported.",
-    "image_only_pdf": "This PDF has no extractable text. Scanned statements are not supported yet.",
-    "unsupported_statement_source": "The selected statement source is not supported.",
-    "source_required": "Choose a supported bank before uploading.",
-    "unsupported_statement_format": "This Sunflower statement format is not supported.",
-    "candidate_row_limit_exceeded": "This statement contains more than 1,000 transaction rows.",
-    "processing_timed_out": "Statement processing timed out. Try the upload again.",
-    "processing_cancelled": "Statement processing was cancelled.",
-    "import_in_progress": "Another statement is already being processed.",
+    "upload_too_large": "Choose a PDF that’s 10 MB or smaller.",
+    "invalid_pdf": "We couldn’t open this file. Choose a valid PDF.",
+    "encrypted_pdf": "We can’t open PDFs that are password-protected or encrypted.",
+    "image_only_pdf": "We can’t read text in this PDF; it may be scanned. Try the PDF from your bank’s website.",
+    "unsupported_statement_source": "We can’t import statements from this bank. Choose a bank from the list.",
+    "source_required": "Choose a bank before you upload the PDF.",
+    "unsupported_statement_format": "We can’t read this type of Sunflower statement.",
+    "candidate_row_limit_exceeded": "This statement has more than 1,000 rows, which is too many to import at once.",
+    "processing_timed_out": "Reading the statement took too long. Try uploading it again.",
+    "processing_cancelled": "Reading the statement was cancelled.",
+    "import_in_progress": "Another statement is already being read. Wait for it to finish, then try again.",
     "already_imported": "This statement was already imported. No duplicate transactions were created.",
-    "row_not_selectable": "That row cannot be selected for import.",
+    "row_not_selectable": "You can’t select that row for import.",
     "row_validation_failed": "Check the row details, then try again."
   },
   "fallbackErrors": {
-    "load": "The saved import preview could not be loaded.",
-    "upload": "The statement could not be processed safely.",
-    "update": "The preview row could not be updated."
+    "load": "We couldn’t load your saved import preview.",
+    "upload": "We couldn’t read the statement. Try uploading it again.",
+    "update": "We couldn’t update this row. Try again."
   },
   "confirmation": {
-    "no_rows_selected": "Select at least one eligible row before confirming.",
-    "duplicate_review_required": "New possible duplicates were found. Review the affected rows and explicitly select any row you still want to import.",
-    "confirmation_validation_failed": "One or more selected rows need attention before the import can be confirmed.",
-    "confirmation_conflict": "The statement could not be confirmed because its import state changed. Review the preview and try again.",
-    "confirmation_failed": "The statement could not be confirmed safely. Nothing is being reported as imported; you can try again.",
-    "preview_expired": "This preview expired. Re-upload the statement to create a new review.",
-    "preview_unavailable": "This import preview is unavailable. Choose the bank and upload the statement again.",
-    "duplicateRefreshFailed": "New duplicate warnings were saved, but the latest preview could not be loaded. Refresh this page before confirming."
+    "no_rows_selected": "Select at least one row that can be imported.",
+    "duplicate_review_required": "We found new possible duplicates. Check those rows, then select again any you still want to import.",
+    "confirmation_validation_failed": "Some selected rows need changes before you can import them.",
+    "confirmation_conflict": "We couldn’t confirm the import because it changed. Check the preview and try again.",
+    "confirmation_failed": "We couldn’t confirm the import, so nothing is shown as imported. You can try again.",
+    "preview_expired": "This preview expired. Upload the statement again to start a new review.",
+    "preview_unavailable": "This preview isn’t available. Choose your bank and upload the statement again.",
+    "duplicateRefreshFailed": "We saved the new duplicate warnings, but couldn’t load the latest preview. Refresh this page before importing."
   },
   "panel": {
     "eyebrow": {
@@ -37,17 +37,17 @@
       "idle": "Bank statement import"
     },
     "title": "Import bank statement",
-    "intro": "Choose the bank, then upload a text-extractable PDF up to 10 MiB. Scanned statements are not supported.",
+    "intro": "Choose your bank, then upload the PDF you downloaded from it (up to 10 MB). Scanned statements and photos won’t work.",
     "chooseAnother": "Choose another statement",
-    "notice": "Review and save any edits before confirming. Expenses and explicitly selected deposits are created only after confirmation.",
+    "notice": "Save any row edits first. Only the expenses and deposits you select are added, and only after you confirm.",
     "cancel": "Cancel",
     "loadingPreview": "Looking for an unfinished preview…",
-    "processing": "Processing the statement safely…",
+    "processing": "Reading your statement…",
     "issueTitle": {
-      "duplicate_review_required": "Review new duplicate warnings",
+      "duplicate_review_required": "New possible duplicates to review",
       "preview_expired": "Preview expired",
       "preview_unavailable": "Preview unavailable",
-      "default": "Statement was not confirmed"
+      "default": "Import not confirmed"
     }
   },
   "selection": {
@@ -60,22 +60,22 @@
   "completion": {
     "title": "Import complete",
     "alreadyTitle": "Statement already imported",
-    "saved": "{{summary}} saved at {{time}}.",
-    "savedUnavailableTime": "{{summary}} saved at an unavailable time.",
-    "alreadySaved": "{{summary}} were already saved at {{time}}.",
-    "alreadySavedUnavailableTime": "{{summary}} were already saved at an unavailable time.",
+    "saved": "Saved on {{time}}: {{summary}}.",
+    "savedUnavailableTime": "Saved: {{summary}}. The time isn’t available.",
+    "alreadySaved": "Already saved on {{time}}: {{summary}}.",
+    "alreadySavedUnavailableTime": "Already saved: {{summary}}. The time isn’t available.",
     "refreshFailed": {
-      "expenses": "The import succeeded, but Transactions could not be refreshed for expenses. Use the affected list’s refresh action to see the saved transactions.",
-      "cashIn": "The import succeeded, but Transactions could not be refreshed for deposits. Use the affected list’s refresh action to see the saved transactions.",
-      "both": "The import succeeded, but Transactions could not be refreshed for expenses and deposits. Use the affected list’s refresh action to see the saved transactions.",
-      "generic": "The import succeeded, but Transactions could not be refreshed. Reload this page to see imported transactions."
+      "expenses": "The import worked, but we couldn’t refresh your expenses in Transactions. Use that list’s refresh button to see them.",
+      "cashIn": "The import worked, but we couldn’t refresh your deposits in Transactions. Use that list’s refresh button to see them.",
+      "both": "The import worked, but we couldn’t refresh your expenses and deposits in Transactions. Use each list’s refresh button to see them.",
+      "generic": "The import worked, but we couldn’t refresh Transactions. Reload this page to see your imported transactions."
     }
   },
   "source": {
     "label": "Bank",
     "placeholder": "Choose a bank",
     "sunflower": "Sunflower Bank",
-    "hint": "Choose a bank to enable PDF upload."
+    "hint": "Choose a bank to upload a PDF."
   },
   "dropzone": {
     "fileLabel": "Sunflower statement PDF",
@@ -89,72 +89,72 @@
     "selected": "<strong>{{items}}</strong> selected to save.",
     "save": "Save {{items}}",
     "saving": "Saving {{items}}…",
-    "regionLabel": "Statement import preview",
+    "regionLabel": "Statement preview",
     "caption": "Sunflower Bank statement rows",
     "guidance": {
-      "externalLocked": "Finish the deposit task before changing the statement.",
-      "needsRefresh": "Refresh this page to load the authoritative duplicate review before confirming.",
-      "pending": "Wait for every row update to finish before confirming.",
-      "dirty": "Save every row with unsaved changes before confirming.",
-      "noneSelected": "Select at least one eligible row to import.",
+      "externalLocked": "Finish the deposit you’re working on before changing the statement.",
+      "needsRefresh": "Refresh the page to get the latest duplicate check before importing.",
+      "pending": "Wait for the row updates to finish before importing.",
+      "dirty": "Save each row you edited before importing.",
+      "noneSelected": "Select at least one row that can be imported.",
       "ready": "Review the selected rows, then save them together.",
-      "bulk": "Wait for the selection update to finish before confirming."
+      "bulk": "Wait for the selection update to finish before importing."
     }
   },
   "columns": {
-    "transaction": "Transaction",
+    "transaction": "Row",
     "status": "Status",
     "selection": "Selection",
-    "fields": "Expense fields"
+    "fields": "Expense details"
   },
   "row": {
     "statusLabels": {
       "expense_candidate": "Expense to review",
       "non_expense": "Deposit",
       "needs_review": "To review",
-      "invalid": "Invalid row",
+      "invalid": "Can’t be imported",
       "default": "To review"
     },
-    "possibleDuplicate": "Possible duplicate — review before selecting",
+    "possibleDuplicate": "Possible duplicate: this looks like one you already saved. Check before selecting it.",
     "possibleInflowDuplicate": "Possible duplicate: this looks like a deposit you already saved. Check before saving it.",
-    "issue": "Issue: {{detail}}",
+    "issue": "Problem: {{detail}}",
     "warning": "Warning: {{detail}}",
     "errorCodes": {
-      "invalid_transaction_date": "invalid transaction date",
-      "invalid_transaction_amount": "invalid transaction amount",
-      "invalid_transaction_description": "invalid transaction description",
-      "unsupported_transaction_direction": "unsupported transaction direction",
-      "unsupported_transaction_row": "unsupported transaction row",
-      "source_description_too_long": "source description too long",
-      "date_required": "date required",
-      "amount_must_be_positive": "amount must be positive",
-      "amount_out_of_range": "amount out of range",
-      "amount_precision_invalid": "amount precision invalid",
-      "description_required": "description required",
+      "invalid_transaction_date": "the transaction date isn’t valid",
+      "invalid_transaction_amount": "the transaction amount isn’t valid",
+      "invalid_transaction_description": "the transaction description isn’t valid",
+      "unsupported_transaction_direction": "the direction (money out or in) isn’t supported",
+      "unsupported_transaction_row": "we don’t support this kind of row",
+      "source_description_too_long": "the description in the statement is too long",
+      "date_required": "the date is missing",
+      "amount_must_be_positive": "the amount must be more than zero",
+      "amount_out_of_range": "the amount is outside the range we support",
+      "amount_precision_invalid": "the amount can have up to two decimal places",
+      "description_required": "the description is missing",
       "description_too_long": "description too long",
-      "category_required": "category required",
+      "category_required": "the category is missing",
       "category_too_long": "category too long",
-      "category_reserved": "category reserved"
+      "category_reserved": "“Other” can’t be used as the category"
     },
     "confirmationCodes": {
-      "possible_duplicate": "New possible duplicate — review this row and explicitly select it again if it should be imported.",
-      "possible_inflow_duplicate": "New possible duplicate deposit — review this row and explicitly select it again if it should be saved.",
-      "row_not_selectable": "This row is not eligible for the requested import selection.",
-      "date_required": "A transaction date is required.",
-      "amount_must_be_positive": "The expense amount must be positive.",
-      "amount_out_of_range": "The expense amount is outside the supported range.",
-      "amount_precision_invalid": "The expense amount must use no more than two decimal places.",
-      "description_required": "A description is required.",
+      "possible_duplicate": "New possible duplicate. Check this row, then select it again if you want to import it.",
+      "possible_inflow_duplicate": "New possible duplicate deposit. Check this row, then select it again if you want to save it.",
+      "row_not_selectable": "This row can’t be selected for import.",
+      "date_required": "This row needs a date.",
+      "amount_must_be_positive": "The amount must be more than zero.",
+      "amount_out_of_range": "The amount is outside the range we support.",
+      "amount_precision_invalid": "The amount can have up to two decimal places.",
+      "description_required": "Add a description for this row.",
       "description_too_long": "The description is too long.",
-      "category_required": "An expense category is required.",
-      "category_too_long": "The expense category is too long.",
+      "category_required": "Choose a category for this expense.",
+      "category_too_long": "The category is too long.",
       "category_reserved": "Choose a category other than Other."
     },
     "unavailable": "Unavailable",
     "unknownDate": "date unavailable",
     "context": "{{description}} on {{date}}, statement row {{ordinal}}",
     "selectLabel": "Select for import",
-    "selectAria": "Select for import for {{row}}",
+    "selectAria": "Select for import: {{row}}",
     "depositLabel": "Save deposit",
     "depositAria": "Save deposit for {{row}}",
     "notSelectableLabel": "Not selectable",
@@ -170,20 +170,20 @@
     },
     "qualification": "Saving adds it to your deposits. Not counted as income or as a paycheck.",
     "sourceDetails": {
-      "summary": "Source details",
-      "aria": "Source details for {{row}}",
+      "summary": "Statement details",
+      "aria": "Statement details for {{row}}",
       "row": "Statement row",
       "section": "Statement section"
     },
     "sections": {
-      "electronic_transactions": "Electronic Transactions",
+      "electronic_transactions": "Electronic transactions",
       "deposits": "Deposits"
     },
     "fields": {
       "notEditable": "Not editable",
       "saving": "Saving…",
-      "saveFailedDirty": "Save failed. Changes remain unsaved.",
-      "saveFailed": "The row update failed. Try again.",
+      "saveFailedDirty": "We couldn’t save. Your changes are still unsaved.",
+      "saveFailed": "We couldn’t update this row. Try again.",
       "unsaved": "Unsaved changes",
       "saved": "Saved",
       "description": "Expense description",
@@ -202,8 +202,8 @@
     "expensesSelected": "Expenses selected",
     "depositsSelected": "Deposits selected",
     "possibleDuplicates": "Possible duplicates",
-    "needsReview": "To review or invalid",
-    "cannotBeSelected": "Cannot be selected, includes rows to review"
+    "needsReview": "To review or can’t be imported",
+    "cannotBeSelected": "Can’t be selected (includes rows to review)"
   },
   "filters": {
     "legend": "Show rows",
@@ -215,12 +215,12 @@
     "option": "{{label}} ({{count}})",
     "showing_one": "Showing {{shown}} of {{count}} row",
     "showing_other": "Showing {{shown}} of {{count}} rows",
-    "empty": "No rows match this filter. Filtering never changes what is selected.",
-    "clearedHidden": "Rows no longer selected are hidden by this filter."
+    "empty": "No rows match this filter. Filtering doesn’t change what you’ve selected.",
+    "clearedHidden": "This filter hides rows that are no longer selected."
   },
   "bulk": {
-    "heading": "Bulk selection",
-    "selectAll": "Select all eligible expenses ({{count}})",
+    "heading": "Select several",
+    "selectAll": "Select all expenses that can be imported ({{count}})",
     "hint": "Skips possible duplicates and deposits. Select those yourself.",
     "clear": "Clear selection",
     "progress": "Updating row {{done}} of {{total}}…",
@@ -232,7 +232,7 @@
     "stopped_other": "Stopped after {{done}} of {{count}} rows. Rows already updated stay as shown. Try again."
   },
   "bar": {
-    "label": "Confirm import",
+    "label": "Import selected",
     "expensesToSave": "Expenses to save: {{count}} · {{total}}",
     "depositsToSave": "Deposits to save: {{count}} · {{total}}",
     "totalUnavailable": "Total unavailable"
@@ -243,7 +243,7 @@
     "deposit": "Deposit",
     "expenseTotal": "Expenses saved: {{count}} · {{total}}",
     "depositTotal": "Deposits saved: {{count}} · {{total}}",
-    "unavailable": "The list of saved rows is not available. Open Transactions to see your saved transactions.",
+    "unavailable": "The saved rows aren’t available right now. Open Transactions to see them.",
     "viewActivity": "View in Transactions",
     "done": "Done"
   }

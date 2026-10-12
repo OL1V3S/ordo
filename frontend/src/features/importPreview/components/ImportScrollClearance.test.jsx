@@ -66,10 +66,10 @@ describe('import results scroll clearance', () => {
 
   it('covers the filter radios, bulk buttons, table region and row controls', () => {
     renderPanel()
-    const table = screen.getByRole('region', { name: 'Statement import preview' })
+    const table = screen.getByRole('region', { name: 'Statement preview' })
     const controls = [
       ...screen.getAllByRole('radio'),
-      screen.getByRole('button', { name: /^Select all eligible expenses/ }),
+      screen.getByRole('button', { name: /^Select all expenses that can be imported/ }),
       screen.getByRole('button', { name: 'Clear selection' }),
       table,
       ...within(table).getAllByRole('checkbox'),
@@ -83,7 +83,7 @@ describe('import results scroll clearance', () => {
 
   it('does not apply to the confirm bar controls themselves', () => {
     renderPanel()
-    const bar = screen.getByRole('group', { name: 'Confirm import' })
+    const bar = screen.getByRole('group', { name: 'Import selected' })
     const buttons = within(bar).getAllByRole('button')
     expect(buttons.length).toBeGreaterThan(0)
     buttons.forEach((button) => expect(hasClearance(button)).toBe(false))

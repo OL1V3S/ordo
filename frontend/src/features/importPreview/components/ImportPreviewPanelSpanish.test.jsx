@@ -86,10 +86,10 @@ describe('import preview in Spanish', () => {
   it('renders the empty upload state with a bold prompt in Spanish', () => {
     render(<ImportPreviewPanel importState={importState({ preview: null, selectedCount: 0 })} />)
 
-    expect(screen.getByText('Importación de estado de cuenta bancario')).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Importar estado de cuenta bancario' })).toBeInTheDocument()
-    expect(screen.getByText(/Elige el banco y luego carga un PDF con texto extraíble de hasta 10 MiB/)).toBeInTheDocument()
-    expect(screen.getByText(/Revisa y guarda cualquier edición antes de confirmar/)).toBeInTheDocument()
+    expect(screen.getByText('Importación de estado de cuenta')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Importar estado de cuenta' })).toBeInTheDocument()
+    expect(screen.getByText(/Elige tu banco y sube el PDF que descargaste de él \(hasta 10 MB\)/)).toBeInTheDocument()
+    expect(screen.getByText(/Primero guarda los cambios de cada fila/)).toBeInTheDocument()
     expect(screen.getByLabelText('Banco')).toHaveValue('sunflower_pdf')
     expect(screen.getByRole('option', { name: 'Elige un banco' })).toBeInTheDocument()
     expect(screen.getByLabelText('PDF del estado de cuenta de Sunflower')).toBeInTheDocument()
@@ -99,10 +99,10 @@ describe('import preview in Spanish', () => {
 
   it('shows the Spanish hint and processing states', () => {
     const { rerender } = render(<ImportPreviewPanel importState={importState({ preview: null, sourceType: '', selectedCount: 0 })} />)
-    expect(screen.getByText('Elige un banco para habilitar la carga de PDF.')).toBeInTheDocument()
+    expect(screen.getByText('Elige un banco para subir un PDF.')).toBeInTheDocument()
 
     rerender(<ImportPreviewPanel importState={importState({ preview: null, processing: true, selectedCount: 0 })} />)
-    expect(screen.getByRole('status')).toHaveTextContent('Procesando el estado de cuenta de forma segura…')
+    expect(screen.getByRole('status')).toHaveTextContent('Leyendo tu estado de cuenta…')
     expect(screen.getByRole('button', { name: 'Cancelar' })).toBeInTheDocument()
 
     rerender(<ImportPreviewPanel importState={importState({ preview: null, loading: true, selectedCount: 0 })} />)
@@ -121,9 +121,9 @@ describe('import preview in Spanish', () => {
     expect(screen.getByText('Revisa las filas seleccionadas y luego guárdalas juntas.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Guardar 1 gasto y 0 depósitos' })).toBeEnabled()
 
-    const table = screen.getByRole('region', { name: 'Vista previa de la importación del estado de cuenta' })
+    const table = screen.getByRole('region', { name: 'Vista previa del estado de cuenta' })
     expect(within(table).getByText('Filas del estado de cuenta de Sunflower Bank', { selector: 'caption' })).toBeInTheDocument()
-    for (const header of ['Transacción', 'Estado', 'Selección', 'Campos del gasto']) {
+    for (const header of ['Fila', 'Estado', 'Selección', 'Detalles del gasto']) {
       expect(within(table).getByRole('columnheader', { name: header })).toBeInTheDocument()
     }
     const context = 'SYNTHETIC CAFE, 2026-08-12, fila 1 del estado de cuenta'
@@ -137,7 +137,7 @@ describe('import preview in Spanish', () => {
     expect(within(table).getByText('Gasto por revisar')).toBeInTheDocument()
     expect(within(table).getByText('Cargo')).toBeInTheDocument()
     expect(within(table).getByText('Transacciones electrónicas')).toBeInTheDocument()
-    expect(within(table).getAllByText('Detalles del origen').length).toBeGreaterThan(0)
+    expect(within(table).getAllByText('Detalles del estado de cuenta').length).toBeGreaterThan(0)
 
     const deposit = 'SYNTHETIC DEPOSIT, 2026-08-12, fila 2 del estado de cuenta'
     expect(within(table).getByRole('checkbox', { name: `Guardar depósito: ${deposit}` })).not.toBeChecked()
@@ -156,10 +156,10 @@ describe('import preview in Spanish', () => {
       selectedCount: 0,
     })} />)
 
-    expect(screen.getByText('Posible duplicado — revisa antes de seleccionar')).toHaveClass('import-warning')
+    expect(screen.getByText('Posible duplicado: se parece a uno que ya guardaste. Revísalo antes de seleccionarlo.')).toHaveClass('import-warning')
     expect(screen.getByText('Posible duplicado: se parece a un depósito que ya guardaste. Revísalo antes de guardarlo.')).toHaveClass('import-warning')
     expect(screen.queryAllByText(/^Advertencia:/)).toHaveLength(0)
-    expect(screen.getByText('Selecciona al menos una fila elegible para importar.')).toBeInTheDocument()
+    expect(screen.getByText('Selecciona al menos una fila que se pueda importar.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Guardar 0 gastos y 0 depósitos' })).toBeDisabled()
   })
 
@@ -181,18 +181,18 @@ describe('import preview in Spanish', () => {
     expect(screen.getByText('Problema: falta la fecha')).toHaveClass('import-error')
     expect(screen.getByText('Problema: brand new error')).toHaveClass('import-error')
     expect(screen.getByText('Advertencia: brand new warning')).toHaveClass('import-warning')
-    expect(screen.getByText('Nuevo posible duplicado — revisa esta fila y vuelve a seleccionarla de forma explícita si debe importarse.'))
+    expect(screen.getByText('Posible duplicado nuevo. Revisa esta fila y vuelve a seleccionarla si quieres importarla.'))
       .toHaveClass('import-warning')
     expect(screen.getByText('Elige una categoría distinta de “Otra”.')).toHaveClass('import-error')
     expect(screen.getByText('Problema: brand new confirmation')).toHaveClass('import-error')
-    expect(screen.getByRole('heading', { name: 'Revisa las nuevas advertencias de duplicados' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Posibles duplicados nuevos por revisar' })).toBeInTheDocument()
   })
 
   it('titles each confirmation issue in Spanish', () => {
     const titles = {
       preview_expired: 'La vista previa venció',
       preview_unavailable: 'Vista previa no disponible',
-      confirmation_failed: 'El estado de cuenta no se confirmó',
+      confirmation_failed: 'Importación no confirmada',
     }
     for (const [code, title] of Object.entries(titles)) {
       const { unmount } = render(<ImportPreviewPanel importState={importState({
@@ -210,16 +210,16 @@ describe('import preview in Spanish', () => {
     rerender(<ImportPreviewPanel importState={importState({
       confirmationIssue: { code: 'duplicate_review_required', message: 'Mensaje.', rows: [], requiresPreviewRefresh: true },
     })} />)
-    expect(screen.getByText('Actualiza esta página para cargar la revisión de duplicados vigente antes de confirmar.')).toBeInTheDocument()
+    expect(screen.getByText('Actualiza la página para ver la revisión de duplicados más reciente antes de importar.')).toBeInTheDocument()
 
     rerender(<ImportPreviewPanel importState={importState()} externalLocked />)
-    expect(screen.getByText('Termina la tarea del depósito antes de cambiar el estado de cuenta.')).toBeInTheDocument()
+    expect(screen.getByText('Termina el depósito que estás editando antes de cambiar el estado de cuenta.')).toBeInTheDocument()
   })
 
   it('renders the completion summary in Spanish, including already-imported statements', () => {
     const { rerender } = render(<ImportPreviewPanel importState={importState({ preview: null, selectedCount: 0, confirmation: confirmed })} />)
     expect(screen.getByRole('heading', { name: 'Importación completada' })).toBeInTheDocument()
-    expect(screen.getByText(/^Se guardaron 1 gasto y 1 depósito el /)).toBeInTheDocument()
+    expect(screen.getByText(/^Guardado el .+: 1 gasto y 1 depósito\.$/)).toBeInTheDocument()
 
     rerender(<ImportPreviewPanel importState={importState({
       preview: null,
@@ -227,20 +227,20 @@ describe('import preview in Spanish', () => {
       confirmation: { ...confirmed, status: 'already_confirmed', importedExpenseCount: 2, importedInflowCount: 0 },
     })} />)
     expect(screen.getByRole('heading', { name: 'Estado de cuenta ya importado' })).toBeInTheDocument()
-    expect(screen.getByText(/^Ya se habían guardado 2 gastos y 0 depósitos el /)).toBeInTheDocument()
+    expect(screen.getByText(/^Ya se guardó el .+: 2 gastos y 0 depósitos\.$/)).toBeInTheDocument()
 
     rerender(<ImportPreviewPanel importState={importState({
       preview: null,
       selectedCount: 0,
       confirmation: { ...confirmed, confirmedAt: 'not a date' },
     })} />)
-    expect(screen.getByText('Se guardaron 1 gasto y 1 depósito en un momento no disponible.')).toBeInTheDocument()
+    expect(screen.getByText('Guardado: 1 gasto y 1 depósito. La hora no está disponible.')).toBeInTheDocument()
   })
 
   it.each([
-    [['expenses'], 'los gastos en Movimientos. Usa'],
-    [['cashIn'], 'los depósitos en Movimientos. Usa'],
-    [['expenses', 'cashIn'], 'los gastos ni los depósitos en Movimientos. Usa'],
+    [['expenses'], 'tus gastos en Movimientos. Usa el botón'],
+    [['cashIn'], 'tus depósitos en Movimientos. Usa el botón'],
+    [['expenses', 'cashIn'], 'tus gastos ni tus depósitos en Movimientos. Usa el botón'],
   ])('maps failed list identifiers %j to a Spanish refresh message', async (failedLists, expected) => {
     const user = userEvent.setup()
     const onImportConfirmed = vi.fn().mockResolvedValue({ failedLists })
@@ -250,7 +250,7 @@ describe('import preview in Spanish', () => {
     await user.click(screen.getByRole('button', { name: 'Guardar 1 gasto y 0 depósitos' }))
 
     const alert = await screen.findByRole('alert')
-    expect(alert).toHaveTextContent('La importación se realizó correctamente, pero no se pudieron actualizar')
+    expect(alert).toHaveTextContent('La importación funcionó, pero no pudimos actualizar')
     expect(alert).toHaveTextContent(expected)
     expect(onImportConfirmed).toHaveBeenCalledWith(confirmed)
   })
@@ -263,7 +263,7 @@ describe('import preview in Spanish', () => {
 
     await user.click(screen.getByRole('button', { name: 'Guardar 1 gasto y 0 depósitos' }))
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Vuelve a cargar esta página para ver los movimientos importados.')
+    expect(await screen.findByRole('alert')).toHaveTextContent('Vuelve a cargar esta página para ver tus movimientos importados.')
   })
 
   it('uses count-aware row totals and keeps the English wording unchanged', async () => {
@@ -285,17 +285,17 @@ describe('import preview in Spanish', () => {
 
   it('shows every confirmation-code message in Spanish with the right severity', () => {
     const messages = [
-      ['possible_duplicate', 'Nuevo posible duplicado — revisa esta fila y vuelve a seleccionarla de forma explícita si debe importarse.', 'import-warning'],
-      ['possible_inflow_duplicate', 'Nuevo posible duplicado de depósito — revisa esta fila y vuelve a seleccionarla de forma explícita si debe guardarse.', 'import-warning'],
-      ['row_not_selectable', 'Esta fila no es elegible para la selección de importación solicitada.', 'import-error'],
-      ['date_required', 'Se requiere una fecha de transacción.', 'import-error'],
-      ['amount_must_be_positive', 'El monto del gasto debe ser positivo.', 'import-error'],
-      ['amount_out_of_range', 'El monto del gasto está fuera del rango admitido.', 'import-error'],
-      ['amount_precision_invalid', 'El monto del gasto debe tener como máximo dos decimales.', 'import-error'],
-      ['description_required', 'Se requiere una descripción.', 'import-error'],
+      ['possible_duplicate', 'Posible duplicado nuevo. Revisa esta fila y vuelve a seleccionarla si quieres importarla.', 'import-warning'],
+      ['possible_inflow_duplicate', 'Posible duplicado de depósito nuevo. Revisa esta fila y vuelve a seleccionarla si quieres guardarla.', 'import-warning'],
+      ['row_not_selectable', 'Esta fila no se puede seleccionar para importar.', 'import-error'],
+      ['date_required', 'A esta fila le falta la fecha.', 'import-error'],
+      ['amount_must_be_positive', 'El monto debe ser mayor que cero.', 'import-error'],
+      ['amount_out_of_range', 'El monto está fuera del rango admitido.', 'import-error'],
+      ['amount_precision_invalid', 'El monto puede tener hasta dos decimales.', 'import-error'],
+      ['description_required', 'Agrega una descripción para esta fila.', 'import-error'],
       ['description_too_long', 'La descripción es demasiado larga.', 'import-error'],
-      ['category_required', 'Se requiere una categoría de gasto.', 'import-error'],
-      ['category_too_long', 'La categoría de gasto es demasiado larga.', 'import-error'],
+      ['category_required', 'Elige una categoría para este gasto.', 'import-error'],
+      ['category_too_long', 'La categoría es demasiado larga.', 'import-error'],
       ['category_reserved', 'Elige una categoría distinta de “Otra”.', 'import-error'],
     ]
     const confirmationIssue = {
@@ -314,11 +314,11 @@ describe('import preview in Spanish', () => {
   it('shows the Spanish save-failed messages for a selection change and for a draft save', async () => {
     const user = userEvent.setup()
     render(<ImportPreviewPanel importState={importState({ updateRow: vi.fn().mockResolvedValue(null) })} />)
-    const table = screen.getByRole('region', { name: 'Vista previa de la importación del estado de cuenta' })
+    const table = screen.getByRole('region', { name: 'Vista previa del estado de cuenta' })
     const context = 'SYNTHETIC CAFE, 2026-08-12, fila 1 del estado de cuenta'
 
     await user.click(within(table).getByRole('checkbox', { name: `Seleccionar para importar: ${context}` }))
-    expect(await within(table).findByRole('alert')).toHaveTextContent('No se pudo actualizar la fila. Inténtalo de nuevo.')
+    expect(await within(table).findByRole('alert')).toHaveTextContent('No pudimos actualizar esta fila. Inténtalo de nuevo.')
 
     const description = within(table).getByLabelText(`Descripción del gasto: ${context}`)
     await user.clear(description)
@@ -326,7 +326,7 @@ describe('import preview in Spanish', () => {
     expect(within(table).getByRole('status')).toHaveTextContent('Cambios sin guardar')
     await user.click(within(table).getByRole('button', { name: `Guardar fila: ${context}` }))
 
-    expect(await within(table).findByRole('alert')).toHaveTextContent('No se pudo guardar. Los cambios siguen sin guardarse.')
+    expect(await within(table).findByRole('alert')).toHaveTextContent('No pudimos guardar. Tus cambios siguen sin guardarse.')
     expect(description).toHaveValue('Unsaved coffee')
   })
 
@@ -335,15 +335,15 @@ describe('import preview in Spanish', () => {
     const row = { ...expenseRow, errors: ['brand_new_error'], warnings: ['brand_new_warning'] }
     const confirmationIssue = {
       code: 'confirmation_validation_failed',
-      message: 'One or more selected rows need attention before the import can be confirmed.',
+      message: 'Some selected rows need changes before you can import them.',
       rows: [{ rowId: 'row-1', codes: ['brand_new_confirmation'] }],
       requiresPreviewRefresh: false,
     }
     render(<ImportPreviewPanel importState={importState({ preview: previewWith([row]), confirmationIssue })} />)
 
-    expect(screen.getByText('Issue: brand new error')).toBeInTheDocument()
+    expect(screen.getByText('Problem: brand new error')).toBeInTheDocument()
     expect(screen.getByText('Warning: brand new warning')).toBeInTheDocument()
-    expect(screen.getByText('Issue: brand new confirmation')).toBeInTheDocument()
+    expect(screen.getByText('Problem: brand new confirmation')).toBeInTheDocument()
   })
   it('formats the row amount in USD with the code in Spanish', () => {
     render(<ImportPreviewPanel importState={importState({ preview: previewWith([{ ...expenseRow, amount: 1234.5 }]) })} />)

@@ -76,8 +76,8 @@ function deferred() {
   return { promise, resolve }
 }
 
-const tableRegion = () => screen.getByRole('region', { name: 'Statement import preview' })
-const selectAll = () => screen.getByRole('button', { name: /^Select all eligible expenses/ })
+const tableRegion = () => screen.getByRole('region', { name: 'Statement preview' })
+const selectAll = () => screen.getByRole('button', { name: /^Select all expenses that can be imported/ })
 const clearSelection = () => screen.getByRole('button', { name: 'Clear selection' })
 
 describe('import review summary, filters and bar', () => {
@@ -88,8 +88,8 @@ describe('import review summary, filters and bar', () => {
     expect(value('Expenses selected')).toHaveTextContent('1')
     expect(value('Deposits selected')).toHaveTextContent('0')
     expect(value('Possible duplicates')).toHaveTextContent('1')
-    expect(value('To review or invalid')).toHaveTextContent('1')
-    expect(value('Cannot be selected, includes rows to review')).toHaveTextContent('1')
+    expect(value('To review or can’t be imported')).toHaveTextContent('1')
+    expect(value('Can’t be selected (includes rows to review)')).toHaveTextContent('1')
 
     expect(screen.getByRole('radio', { name: 'All (5)' })).toBeChecked()
     expect(screen.getByRole('radio', { name: 'To review (1)' })).not.toBeChecked()
@@ -157,7 +157,7 @@ describe('import review summary, filters and bar', () => {
     const user = userEvent.setup()
     render(<ImportPreviewPanel importState={importState()} />)
     await user.click(screen.getByRole('radio', { name: 'Selected (0)' }))
-    expect(screen.getByText('No rows match this filter. Filtering never changes what is selected.')).toBeInTheDocument()
+    expect(screen.getByText('No rows match this filter. Filtering doesn’t change what you’ve selected.')).toBeInTheDocument()
     expect(screen.getByText('Showing 0 of 5 rows')).toBeInTheDocument()
   })
 
@@ -168,7 +168,7 @@ describe('import review summary, filters and bar', () => {
       { ...dep, selectedForInflow: true },
     ]
     const { container } = render(<ImportPreviewPanel importState={importState({ preview: previewWith(rows) })} />)
-    const bar = screen.getByRole('group', { name: 'Confirm import' })
+    const bar = screen.getByRole('group', { name: 'Import selected' })
     expect(within(bar).getByText('Expenses to save: 2 · $0.30')).toBeInTheDocument()
     expect(within(bar).getByText('Deposits to save: 1 · $100.00')).toBeInTheDocument()
     expect(within(bar).getByText('2 expenses and 1 deposit', { selector: 'strong' })).toBeInTheDocument()
@@ -190,7 +190,7 @@ describe('import review bulk selection', () => {
     const user = userEvent.setup()
     const state = importState()
     render(<ImportPreviewPanel importState={state} />)
-    expect(selectAll()).toHaveTextContent('Select all eligible expenses (2)')
+    expect(selectAll()).toHaveTextContent('Select all expenses that can be imported (2)')
 
     await user.click(screen.getByRole('radio', { name: 'Possible duplicates (1)' }))
     await user.click(selectAll())
@@ -224,7 +224,7 @@ describe('import review bulk selection', () => {
     render(<ImportPreviewPanel importState={importState({ preview: previewWith([{ ...e1, selectedForImport: true }, e2]) })} />)
     await user.click(screen.getByRole('radio', { name: 'Selected (1)' }))
     await user.click(clearSelection())
-    expect(await screen.findByText('Cleared the selection of 1 row. Rows no longer selected are hidden by this filter.')).toBeInTheDocument()
+    expect(await screen.findByText('Cleared the selection of 1 row. This filter hides rows that are no longer selected.')).toBeInTheDocument()
     expect(clearSelection()).toHaveFocus()
   })
 
@@ -324,7 +324,7 @@ describe('import review bulk selection', () => {
 
     expect(screen.getByText('Updating row 1 of 2…')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /^Save 0 expenses and 1 deposit/ })).toBeDisabled()
-    expect(screen.getByText('Wait for the selection update to finish before confirming.')).toBeInTheDocument()
+    expect(screen.getByText('Wait for the selection update to finish before importing.')).toBeInTheDocument()
     expect(selectAll()).toHaveAttribute('aria-disabled', 'true')
     expect(clearSelection()).toHaveAttribute('aria-disabled', 'true')
     expect(screen.getByRole('button', { name: 'Choose another statement' })).toBeDisabled()
@@ -377,7 +377,7 @@ describe('import results', () => {
 
   it('falls back to a note when the snapshot does not match the confirmed counts', () => {
     render(<ImportPreviewPanel importState={resultsState({ confirmedRows: { ...savedRows, deposits: [] } })} />)
-    expect(screen.getByText('The list of saved rows is not available. Open Transactions to see your saved transactions.')).toBeInTheDocument()
+    expect(screen.getByText('The saved rows aren’t available right now. Open Transactions to see them.')).toBeInTheDocument()
     expect(screen.queryByText('Rows saved from this review')).not.toBeInTheDocument()
     expect(screen.queryByText('Coffee')).not.toBeInTheDocument()
   })
@@ -426,9 +426,9 @@ describe('import review in Spanish', () => {
     expect(screen.getByText('Mostrando 5 de 5 filas')).toBeInTheDocument()
     expect(screen.getByText(/^Gastos por guardar: 1 · USD\s1,234\.50$/)).toBeInTheDocument()
     expect(screen.getByText(/^Depósitos por guardar: 0 · USD\s0\.00$/)).toBeInTheDocument()
-    expect(screen.getByRole('group', { name: 'Confirmar importación' })).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: 'Importar seleccionados' })).toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: /^Seleccionar todos los gastos elegibles \(1\)/ }))
+    await user.click(screen.getByRole('button', { name: /^Seleccionar todos los gastos que se pueden importar \(1\)/ }))
     expect(await screen.findByText('Se seleccionó 1 gasto.')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Borrar selección' }))
     expect(await screen.findByText('Se borró la selección de 1 fila.')).toBeInTheDocument()
