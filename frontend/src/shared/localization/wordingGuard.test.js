@@ -82,8 +82,8 @@ const CORE_BANNED_ES = [
 ];
 
 // Area terms: enabled per namespace as the area PRs of the #229 series land. PR 2 covers
-// activity and importPreview; the other namespaces join in PRs 3 to 5.
-const AREA_NAMESPACES = ["activity", "importPreview"];
+// activity and importPreview, PR 3 adds commitments; the other namespaces join in PRs 4 and 5.
+const AREA_NAMESPACES = ["activity", "importPreview", "commitments"];
 
 const AREA_BANNED_EN = [
   ["candidate", term("candidates?")],
@@ -148,11 +148,11 @@ describe("wording guard: core terms", () => {
     expect(violations(es, "es", CORE_BANNED_ES)).toEqual([]);
   });
 
-  it("keeps the area banned terms out of the activity and importPreview namespaces (en)", () => {
+  it("keeps the area banned terms out of the activity, importPreview and commitments namespaces (en)", () => {
     expect(violations(inAreaNamespaces(en), "en", AREA_BANNED_EN)).toEqual([]);
   });
 
-  it("keeps the area banned terms out of the activity and importPreview namespaces (es)", () => {
+  it("keeps the area banned terms out of the activity, importPreview and commitments namespaces (es)", () => {
     expect(violations(inAreaNamespaces(es), "es", AREA_BANNED_ES)).toEqual([]);
   });
 
@@ -257,9 +257,10 @@ describe("wording guard: semantic anchors", () => {
 
 describe("wording guard: label in name", () => {
   // [visible text key, accessible name key]. The visible text must be the unchanged start of
-  // the accessible name. The commitments accept / mark-ended pairs change with the
-  // decision-verb pass of the series and are enabled by that change.
+  // the accessible name.
   const pairs = [
+    ["commitments:changes.accept", "commitments:changes.acceptLabel.amount"],
+    ["commitments:changes.accept", "commitments:changes.acceptLabel.timing"],
     ["commitments:changes.keepCurrent", "commitments:changes.keepCurrentLabel.amount"],
     ["commitments:changes.keepCurrent", "commitments:changes.keepCurrentLabel.timing"],
     ["commitments:changes.keepActive", "commitments:changes.keepCurrentLabel.missing"],
@@ -269,6 +270,17 @@ describe("wording guard: label in name", () => {
     ["commitments:candidates.reconsider", "commitments:candidates.reconsiderLabel"],
     ["commitments:candidates.dismiss", "commitments:candidates.dismissLabel"],
     ["commitments:candidates.reviewAndConfirm", "commitments:candidates.reviewAndConfirmLabel"],
+    ["commitments:changes.markEnded", "commitments:changes.markEndedLabel"],
+    ["commitments:changes.confirmMarkEnded", "commitments:changes.confirmMarkEndedLabel"],
+    ["commitments:changes.cancelMarkEnded", "commitments:changes.cancelMarkEndedLabel"],
+    ["commitments:changes.details", "commitments:changes.detailsLabel.amount"],
+    ["commitments:changes.details", "commitments:changes.detailsLabel.timing"],
+    ["commitments:changes.details", "commitments:changes.detailsLabel.missing"],
+    ["commitments:saved.details", "commitments:saved.detailsLabel"],
+    ["commitments:saved.edit", "commitments:saved.editLabel"],
+    ["commitments:saved.pause", "commitments:saved.pauseLabel"],
+    ["commitments:saved.end", "commitments:saved.endLabel"],
+    ["commitments:saved.reactivate", "commitments:saved.reactivateLabel"],
     ["paychecks:actions.reconsider", "paychecks:actions.reconsiderLabel"],
     ["paychecks:actions.dismiss", "paychecks:actions.dismissLabel"],
     ["paychecks:actions.recordReceived", "paychecks:actions.recordReceivedLabel"],

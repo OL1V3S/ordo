@@ -260,7 +260,7 @@ describe("commitment change review", () => {
     const { rerender } = render(renderReview(state));
 
     await user.click(screen.getByRole("button", { name: "Mark as ended: Insurance" }));
-    const confirmation = screen.getByRole("group", { name: /Mark Insurance ended/ });
+    const confirmation = screen.getByRole("group", { name: /Mark Insurance as ended/ });
     const confirmButton = within(confirmation).getByRole("button", { name: "Yes, mark as ended: Insurance" });
     const missingDetails = screen.getByLabelText("Details: missing expense for Insurance").closest("details");
     expect(confirmation).toHaveTextContent("you can change it again");
@@ -286,7 +286,7 @@ describe("commitment change review", () => {
 
     expect(state.markEndedFromChange).toHaveBeenCalledWith("commitment-2", "missing-fingerprint");
     await waitFor(() => expect(screen.getByRole("heading", { name: "Changes to review" })).toHaveFocus());
-    expect(screen.getByRole("group", { name: /Mark Insurance ended/ })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: /Mark Insurance as ended/ })).toBeInTheDocument();
   });
 
   it("supports split pending and reviewed views and reports reviewed disclosure changes", async () => {
@@ -328,10 +328,10 @@ describe("commitment change review", () => {
     const { rerender } = render(
       <CommitmentChangeReview state={reviewState()} view="pending" activeTask={endTask} onTaskChange={onTaskChange} />
     );
-    expect(screen.getByRole("group", { name: /Mark Insurance ended/ })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: /Mark Insurance as ended/ })).toBeInTheDocument();
 
     rerender(<CommitmentChangeReview state={reviewState({ loadError: "Refresh failed." })} view="pending" activeTask={endTask} onTaskChange={onTaskChange} />);
-    expect(screen.getByRole("group", { name: /Mark Insurance ended/ })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: /Mark Insurance as ended/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Yes, mark as ended: Insurance" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Cancel: Insurance" })).toBeEnabled();
     expect(onTaskChange).not.toHaveBeenCalled();

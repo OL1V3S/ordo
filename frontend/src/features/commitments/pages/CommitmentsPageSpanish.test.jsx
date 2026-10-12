@@ -127,7 +127,7 @@ describe("Commitments page in Spanish", () => {
     expect(saved.getByText("Monto esperado")).toBeInTheDocument();
     expect(saved.getAllByText("USD 1,200.00")[0]).toBeInTheDocument();
     expect(saved.getByText("Mensual", { exact: false })).toBeInTheDocument();
-    expect(saved.getByText("Día 1, hasta 1 día antes antes o 1 día después después")).toBeInTheDocument();
+    expect(saved.getByText("Día 1, hasta 1 día antes o 1 día después")).toBeInTheDocument();
     expect(saved.getByText("3 gastos vinculados")).toBeInTheDocument();
     expect(saved.getAllByText("Gastos que coinciden").length).toBeGreaterThan(0);
     expect(saved.getAllByText("Estado de cuenta de Sunflower").length).toBeGreaterThan(0);

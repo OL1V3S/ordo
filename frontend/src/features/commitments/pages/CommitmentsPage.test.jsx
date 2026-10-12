@@ -113,7 +113,7 @@ describe("Commitments workspace", () => {
     expect(saved.getByText("Expected amount")).toBeVisible();
     expect(saved.getAllByText("$1,200.00")[0]).toBeVisible();
     expect(saved.getByText("Housing · Monthly")).toBeVisible();
-    expect(saved.getByText("Day 1,, up to 1-day before early or 1-day after late")).toBeVisible();
+    expect(saved.getByText("Day 1, up to 1 day early or 1 day late")).toBeVisible();
     expect(saved.getByRole("button", { name: "Actions for Rent" })).toBeVisible();
     expect(saved.getByRole("button", { name: "Edit Rent", hidden: true })).not.toBeVisible();
     expect(saved.getByRole("button", { name: "Pause Rent", hidden: true })).not.toBeVisible();
@@ -163,11 +163,11 @@ describe("Commitments workspace", () => {
     useCommitments.mockReturnValue(state({ candidates: [monthEndCandidate], commitments: [monthEndCommitment], dismissedCandidates: [] }));
     renderCommitmentsPage();
 
-    expect(within(card("Rent")).getByText("Month end,, up to 2-day before early or 1-day after late")).toBeVisible();
+    expect(within(card("Rent")).getByText("Month end, up to 2 days early or 1 day late")).toBeVisible();
     const possible = within(card("Gym membership"));
-    expect(possible.getByText("Month end,, up to 2-day before early or 1-day after late")).not.toBeVisible();
+    expect(possible.getByText("Month end, up to 2 days early or 1 day late")).not.toBeVisible();
     await user.click(possible.getByLabelText("Details for Gym membership"));
-    expect(possible.getByText("Month end,, up to 2-day before early or 1-day after late")).toBeVisible();
+    expect(possible.getByText("Month end, up to 2 days early or 1 day late")).toBeVisible();
   });
 
   it("keeps the legacy English wording for a count of one", async () => {
@@ -185,10 +185,10 @@ describe("Commitments workspace", () => {
     expect(possible.getByText("Based on 1 expense")).toBeVisible();
     await user.click(possible.getByLabelText("Details for Gym membership"));
     expect(possible.getByText("1 expense · Consecutive calendar months")).toBeVisible();
-    expect(possible.getByText("Day 15,, up to 1-day before early or 1-day after late")).toBeVisible();
-    expect(within(card("Rent")).getByText("Day 1,, up to 1-day before early or 1-day after late")).toBeVisible();
-    expect(screen.getByText("Day 15 · 1 days before / 1 days after")).toBeVisible();
-    expect(screen.getByText("Day 17 · 1 days before / 1 days after")).toBeVisible();
+    expect(possible.getByText("Day 15, up to 1 day early or 1 day late")).toBeVisible();
+    expect(within(card("Rent")).getByText("Day 1, up to 1 day early or 1 day late")).toBeVisible();
+    expect(screen.getByText("Day 15 · 1 day before / 1 day after")).toBeVisible();
+    expect(screen.getByText("Day 17 · 1 day before / 1 day after")).toBeVisible();
   });
 
   it("preserves a typed confirmation draft across disclosure, theme, resize, refresh, and stale-data errors", async () => {
