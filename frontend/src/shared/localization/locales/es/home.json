@@ -3,10 +3,10 @@
     "title": "Inicio"
   },
   "capture": {
-    "heading": "Registrar",
+    "heading": "Agregar un movimiento",
     "add": "Agregar",
     "addExpense": "Agregar gasto",
-    "addCashIn": "Agregar entrada de dinero",
+    "addCashIn": "Agregar depósito",
     "expense": {
       "title": "Agregar gasto",
       "newExpenseLegend": "Nuevo gasto",
@@ -21,18 +21,18 @@
       "amountPlaceholder": "Monto",
       "descriptionPlaceholder": "Descripción",
       "categoryPlaceholder": "Elige una categoría",
-      "categories": { "food": "Comida", "transport": "Transporte", "bills": "Facturas", "entertainment": "Entretenimiento", "other": "Otra" },
+      "categories": { "food": "Comida", "transport": "Transporte", "bills": "Servicios", "entertainment": "Entretenimiento", "other": "Otra" },
       "customCategoryPlaceholder": "Categoría personalizada",
       "amountInvalid": "Ingresa un monto positivo con hasta dos decimales, hasta 9999999999999999.99.",
       "fieldsRequired": "Completa los campos obligatorios del gasto."
     },
     "cashIn": {
-      "title": "Agregar entrada de dinero",
-      "detailsLegend": "Detalles de la entrada de dinero",
+      "title": "Agregar depósito",
+      "detailsLegend": "Detalles del depósito",
       "description": "Descripción",
       "amount": "Monto",
       "date": "Fecha",
-      "save": "Agregar entrada de dinero",
+      "save": "Agregar depósito",
       "saving": "Guardando…",
       "cancel": "Cancelar",
       "amountInvalid": "Ingresa un monto positivo con hasta dos decimales, hasta 9999999999999999.99.",
@@ -42,32 +42,32 @@
     },
     "feedback": {
       "expenseSaved": "Gasto guardado.",
-      "cashInSaved": "Entrada de dinero guardada.",
-      "expenseSavedRefreshFailed": "Gasto guardado. No se pudo actualizar la actividad de Inicio. Actualiza Inicio antes de otro registro.",
-      "cashInSavedRefreshFailed": "Entrada de dinero guardada. No se pudo actualizar la actividad de Inicio. Actualiza Inicio antes de otro registro.",
-      "unknown": "No pudimos confirmar si se guardó. Revisa la lista completa en Actividad antes de intentarlo de nuevo.",
-      "refreshFailed": "No se pudo actualizar la actividad de Inicio. Actualiza Inicio antes de otro registro.",
-      "refreshed": "Inicio está actualizado. Puedes seguir registrando movimientos."
+      "cashInSaved": "Depósito guardado.",
+      "expenseSavedRefreshFailed": "Gasto guardado. Inicio no se actualizó. Actualiza Inicio antes de agregar otro movimiento.",
+      "cashInSavedRefreshFailed": "Depósito guardado. Inicio no se actualizó. Actualiza Inicio antes de agregar otro movimiento.",
+      "unknown": "No pudimos confirmar si se guardó. Revisa la lista completa en Movimientos antes de intentarlo de nuevo.",
+      "refreshFailed": "Inicio no se actualizó. Actualiza Inicio antes de agregar otro movimiento.",
+      "refreshed": "Inicio está actualizado. Puedes seguir agregando movimientos."
     },
-    "lock": "Termina o cancela el registro abierto antes de iniciar otro."
+    "lock": "Termina o cancela primero lo que estás agregando."
   },
   "activity": {
-    "heading": "Actividad reciente",
-    "viewAll": "Toda la actividad",
-    "viewInsights": "Análisis",
+    "heading": "Movimientos recientes",
+    "viewAll": "Todos los movimientos",
+    "viewInsights": "Reportes",
     "expense": "Gasto",
-    "cashIn": "Entrada de dinero",
+    "cashIn": "Depósito",
     "paycheckLinked": "Vinculado a un pago de nómina",
-    "empty": "No hay actividad reciente para mostrar.",
-    "loading": "Cargando actividad reciente…",
-    "unavailable": "La actividad reciente no está disponible en este momento.",
+    "empty": "No hay movimientos recientes para mostrar.",
+    "loading": "Cargando movimientos recientes…",
+    "unavailable": "Los movimientos recientes no están disponibles en este momento.",
     "retry": "Reintentar Inicio",
     "requestUnavailable": "No se pudo cargar Inicio. Inténtalo de nuevo.",
-    "amountReview": "El monto requiere revisión",
+    "amountReview": "Monto exacto no disponible",
     "dateUnknown": "Fecha no disponible"
   },
   "attention": {
-    "heading": "Requiere atención",
+    "heading": "Requiere tu atención",
     "listLabel": "Elementos que requieren atención",
     "loading": "Cargando elementos de atención…",
     "empty": "Nada requiere tu atención en este momento.",
@@ -75,7 +75,7 @@
     "homeUnavailable": "Los elementos de atención no están disponibles porque no se pudo cargar Inicio.",
     "malformed": "No pudimos verificar los elementos de atención, así que no se muestran.",
     "partialUnavailable": "No se pudieron revisar algunos elementos. Se muestran los que están disponibles.",
-    "openReviews": "Abrir revisiones de compromisos",
+    "openReviews": "Revisar gastos recurrentes",
     "openBudgets": "Abrir presupuestos",
     "openBudgetForCategory": "Abrir el presupuesto de {{category}}",
     "viewAll_one": "Ver {{count}} revisión",
@@ -84,50 +84,50 @@
     "budgetStates": {
       "at_limit": "En el límite: {{spent}} de {{limit}}.",
       "over_limit": "Por encima del límite: se gastaron {{spent}} de {{limit}}.",
-      "zero_limit_spending": "Se gastaron {{spent}} con un límite de cero."
+      "zero_limit_spending": "Gastaste {{spent}} con un límite en cero."
     },
     "dimensions": {
       "amount": "Cambio de monto por revisar",
       "timing": "Cambio de fecha por revisar",
-      "missing": "Estado del compromiso por revisar"
+      "missing": "Revisa si este gasto recurrente sigue activo"
     }
   },
   "comingUp": {
     "heading": "Próximos pagos de nómina",
-    "qualifier": "Previsiones de nómina, separadas de la actividad registrada.",
+    "qualifier": "Solo esperados. No se suman a tus totales.",
     "viewPaychecks": "Ver pagos de nómina",
-    "listLabel": "Previsiones de pagos de nómina",
-    "fixedAmount": "Monto previsto: {{amount}}",
+    "listLabel": "Pagos de nómina esperados",
+    "fixedAmount": "Monto esperado: {{amount}}",
     "rangeValue": "{{minimum}}–{{maximum}}",
-    "rangeAmount": "Rango previsto: {{minimum}}–{{maximum}}",
-    "expectedDate": "Previsto para el {{date}}",
-    "expectedWindow": "Ventana prevista: del {{start}} al {{end}}",
+    "rangeAmount": "Rango esperado: {{minimum}}–{{maximum}}",
+    "expectedDate": "Esperado para el {{date}}",
+    "expectedWindow": "Se espera entre el {{start}} y el {{end}}",
     "cadence": "Frecuencia: {{cadence}}",
     "cadences": {
       "weekly": "Semanal",
       "biweekly": "Cada dos semanas",
-      "semimonthly": "Dos veces al mes",
+      "semimonthly": "Quincenal",
       "monthly": "Mensual"
     },
     "itemLabel": "{{name}}. {{amount}}. {{cadence}}. {{window}}.",
-    "loading": "Cargando previsiones de nómina…",
-    "homeUnavailable": "Próximos pagos no está disponible porque no se pudo cargar Inicio.",
-    "empty": "No hay previsiones de nómina próximas para mostrar.",
-    "unavailable": "Las previsiones de nómina no están disponibles en este momento.",
-    "malformed": "No pudimos verificar las previsiones de nómina, así que no se muestran."
+    "loading": "Cargando pagos de nómina esperados…",
+    "homeUnavailable": "Los próximos pagos de nómina no están disponibles porque no se pudo cargar Inicio.",
+    "empty": "No hay próximos pagos de nómina para mostrar.",
+    "unavailable": "Los próximos pagos de nómina no están disponibles en este momento.",
+    "malformed": "No pudimos verificar los pagos de nómina esperados, así que no se muestran."
   },
   "recovery": {
-    "heading": "Revisa la lista completa de actividad",
-    "bodyExpense": "No pudimos confirmar si se guardó el gasto. Inicio solo muestra algunos registros recientes y no puede verificarlo. Revisa todos los gastos en Actividad antes de decidir si lo intentas de nuevo.",
-    "bodyCashIn": "No pudimos confirmar si se guardó la entrada de dinero. Inicio solo muestra algunos registros recientes y no puede verificarlo. Revisa todas las entradas de dinero en Actividad antes de decidir si lo intentas de nuevo.",
-    "openActivity": "Abrir Actividad para revisar",
-    "activityBannerExpense": "No se pudo confirmar el registro del gasto. Revisa la lista completa de gastos a continuación. No lo intentes de nuevo hasta revisarla.",
-    "activityBannerCashIn": "No se pudo confirmar el registro de la entrada de dinero. Revisa la lista completa de entradas a continuación. No lo intentes de nuevo hasta revisarla.",
+    "heading": "Revisa la lista completa de movimientos",
+    "bodyExpense": "No pudimos confirmar si se guardó el gasto. Inicio solo muestra algunos movimientos recientes y no puede verificarlo. Revisa todos los gastos en Movimientos antes de decidir si lo intentas de nuevo.",
+    "bodyCashIn": "No pudimos confirmar si se guardó el depósito. Inicio solo muestra algunos movimientos recientes y no puede verificarlo. Revisa todos los depósitos en Movimientos antes de decidir si lo intentas de nuevo.",
+    "openActivity": "Abrir Movimientos para revisar",
+    "activityBannerExpense": "No se pudo confirmar el guardado del gasto. Revisa la lista completa de gastos a continuación. No lo intentes de nuevo hasta revisarla.",
+    "activityBannerCashIn": "No se pudo confirmar el guardado del depósito. Revisa la lista completa de depósitos a continuación. No lo intentes de nuevo hasta revisarla.",
     "loadingList": "Cargando la lista completa…",
     "listUnavailable": "No se pudo cargar la lista completa. Reintenta antes de confirmar que la revisaste.",
     "retryList": "Reintentar lista completa",
     "acknowledge": "Ya revisé la lista completa",
     "acknowledged": "Revisión confirmada. Ordo no determinó si el registro se guardó; decide si debes intentarlo de nuevo según los registros anteriores.",
-    "storageVolatile": "Este navegador no pudo guardar el marcador de recuperación. Mantén abierta esta sesión y completa la revisión en Actividad antes de salir."
+    "storageVolatile": "Deja esta pestaña abierta hasta revisar Movimientos. Este navegador no pudo guardar un recordatorio."
   }
 }

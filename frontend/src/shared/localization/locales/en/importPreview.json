@@ -11,7 +11,7 @@
     "processing_timed_out": "Statement processing timed out. Try the upload again.",
     "processing_cancelled": "Statement processing was cancelled.",
     "import_in_progress": "Another statement is already being processed.",
-    "already_imported": "This statement was already imported. No duplicate financial records were created.",
+    "already_imported": "This statement was already imported. No duplicate transactions were created.",
     "row_not_selectable": "That row cannot be selected for import.",
     "row_validation_failed": "Check the row details, then try again."
   },
@@ -39,7 +39,7 @@
     "title": "Import bank statement",
     "intro": "Choose the bank, then upload a text-extractable PDF up to 10 MiB. Scanned statements are not supported.",
     "chooseAnother": "Choose another statement",
-    "notice": "Review and save any edits before confirming. Expenses and explicitly selected incoming deposits are created only after confirmation.",
+    "notice": "Review and save any edits before confirming. Expenses and explicitly selected deposits are created only after confirmation.",
     "cancel": "Cancel",
     "loadingPreview": "Looking for an unfinished preview…",
     "processing": "Processing the statement safely…",
@@ -53,8 +53,8 @@
   "selection": {
     "expenses_one": "{{count}} expense",
     "expenses_other": "{{count}} expenses",
-    "deposits_one": "{{count}} incoming deposit",
-    "deposits_other": "{{count}} incoming deposits",
+    "deposits_one": "{{count}} deposit",
+    "deposits_other": "{{count}} deposits",
     "summary": "{{expenses}} and {{deposits}}"
   },
   "completion": {
@@ -65,10 +65,10 @@
     "alreadySaved": "{{summary}} were already saved at {{time}}.",
     "alreadySavedUnavailableTime": "{{summary}} were already saved at an unavailable time.",
     "refreshFailed": {
-      "expenses": "The import succeeded, but Activity could not be refreshed for expenses. Use the affected list’s refresh action to see the saved records.",
-      "cashIn": "The import succeeded, but Activity could not be refreshed for cash in. Use the affected list’s refresh action to see the saved records.",
-      "both": "The import succeeded, but Activity could not be refreshed for expenses and cash in. Use the affected list’s refresh action to see the saved records.",
-      "generic": "The import succeeded, but Activity could not be refreshed. Reload this page to see imported records."
+      "expenses": "The import succeeded, but Transactions could not be refreshed for expenses. Use the affected list’s refresh action to see the saved transactions.",
+      "cashIn": "The import succeeded, but Transactions could not be refreshed for deposits. Use the affected list’s refresh action to see the saved transactions.",
+      "both": "The import succeeded, but Transactions could not be refreshed for expenses and deposits. Use the affected list’s refresh action to see the saved transactions.",
+      "generic": "The import succeeded, but Transactions could not be refreshed. Reload this page to see imported transactions."
     }
   },
   "source": {
@@ -92,12 +92,12 @@
     "regionLabel": "Statement import preview",
     "caption": "Sunflower Bank statement rows",
     "guidance": {
-      "externalLocked": "Finish the cash-in task before changing the statement.",
+      "externalLocked": "Finish the deposit task before changing the statement.",
       "needsRefresh": "Refresh this page to load the authoritative duplicate review before confirming.",
       "pending": "Wait for every row update to finish before confirming.",
       "dirty": "Save every row with unsaved changes before confirming.",
       "noneSelected": "Select at least one eligible row to import.",
-      "ready": "Review the selected records, then save them together.",
+      "ready": "Review the selected rows, then save them together.",
       "bulk": "Wait for the selection update to finish before confirming."
     }
   },
@@ -110,13 +110,13 @@
   "row": {
     "statusLabels": {
       "expense_candidate": "Expense to review",
-      "non_expense": "Incoming deposit",
-      "needs_review": "Needs review",
+      "non_expense": "Deposit",
+      "needs_review": "To review",
       "invalid": "Invalid row",
-      "default": "Review required"
+      "default": "To review"
     },
     "possibleDuplicate": "Possible duplicate — review before selecting",
-    "possibleInflowDuplicate": "Possible incoming-deposit duplicate — review before saving",
+    "possibleInflowDuplicate": "Possible duplicate: this looks like a deposit you already saved. Check before saving it.",
     "issue": "Issue: {{detail}}",
     "warning": "Warning: {{detail}}",
     "errorCodes": {
@@ -138,7 +138,7 @@
     },
     "confirmationCodes": {
       "possible_duplicate": "New possible duplicate — review this row and explicitly select it again if it should be imported.",
-      "possible_inflow_duplicate": "New possible incoming-deposit duplicate — review this row and explicitly select it again if it should be saved.",
+      "possible_inflow_duplicate": "New possible duplicate deposit — review this row and explicitly select it again if it should be saved.",
       "row_not_selectable": "This row is not eligible for the requested import selection.",
       "date_required": "A transaction date is required.",
       "amount_must_be_positive": "The expense amount must be positive.",
@@ -151,12 +151,12 @@
       "category_reserved": "Choose a category other than Other."
     },
     "unavailable": "Unavailable",
-    "unknownDate": "unknown date",
+    "unknownDate": "date unavailable",
     "context": "{{description}} on {{date}}, statement row {{ordinal}}",
     "selectLabel": "Select for import",
     "selectAria": "Select for import for {{row}}",
-    "depositLabel": "Save incoming deposit",
-    "depositAria": "Save incoming deposit for {{row}}",
+    "depositLabel": "Save deposit",
+    "depositAria": "Save deposit for {{row}}",
     "notSelectableLabel": "Not selectable",
     "notSelectableAria": "Not selectable for {{row}}",
     "facts": {
@@ -165,10 +165,10 @@
       "direction": "Direction"
     },
     "directions": {
-      "debit": "Debit",
-      "credit": "Credit"
+      "debit": "Money out",
+      "credit": "Money in"
     },
-    "qualification": "Saving this deposit records account inflow evidence. It does not classify it as income or a paycheck.",
+    "qualification": "Saving adds it to your deposits. Not counted as income or as a paycheck.",
     "sourceDetails": {
       "summary": "Source details",
       "aria": "Source details for {{row}}",
@@ -200,17 +200,17 @@
   "summary": {
     "heading": "Statement summary",
     "expensesSelected": "Expenses selected",
-    "depositsSelected": "Incoming deposits selected",
+    "depositsSelected": "Deposits selected",
     "possibleDuplicates": "Possible duplicates",
-    "needsReview": "Needs review or invalid",
-    "cannotBeSelected": "Cannot be selected, includes rows needing review"
+    "needsReview": "To review or invalid",
+    "cannotBeSelected": "Cannot be selected, includes rows to review"
   },
   "filters": {
     "legend": "Show rows",
     "all": "All",
-    "attention": "Needs attention",
+    "attention": "To review",
     "duplicates": "Possible duplicates",
-    "deposits": "Incoming deposits",
+    "deposits": "Deposit rows",
     "selected": "Selected",
     "option": "{{label}} ({{count}})",
     "showing_one": "Showing {{shown}} of {{count}} row",
@@ -221,7 +221,7 @@
   "bulk": {
     "heading": "Bulk selection",
     "selectAll": "Select all eligible expenses ({{count}})",
-    "hint": "Skips possible duplicates and incoming deposits. Select those yourself.",
+    "hint": "Skips possible duplicates and deposits. Select those yourself.",
     "clear": "Clear selection",
     "progress": "Updating row {{done}} of {{total}}…",
     "selectedDone_one": "Selected {{count}} expense.",
@@ -234,17 +234,17 @@
   "bar": {
     "label": "Confirm import",
     "expensesToSave": "Expenses to save: {{count}} · {{total}}",
-    "depositsToSave": "Incoming deposits to save: {{count}} · {{total}}",
+    "depositsToSave": "Deposits to save: {{count}} · {{total}}",
     "totalUnavailable": "Total unavailable"
   },
   "saved": {
     "heading": "Rows saved from this review",
     "expense": "Expense",
-    "deposit": "Incoming deposit",
+    "deposit": "Deposit",
     "expenseTotal": "Expenses saved: {{count}} · {{total}}",
-    "depositTotal": "Incoming deposits saved: {{count}} · {{total}}",
-    "unavailable": "The list of saved rows is not available. Open Activity to see your records.",
-    "viewActivity": "View in Activity",
+    "depositTotal": "Deposits saved: {{count}} · {{total}}",
+    "unavailable": "The list of saved rows is not available. Open Transactions to see your saved transactions.",
+    "viewActivity": "View in Transactions",
     "done": "Done"
   }
 }

@@ -5,19 +5,19 @@
   "workspace": "Workspace",
   "destinations": {
     "home": { "label": "Home" },
-    "activity": { "label": "Activity" },
+    "activity": { "label": "Transactions" },
     "budgets": {
       "label": "Budgets",
       "description": "Set and review monthly category limits."
     },
-    "insights": { "label": "Insights" },
+    "insights": { "label": "Reports" },
     "commitments": {
-      "label": "Commitments",
-      "description": "Review recurring expenses and manage saved commitments."
+      "label": "Recurring expenses",
+      "description": "Expenses you expect to repeat, like bills and subscriptions."
     },
     "paychecks": {
       "label": "Paychecks",
-      "description": "Review deposits and manage saved paycheck expectations."
+      "description": "Your pay schedules and deposits that look like pay."
     },
     "investing": {
       "label": "Investing",
@@ -32,7 +32,7 @@
   },
   "hubs": {
     "plan": {
-      "ariaLabel": "Planning tools"
+      "ariaLabel": "Budgets, recurring expenses, and paychecks"
     },
     "more": {
       "title": "More",

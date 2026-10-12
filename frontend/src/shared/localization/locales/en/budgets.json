@@ -73,9 +73,9 @@
     "deleteLabel": "Delete {{name}} budget",
     "status": {
       "spendingUnavailable": "Spending unavailable",
-      "spendingNeedsReview": "Spending needs review",
-      "limitNeedsReview": "Limit needs review",
-      "zeroLimit": "Zero limit",
+      "spendingNeedsReview": "Exact spending unavailable",
+      "limitNeedsReview": "Exact limit unavailable",
+      "zeroLimit": "Zero limit (no spending)",
       "overLimit": "Over limit",
       "limitReached": "Limit reached",
       "nearLimit": "Near limit",

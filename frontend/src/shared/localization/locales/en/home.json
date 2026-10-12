@@ -3,10 +3,10 @@
     "title": "Home"
   },
   "capture": {
-    "heading": "Capture",
+    "heading": "Add a transaction",
     "add": "Add",
     "addExpense": "Add expense",
-    "addCashIn": "Add cash in",
+    "addCashIn": "Add deposit",
     "expense": {
       "title": "Add expense",
       "newExpenseLegend": "New expense",
@@ -27,12 +27,12 @@
       "fieldsRequired": "Complete the required expense fields."
     },
     "cashIn": {
-      "title": "Add cash in",
-      "detailsLegend": "Cash-in details",
+      "title": "Add deposit",
+      "detailsLegend": "Deposit details",
       "description": "Description",
       "amount": "Amount",
       "date": "Date",
-      "save": "Add cash in",
+      "save": "Add deposit",
       "saving": "Saving…",
       "cancel": "Cancel",
       "amountInvalid": "Enter a positive amount with at most two decimals, up to 9999999999999999.99.",
@@ -42,32 +42,32 @@
     },
     "feedback": {
       "expenseSaved": "Expense saved.",
-      "cashInSaved": "Cash in saved.",
-      "expenseSavedRefreshFailed": "Expense saved. Home activity could not be refreshed. Refresh Home before another capture.",
-      "cashInSavedRefreshFailed": "Cash in saved. Home activity could not be refreshed. Refresh Home before another capture.",
-      "unknown": "We couldn’t confirm whether this was saved. Check the complete list in Activity before trying again.",
-      "refreshFailed": "Home activity could not be refreshed. Refresh Home before another capture.",
-      "refreshed": "Home refreshed. You can continue recording activity."
+      "cashInSaved": "Deposit saved.",
+      "expenseSavedRefreshFailed": "Expense saved. Home didn’t update. Refresh Home before adding another transaction.",
+      "cashInSavedRefreshFailed": "Deposit saved. Home didn’t update. Refresh Home before adding another transaction.",
+      "unknown": "We couldn’t confirm whether this was saved. Check the complete list in Transactions before trying again.",
+      "refreshFailed": "Home didn’t update. Refresh Home before adding another transaction.",
+      "refreshed": "Home refreshed. You can continue adding transactions."
     },
-    "lock": "Finish or cancel the open capture before starting another."
+    "lock": "Finish or cancel what you’re adding first."
   },
   "activity": {
-    "heading": "Recent activity",
-    "viewAll": "All activity",
-    "viewInsights": "Insights",
+    "heading": "Recent transactions",
+    "viewAll": "All transactions",
+    "viewInsights": "Reports",
     "expense": "Expense",
-    "cashIn": "Cash in",
+    "cashIn": "Deposit",
     "paycheckLinked": "Paycheck linked",
-    "empty": "No recent activity to show.",
-    "loading": "Loading recent activity…",
-    "unavailable": "Recent activity is unavailable right now.",
+    "empty": "No recent transactions to show.",
+    "loading": "Loading recent transactions…",
+    "unavailable": "Recent transactions are unavailable right now.",
     "retry": "Retry Home",
     "requestUnavailable": "Home could not be loaded. Try again.",
-    "amountReview": "Amount needs review",
+    "amountReview": "Exact amount unavailable",
     "dateUnknown": "Date unavailable"
   },
   "attention": {
-    "heading": "Needs Attention",
+    "heading": "Needs your attention",
     "listLabel": "Items needing attention",
     "loading": "Loading attention items…",
     "empty": "Nothing needs your attention right now.",
@@ -75,7 +75,7 @@
     "homeUnavailable": "Attention items are unavailable because Home could not be loaded.",
     "malformed": "Attention items could not be verified, so they are hidden.",
     "partialUnavailable": "Some attention items could not be checked. Available items are shown.",
-    "openReviews": "Open commitment reviews",
+    "openReviews": "Review recurring expenses",
     "openBudgets": "Open budgets",
     "openBudgetForCategory": "Open {{category}} budget",
     "viewAll_one": "See all {{count}} review",
@@ -84,25 +84,25 @@
     "budgetStates": {
       "at_limit": "At limit: {{spent}} of {{limit}}.",
       "over_limit": "Over limit: {{spent}} spent against {{limit}}.",
-      "zero_limit_spending": "Spent {{spent}} against a zero limit."
+      "zero_limit_spending": "Spent {{spent}} with a zero limit."
     },
     "dimensions": {
       "amount": "Amount change to review",
       "timing": "Timing change to review",
-      "missing": "Commitment status to review"
+      "missing": "Check if this recurring expense is still active"
     }
   },
   "comingUp": {
-    "heading": "Coming Up",
-    "qualifier": "Expected paycheck projections, separate from recorded activity.",
+    "heading": "Upcoming paychecks",
+    "qualifier": "Expected only. Not included in your totals.",
     "viewPaychecks": "View paychecks",
-    "listLabel": "Expected paycheck projections",
+    "listLabel": "Expected paychecks",
     "fixedAmount": "Expected amount: {{amount}}",
     "rangeValue": "{{minimum}}–{{maximum}}",
     "rangeAmount": "Expected range: {{minimum}}–{{maximum}}",
     "expectedDate": "Expected {{date}}",
-    "expectedWindow": "Expected window {{start}}–{{end}}",
-    "cadence": "Cadence: {{cadence}}",
+    "expectedWindow": "Expected between {{start}} and {{end}}",
+    "cadence": "How often: {{cadence}}",
     "cadences": {
       "weekly": "Weekly",
       "biweekly": "Every two weeks",
@@ -111,23 +111,23 @@
     },
     "itemLabel": "{{name}}. {{amount}}. {{cadence}}. {{window}}.",
     "loading": "Loading expected paychecks…",
-    "homeUnavailable": "Coming Up is unavailable because Home could not be loaded.",
-    "empty": "No upcoming paycheck expectations to show.",
-    "unavailable": "Upcoming paycheck expectations are unavailable right now.",
-    "malformed": "Paycheck expectations could not be verified, so they are hidden."
+    "homeUnavailable": "Upcoming paychecks aren’t available because Home couldn’t load.",
+    "empty": "No upcoming paychecks to show.",
+    "unavailable": "Upcoming paychecks aren’t available right now.",
+    "malformed": "We couldn’t verify the expected paychecks, so they’re hidden."
   },
   "recovery": {
-    "heading": "Check the complete activity list",
-    "bodyExpense": "We couldn’t confirm whether your expense was saved. Home shows only a few recent records, so it cannot verify this write. Review all expenses in Activity before deciding whether to try again.",
-    "bodyCashIn": "We couldn’t confirm whether your cash in was saved. Home shows only a few recent records, so it cannot verify this write. Review all cash-in records in Activity before deciding whether to try again.",
-    "openActivity": "Open Activity to check",
+    "heading": "Check the complete list of transactions",
+    "bodyExpense": "We couldn’t confirm whether your expense was saved. Home shows only a few recent transactions, so it cannot verify this write. Review all expenses in Transactions before deciding whether to try again.",
+    "bodyCashIn": "We couldn’t confirm whether your deposit was saved. Home shows only a few recent transactions, so it cannot verify this write. Review all deposits in Transactions before deciding whether to try again.",
+    "openActivity": "Open Transactions to check",
     "activityBannerExpense": "An expense save could not be confirmed. Review the complete expense list below. Do not retry until you have checked it.",
-    "activityBannerCashIn": "A cash-in save could not be confirmed. Review the complete cash-in list below. Do not retry until you have checked it.",
+    "activityBannerCashIn": "A deposit save could not be confirmed. Review the complete deposits list below. Do not retry until you have checked it.",
     "loadingList": "Loading the complete list…",
     "listUnavailable": "The complete list could not be loaded. Retry before acknowledging this check.",
     "retryList": "Retry full list",
     "acknowledge": "I checked the complete list",
     "acknowledged": "Check acknowledged. Ordo did not determine whether the entry was saved; decide whether to retry based on the records above.",
-    "storageVolatile": "This browser could not store the recovery marker. Keep this signed-in session open and complete the Activity review before leaving."
+    "storageVolatile": "Keep this tab open until you’ve checked Transactions. This browser couldn’t save a reminder."
   }
 }

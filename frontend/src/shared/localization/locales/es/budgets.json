@@ -32,7 +32,7 @@
   "categories": {
     "food": "Comida",
     "transport": "Transporte",
-    "bills": "Facturas",
+    "bills": "Servicios",
     "entertainment": "Entretenimiento",
     "other": "Otra"
   },
@@ -65,7 +65,7 @@
     "progressLabel": "Uso del presupuesto de {{name}}",
     "progressValue": "{{used}} usado de {{limit}}, {{percent}}",
     "percentUsed": "{{percent}} usado",
-    "zeroLimitNote": "No hay porcentaje para un límite de cero.",
+    "zeroLimitNote": "No hay porcentaje para un límite en cero.",
     "comparisonUnavailable": "La comparación exacta no está disponible. Revisa el monto antes de confiar en el estado de este presupuesto.",
     "edit": "Editar",
     "editLabel": "Editar presupuesto de {{name}}",
@@ -73,9 +73,9 @@
     "deleteLabel": "Eliminar presupuesto de {{name}}",
     "status": {
       "spendingUnavailable": "Gasto no disponible",
-      "spendingNeedsReview": "El gasto requiere revisión",
-      "limitNeedsReview": "El límite requiere revisión",
-      "zeroLimit": "Límite de cero",
+      "spendingNeedsReview": "Gasto exacto no disponible",
+      "limitNeedsReview": "Límite exacto no disponible",
+      "zeroLimit": "Límite en cero (sin gastos)",
       "overLimit": "Por encima del límite",
       "limitReached": "Límite alcanzado",
       "nearLimit": "Cerca del límite",
@@ -86,6 +86,6 @@
   "explanation": {
     "summary": "Acerca de los límites mensuales",
     "reset": "Próximo reinicio: {{date}}. Cada límite se aplica a su mes calendario seleccionado.",
-    "zeroLimit": "Un límite de cero es un presupuesto intencional sin gastos. Es diferente a no tener un presupuesto para una categoría."
+    "zeroLimit": "Un límite en cero es un presupuesto intencional sin gastos. Es diferente a no tener un presupuesto para una categoría."
   }
 }
