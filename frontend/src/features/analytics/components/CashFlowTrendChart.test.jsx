@@ -18,7 +18,7 @@ describe("cash-flow monthly grouped stacks", () => {
     ]);
     expect(renderedChart.data.datasets).toMatchObject([
       { label: "Confirmed paychecks", stack: "cash-in", data: [0, 0, 0, 0, 0, 120], borderWidth: 1 },
-      { label: "Other cash in", stack: "cash-in", data: [0, 0, 0, 0, 0, 30], borderWidth: 3 },
+      { label: "Other deposits", stack: "cash-in", data: [0, 0, 0, 0, 0, 30], borderWidth: 3 },
       { label: "Spent", stack: "spent", data: [0, 0, 0, 0, 0, 100], borderWidth: 1 },
     ]);
     expect(renderedChart.options.animation).toBe(false);
@@ -33,8 +33,8 @@ describe("cash-flow monthly grouped stacks", () => {
     const table = within(disclosure).getByRole("table", { hidden: true });
     const rows = within(table).getAllByRole("row", { hidden: true });
     expect(rows).toHaveLength(7);
-    expect(rows[0]).toHaveTextContent("Recorded cash inConfirmed paychecksOther cash inSpentNet recorded cash flowPeriod note");
-    expect(rows[1]).toHaveTextContent("No cash in recorded · No spending recorded");
+    expect(rows[0]).toHaveTextContent("DepositsConfirmed paychecksOther depositsSpentDeposits minus spendingPeriod note");
+    expect(rows[1]).toHaveTextContent("No deposits recorded · No spending recorded");
     expect(rows[6]).toHaveTextContent("August 2026$150.00$120.00$30.00$100.00+$50.00Through August 14, 2026");
     expect(table.parentElement).toHaveAttribute("tabindex", "0");
   });
@@ -42,9 +42,9 @@ describe("cash-flow monthly grouped stacks", () => {
     const data = cashFlowFixture("2026-08", { cashInMinor: "999999999999999999", otherCashInMinor: "999999999999999999", paycheckCashInMinor: "0" });
     render(<CashFlowTrendChart data={data} />);
     const callbacks = renderedChart.options.plugins.tooltip.callbacks;
-    expect(callbacks.label({ dataset: { label: "Other cash in" }, datasetIndex: 1, dataIndex: 5 }))
-      .toBe("Other cash in: $9,999,999,999,999,999.99");
-    expect(callbacks.footer([{ dataIndex: 5 }])).toBe("Recorded cash in: $9,999,999,999,999,999.99");
+    expect(callbacks.label({ dataset: { label: "Other deposits" }, datasetIndex: 1, dataIndex: 5 }))
+      .toBe("Other deposits: $9,999,999,999,999,999.99");
+    expect(callbacks.footer([{ dataIndex: 5 }])).toBe("Deposits: $9,999,999,999,999,999.99");
   });
   it("labels a shorter representable-calendar-floor range", () => {
     const data = cashFlowFixture();

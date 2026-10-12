@@ -49,10 +49,10 @@ describe("analytics month and date labels", () => {
 
   it("localizes period notes while keeping a recorded zero distinct from the empty marker", () => {
     expect(periodNotes({ month: "2026-08", to: "2026-08-14", cashInMinor: "0", spentMinor: "0" }, "2026-08-14", { t: tEs }))
-      .toBe("Hasta el 14 de agosto de 2026 · No hay entradas de dinero registradas · No hay gastos registrados");
+      .toBe("Hasta el 14 de agosto de 2026 · No hay depósitos registrados · No hay gastos registrados");
     expect(periodNotes({ month: "2026-07", cashInMinor: "100", spentMinor: "100" }, "2026-08-14", { t: tEs })).toBe("—");
     expect(periodNotes({ month: "2026-08", to: "2026-08-14", cashInMinor: "0", spentMinor: "0" }, "2026-08-14"))
-      .toBe("Through August 14, 2026 · No cash in recorded · No spending recorded");
+      .toBe("Through August 14, 2026 · No deposits recorded · No spending recorded");
   });
 });
 

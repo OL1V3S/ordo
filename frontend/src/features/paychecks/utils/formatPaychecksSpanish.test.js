@@ -17,14 +17,14 @@ describe("paycheck display helpers in Spanish", () => {
     expect(formatSchedule({ cadence: "weekly", referenceAnchorDate: "2026-01-02" }, es, "es")).toBe("Semanal, fecha de referencia 2 ene 2026");
     expect(formatSchedule({ cadence: "monthly", firstMonthAnchor: { kind: "month_end", day: null } }, es)).toBe("Mensual, fin de mes");
     expect(formatSchedule({ cadence: "semimonthly", firstMonthAnchor: { kind: "day_of_month", day: 15 }, secondMonthAnchor: { kind: "month_end", day: null } }, es))
-      .toBe("Dos veces al mes, día 15 y fin de mes");
+      .toBe("Quincenal, día 15 y fin de mes");
     expect(formatSchedule(null, es)).toBe("Calendario no disponible");
     expect(formatWindow(1, 3, es)).toBe("1 día antes · 3 días después");
     expect(formatWindow(0, 1, es)).toBe("0 días antes · 1 día después");
     expect(formatDate("2026-03-08", es, "es")).toBe("8 mar 2026");
-    expect(formatDate("2026-02-29", es, "es")).toBe("Fecha desconocida");
+    expect(formatDate("2026-02-29", es, "es")).toBe("Fecha no disponible");
     expect(formatMoney(1234.56, es, "es")).toBe("USD\u00a01,234.56");
-    expect(formatMoney(1e16, es, "es")).toBe("El monto requiere revisión");
+    expect(formatMoney(1e16, es, "es")).toBe("Monto exacto no disponible");
     expect(formatMoney(null, es, "es")).toBe("Monto no disponible");
     expect(formatAmount({ mode: "range", minimumAmount: "100.01", maximumAmount: "200.99" }, es, "es")).toBe("USD\u00a0100.01 – USD\u00a0200.99");
     expect(formatAmount(null, es, "es")).toBe("Monto no disponible");

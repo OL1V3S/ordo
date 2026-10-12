@@ -114,7 +114,7 @@ describe("commitment change review", () => {
     const pendingSection = screen.getByRole("heading", { name: "Changes to review" }).closest("section");
     const pendingGym = within(pendingSection).getByRole("heading", { name: "Gym plan", level: 3 }).closest("li");
 
-    const currentExpectation = within(pendingGym).getByText("Current expectation").closest("div");
+    const currentExpectation = within(pendingGym).getByText("Saved details").closest("div");
     const observedProposal = within(pendingGym).getByText("Observed change").closest("div");
     expect(within(currentExpectation).getByText("$20.00")).toBeVisible();
     expect(within(observedProposal).getByText("$25.00")).toBeVisible();
@@ -129,7 +129,7 @@ describe("commitment change review", () => {
     expect(within(pendingGym).getByText(/Sep 17, 2026/)).toBeVisible();
     expect(within(pendingGym).queryByText(/Oct 17, 2026/)).not.toBeInTheDocument();
     expect(within(amountDetails).getByText("Evaluated").closest("div")).toHaveTextContent("Oct 29, 2026");
-    expect(within(amountDetails).getByText("Detection details").closest("div")).toHaveTextContent("commitment-change-v1");
+    expect(within(amountDetails).getByText("Why we suggested this").closest("div")).toHaveTextContent("commitment-change-v1");
 
     expect(reviewedHeading()).toHaveAccessibleName("Reviewed changes (1)");
     expect(reviewedButton()).toHaveAttribute("aria-expanded", "false");
@@ -145,7 +145,7 @@ describe("commitment change review", () => {
     expect(within(keptGym).getByText(/Oct 17, 2026/)).toBeVisible();
 
     const insurance = within(pendingSection).getByRole("heading", { name: "Insurance", level: 3 }).closest("li");
-    expect(within(insurance).getByText("Possibly ended")).toBeVisible();
+    expect(within(insurance).getByText("May have ended")).toBeVisible();
     expect(within(insurance).getByText("This is an observation, not an automatic status change.")).toBeVisible();
     expect(within(insurance).getByText("3 expected monthly dates have passed without a matching expense.")).toBeVisible();
     expect(within(insurance).getByText("Aug 20, 2026")).toBeVisible();
@@ -166,7 +166,7 @@ describe("commitment change review", () => {
     expect(reviewedButton()).toHaveAttribute("aria-expanded", "true");
     await waitFor(() => expect(reviewedButton()).toHaveFocus());
 
-    await user.click(screen.getByRole("button", { name: "Reconsider timing change for Gym plan" }));
+    await user.click(screen.getByRole("button", { name: "Review again: timing change for Gym plan" }));
     expect(state.reconsiderChange).toHaveBeenCalledWith("commitment-1", "timing", "timing-fingerprint");
     await waitFor(() => expect(screen.getByRole("heading", { name: "Changes to review" })).toHaveFocus());
 
@@ -317,7 +317,7 @@ describe("commitment change review", () => {
     const summary = reviewedButton();
     expect(reviewedButton()).toHaveAttribute("aria-expanded", "true");
     expect(summary).toHaveAttribute("aria-disabled", "true");
-    expect(screen.getByRole("button", { name: "Reconsider timing change for Gym plan" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Review again: timing change for Gym plan" })).toBeDisabled();
     await user.click(summary);
     expect(reviewedButton()).toHaveAttribute("aria-expanded", "true");
   });
@@ -353,7 +353,7 @@ describe("commitment change review", () => {
 
   it("shows empty states and disables every decision while an action is busy", () => {
     const { rerender } = render(<CommitmentChangeReview state={reviewState({ commitmentChanges: [] })} />);
-    expect(screen.getByText("No commitment changes need your review.")).toBeInTheDocument();
+    expect(screen.getByText("No recurring expense changes to review.")).toBeInTheDocument();
     expect(screen.getByText("No reviewed changes.")).toBeInTheDocument();
     expect(reviewedHeading()).toHaveAccessibleName("Reviewed changes (0)");
     expect(reviewedButton()).toHaveAttribute("aria-expanded", "false");

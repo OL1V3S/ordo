@@ -86,7 +86,7 @@ describe('statement import entry point and results hand-off', () => {
       render(<TransactionsPage />)
       expect(within(screen.getByRole('region', { name: 'Rows saved from this review' })).getByText('Coffee')).toBeInTheDocument()
 
-      await user.click(screen.getByRole('button', { name: 'View in Activity' }))
+      await user.click(screen.getByRole('button', { name: 'View in Transactions' }))
 
       expect(dismissConfirmation).toHaveBeenCalledOnce()
       await waitFor(() => expect(document.getElementById('activity-timeline-heading')).toHaveFocus())
@@ -99,9 +99,9 @@ describe('statement import entry point and results hand-off', () => {
       render(<TransactionsPage />)
       expect(document.getElementById('activity-timeline-heading')).toBeNull()
 
-      await user.click(screen.getByRole('button', { name: 'View in Activity' }))
+      await user.click(screen.getByRole('button', { name: 'View in Transactions' }))
 
-      await waitFor(() => expect(screen.getByRole('heading', { level: 1, name: 'Activity' })).toHaveFocus())
+      await waitFor(() => expect(screen.getByRole('heading', { level: 1, name: 'Transactions' })).toHaveFocus())
       clearSession(); sessionStorage.clear()
     })
 

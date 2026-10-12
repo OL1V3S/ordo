@@ -265,7 +265,7 @@ source and membership relationship. The response excludes raw descriptions,
 authoritative owner IDs, import provenance, and projections. Invalid calendar
 filters return privacy-safe `400` ProblemDetails.
 
-The primary labels are Recorded cash in, Spent, and Net recorded cash flow.
+The primary UI labels are Deposits, Spent, and Deposits minus spending (Spanish: Depósitos, Gastado, and Depósitos menos gastos), shown under a heading stating that these are the deposits and spending the user recorded; the cash-in breakdown is labeled Confirmed paychecks and Other deposits (Spanish: Pagos de nómina confirmados and Otros depósitos). These labels display the Recorded cash in, Spent, Net recorded cash flow, Confirmed paychecks, and Other cash in quantities defined above, whose names remain the domain terms.
 Coverage, record counts, and the precise paycheck-subset meaning belong in
 secondary disclosure. Zero recorded sums mean no cash in/spending recorded;
 neither zero nor positive sums prove complete account activity. Net flow is not

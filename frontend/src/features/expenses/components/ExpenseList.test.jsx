@@ -26,7 +26,7 @@ describe("ExpenseList (read-only table)", () => {
     const { rerender } = render(<ExpenseList expenses={[{ ...expense, amount: "9999999999999999.99" }]} />);
     expect(screen.getByText("9,999,999,999,999,999.99")).toBeVisible();
     rerender(<ExpenseList expenses={[{ ...expense, amount: Number("9999999999999999") }]} />);
-    expect(screen.getByText("Amount needs review")).toBeVisible();
+    expect(screen.getByText("Exact amount unavailable")).toBeVisible();
   });
 
   it("renders every row in the order received (newest first from the backend)", () => {
@@ -42,9 +42,9 @@ describe("ExpenseList (read-only table)", () => {
     const rowActions = { getState: vi.fn(() => ({ canEdit: true, canDelete: true })), onEdit: vi.fn(), onDelete: vi.fn() };
     render(<ExpenseList expenses={[expense]} rowActions={rowActions} />);
     expect(screen.getByRole("columnheader", { name: "Actions" })).toBeVisible();
-    const trigger = screen.getByRole("button", { name: "Actions for expense Coffee from 08/14/2026, record 7" });
+    const trigger = screen.getByRole("button", { name: "Actions for expense Coffee, 08/14/2026 (no. 7)" });
     await user.click(trigger);
-    await user.click(screen.getByRole("button", { name: "Edit expense Coffee from 08/14/2026, record 7" }));
+    await user.click(screen.getByRole("button", { name: "Edit expense Coffee, 08/14/2026 (no. 7)" }));
     expect(rowActions.onEdit).toHaveBeenCalledWith({ kind: "expense", recordId: 7 }, trigger);
   });
 });

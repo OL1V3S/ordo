@@ -12,7 +12,7 @@ const model = {
 
 function renderForm(props = {}) {
   const onSubmit = vi.fn();
-  render(<CommitmentForm model={model} fingerprint="candidate-1" submitLabel="Confirmar compromiso" busy={false}
+  render(<CommitmentForm model={model} fingerprint="candidate-1" submitLabel="Confirmar gasto recurrente" busy={false}
     onSubmit={onSubmit} onCancel={vi.fn()} {...props} />);
   return onSubmit;
 }
@@ -24,7 +24,7 @@ describe("commitment form in Spanish", () => {
   it("labels every field and option in Spanish", () => {
     renderForm();
 
-    for (const label of ["Nombre", "Categoría", "Frecuencia", "Fecha mensual", "Día previsto", "Días antes", "Días después", "Tipo de monto", "Monto previsto"]) {
+    for (const label of ["Nombre", "Categoría", "Frecuencia", "Fecha mensual", "Día esperado", "Días antes", "Días después", "Tipo de monto", "Monto esperado"]) {
       expect(screen.getByLabelText(label)).toBeInTheDocument();
     }
     expect(screen.getByRole("option", { name: "Semanal" })).toHaveValue("weekly");
@@ -34,9 +34,9 @@ describe("commitment form in Spanish", () => {
     expect(screen.getByRole("option", { name: "Fin de mes" })).toHaveValue("monthend");
     expect(screen.getByRole("option", { name: "Monto fijo" })).toHaveValue("fixed");
     expect(screen.getByRole("option", { name: "Rango de montos" })).toHaveValue("range");
-    expect(screen.getByRole("button", { name: "Confirmar compromiso" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Confirmar gasto recurrente" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Cancelar" })).toBeEnabled();
-    expect(screen.queryByLabelText("Cadence")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("How often")).not.toBeInTheDocument();
   });
 
   it("keeps canonical request values when Spanish labels are selected", async () => {
@@ -46,11 +46,11 @@ describe("commitment form in Spanish", () => {
     await user.selectOptions(screen.getByLabelText("Frecuencia"), "weekly");
     expect(screen.getByRole("option", { name: "Lunes" })).toHaveValue("monday");
     expect(screen.getByRole("option", { name: "Sábado" })).toHaveValue("saturday");
-    await user.selectOptions(screen.getByLabelText("Día de la semana previsto"), "friday");
+    await user.selectOptions(screen.getByLabelText("Día de la semana esperado"), "friday");
     await user.selectOptions(screen.getByLabelText("Tipo de monto"), "range");
     expect(screen.getByLabelText("Monto mínimo")).toBeInTheDocument();
     expect(screen.getByLabelText("Monto máximo")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Confirmar compromiso" }));
+    await user.click(screen.getByRole("button", { name: "Confirmar gasto recurrente" }));
 
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
       fingerprint: "candidate-1", cadence: "weekly", timingKind: "weekday", expectedDayOfWeek: "friday", amountMode: "range",

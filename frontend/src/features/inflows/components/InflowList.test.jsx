@@ -10,14 +10,14 @@ const second = { id: 8, description: "Client Deposit", amount: 1250.5, date: "20
 describe("InflowList (read-only table)", () => {
   it("shows the true empty text", () => {
     render(<InflowList inflows={[]} />);
-    expect(screen.getByText("No cash in recorded yet.")).toBeInTheDocument();
+    expect(screen.getByText("No deposits yet.")).toBeInTheDocument();
   });
 
   it("renders one responsive table with exact descriptions, formatted values and no actions", () => {
     render(<InflowList inflows={[first, second]} />);
-    const region = screen.getByRole("region", { name: "Cash in table" });
+    const region = screen.getByRole("region", { name: "Deposits table" });
     expect(within(region).getAllByRole("table")).toHaveLength(1);
-    expect(within(region).getByText("Cash in", { selector: "caption" })).toBeInTheDocument();
+    expect(within(region).getByText("Deposits", { selector: "caption" })).toBeInTheDocument();
     expect(within(region).getAllByText("$1,250.50")).toHaveLength(2);
     expect(within(region).queryByRole("columnheader", { name: "Actions" })).toBeNull();
     expect(within(region).queryAllByRole("button")).toHaveLength(0);
@@ -28,10 +28,10 @@ describe("InflowList (read-only table)", () => {
     const user = userEvent.setup();
     const rowActions = { getState: () => ({ canEdit: true, canDelete: true }), onEdit: vi.fn(), onDelete: vi.fn() };
     render(<InflowList inflows={[first, second]} rowActions={rowActions} />);
-    const seven = screen.getByRole("button", { name: /^Actions for cash in Client Deposit .* record 7$/ });
-    expect(screen.getByRole("button", { name: /^Actions for cash in Client Deposit .* record 8$/ })).toBeVisible();
+    const seven = screen.getByRole("button", { name: /^Actions for deposit Client Deposit, .* \(no\. 7\)$/ });
+    expect(screen.getByRole("button", { name: /^Actions for deposit Client Deposit, .* \(no\. 8\)$/ })).toBeVisible();
     await user.click(seven);
-    await user.click(screen.getByRole("button", { name: /^Delete cash in Client Deposit .* record 7$/ }));
+    await user.click(screen.getByRole("button", { name: /^Delete deposit Client Deposit, .* \(no\. 7\)$/ }));
     expect(rowActions.onDelete).toHaveBeenCalledWith({ kind: "account_inflow", recordId: 7 }, seven);
     expect(seven).toHaveFocus();
   });

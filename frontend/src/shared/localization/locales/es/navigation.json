@@ -5,19 +5,19 @@
   "workspace": "Espacio de trabajo",
   "destinations": {
     "home": { "label": "Inicio" },
-    "activity": { "label": "Actividad" },
+    "activity": { "label": "Movimientos" },
     "budgets": {
       "label": "Presupuestos",
       "description": "Establece y revisa los límites mensuales por categoría."
     },
-    "insights": { "label": "Análisis" },
+    "insights": { "label": "Reportes" },
     "commitments": {
-      "label": "Compromisos",
-      "description": "Revisa los gastos recurrentes y administra los compromisos guardados."
+      "label": "Gastos recurrentes",
+      "description": "Gastos que esperas que se repitan, como servicios y suscripciones."
     },
     "paychecks": {
-      "label": "Pagos de nómina",
-      "description": "Revisa los depósitos y administra las expectativas de nómina guardadas."
+      "label": "Nómina",
+      "description": "Tus calendarios de nómina y los depósitos que parecen de nómina."
     },
     "investing": {
       "label": "Inversiones",
@@ -32,7 +32,7 @@
   },
   "hubs": {
     "plan": {
-      "ariaLabel": "Herramientas de planificación"
+      "ariaLabel": "Presupuestos, gastos recurrentes y nómina"
     },
     "more": {
       "title": "Más",

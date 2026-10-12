@@ -3,7 +3,7 @@ import { formatMoneyCents } from "../../../shared/localization/format";
 export const MAX_EXPENSE_CENTS = 999999999999999999n;
 export const UNSAFE_NUMERIC_DOLLARS = 2 ** 46;
 
-export const AMOUNT_NEEDS_REVIEW = "Amount needs review";
+export const AMOUNT_NEEDS_REVIEW = "Exact amount unavailable";
 
 const UNSIGNED_DECIMAL = /^(?:\d+(?:\.\d{1,2})?|\.\d{1,2})$/;
 
@@ -46,15 +46,17 @@ export function formatCents(cents, locale = "en", options) {
 }
 
 // `currency: false` omits the currency token (for columns whose header names the unit).
-export function formatExactMoney(value, { currency, ...parseOptions } = {}, locale = "en") {
+// `unavailableLabel` is the localized fallback for amounts that cannot be read exactly; it
+// defaults to the English constant and is never passed to the parser.
+export function formatExactMoney(value, { currency, unavailableLabel, ...parseOptions } = {}, locale = "en") {
   const parsed = parseExactMoney(value, parseOptions);
-  return parsed ? formatCents(parsed.cents, locale, { currency }) : AMOUNT_NEEDS_REVIEW;
+  return parsed ? formatCents(parsed.cents, locale, { currency }) : (unavailableLabel ?? AMOUNT_NEEDS_REVIEW);
 }
 
-export function formatSignedMoney(value, locale = "en") {
+export function formatSignedMoney(value, locale = "en", unavailableLabel = AMOUNT_NEEDS_REVIEW) {
   const text = String(value ?? "").trim();
   const match = /^(-)?(\d+)\.(\d{2})$/.exec(text);
-  if (!match) return AMOUNT_NEEDS_REVIEW;
+  if (!match) return unavailableLabel;
   const cents = BigInt(match[2]) * 100n + BigInt(match[3]);
   return formatCents(match[1] ? -cents : cents, locale);
 }

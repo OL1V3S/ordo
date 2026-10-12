@@ -31,16 +31,16 @@ describe("commitment state in Spanish", () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     await act(() => result.current.confirmCandidate({ fingerprint: "candidate-1", name: "Rent" }));
-    expect(result.current.notice).toBe("Compromiso confirmado.");
+    expect(result.current.notice).toBe("Gasto recurrente confirmado.");
     await act(() => result.current.dismissCandidate("candidate-1"));
-    expect(result.current.notice).toBe("Propuesta descartada. Puedes reconsiderarla más abajo.");
+    expect(result.current.notice).toBe("Propuesta descartada. Puedes volver a revisarla más abajo.");
     await act(() => result.current.keepChange("commitment-1", "missing", "missing-fingerprint"));
-    expect(result.current.notice).toBe("El compromiso se mantiene activo.");
+    expect(result.current.notice).toBe("El gasto recurrente se mantiene activo.");
     await act(() => result.current.keepChange("commitment-1", "amount", "amount-fingerprint"));
-    expect(result.current.notice).toBe("Se mantiene la previsión actual.");
+    expect(result.current.notice).toBe("Se mantiene lo guardado.");
 
     await act(() => i18n.changeLanguage("en"));
-    expect(result.current.notice).toBe("Current expectation kept.");
+    expect(result.current.notice).toBe("Saved details kept.");
   });
 
   it("maps stable codes to Spanish messages and unknown codes to a readable fallback", async () => {

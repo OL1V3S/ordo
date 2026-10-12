@@ -37,7 +37,7 @@ describe('existing authentication flows', () => {
     authApi.login.mockResolvedValue({ data: { token: 'jwt-value', email: 'person@example.com' } })
     renderAt(<AuthPage onLogin={onLogin} />)
 
-    expect(screen.getByRole('heading', { name: 'Log in', level: 1 })).toHaveFocus()
+    expect(screen.getByRole('heading', { name: 'Sign in', level: 1 })).toHaveFocus()
     expect(screen.getByText('ordo')).not.toHaveRole('heading')
     expect(screen.getByText('Email', { selector: 'label' })).toBeVisible()
     expect(screen.getByText('Password', { selector: 'label' })).toBeVisible()
@@ -45,7 +45,7 @@ describe('existing authentication flows', () => {
     expect(screen.getByLabelText('Password')).toBe(screen.getByPlaceholderText('Password'))
     await user.type(screen.getByPlaceholderText('Email'), 'person@example.com')
     await user.type(screen.getByPlaceholderText('Password'), 'Secret1!')
-    await user.click(screen.getByRole('button', { name: 'Log In' }))
+    await user.click(screen.getByRole('button', { name: 'Sign in' }))
 
     await waitFor(() => expect(onLogin).toHaveBeenCalledOnce())
     expect(localStorage.getItem('token')).toBe('jwt-value')
@@ -59,7 +59,7 @@ describe('existing authentication flows', () => {
     renderAt(<AuthPage />)
     await user.type(screen.getByLabelText('Email'), 'person@example.invalid')
     await user.type(screen.getByLabelText('Password'), 'Synthetic1!')
-    await user.click(screen.getByRole('button', { name: 'Log In' }))
+    await user.click(screen.getByRole('button', { name: 'Sign in' }))
     await waitFor(() => expect(localStorage.getItem('token')).toBe('new-synthetic-session'))
     expect(localStorage.getItem('email')).toBe('person@example.invalid')
     expect(alert).not.toHaveBeenCalled()
@@ -75,7 +75,7 @@ describe('existing authentication flows', () => {
     renderAt(<AuthPage onLogin={onLogin} />)
     await user.type(screen.getByLabelText('Email'), 'person@example.invalid')
     await user.type(screen.getByLabelText('Password'), 'Synthetic1!')
-    await user.click(screen.getByRole('button', { name: 'Log In' }))
+    await user.click(screen.getByRole('button', { name: 'Sign in' }))
     const error = await screen.findByRole('alert')
     expect(error).toHaveTextContent('Invalid email or password')
     expect(error).toHaveFocus()
@@ -94,9 +94,9 @@ describe('existing authentication flows', () => {
     renderAt(<AuthPage onLogin={vi.fn()} />)
     await user.type(screen.getByLabelText('Email'), 'person@example.invalid')
     await user.type(screen.getByLabelText('Password'), 'Synthetic1!')
-    await user.click(screen.getByRole('button', { name: 'Log In' }))
+    await user.click(screen.getByRole('button', { name: 'Sign in' }))
     const error = await screen.findByRole('alert')
-    expect(error).toHaveTextContent('Unable to log in right now. Please try again.')
+    expect(error).toHaveTextContent('Unable to sign in right now. Please try again.')
     expect(error).not.toHaveTextContent('invalid email or password')
     log.mockRestore()
   })
@@ -115,14 +115,14 @@ describe('existing authentication flows', () => {
     vi.spyOn(console, 'log').mockImplementation(() => {})
     renderAt(<AuthPage onLogin={vi.fn()} />)
 
-    await user.click(screen.getByRole('button', { name: 'Need an account? Register' }))
+    await user.click(screen.getByRole('button', { name: 'Need an account? Create one' }))
     expect(screen.getByRole('heading', { name: 'Create account', level: 1 })).toHaveFocus()
     expect(screen.getByText('Confirm password', { selector: 'label' })).toBeVisible()
     expect(screen.getByLabelText('Confirm password')).toBe(screen.getByPlaceholderText('Confirm Password'))
     await user.type(screen.getByPlaceholderText('Email'), 'person@example.com')
     await user.type(screen.getByPlaceholderText('Password'), 'Secret1!')
     await user.type(screen.getByPlaceholderText('Confirm Password'), 'Secret1!')
-    await user.click(screen.getByRole('button', { name: 'Register' }))
+    await user.click(screen.getByRole('button', { name: 'Create account' }))
 
     expect(await screen.findByRole('heading', { name: 'Check your email', level: 1 })).toBeInTheDocument()
     expect(screen.getByRole('status')).toHaveTextContent("Your account was created, but we couldn't send the confirmation email.")
@@ -134,11 +134,11 @@ describe('existing authentication flows', () => {
     const user = userEvent.setup()
     authApi.register.mockResolvedValue({ data: {} })
     renderAt(<AuthPage onLogin={vi.fn()} />)
-    await user.click(screen.getByRole('button', { name: 'Need an account? Register' }))
+    await user.click(screen.getByRole('button', { name: 'Need an account? Create one' }))
     await user.type(screen.getByLabelText('Email'), "a+b&c'd@example.com")
     await user.type(screen.getByLabelText('Password'), 'Secret1!')
     await user.type(screen.getByLabelText('Confirm password'), 'Secret1!')
-    await user.click(screen.getByRole('button', { name: 'Register' }))
+    await user.click(screen.getByRole('button', { name: 'Create account' }))
     expect(await screen.findByText("a+b&c'd@example.com", { selector: 'strong' })).toBeVisible()
     expect(screen.getByRole('status')).toHaveTextContent("A confirmation link was sent to a+b&c'd@example.com.")
   })
@@ -153,7 +153,7 @@ describe('existing authentication flows', () => {
       token: 'a+b_c',
     }))
     expect(await screen.findByRole('heading', { name: 'Email confirmed', level: 1 })).toHaveFocus()
-    expect(screen.getByRole('status')).toHaveTextContent('You can now log in.')
+    expect(screen.getByRole('status')).toHaveTextContent('You can now sign in.')
   })
 
   it('does not call confirmation without both required query parameters', async () => {
@@ -217,7 +217,7 @@ describe('existing authentication flows', () => {
     const user = userEvent.setup()
     renderAt(<AuthPage onLogin={vi.fn()} />)
 
-    await user.click(screen.getByRole('button', { name: 'Need an account? Register' }))
+    await user.click(screen.getByRole('button', { name: 'Need an account? Create one' }))
 
     const password = screen.getByLabelText('Password')
     expect(screen.getByText('Password must include:')).toBeVisible()
@@ -231,11 +231,11 @@ describe('existing authentication flows', () => {
     const alert = vi.spyOn(window, 'alert').mockImplementation(() => {})
     renderAt(<AuthPage onLogin={vi.fn()} />)
 
-    await user.click(screen.getByRole('button', { name: 'Need an account? Register' }))
+    await user.click(screen.getByRole('button', { name: 'Need an account? Create one' }))
     await user.type(screen.getByLabelText('Email'), 'person@example.com')
     await user.type(screen.getByLabelText('Password'), 'Secret1!')
     await user.type(screen.getByLabelText('Confirm password'), 'Different1!')
-    const registerButton = screen.getByRole('button', { name: 'Register' })
+    const registerButton = screen.getByRole('button', { name: 'Create account' })
     await user.click(registerButton)
 
     const error = await screen.findByRole('alert')
@@ -261,11 +261,11 @@ describe('existing authentication flows', () => {
       ] },
     })
     renderAt(<AuthPage onLogin={vi.fn()} />)
-    await user.click(screen.getByRole('button', { name: 'Need an account? Register' }))
+    await user.click(screen.getByRole('button', { name: 'Need an account? Create one' }))
     await user.type(screen.getByLabelText('Email'), 'person@example.com')
     await user.type(screen.getByLabelText('Password'), 'Secret1!')
     await user.type(screen.getByLabelText('Confirm password'), 'Secret1!')
-    await user.click(screen.getByRole('button', { name: 'Register' }))
+    await user.click(screen.getByRole('button', { name: 'Create account' }))
 
     const error = await screen.findByRole('alert')
     expect(error).toHaveClass('status-message', 'status-message--danger')
@@ -299,13 +299,13 @@ describe('existing authentication flows', () => {
     expect(email).toBeRequired()
     expect(password).toBeRequired()
 
-    await user.click(screen.getByRole('button', { name: 'Log In' }))
+    await user.click(screen.getByRole('button', { name: 'Sign in' }))
     expect(authApi.login).not.toHaveBeenCalled()
 
     await user.type(email, 'not-an-email')
     await user.type(password, 'Secret1!')
     expect(email).toBeInvalid()
-    await user.click(screen.getByRole('button', { name: 'Log In' }))
+    await user.click(screen.getByRole('button', { name: 'Sign in' }))
     expect(authApi.login).not.toHaveBeenCalled()
   })
 
@@ -315,11 +315,11 @@ describe('existing authentication flows', () => {
     authApi.register.mockResolvedValue({ data: {} })
     renderAt(<AuthPage onLogin={onLogin} />)
 
-    await user.click(screen.getByRole('button', { name: 'Need an account? Register' }))
+    await user.click(screen.getByRole('button', { name: 'Need an account? Create one' }))
     await user.type(screen.getByLabelText('Email'), 'person@example.com')
     await user.type(screen.getByLabelText('Password'), 'Secret1!')
     await user.type(screen.getByLabelText('Confirm password'), 'Secret1!')
-    await user.click(screen.getByRole('button', { name: 'Register' }))
+    await user.click(screen.getByRole('button', { name: 'Create account' }))
 
     await waitFor(() => expect(authApi.register).toHaveBeenCalledWith({
       email: 'person@example.com',
@@ -363,7 +363,7 @@ describe('existing authentication flows', () => {
     await user.click(screen.getByRole('button', { name: 'Reset Password' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Error resetting password.')
-    expect(screen.getByRole('button', { name: 'Back to login' })).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Back to sign in' })).toBeVisible()
   })
 })
 
@@ -392,20 +392,20 @@ describe('authentication pages in Spanish', () => {
     expect(screen.getByLabelText('Contraseña')).toBe(screen.getByPlaceholderText('Contraseña'))
     expect(screen.getByRole('button', { name: 'Mostrar contraseña' })).toBeVisible()
     expect(screen.getByRole('button', { name: '¿Olvidaste tu contraseña?' })).toBeVisible()
-    await user.click(screen.getByRole('button', { name: '¿Necesitas una cuenta? Regístrate' }))
+    await user.click(screen.getByRole('button', { name: '¿Necesitas una cuenta? Crea una' }))
     expect(screen.getByRole('heading', { name: 'Crear cuenta', level: 1 })).toHaveFocus()
     expect(screen.getByLabelText('Contraseña')).toHaveAccessibleDescription(/Al menos 6 caracteres/)
     expect(screen.getByRole('button', { name: 'Mostrar confirmación de contraseña' })).toBeVisible()
-    expect(screen.getByRole('button', { name: 'Registrarse' })).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Crear cuenta' })).toBeVisible()
   })
 
   it('shows the password mismatch in Spanish', async () => {
     const user = userEvent.setup()
     renderAt(<AuthPage onLogin={vi.fn()} />)
-    await user.click(screen.getByRole('button', { name: '¿Necesitas una cuenta? Regístrate' }))
+    await user.click(screen.getByRole('button', { name: '¿Necesitas una cuenta? Crea una' }))
     await fillLogin(user)
     await user.type(screen.getByLabelText('Confirmar contraseña'), 'Different1!')
-    await user.click(screen.getByRole('button', { name: 'Registrarse' }))
+    await user.click(screen.getByRole('button', { name: 'Crear cuenta' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('Las contraseñas no coinciden.')
   })
 
@@ -434,10 +434,10 @@ describe('authentication pages in Spanish', () => {
       ] },
     })
     renderAt(<AuthPage onLogin={vi.fn()} />)
-    await user.click(screen.getByRole('button', { name: '¿Necesitas una cuenta? Regístrate' }))
+    await user.click(screen.getByRole('button', { name: '¿Necesitas una cuenta? Crea una' }))
     await fillLogin(user)
     await user.type(screen.getByLabelText('Confirmar contraseña'), 'Secret1!')
-    await user.click(screen.getByRole('button', { name: 'Registrarse' }))
+    await user.click(screen.getByRole('button', { name: 'Crear cuenta' }))
     const error = await screen.findByRole('alert')
     expect(error).toHaveTextContent("Las contraseñas deben tener al menos un dígito ('0'-'9').")
     expect(error).toHaveTextContent("El correo electrónico 'person@example.com' ya está en uso.")
@@ -461,10 +461,10 @@ describe('authentication pages in Spanish', () => {
     authApi.register.mockRejectedValue({ response: { status: 503, data: { code: 'confirmation_email_delivery_failed', message: 'English from server' } } })
     authApi.resendConfirmation.mockRejectedValue({ response: { status: 429 } })
     renderAt(<AuthPage onLogin={vi.fn()} />)
-    await user.click(screen.getByRole('button', { name: '¿Necesitas una cuenta? Regístrate' }))
+    await user.click(screen.getByRole('button', { name: '¿Necesitas una cuenta? Crea una' }))
     await fillLogin(user)
     await user.type(screen.getByLabelText('Confirmar contraseña'), 'Secret1!')
-    await user.click(screen.getByRole('button', { name: 'Registrarse' }))
+    await user.click(screen.getByRole('button', { name: 'Crear cuenta' }))
     expect(await screen.findByRole('heading', { name: 'Revisa tu correo electrónico', level: 1 })).toBeVisible()
     expect(screen.getByRole('status')).toHaveTextContent('Tu cuenta se creó, pero no pudimos enviar el correo de confirmación.')
     expect(screen.getByText('person@example.com', { selector: 'strong' })).toBeVisible()
@@ -511,7 +511,7 @@ describe('authentication pages in Spanish', () => {
     select.focus()
     await user.selectOptions(select, 'en')
     expect(select).toHaveFocus()
-    expect(screen.getByRole('heading', { name: 'Log in', level: 1 })).not.toHaveFocus()
+    expect(screen.getByRole('heading', { name: 'Sign in', level: 1 })).not.toHaveFocus()
     expect(screen.getByRole('alert')).toHaveTextContent('Invalid email or password')
     expect(screen.getByRole('alert')).not.toHaveFocus()
     expect(document.documentElement.lang).toBe('en')

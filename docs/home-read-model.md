@@ -83,13 +83,13 @@ Only existing assessments with a non-null fingerprint and `decisionState` of
 outlier, possible-change, matching-unavailable, and other non-actionable
 assessments are omitted. Home returns the complete commitment set. Its compact
 UI combines budget and commitment items and shows at most two rows; the existing
-Commitments link and “See all” review count remain available when commitment
+Recurring expenses link and “See all” review count remain available when commitment
 groups need review.
 
 The typed commitment Home item intentionally omits proposed values, fingerprints, raw
 evidence, observations, category, algorithm version, and owner identifiers.
 The backend supplies structured language-neutral dimension/state codes, not
-localized prose. Commitment items link to the existing Commitments review
+localized prose. Commitment items link to the existing Recurring expenses review
 workflow; budget items link to `/budgets`. Home does not accept or dismiss
 commitment decisions.
 

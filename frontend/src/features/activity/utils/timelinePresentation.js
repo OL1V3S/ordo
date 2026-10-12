@@ -63,7 +63,7 @@ export function formatTimelineDate(date, locale = "en") {
 
 // Returns a signed display amount for a canonical positive amount, or null when the stored
 // value is zero, negative, or otherwise not a positive two-decimal amount. Callers show
-// "Amount needs review" and the stored value unaltered in that case; nothing is repaired.
+// "Exact amount unavailable" and the stored value unaltered in that case; nothing is repaired.
 export function formatTimelineAmount(value, kind, locale = "en") {
   if (typeof value !== "string" || !CANONICAL_POSITIVE_AMOUNT.test(value) || !KINDS.has(kind)) return null;
   const parsed = parseExactMoney(value);

@@ -27,13 +27,14 @@ function timingSummary(model, t) {
   return t("timing.summary.dayOfMonth", { day: model.expectedDay, ...window });
 }
 
-function amountSummary(model, locale) {
+function amountSummary(model, locale, t) {
+  const unavailable = t("format.amountUnavailable");
   if (model.amountMode) {
-    if (model.amountMode === "fixed") return formatMoney(model.expectedAmount, locale);
-    return `${formatMoney(model.expectedMinimumAmount, locale)}–${formatMoney(model.expectedMaximumAmount, locale)}`;
+    if (model.amountMode === "fixed") return formatMoney(model.expectedAmount, locale, unavailable);
+    return `${formatMoney(model.expectedMinimumAmount, locale, unavailable)}–${formatMoney(model.expectedMaximumAmount, locale, unavailable)}`;
   }
-  if (model.observedAmountMode === "fixed") return formatDerivedMoney(model.observedMedianAmount, locale);
-  return `${formatDerivedMoney(model.observedMinimumAmount, locale)}–${formatDerivedMoney(model.observedMaximumAmount, locale)}`;
+  if (model.observedAmountMode === "fixed") return formatDerivedMoney(model.observedMedianAmount, locale, unavailable);
+  return `${formatDerivedMoney(model.observedMinimumAmount, locale, unavailable)}–${formatDerivedMoney(model.observedMaximumAmount, locale, unavailable)}`;
 }
 
 function CandidateRow({ candidate, dismissed, state, task, disabled, onOpen, onCancel, onDraftChange, onSubmit, onDecision }) {
@@ -57,7 +58,7 @@ function CandidateRow({ candidate, dismissed, state, task, disabled, onOpen, onC
         <span>{displayText(candidate.category)} · {cadenceLabel(candidate.cadence, t)}</span>
         <span>{t(candidate.observedAmountMode === "fixed" ? "candidates.basedOnFixed" : "candidates.basedOnRange", { count: candidate.occurrenceCount })}</span>
       </>}
-      amount={<><span className="commitment-row__caption">{candidate.observedAmountMode === "fixed" ? t("candidates.observedAmount") : t("candidates.observedAmountRange")}</span><strong className="commitment-row__amount">{amountSummary(candidate, locale)}</strong></>}
+      amount={<><span className="commitment-row__caption">{candidate.observedAmountMode === "fixed" ? t("candidates.observedAmount") : t("candidates.observedAmountRange")}</span><strong className="commitment-row__amount">{amountSummary(candidate, locale, t)}</strong></>}
       actions={actions}>
       <details className="commitment-details">
         <summary aria-label={t("saved.detailsLabel", { name })}>{t("saved.details")}</summary>
@@ -65,7 +66,7 @@ function CandidateRow({ candidate, dismissed, state, task, disabled, onOpen, onC
           <div><dt>{t("candidates.evidence")}</dt><dd>{t("candidates.evidenceSummary", { count: candidate.occurrenceCount, rule: evidenceRuleLabel(candidate.evidenceRule, t) })}</dd></div>
           <div><dt>{t("candidates.coveredPeriod")}</dt><dd>{formatDate(candidate.coveredFrom, t, locale)}–{formatDate(candidate.coveredTo, t, locale)}</dd></div>
           <div><dt>{t("candidates.observedTiming")}</dt><dd>{timingSummary(candidate, t)}</dd></div>
-          <div><dt>{t("candidates.observedAmount")}</dt><dd>{candidate.observedAmountMode === "fixed" ? t("candidates.identical") : t("candidates.median", { amount: formatDerivedMoney(candidate.observedMedianAmount, locale) })}</dd></div>
+          <div><dt>{t("candidates.observedAmount")}</dt><dd>{candidate.observedAmountMode === "fixed" ? t("candidates.identical") : t("candidates.median", { amount: formatDerivedMoney(candidate.observedMedianAmount, locale, t("format.amountUnavailable")) })}</dd></div>
           <div><dt>{t("candidates.detectionDetails")}</dt><dd>{candidate.algorithmVersion}</dd></div>
         </dl>
         <CommitmentEvidence evidence={candidate.evidence} />
@@ -101,7 +102,7 @@ function ConfirmedCommitmentRow({ commitment, state, task, disabled, onOpen, onC
         <span>{displayText(commitment.category)} · {cadenceLabel(commitment.cadence, t)}</span>
         <span>{timingSummary(commitment, t)}</span>
       </>}
-      amount={<><span className="commitment-row__caption">{t("saved.expectedAmount")}</span><strong className="commitment-row__amount">{amountSummary(commitment, locale)}</strong></>}
+      amount={<><span className="commitment-row__caption">{t("saved.expectedAmount")}</span><strong className="commitment-row__amount">{amountSummary(commitment, locale, t)}</strong></>}
       actions={actions}>
       <details className="commitment-details">
         <summary aria-label={t("saved.detailsLabel", { name })}>{t("saved.details")}</summary>

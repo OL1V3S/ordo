@@ -12,7 +12,7 @@ describe("PaycheckForm", () => {
     const model = makeCandidate();
     render(<PaycheckForm mode="confirm" model={model} onSubmit={onSubmit} onCancel={vi.fn()} />);
     expect(screen.getByLabelText("Display name")).toHaveFocus();
-    expect(screen.queryByLabelText("Cadence")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("How often")).not.toBeInTheDocument();
     expect(screen.getByText("Monthly, day 10")).toBeInTheDocument();
     expect(onSubmit).not.toHaveBeenCalled();
     await user.click(screen.getByRole("button", { name: "Confirm paycheck" }));
@@ -47,13 +47,13 @@ describe("PaycheckForm", () => {
     await user.type(screen.getByLabelText("Display name"), "  New payroll  ");
     await user.type(screen.getByLabelText("Monthly anchor day"), "10");
     await user.type(screen.getByLabelText("Fixed amount"), "100");
-    await user.selectOptions(screen.getByLabelText("Cadence"), "biweekly");
+    await user.selectOptions(screen.getByLabelText("How often"), "biweekly");
     fireEvent.change(screen.getByLabelText("Reference anchor date"), { target: { value: "2026-03-08" } });
     await user.selectOptions(screen.getByLabelText("Amount model"), "range");
     expect(screen.getByLabelText("Minimum amount")).toHaveValue("");
     await user.type(screen.getByLabelText("Minimum amount"), "100.01");
     await user.type(screen.getByLabelText("Maximum amount"), "100.02");
-    await user.click(screen.getByRole("button", { name: "Create paycheck" }));
+    await user.click(screen.getByRole("button", { name: "Create pay schedule" }));
     expect(onSubmit).toHaveBeenCalledWith({ displayName: "New payroll", windowBeforeDays: 0, windowAfterDays: 0,
       schedule: { cadence: "biweekly", referenceAnchorDate: "2026-03-08", firstMonthAnchor: null, secondMonthAnchor: null },
       amount: { mode: "range", fixedAmount: null, minimumAmount: "100.01", maximumAmount: "100.02" } });
@@ -64,11 +64,11 @@ describe("PaycheckForm", () => {
     const onSubmit = vi.fn();
     render(<PaycheckForm mode="manual" onSubmit={onSubmit} />);
     await user.type(screen.getByLabelText("Display name"), "Payroll");
-    await user.selectOptions(screen.getByLabelText("Cadence"), "semimonthly");
+    await user.selectOptions(screen.getByLabelText("How often"), "semimonthly");
     await user.type(screen.getByLabelText("First anchor day"), "1");
     await user.selectOptions(screen.getByLabelText("Second anchor"), "month_end");
     await user.type(screen.getByLabelText("Fixed amount"), "100.001");
-    await user.click(screen.getByRole("button", { name: "Create paycheck" }));
+    await user.click(screen.getByRole("button", { name: "Create pay schedule" }));
     expect(onSubmit).not.toHaveBeenCalled();
     expect(screen.getByLabelText("Second anchor")).toHaveFocus();
     expect(screen.getByLabelText("Second anchor")).toHaveAccessibleDescription(/February/);

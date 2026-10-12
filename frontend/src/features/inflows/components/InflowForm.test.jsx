@@ -27,7 +27,7 @@ describe("InflowForm", () => {
     render(<InflowForm {...props} />);
 
     expect(screen.getByLabelText("Description")).toHaveFocus();
-    expect(screen.getByRole("form", { name: "Add cash in" })).toHaveAttribute("novalidate");
+    expect(screen.getByRole("form", { name: "Add deposit" })).toHaveAttribute("novalidate");
 
     fireEvent.change(screen.getByLabelText("Description"), { target: { value: "  Mixed CASE  spacing  " } });
     expect(props.onChange).toHaveBeenLastCalledWith({
@@ -42,7 +42,7 @@ describe("InflowForm", () => {
       amount: "001.230",
       date: "2026-08-14",
     });
-    fireEvent.submit(screen.getByRole("form", { name: "Add cash in" }));
+    fireEvent.submit(screen.getByRole("form", { name: "Add deposit" }));
     expect(props.onSubmit).toHaveBeenCalledWith();
   });
 
@@ -90,11 +90,11 @@ describe("InflowForm", () => {
     expect(screen.getByLabelText("Date")).toBeDisabled();
     expect(screen.getByRole("button", { name: "Saving…" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
-    fireEvent.submit(screen.getByRole("form", { name: "Add cash in" }));
+    fireEvent.submit(screen.getByRole("form", { name: "Add deposit" }));
     expect(onSubmit).not.toHaveBeenCalled();
 
     rerender(<InflowForm {...formProps({ disabled: true, onCancel, onSubmit })} />);
-    expect(screen.getByRole("button", { name: "Add cash in" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Add deposit" })).toBeDisabled();
     expect(screen.getByLabelText("Description")).toBeEnabled();
     await user.click(screen.getByRole("button", { name: "Cancel" }));
     expect(onCancel).toHaveBeenCalledOnce();
@@ -103,9 +103,9 @@ describe("InflowForm", () => {
   it("keeps edit consequences and unsafe amount re-entry guidance visible", () => {
     render(<InflowForm {...formProps({ mode: "edit", amountNeedsReview: true, draft: { ...draft, amount: "" } })} />);
 
-    expect(screen.getByRole("form", { name: "Edit cash in" })).toBeInTheDocument();
-    expect(screen.getByText(/If this entry supports a saved paycheck/)).toBeVisible();
-    expect(screen.getByText(/Amount needs review/)).toBeVisible();
+    expect(screen.getByRole("form", { name: "Edit deposit" })).toBeInTheDocument();
+    expect(screen.getByText(/If this deposit is linked to a pay schedule/)).toBeVisible();
+    expect(screen.getByText(/Exact amount unavailable/)).toBeVisible();
     expect(screen.getByText(/Enter the exact amount again/)).toBeVisible();
     expect(screen.getByLabelText("Amount")).toHaveValue("");
   });

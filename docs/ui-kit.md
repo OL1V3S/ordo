@@ -71,7 +71,7 @@ Used by Activity: `TaskArea` (the single "Current task" area, with `autoFocus={f
 `FilterBar`, `StatusStrip` (live notice and filter status), `SectionHeader`
 (timeline heading), `ListRow`, inline `EmptyState`.
 
-Used by Home: `SectionHeader` (Needs Attention, Recent activity, Coming Up), `ListRow`
+Used by Home: `SectionHeader` (Needs your attention, Recent transactions, Upcoming paychecks), `ListRow`
 for all three lists (Coming Up rows carry their own `aria-label`), and `DisclosureButton`
 with `useForcedOpen` as the mobile-only "Add" entry (forced open and described while a
 capture form is active so the opener buttons are never hidden). The composed `Disclosure`
@@ -138,7 +138,7 @@ is not colour alone. Targets are 44px, styles are tokens only
 icons, and compact widths use `--text-xs` with no inline padding so Spanish labels fit
 at 320px without breaking mid-word. It is route-aware and owns i18n, so it is
 not a `shared/ui` kit component. Labels reuse `destinations.*.label`
-(Commitments is not renamed). The compact "back to Plan" link was removed.
+(the Recurring expenses destination uses its full label; whether that label fits at 320px is checked by the owner in a browser). The compact "back to Plan" link was removed.
 
 To add a destination, extend `PRIMARY_DESTINATIONS` in `app/navigation.js` (keep
 four to five items so the bottom bar fits at 320px in Spanish) and add its

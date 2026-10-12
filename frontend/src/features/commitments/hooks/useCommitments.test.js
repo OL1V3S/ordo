@@ -62,7 +62,7 @@ describe("commitment state", () => {
     expect(commitmentsApi.getCandidates).toHaveBeenCalledTimes(2);
     expect(commitmentsApi.getCommitments).toHaveBeenCalledTimes(2);
     expect(response).toEqual({ alreadyConfirmed: false });
-    expect(result.current.notice).toBe("Commitment confirmed.");
+    expect(result.current.notice).toBe("Recurring expense confirmed.");
   });
 
   it("maps stable problem codes without exposing arbitrary server details", async () => {

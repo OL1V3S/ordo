@@ -18,19 +18,19 @@ describe("cash-flow components in Spanish", () => {
   it("renders the summary with recorded cash in and spending kept distinct and the month names localized", () => {
     const data = cashFlowFixture("2026-08", { spentMinor: "30000", netMinor: "-15000" });
     render(<CashFlowSummary data={data} />);
-    const card = screen.getByRole("region", { name: "Entradas de dinero registradas vs. gastado" });
+    const card = screen.getByRole("region", { name: "Depósitos y gastos que registraste" });
     expect(card).toHaveTextContent("agosto de 2026");
     expect(card).toHaveTextContent("Hasta el 14 de agosto de 2026");
     expect(card).toHaveTextContent("Basado en tus transacciones registradas.");
-    expect(card).toHaveTextContent("Entradas de dinero registradasUSD 150.00");
+    expect(card).toHaveTextContent("DepósitosUSD 150.00");
     expect(card).toHaveTextContent("GastadoUSD 300.00");
-    expect(within(card).getByRole("heading", { name: "Flujo de efectivo neto registrado" })).toBeInTheDocument();
+    expect(within(card).getByRole("heading", { name: "Depósitos menos gastos" })).toBeInTheDocument();
     expect(card).toHaveTextContent("−USD 150.00");
-    expect(card).toHaveTextContent("Entradas de dinero registradas menos gastado");
-    const breakdown = screen.getByRole("list", { name: "Desglose de las entradas de dinero registradas" });
+    expect(card).toHaveTextContent("Total de depósitos menos total gastado");
+    const breakdown = screen.getByRole("list", { name: "Desglose de los depósitos" });
     expect(breakdown).toHaveTextContent("Pagos de nómina confirmados USD 120.00");
-    expect(breakdown).toHaveTextContent("Otras entradas de dinero USD 30.00");
-    expect(screen.queryByText(/Through|Recorded cash in|Spent/)).not.toBeInTheDocument();
+    expect(breakdown).toHaveTextContent("Otros depósitos USD 30.00");
+    expect(screen.queryByText(/Through|Deposits|Spent/)).not.toBeInTheDocument();
   });
 
   it("keeps the explanatory disclosure and its counts in Spanish without calling an expectation recorded", () => {
@@ -38,20 +38,20 @@ describe("cash-flow components in Spanish", () => {
     const disclosure = screen.getByText("Acerca de estas cifras").closest("details");
     expect(disclosure).not.toHaveAttribute("open");
     expect(disclosure).toHaveTextContent("no es un saldo de la cuenta, ahorros ni dinero disponible para gastar");
-    expect(disclosure).toHaveTextContent("incluidos los perfiles activos, en pausa y finalizados");
-    expect(disclosure).toHaveTextContent("recibir dinero no lo clasifica como ingreso");
-    expect(disclosure).toHaveTextContent("las previsiones de nómina, las proyecciones y las vistas previas de importación sin guardar no se suman a estas cifras");
-    expect(disclosure).toHaveTextContent("Entradas de dinero gastadas66.7%");
-    expect(disclosure).toHaveTextContent("Entradas registradas3 (vinculadas a nómina: 2, otras: 1)");
+    expect(disclosure).toHaveTextContent("incluidos los activos, en pausa y finalizados");
+    expect(disclosure).toHaveTextContent("un depósito no se cuenta como ingreso");
+    expect(disclosure).toHaveTextContent("los pagos de nómina esperados, los gastos recurrentes esperados y las vistas previas de importación sin guardar no se suman a estas cifras");
+    expect(disclosure).toHaveTextContent("Gastado como porcentaje de los depósitos66.7%");
+    expect(disclosure).toHaveTextContent("Depósitos registrados3 (vinculados a un calendario de nómina: 2, otros: 1)");
     expect(disclosure).toHaveTextContent("Gastos registrados2");
-    expect(disclosure).toHaveTextContent("Perfiles de nómina que contribuyen1");
-    expect(disclosure).toHaveTextContent("Entradas vinculadas editadas1");
+    expect(disclosure).toHaveTextContent("Calendarios de nómina con depósitos vinculados1");
+    expect(disclosure).toHaveTextContent("Depósitos vinculados editados después de vincularlos1");
     expect(disclosure).toHaveTextContent("los porcentajes redondeados no sumen 100.0%");
   });
 
   it("omits the through-date note for a past month and shows it as a Spanish month label", () => {
     render(<CashFlowSummary data={{ ...cashFlowFixture("2026-07"), throughDate: "2026-08-14" }} />);
-    const card = screen.getByRole("region", { name: "Entradas de dinero registradas vs. gastado" });
+    const card = screen.getByRole("region", { name: "Depósitos y gastos que registraste" });
     expect(card).toHaveTextContent("julio de 2026");
     expect(card).not.toHaveTextContent("Hasta el");
   });
@@ -60,9 +60,9 @@ describe("cash-flow components in Spanish", () => {
     render(<CashFlowSummary data={cashFlowFixture("2026-08", {
       cashInMinor: "0", paycheckCashInMinor: "0", otherCashInMinor: "0", spentMinor: "0", netMinor: "0",
     })} />);
-    expect(screen.getByText("No hay entradas de dinero registradas")).toBeInTheDocument();
+    expect(screen.getByText("No hay depósitos registrados")).toBeInTheDocument();
     expect(screen.getByText("No hay gastos registrados")).toBeInTheDocument();
-    expect(screen.getAllByText("No aplica — no hay entradas de dinero registradas")).toHaveLength(3);
+    expect(screen.getAllByText("No aplica: no hay depósitos registrados")).toHaveLength(3);
     expect(screen.queryByText(/not available|no disponible/i)).not.toBeInTheDocument();
   });
 
@@ -84,7 +84,7 @@ describe("cash-flow components in Spanish", () => {
       ["mar", "2026"], ["abr", "2026"], ["may", "2026"], ["jun", "2026"], ["jul", "2026"], ["ago", "2026", "Acum."],
     ]);
     expect(renderedChart.data.datasets.map(({ label }) => label))
-      .toEqual(["Pagos de nómina confirmados", "Otras entradas de dinero", "Gastado"]);
+      .toEqual(["Pagos de nómina confirmados", "Otros depósitos", "Gastado"]);
     expect(renderedChart.data.datasets.map(({ data }) => data[5])).toEqual([120, 30, 100]);
     expect(renderedChart.options.scales.y.title.text).toBe("USD");
     const callbacks = renderedChart.options.plugins.tooltip.callbacks;
@@ -92,8 +92,8 @@ describe("cash-flow components in Spanish", () => {
     expect(callbacks.title([{ dataIndex: 5 }])).toBe("agosto de 2026");
     expect(callbacks.title([])).toBe("");
     expect(callbacks.label({ dataset: renderedChart.data.datasets[1], datasetIndex: 1, dataIndex: 5 }))
-      .toBe("Otras entradas de dinero: USD\u00a030.00");
-    expect(callbacks.footer([{ dataIndex: 5 }])).toBe("Entradas de dinero registradas: USD\u00a0150.00");
+      .toBe("Otros depósitos: USD\u00a030.00");
+    expect(callbacks.footer([{ dataIndex: 5 }])).toBe("Depósitos: USD\u00a0150.00");
   });
 
   it("keeps tooltip amounts exact from the cash-flow strings in Spanish", () => {
@@ -101,22 +101,22 @@ describe("cash-flow components in Spanish", () => {
     render(<CashFlowTrendChart data={data} />);
     const callbacks = renderedChart.options.plugins.tooltip.callbacks;
     expect(callbacks.label({ dataset: renderedChart.data.datasets[1], datasetIndex: 1, dataIndex: 5 }))
-      .toBe("Otras entradas de dinero: USD\u00a09,999,999,999,999,999.99");
-    expect(callbacks.footer([{ dataIndex: 5 }])).toBe("Entradas de dinero registradas: USD\u00a09,999,999,999,999,999.99");
+      .toBe("Otros depósitos: USD\u00a09,999,999,999,999,999.99");
+    expect(callbacks.footer([{ dataIndex: 5 }])).toBe("Depósitos: USD\u00a09,999,999,999,999,999.99");
   });
 
   it("renders the chart heading, legend, month-to-date note, kicker, and accessible table in Spanish", () => {
     render(<CashFlowTrendChart data={cashFlowFixture()} />);
-    const region = screen.getByRole("region", { name: "Entradas de dinero vs. gastos a lo largo del tiempo" });
+    const region = screen.getByRole("region", { name: "Depósitos y gastos a lo largo del tiempo" });
     expect(region).toHaveTextContent("Seis meses calendario");
-    expect(within(region).getByRole("list", { name: "Leyenda del gráfico" })).toHaveTextContent("Pagos de nómina confirmadosOtras entradas de dineroGastado");
+    expect(within(region).getByRole("list", { name: "Leyenda del gráfico" })).toHaveTextContent("Pagos de nómina confirmadosOtros depósitosGastado");
     expect(screen.getByText("Acum.: acumulado del mes hasta la fecha")).toBeInTheDocument();
     const disclosure = screen.getByText("Ver datos del gráfico").closest("details");
     const table = within(disclosure).getByRole("table", { hidden: true });
     expect(within(table).getByText("Flujo de efectivo mensual registrado en dólares estadounidenses")).toBeInTheDocument();
     const rows = within(table).getAllByRole("row", { hidden: true });
-    expect(rows[0]).toHaveTextContent("MesEntradas de dinero registradasPagos de nómina confirmadosOtras entradas de dineroGastadoFlujo de efectivo neto registradoNota del período");
-    expect(rows[1]).toHaveTextContent("marzo de 2026USD 0.00USD 0.00USD 0.00USD 0.00USD 0.00No hay entradas de dinero registradas · No hay gastos registrados");
+    expect(rows[0]).toHaveTextContent("MesDepósitosPagos de nómina confirmadosOtros depósitosGastadoDepósitos menos gastosNota del período");
+    expect(rows[1]).toHaveTextContent("marzo de 2026USD 0.00USD 0.00USD 0.00USD 0.00USD 0.00No hay depósitos registrados · No hay gastos registrados");
     expect(rows[6]).toHaveTextContent("agosto de 2026USD 150.00USD 120.00USD 30.00USD 100.00+USD 50.00Hasta el 14 de agosto de 2026");
   });
 

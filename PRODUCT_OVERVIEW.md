@@ -82,7 +82,7 @@ silently treating every detected pattern as a financial fact.
   English or Spanish interface preference for this browser, then view your
   signed-in email in a compact account section. The language preference updates
   the authenticated shell, primary navigation, Account menu, Settings, and
-  the Home, Activity, Statement import, Budgets, Insights, Commitments, Paychecks,
+  the Home, Transactions, Statement import, Budgets, Reports, Recurring expenses, Paychecks,
   and unavailable Investing placeholder pages and the public account-access pages
   (a language selector is also available before sign-in). Account access
   includes registration,
@@ -90,10 +90,10 @@ silently treating every detected pattern as a financial fact.
   email. Settings currently provides email display, appearance, and language controls,
   rather than a full account-management area.
 
-Navigation has four destinations everywhere: Home, Activity, Plan, and
-Insights. They appear as a bottom bar on phones, a labelled side rail on
-tablets, and a sidebar on desktop, where Plan also lists Budgets, Commitments,
-and Paychecks. Plan opens on Budgets, and a Budgets / Commitments / Paychecks
+Navigation has four destinations everywhere: Home, Transactions, Plan, and
+Reports. They appear as a bottom bar on phones, a labelled side rail on
+tablets, and a sidebar on desktop, where Plan also lists Budgets, Recurring expenses,
+and Paychecks. Plan opens on Budgets, and a Budgets / Recurring expenses / Paychecks
 switcher at the top of each planning page moves between them; each keeps its
 own address, and on phones it replaces the back-to-Plan link. The Account menu holds Settings, the explicitly unavailable
 Investing placeholder, theme and language choices, and sign out. The older More

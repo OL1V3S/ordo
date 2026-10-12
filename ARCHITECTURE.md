@@ -26,7 +26,7 @@ frontend does not connect directly to the database.
 `frontend/src/app/` owns routing, the authenticated application shell, and
 top-level pages. Product behavior is organized under `frontend/src/features/`
 by capability, including authentication, expenses, budget limits, analytics,
-transactions, commitment review, and paychecks. The protected Commitments experience
+transactions, commitment review, and paychecks. The protected Recurring expenses (commitments) experience
 consumes the owner-scoped candidate and commitment APIs and keeps evidence
 review, confirmation, dismissal/reconsideration, expectation edits, and
 lifecycle controls inside `frontend/src/features/commitments/`. The protected
@@ -48,13 +48,13 @@ validated browser-local `en` or `es` preference drives catalog selection and
 `html.lang` without changing authentication, routes, APIs, stored financial
 values, currency, or input semantics. Localization adoption is incremental: the
 authenticated shell, navigation hubs, and Settings were localized first, and the
-Home, Activity, statement import, Budgets, Insights, Commitments, and Paychecks
+Home, Transactions, statement import, Budgets, Reports, Recurring expenses, and Paychecks
 pages and the public account-access pages have since followed, while the
 unavailable Investing placeholder page remains English until separately scoped.
 See [`docs/localization.md`](docs/localization.md) for catalog, glossary, and
 future presentation-formatting rules.
 
-The Activity page coordinates spending, cash-in, and import tasks. The
+The Transactions page (`activity` feature) coordinates spending, deposit (cash-in), and import tasks. The
 `inflows` frontend feature owns exact-decimal drafts, cash-in presentation, and
 session-scoped reads/writes over the existing `/api/inflows` contract. Imported
 and paycheck-linked inflows share this management surface; the DTO carries no
@@ -83,8 +83,8 @@ unambiguously at cent precision. Ambiguous legacy Expense or BudgetLimit values
 fail closed and cannot drive an edit, commitment amount decision, budget status,
 or Overview attention item.
 
-Below the desktop sidebar breakpoint, the shell exposes Home, Activity, Plan,
-Insights, and More. The protected `/plan` and `/more` pages group links to the
+Below the desktop sidebar breakpoint, the shell exposes Home, Transactions, Plan,
+Reports, and More. The protected `/plan` and `/more` pages group links to the
 existing feature URLs without owning feature data or changing their workflows.
 Desktop retains individual destinations. Home composes existing cash-flow and
 feature list reads with independent loading/error states and session-staleness

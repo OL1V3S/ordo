@@ -34,11 +34,12 @@
     "date": "{{month}} {{day}}, {{year}}"
   },
   "format": {
+    "amountUnavailable": "Exact amount unavailable",
     "notApplicable": "Not applicable"
   },
   "page": {
-    "title": "Insights",
-    "description": "See recorded cash in and spending, month by month.",
+    "title": "Reports",
+    "description": "See your deposits and spending, month by month.",
     "month": "Month",
     "refresh": "Refresh cash flow",
     "earlierMonth": "Earlier month",
@@ -46,45 +47,45 @@
     "currentMonth": "This month"
   },
   "cashFlow": {
-    "regionLabel": "Recorded cash flow",
-    "loading": "Loading recorded cash flow...",
+    "regionLabel": "Deposits and spending",
+    "loading": "Loading deposits and spending...",
     "retry": "Retry cash flow",
     "errors": {
-      "signIn": "Sign in to view recorded cash flow.",
-      "loadFailed": "We couldn’t load recorded cash flow. Try again."
+      "signIn": "Sign in to view deposits and spending.",
+      "loadFailed": "We couldn’t load deposits and spending. Try again."
     }
   },
   "summary": {
-    "heading": "Recorded cash in vs Spent",
+    "heading": "Deposits and spending you recorded",
     "through": "Through {{date}}",
     "basis": "Based on your recorded transactions.",
-    "cashIn": "Recorded cash in",
+    "cashIn": "Deposits",
     "spent": "Spent",
-    "noCashIn": "No cash in recorded",
+    "noCashIn": "No deposits recorded",
     "noSpending": "No spending recorded",
-    "breakdownLabel": "Recorded cash in breakdown",
+    "breakdownLabel": "Deposits breakdown",
     "confirmedPaychecks": "Confirmed paychecks",
-    "otherCashIn": "Other cash in",
-    "netHeading": "Net recorded cash flow",
-    "netNote": "Recorded cash in minus Spent",
+    "otherCashIn": "Other deposits",
+    "netHeading": "Deposits minus spending",
+    "netNote": "Total deposits minus total spent",
     "about": {
       "summary": "About these figures",
-      "coverage": "These figures reflect saved transactions and may not cover all account activity. Net recorded cash flow describes this period; it is not an account balance, savings, or money available to spend.",
-      "composition": "Confirmed paychecks are the recorded inflows linked to an owner-confirmed paycheck profile, including active, paused, and ended profiles. Other cash in is every remaining recorded inflow and can include unlinked paychecks, refunds, transfers, and reimbursements. Both parts count toward recorded cash in; receiving cash does not classify it as income.",
-      "spending": "Spent includes all recorded outflows, including purchases, transfers, debt payments, and investment funding. Refunds count as cash in without reducing their original spending category. Budgets, paycheck expectations, projections, and unsaved import previews do not add to these figures.",
-      "history": "Amounts and dates reflect the current saved records. Editing or deleting a transaction can change these historical figures. Confirming a paycheck changes the cash-in breakdown, without changing total cash in or net flow.",
-      "rounding": "Edited linked inflows retain their assignment and use their current posted date and amount. Percentages round to the nearest tenth, with halfway values rounded upward; rounded shares may not sum to 100.0%."
+      "coverage": "These figures come from the transactions you saved and may not include all account activity. Deposits minus spending describes this period; it isn’t an account balance, savings, or money available to spend.",
+      "composition": "Confirmed paychecks are deposits linked to one of your pay schedules, including active, paused, and ended ones. Other deposits are all the rest and can include unlinked paychecks, refunds, transfers, and reimbursements. Both count toward Deposits; a deposit isn’t counted as income.",
+      "spending": "Spent includes all recorded outflows, including purchases, transfers, debt payments, and investment funding. Refunds count as deposits without reducing their original spending category. Budgets, expected paychecks, expected recurring expenses, and unsaved import previews do not add to these figures.",
+      "history": "Amounts and dates reflect the current saved transactions. Editing or deleting a transaction can change these historical figures. Confirming a paycheck changes the deposits breakdown, without changing total deposits or net flow.",
+      "rounding": "Edited linked deposits retain their assignment and use their current deposit date and amount. Percentages round to the nearest tenth, with halfway values rounded upward; rounded shares may not sum to 100.0%."
     },
     "facts": {
-      "cashInSpent": "Cash in spent",
-      "confirmedShare": "Confirmed paycheck share",
-      "otherShare": "Other cash in share",
-      "notApplicable": "Not applicable — no cash in recorded",
-      "inflows": "Recorded inflows",
-      "inflowsValue": "{{total}} ({{paycheck}} paycheck-linked, {{other}} other)",
+      "cashInSpent": "Spent as a share of deposits",
+      "confirmedShare": "Confirmed paychecks share",
+      "otherShare": "Other deposits share",
+      "notApplicable": "Not applicable: no deposits recorded",
+      "inflows": "Deposits recorded",
+      "inflowsValue": "{{total}} ({{paycheck}} linked to a pay schedule, {{other}} other)",
       "expenses": "Recorded expenses",
-      "profiles": "Contributing paycheck profiles",
-      "edited": "Edited linked inflows"
+      "profiles": "Pay schedules with linked deposits",
+      "edited": "Linked deposits edited after linking"
     }
   },
   "categories": {
@@ -97,37 +98,37 @@
     "kickerSixMonths": "Six calendar months",
     "kickerFromFloor_one": "{{count}} calendar month from {{start}}",
     "kickerFromFloor_other": "{{count}} calendar months from {{start}}",
-    "heading": "Cash in vs spending over time",
+    "heading": "Deposits and spending over time",
     "legendLabel": "Chart legend",
     "monthToDateTick": "MTD",
     "monthToDateNote": "MTD: month to date",
     "tooltipValue": "{{label}}: {{amount}}",
-    "tooltipCashIn": "Recorded cash in: {{amount}}",
+    "tooltipCashIn": "Deposits: {{amount}}",
     "datasets": {
       "paychecks": "Confirmed paychecks",
-      "other": "Other cash in",
+      "other": "Other deposits",
       "spent": "Spent"
     },
     "table": {
       "summary": "View chart data",
       "caption": "Monthly recorded cash flow in US dollars",
       "month": "Month",
-      "cashIn": "Recorded cash in",
+      "cashIn": "Deposits",
       "paychecks": "Confirmed paychecks",
-      "other": "Other cash in",
+      "other": "Other deposits",
       "spent": "Spent",
-      "net": "Net recorded cash flow",
+      "net": "Deposits minus spending",
       "note": "Period note"
     }
   },
   "periodNotes": {
     "through": "Through {{date}}",
-    "noCashIn": "No cash in recorded",
+    "noCashIn": "No deposits recorded",
     "noSpending": "No spending recorded"
   },
   "spending": {
     "heading": "More spending detail",
-    "loading": "Loading spending insights...",
+    "loading": "Loading spending report...",
     "loadError": "We couldn’t load recorded expenses.",
     "retry": "Try again",
     "inexact": "Some Expense amounts could not be verified exactly. Affected spending comparisons are unavailable."
@@ -152,7 +153,7 @@
   "largest": {
     "heading": "Largest expenses",
     "kicker": "Top five",
-    "review": "Review activity",
+    "review": "Review transactions",
     "unavailable": "Exact largest-expense ranking is unavailable because an amount could not be verified.",
     "empty": "No expenses to rank for this month."
   }

@@ -133,7 +133,7 @@ describe("paycheck state", () => {
     let outcome;
     await act(async () => { outcome = await result.current.confirmCandidate(payload); });
     expect(outcome).toEqual({ ok: true, data, refreshOk: true });
-    expect(result.current.notice).toBe("Paycheck confirmed.");
+    expect(result.current.notice).toBe("Pay schedule saved.");
   });
 
   it("guards duplicate and conflicting actions immediately, including during their refresh", async () => {
@@ -176,7 +176,7 @@ describe("paycheck state", () => {
     let outcome;
     await act(async () => { outcome = await result.current.createPaycheck(payload); });
     expect(outcome).toEqual({ ok: true, data: { id: "saved" }, refreshOk: false });
-    expect(result.current.notice).toBe("Paycheck created.");
+    expect(result.current.notice).toBe("Pay schedule created.");
     expect(result.current.actionError).toBeNull();
     expect(result.current.loadError).toContain("could not be loaded");
     expect(result.current.uncertainCreate).toBe(false);
@@ -234,7 +234,7 @@ describe("paycheck state", () => {
     await act(async () => { outcome = await result.current.createPaycheck(payload); });
     expect(outcome).toEqual({ ok: false, code: "creation_uncertain", uncertain: true });
     expect(result.current.uncertainCreate).toBe(true);
-    expect(result.current.actionError).toContain("check the saved profiles");
+    expect(result.current.actionError).toContain("check the saved pay schedules");
     act(() => result.current.clearMessages());
     expect(result.current.actionError).toContain("could not confirm");
     expect(await result.current.createPaycheck(payload)).toEqual(outcome);
@@ -243,7 +243,7 @@ describe("paycheck state", () => {
     expect(result.current.uncertainCreate).toBe(true);
     await act(() => result.current.refresh());
     expect(result.current.uncertainCreate).toBe(false);
-    expect(result.current.notice).toContain("Check the saved profiles");
+    expect(result.current.notice).toContain("Check the saved pay schedules");
     expect(paychecksApi.createPaycheck).toHaveBeenCalledTimes(1);
   });
 

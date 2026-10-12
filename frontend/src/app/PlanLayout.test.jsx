@@ -16,17 +16,17 @@ describe('Plan switcher', () => {
 
   it('lists the three planning pages in order with their addresses', () => {
     renderAt('/budgets')
-    expect(screen.getByRole('navigation', { name: 'Planning tools' })).toBeInTheDocument()
+    expect(screen.getByRole('navigation', { name: 'Budgets, recurring expenses, and paychecks' })).toBeInTheDocument()
     const links = screen.getAllByRole('link')
     expect(links).toHaveLength(3)
     expect(links.map((link) => [link.textContent, link.getAttribute('href')])).toEqual([
-      ['Budgets', '/budgets'], ['Commitments', '/commitments'], ['Paychecks', '/paychecks'],
+      ['Budgets', '/budgets'], ['Recurring expenses', '/commitments'], ['Paychecks', '/paychecks'],
     ])
   })
 
   it.each([
     ['/budgets', 'Budgets'],
-    ['/commitments', 'Commitments'],
+    ['/commitments', 'Recurring expenses'],
     ['/paychecks', 'Paychecks'],
     ['/paychecks/', 'Paychecks'],
     ['/paychecks/?source=bookmark', 'Paychecks'],
@@ -44,10 +44,10 @@ describe('Plan switcher', () => {
   it('renders Spanish labels while preserving addresses', async () => {
     await i18n.changeLanguage('es')
     renderAt('/commitments')
-    expect(screen.getByRole('navigation', { name: 'Herramientas de planificación' })).toBeInTheDocument()
+    expect(screen.getByRole('navigation', { name: 'Presupuestos, gastos recurrentes y nómina' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Presupuestos' })).toHaveAttribute('href', '/budgets')
-    expect(screen.getByRole('link', { name: 'Compromisos' })).toHaveAttribute('aria-current', 'page')
-    expect(screen.getByRole('link', { name: 'Pagos de nómina' })).toHaveAttribute('href', '/paychecks')
+    expect(screen.getByRole('link', { name: 'Gastos recurrentes' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('link', { name: 'Nómina' })).toHaveAttribute('href', '/paychecks')
   })
 
   it('fetches no data', () => {

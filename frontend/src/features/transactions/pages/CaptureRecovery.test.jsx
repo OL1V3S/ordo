@@ -45,17 +45,17 @@ describe("uncertain Home write recovery in Activity", () => {
     expect(screen.getByText("An expense save could not be confirmed. Review the complete expense list below. Do not retry until you have checked it.")).toBeInTheDocument();
     expect(screen.getByText("Expense 12")).toBeVisible();
     expect(screen.getByText("Expense 1")).toBeVisible();
-    const region = screen.getByRole("region", { name: "Check the complete activity list" });
+    const region = screen.getByRole("region", { name: "Check the complete list of transactions" });
     expect(within(region).getByRole("region", { name: "Expenses table" })).toBeVisible();
     expect(within(region).queryAllByRole("button", { name: /^(Edit|Delete|Actions)/ })).toHaveLength(0);
     expect(screen.queryByRole("button", { name: /show more|Spending records/i })).not.toBeInTheDocument();
-    await waitFor(() => expect(screen.getByRole("region", { name: "Check the complete activity list" })).toHaveFocus());
+    await waitFor(() => expect(screen.getByRole("region", { name: "Check the complete list of transactions" })).toHaveFocus());
     expect(sessionStorage.length).toBe(1);
     fireEvent.click(screen.getByRole("button", { name: "I checked the complete list" }));
     expect(sessionStorage.length).toBe(0);
     expect(screen.getByText(/Ordo did not determine whether the entry was saved/)).toBeInTheDocument();
-    await waitFor(() => expect(screen.getByRole("heading", { level: 1, name: "Activity" })).toHaveFocus());
-    expect(screen.getByRole("heading", { level: 1, name: "Activity" })).toBeVisible();
+    await waitFor(() => expect(screen.getByRole("heading", { level: 1, name: "Transactions" })).toHaveFocus());
+    expect(screen.getByRole("heading", { level: 1, name: "Transactions" })).toBeVisible();
     expect(screen.queryByRole("region", { name: "Expenses table" })).toBeNull();
   });
 
@@ -65,7 +65,7 @@ describe("uncertain Home write recovery in Activity", () => {
     const view = renderPage();
     const ack = screen.getByRole("button", { name: "I checked the complete list" });
     expect(ack).toBeDisabled();
-    await waitFor(() => expect(screen.getByRole("region", { name: "Check the complete activity list" })).toHaveFocus());
+    await waitFor(() => expect(screen.getByRole("region", { name: "Check the complete list of transactions" })).toHaveFocus());
 
     const refresh = vi.fn();
     useInflows.mockReturnValue({ inflows: [], loading: false, error: new Error("unavailable"), refresh, createInflow: vi.fn(), updateInflow: vi.fn(), deleteInflow: vi.fn() });
@@ -77,18 +77,18 @@ describe("uncertain Home write recovery in Activity", () => {
 
     useInflows.mockReturnValue({ inflows, loading: false, error: null, refresh, createInflow: vi.fn(), updateInflow: vi.fn(), deleteInflow: vi.fn() });
     view.rerender(<I18nextProvider i18n={i18n}><TransactionsPage /></I18nextProvider>);
-    const table = screen.getByRole("region", { name: "Cash in table" });
+    const table = screen.getByRole("region", { name: "Deposits table" });
     expect(within(table).getByText("Cash record 1")).toBeInTheDocument();
     expect(within(table).getByText("Cash record 12")).toBeVisible();
     expect(table).toBeVisible();
     expect(within(table).queryAllByRole("button")).toHaveLength(0);
-    expect(screen.queryByLabelText("Search cash in")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Search deposits")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "I checked the complete list" })).toBeEnabled();
     fireEvent.click(screen.getByRole("button", { name: "I checked the complete list" }));
     expect(sessionStorage.length).toBe(0);
-    await waitFor(() => expect(screen.getByRole("heading", { level: 1, name: "Activity" })).toHaveFocus());
-    expect(screen.getByRole("heading", { level: 1, name: "Activity" })).toBeVisible();
-    expect(screen.queryByRole("region", { name: "Cash in table" })).toBeNull();
+    await waitFor(() => expect(screen.getByRole("heading", { level: 1, name: "Transactions" })).toHaveFocus());
+    expect(screen.getByRole("heading", { level: 1, name: "Transactions" })).toBeVisible();
+    expect(screen.queryByRole("region", { name: "Deposits table" })).toBeNull();
   });
 
   it("retains the marker and prevents acknowledgment when the full list failed", () => {
