@@ -318,7 +318,7 @@ describe("Activity cash in in Spanish", () => {
     const confirmation = screen.getByRole("group", { name: "¿Eliminar depósito: Transfer from Savings (01/09/2026)?" });
 
     expect(within(confirmation).getByText(/Esto elimina el depósito y lo quita de tus reportes\./)).toBeInTheDocument();
-    expect(within(confirmation).getByText(/Si este depósito se importó/)).toBeInTheDocument();
+    expect(within(confirmation).getByText(/Si este depósito vino de una importación/)).toBeInTheDocument();
     expect(within(confirmation).getByRole("button", { name: "Cancelar" })).toBeInTheDocument();
 
     await user.click(within(confirmation).getByRole("button", { name: "Sí, eliminar depósito" }));
