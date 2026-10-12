@@ -53,7 +53,7 @@ describe("PaycheckForm", () => {
     expect(screen.getByLabelText("Minimum amount")).toHaveValue("");
     await user.type(screen.getByLabelText("Minimum amount"), "100.01");
     await user.type(screen.getByLabelText("Maximum amount"), "100.02");
-    await user.click(screen.getByRole("button", { name: "Create paycheck" }));
+    await user.click(screen.getByRole("button", { name: "Create pay schedule" }));
     expect(onSubmit).toHaveBeenCalledWith({ displayName: "New payroll", windowBeforeDays: 0, windowAfterDays: 0,
       schedule: { cadence: "biweekly", referenceAnchorDate: "2026-03-08", firstMonthAnchor: null, secondMonthAnchor: null },
       amount: { mode: "range", fixedAmount: null, minimumAmount: "100.01", maximumAmount: "100.02" } });
@@ -68,7 +68,7 @@ describe("PaycheckForm", () => {
     await user.type(screen.getByLabelText("First anchor day"), "1");
     await user.selectOptions(screen.getByLabelText("Second anchor"), "month_end");
     await user.type(screen.getByLabelText("Fixed amount"), "100.001");
-    await user.click(screen.getByRole("button", { name: "Create paycheck" }));
+    await user.click(screen.getByRole("button", { name: "Create pay schedule" }));
     expect(onSubmit).not.toHaveBeenCalled();
     expect(screen.getByLabelText("Second anchor")).toHaveFocus();
     expect(screen.getByLabelText("Second anchor")).toHaveAccessibleDescription(/February/);

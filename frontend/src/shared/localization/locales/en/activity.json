@@ -159,10 +159,10 @@
     "feedback": {
       "created": "Deposit saved. Reports use its deposit date.",
       "updated": "Deposit updated. Reports use its deposit date.",
-      "deleted": "Deposit deleted. Recorded reports will reflect its removal.",
+      "deleted": "Deposit deleted. Reports will reflect its removal.",
       "createdRefreshFailed": "Deposit saved. Reports use its deposit date. The deposits list could not be refreshed. Refresh deposits before another change.",
       "updatedRefreshFailed": "Deposit updated. Reports use its deposit date. The deposits list could not be refreshed. Refresh deposits before another change.",
-      "deletedRefreshFailed": "Deposit deleted. Recorded reports will reflect its removal. The deposits list could not be refreshed. Refresh deposits before another change.",
+      "deletedRefreshFailed": "Deposit deleted. Reports will reflect its removal. The deposits list could not be refreshed. Refresh deposits before another change.",
       "validation": "Deposit was not saved. Check the details and try again.",
       "unauthorized": "Your session ended. Sign in again.",
       "forbidden": "You do not have permission to change this deposit.",

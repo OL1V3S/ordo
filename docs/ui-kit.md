@@ -138,7 +138,7 @@ is not colour alone. Targets are 44px, styles are tokens only
 icons, and compact widths use `--text-xs` with no inline padding so Spanish labels fit
 at 320px without breaking mid-word. It is route-aware and owns i18n, so it is
 not a `shared/ui` kit component. Labels reuse `destinations.*.label`
-(the Recurring expenses destination uses its full label). The compact "back to Plan" link was removed.
+(the Recurring expenses destination uses its full label; whether that label fits at 320px is checked by the owner in a browser). The compact "back to Plan" link was removed.
 
 To add a destination, extend `PRIMARY_DESTINATIONS` in `app/navigation.js` (keep
 four to five items so the bottom bar fits at 320px in Spanish) and add its

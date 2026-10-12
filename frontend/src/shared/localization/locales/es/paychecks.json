@@ -2,7 +2,7 @@
   "page": {
     "title": "Nómina",
     "intro": "Tus calendarios de nómina y cuándo esperas que te paguen. Solo esperado; no se suma a tus totales.",
-    "addManual": "Agregar pago de nómina manualmente",
+    "addManual": "Agregar calendario de nómina manualmente",
     "refresh": "Actualizar pagos de nómina",
     "acknowledgeCreate": "Revisé mis calendarios de nómina. Quiero intentarlo de nuevo",
     "saving": "Guardando tu decisión…",
@@ -51,8 +51,8 @@
     "nextWindow": "Próxima ventana esperada",
     "notGuaranteed": "Esperado, no garantizado.",
     "noWindowActive": "No hay una ventana esperada disponible. Esperado, no garantizado.",
-    "noWindowPaused": "Los pagos de nómina pausados no tienen una ventana esperada activa.",
-    "noWindowEnded": "Los pagos de nómina finalizados no tienen una ventana esperada activa.",
+    "noWindowPaused": "Los calendarios de nómina pausados no tienen una ventana esperada activa.",
+    "noWindowEnded": "Los calendarios de nómina finalizados no tienen una ventana esperada activa.",
     "scheduleNote": "Para cambiar las fechas en que te pagan, finaliza este calendario de nómina y agrega uno nuevo. Sus depósitos vinculados se quedan con él."
   },
   "facts": {
@@ -106,7 +106,7 @@
     "onScheduleDate": "En la fecha del calendario",
     "daysBefore": "{{days}} día(s) antes",
     "daysAfter": "{{days}} día(s) después",
-    "receivedPaycheck": "Pago de nómina recibido",
+    "receivedPaycheck": "Depósito vinculado",
     "confirmationHistory": "Historial de confirmación",
     "edited": "Editado desde que se vinculó este depósito. El calendario de nómina no cambia.",
     "removeLabel": "Quitar el vínculo de pago de nómina de {{description}}",
@@ -156,7 +156,7 @@
   "form": {
     "submit": {
       "confirm": "Confirmar pago de nómina",
-      "manual": "Crear pago de nómina",
+      "manual": "Crear calendario de nómina",
       "edit": "Guardar cambios"
     },
     "saving": "Guardando…",
@@ -164,7 +164,7 @@
     "legend": "Calendario de nómina",
     "manualNote": "Crea un calendario de nómina activo para tu pago de nómina esperado. Tú lo configuras; no lo confirma tu empleador.",
     "scheduleHeading": "Calendario",
-    "confirmScheduleNote": "Revisa y acepta este calendario sin cambios. Para usar un calendario diferente, crea un pago de nómina manualmente.",
+    "confirmScheduleNote": "Revisa y acepta este calendario sin cambios. Para usar un calendario diferente, crea un calendario de nómina manualmente.",
     "editScheduleNote": "Las fechas en que te pagan no se pueden editar. Finaliza este calendario de nómina y agrega uno nuevo para cambiarlas. Sus depósitos vinculados se quedan con él.",
     "variableNote": "Los montos observados varían. Ingresa el mínimo y el máximo que aceptas explícitamente; los límites observados no se rellenan automáticamente.",
     "unsafeAmountNote": "Este monto no se pudo cargar con precisión confiable de centavos. Ingresa el monto exacto que aceptas antes de guardar.",
@@ -233,27 +233,27 @@
   },
   "feedback": {
     "loadFailed": "No se pudieron cargar los pagos de nómina. Actualiza para intentarlo de nuevo; la información mostrada puede estar desactualizada.",
-    "uncertainCreate": "No pudimos confirmar si el pago de nómina se creó. Actualiza y revisa los calendarios de nómina guardados antes de intentarlo de nuevo a propósito.",
+    "uncertainCreate": "No pudimos confirmar si el calendario de nómina se creó. Actualiza y revisa los calendarios de nómina guardados antes de intentarlo de nuevo a propósito.",
     "uncertainWrite": "No pudimos confirmar el resultado de esta acción. Actualiza y revisa el estado actual antes de intentarlo de nuevo.",
-    "uncertainCreateLoaded": "Pagos de nómina cargados. Revisa los calendarios de nómina guardados antes de intentar crear otro pago de nómina a propósito.",
+    "uncertainCreateLoaded": "Pagos de nómina cargados. Revisa los calendarios de nómina guardados antes de intentar crear otro calendario de nómina a propósito.",
     "uncertainReceiptLoaded": "Pagos de nómina cargados. Revisa los depósitos vinculados antes de vincular otro depósito a propósito.",
     "notices": {
       "confirmed": "Calendario de nómina guardado.",
       "dismissed": "Posible pago de nómina descartado. Puedes volver a revisarlo más abajo.",
       "reconsidered": "El posible pago de nómina volvió a tu lista de revisión.",
-      "created": "Pago de nómina creado.",
-      "updated": "Pago de nómina actualizado.",
-      "lifecycle": "Estado del pago de nómina actualizado.",
+      "created": "Calendario de nómina creado.",
+      "updated": "Calendario de nómina actualizado.",
+      "lifecycle": "Estado del calendario de nómina actualizado.",
       "receiptRecorded": "Depósito vinculado a este calendario de nómina.",
       "receiptRemoved": "Vínculo de pago de nómina quitado. El depósito se mantiene en Movimientos."
     },
     "errors": {
       "authentication_required": "Tu sesión ha expirado. Inicia sesión de nuevo para administrar los pagos de nómina.",
-      "paycheck_not_found": "Ese pago de nómina ya no está disponible. Revisa los calendarios de nómina actuales.",
+      "paycheck_not_found": "Ese calendario de nómina ya no está disponible. Revisa los calendarios de nómina actuales.",
       "candidate_changed": "Este posible pago de nómina cambió o ya no está disponible. Revisa la evidencia más reciente antes de intentarlo de nuevo.",
       "candidate_dismissed": "Este posible pago de nómina fue descartado. Vuelve a revisarlo antes de confirmarlo.",
       "confirmation_conflict": "La evidencia cambió durante la confirmación. Revisa la evidencia más reciente antes de intentarlo de nuevo.",
-      "candidate_schedule_mismatch": "El calendario del posible pago de nómina no se puede cambiar. Revísalo de nuevo o crea un pago de nómina manual.",
+      "candidate_schedule_mismatch": "El calendario del posible pago de nómina no se puede cambiar. Revísalo de nuevo o crea un calendario de nómina manualmente.",
       "fingerprint_invalid": "Este posible pago de nómina ya no se puede revisar. Actualiza los posibles pagos de nómina.",
       "algorithm_version_invalid": "La versión de este posible pago de nómina no es válida. Actualiza los posibles pagos de nómina.",
       "name_invalid": "Ingresa un nombre de pago de nómina que no esté en blanco y tenga 500 caracteres o menos.",

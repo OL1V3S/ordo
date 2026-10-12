@@ -176,7 +176,7 @@ describe("paycheck state", () => {
     let outcome;
     await act(async () => { outcome = await result.current.createPaycheck(payload); });
     expect(outcome).toEqual({ ok: true, data: { id: "saved" }, refreshOk: false });
-    expect(result.current.notice).toBe("Paycheck created.");
+    expect(result.current.notice).toBe("Pay schedule created.");
     expect(result.current.actionError).toBeNull();
     expect(result.current.loadError).toContain("could not be loaded");
     expect(result.current.uncertainCreate).toBe(false);

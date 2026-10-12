@@ -39,6 +39,7 @@ const CORE_BANNED_EN = [
   ["cash in", term("cash[ -]in")],
   ["incoming deposit", term("incoming[ -]deposits?")],
   ["inflow", term("inflows?")],
+  ["received paycheck", term("received paychecks?")],
   ["expectation", term("expectations?")],
   ["projection", term("projections?")],
   ["profile", term("profiles?")],
@@ -76,6 +77,7 @@ const CORE_BANNED_ES = [
   ["contabilización", term("contabilizaci(?:ón|ones)")],
   ["usted", term("usted(?:es)?")],
   ["pago(s) esperado", term("pagos? esperad\\w*")],
+  ["pago de nómina recibido", term("pagos? (?:de nómina )?recibid[oa]s?")],
   ["pagos recurrentes", term("pagos? recurrentes?")],
 ];
 
@@ -172,8 +174,8 @@ describe("wording guard: semantic anchors", () => {
   const anchors = [
     { key: "activity:cashIn.intro", en: [/transfers/i, /refunds/i, /not counted as income/i], es: [/transferencias/i, /devoluciones/i, /no se cuenta como ingreso/i] },
     { key: "analytics:summary.about.composition", en: [/transfers/i, /refunds/i, /isn[’']t counted as income/i], es: [/transferencias/i, /devoluciones/i, /no se cuenta como ingreso/i] },
-    { key: "importPreview:row.qualification", en: [/not counted as income/i, /paycheck/i], es: [/no se cuenta como ingreso/i, /pago de nómina/i] },
-    { key: "analytics:summary.about.coverage", en: [/isn[’']t an account balance/i, /\bsavings\b/i], es: [/no es un saldo de la cuenta/i, /ahorros/i] },
+    { key: "importPreview:row.qualification", en: [/not counted as income or as a paycheck/i], es: [/no se cuenta como ingreso ni como pago de nómina/i] },
+    { key: "analytics:summary.about.coverage", en: [/isn[’']t an account balance/i, /\bsavings\b/i, /available to spend/i], es: [/no es un saldo de la cuenta/i, /ahorros/i, /disponible para gastar/i] },
     { key: "home:comingUp.qualifier", en: [/expected only/i, /not included in your totals/i], es: [/solo esperados?/i, /no se suman a tus totales/i] },
     { key: "commitments:page.subtitle", en: [/expected only/i, /not included in your totals/i], es: [/solo esperados?/i, /no se suman a tus totales/i] },
     { key: "paychecks:page.intro", en: [/expected only/i, /not included in your totals/i], es: [/solo esperado/i, /no se suma a tus totales/i] },

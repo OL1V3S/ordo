@@ -324,7 +324,7 @@ describe("Activity cash in in Spanish", () => {
     await user.click(within(confirmation).getByRole("button", { name: "Confirmar eliminación del depósito" }));
 
     expect(cash.deleteInflow).toHaveBeenCalledExactlyOnceWith(1);
-    expect(await screen.findByText("Depósito eliminado. Los reportes registrados reflejarán su eliminación."))
+    expect(await screen.findByText("Depósito eliminado. Los reportes reflejarán que se eliminó."))
       .toBeInTheDocument();
   });
 

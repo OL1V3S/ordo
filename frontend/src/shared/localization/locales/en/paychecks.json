@@ -2,7 +2,7 @@
   "page": {
     "title": "Paychecks",
     "intro": "Your pay schedules and when you expect to get paid. Expected only; not included in your totals.",
-    "addManual": "Add paycheck manually",
+    "addManual": "Add pay schedule manually",
     "refresh": "Refresh paychecks",
     "acknowledgeCreate": "I checked my pay schedules. Let me try again",
     "saving": "Saving your decision…",
@@ -51,8 +51,8 @@
     "nextWindow": "Next expected window",
     "notGuaranteed": "Expected, not guaranteed.",
     "noWindowActive": "No expected window is available. Expected, not guaranteed.",
-    "noWindowPaused": "Paused paychecks have no active expected window.",
-    "noWindowEnded": "Ended paychecks have no active expected window.",
+    "noWindowPaused": "Paused pay schedules have no active expected window.",
+    "noWindowEnded": "Ended pay schedules have no active expected window.",
     "scheduleNote": "To change the pay dates, end this pay schedule and add a new one. Its linked deposits stay with it."
   },
   "facts": {
@@ -106,7 +106,7 @@
     "onScheduleDate": "On schedule date",
     "daysBefore": "{{days}} day(s) before",
     "daysAfter": "{{days}} day(s) after",
-    "receivedPaycheck": "Received paycheck",
+    "receivedPaycheck": "Linked deposit",
     "confirmationHistory": "Confirmation history",
     "edited": "Edited since this deposit was linked. The pay schedule is unchanged.",
     "removeLabel": "Remove paycheck link for {{description}}",
@@ -156,7 +156,7 @@
   "form": {
     "submit": {
       "confirm": "Confirm paycheck",
-      "manual": "Create paycheck",
+      "manual": "Create pay schedule",
       "edit": "Save changes"
     },
     "saving": "Saving…",
@@ -164,7 +164,7 @@
     "legend": "Pay schedule",
     "manualNote": "Create an active pay schedule for your expected paycheck. You’re setting this up yourself; it isn’t confirmed by your employer.",
     "scheduleHeading": "Schedule",
-    "confirmScheduleNote": "Review and accept this schedule unchanged. To use a different schedule, create a paycheck manually.",
+    "confirmScheduleNote": "Review and accept this schedule unchanged. To use a different schedule, create a pay schedule manually.",
     "editScheduleNote": "The pay dates can’t be edited. End this pay schedule and add a new one to change them. Its linked deposits stay with it.",
     "variableNote": "Observed amounts vary. Enter the minimum and maximum you explicitly accept; observed bounds are not filled in.",
     "unsafeAmountNote": "This amount could not be loaded with reliable cent precision. Enter the exact amount you accept before saving.",
@@ -233,27 +233,27 @@
   },
   "feedback": {
     "loadFailed": "Paychecks could not be loaded. Refresh to try again; the displayed information may be out of date.",
-    "uncertainCreate": "We could not confirm whether the paycheck was created. Refresh and check the saved pay schedules before intentionally trying again.",
+    "uncertainCreate": "We could not confirm whether the pay schedule was created. Refresh and check the saved pay schedules before intentionally trying again.",
     "uncertainWrite": "We could not confirm the outcome of this action. Refresh and check the current state before trying again.",
-    "uncertainCreateLoaded": "Paychecks loaded. Check the saved pay schedules before intentionally trying to create another paycheck.",
+    "uncertainCreateLoaded": "Paychecks loaded. Check the saved pay schedules before intentionally trying to create another pay schedule.",
     "uncertainReceiptLoaded": "Paychecks loaded. Check the linked deposits before intentionally linking another deposit.",
     "notices": {
       "confirmed": "Pay schedule saved.",
       "dismissed": "Candidate dismissed. You can review it again below.",
       "reconsidered": "Candidate returned to your review list.",
-      "created": "Paycheck created.",
-      "updated": "Paycheck updated.",
-      "lifecycle": "Paycheck status updated.",
+      "created": "Pay schedule created.",
+      "updated": "Pay schedule updated.",
+      "lifecycle": "Pay schedule status updated.",
       "receiptRecorded": "Deposit linked to this pay schedule.",
       "receiptRemoved": "Paycheck link removed. The deposit remains in Transactions."
     },
     "errors": {
       "authentication_required": "Your session has expired. Sign in again to manage paychecks.",
-      "paycheck_not_found": "That paycheck is no longer available. Review the current pay schedules.",
+      "paycheck_not_found": "That pay schedule is no longer available. Review the current pay schedules.",
       "candidate_changed": "This candidate changed or is no longer available. Review the latest evidence before trying again.",
       "candidate_dismissed": "This candidate was dismissed. Review it again before confirming.",
       "confirmation_conflict": "The evidence changed during confirmation. Review the latest evidence before trying again.",
-      "candidate_schedule_mismatch": "The candidate schedule cannot be changed. Review it again or create a manual paycheck.",
+      "candidate_schedule_mismatch": "The candidate schedule cannot be changed. Review it again or create a pay schedule manually.",
       "fingerprint_invalid": "This candidate can no longer be reviewed. Refresh the candidates.",
       "algorithm_version_invalid": "This candidate version is invalid. Refresh the candidates.",
       "name_invalid": "Enter a nonblank paycheck name of 500 characters or fewer.",
