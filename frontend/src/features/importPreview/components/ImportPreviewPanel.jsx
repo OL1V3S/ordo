@@ -322,6 +322,9 @@ export default function ImportPreviewPanel({ importState, onImportConfirmed = as
         if (before.externallyBlocked() || before.confirming || before.confirmationNeedsRefresh) { stopped = true; break; }
         const row = before.preview.rows.find((candidate) => candidate.rowId === target.rowId);
         if (!row) { stopped = true; break; }
+        // The preview can refresh mid-run: re-check the freshly read row so a row that became a
+        // possible duplicate (or was already selected) is never selected by "Select all".
+        if (select && bulkSelectableExpenses([row]).length !== 1) continue;
         setBulkProgress({ done: done + 1, total });
         const updated = await before.updateSelection(row, select);
         const after = latest.current;
@@ -350,7 +353,7 @@ export default function ImportPreviewPanel({ importState, onImportConfirmed = as
 
   function bulkMessage() {
     if (!bulkOutcome || bulkOutcome.batchId !== currentBatchId) return "";
-    if (bulkOutcome.kind === "stopped") return t("bulk.stopped", { done: bulkOutcome.done, total: bulkOutcome.total });
+    if (bulkOutcome.kind === "stopped") return t("bulk.stopped", { done: bulkOutcome.done, count: bulkOutcome.total });
     const text = t(`bulk.${bulkOutcome.kind}`, { count: bulkOutcome.done });
     return bulkOutcome.hiddenByFilter ? `${text} ${t("filters.clearedHidden")}` : text;
   }

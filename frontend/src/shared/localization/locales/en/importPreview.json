@@ -213,9 +213,10 @@
     "deposits": "Incoming deposits",
     "selected": "Selected",
     "option": "{{label}} ({{count}})",
-    "showing": "Showing {{shown}} of {{count}} rows",
+    "showing_one": "Showing {{shown}} of {{count}} row",
+    "showing_other": "Showing {{shown}} of {{count}} rows",
     "empty": "No rows match this filter. Filtering never changes what is selected.",
-    "clearedHidden": "Selection cleared. The Selected filter now has no rows to show."
+    "clearedHidden": "Rows no longer selected are hidden by this filter."
   },
   "bulk": {
     "heading": "Bulk selection",
@@ -227,7 +228,8 @@
     "selectedDone_other": "Selected {{count}} expenses.",
     "clearedDone_one": "Cleared the selection of {{count}} row.",
     "clearedDone_other": "Cleared the selection of {{count}} rows.",
-    "stopped": "Stopped after {{done}} of {{total}} rows. Rows already updated stay as shown. Try again."
+    "stopped_one": "Stopped after {{done}} of {{count}} row. Rows already updated stay as shown. Try again.",
+    "stopped_other": "Stopped after {{done}} of {{count}} rows. Rows already updated stay as shown. Try again."
   },
   "bar": {
     "label": "Confirm import",

@@ -48,7 +48,7 @@ export default function ImportReviewFilters({
             </label>
           ))}
         </div>
-        <p className="muted import-review-filters__showing" role="status" aria-live="polite">
+        <p className="muted import-review-filters__showing">
           {t("filters.showing", { shown, count: total })}
         </p>
       </fieldset>

@@ -224,7 +224,7 @@ describe('import review bulk selection', () => {
     render(<ImportPreviewPanel importState={importState({ preview: previewWith([{ ...e1, selectedForImport: true }, e2]) })} />)
     await user.click(screen.getByRole('radio', { name: 'Selected (1)' }))
     await user.click(clearSelection())
-    expect(await screen.findByText(/Cleared the selection of 1 row\. Selection cleared\./)).toBeInTheDocument()
+    expect(await screen.findByText('Cleared the selection of 1 row. Rows no longer selected are hidden by this filter.')).toBeInTheDocument()
     expect(clearSelection()).toHaveFocus()
   })
 
@@ -235,6 +235,42 @@ describe('import review bulk selection', () => {
     await user.click(selectAll())
     expect(await screen.findByText(/Stopped after 1 of 2 rows/)).toBeInTheDocument()
     expect(updateRow).toHaveBeenCalledTimes(2)
+  })
+
+  it('never selects a row that became a possible duplicate mid-run', async () => {
+    const user = userEvent.setup()
+    const first = deferred()
+    const updateRow = vi.fn().mockReturnValueOnce(first.promise)
+    const state = importState({ updateRow })
+    const { rerender } = render(<ImportPreviewPanel importState={state} />)
+    await user.click(selectAll())
+    expect(screen.getByText('Updating row 1 of 2…')).toBeInTheDocument()
+
+    const refreshed = previewWith([{ ...e1, selectedForImport: true }, { ...e2, isPossibleDuplicate: true, warnings: ['possible_duplicate'] }, dup, dep, review])
+    rerender(<ImportPreviewPanel importState={{ ...state, preview: refreshed }} />)
+    await act(async () => { first.resolve({ ...e1, selectedForImport: true }) })
+
+    expect(updateRow).toHaveBeenCalledTimes(1)
+    expect(updateRow.mock.calls[0][0]).toBe('e1')
+    expect(await screen.findByText('Selected 1 expense.')).toBeInTheDocument()
+  })
+
+  it('uses singular wording for one row in the shown count and the stopped message', async () => {
+    const user = userEvent.setup()
+    const updateRow = vi.fn().mockResolvedValue(null)
+    render(<ImportPreviewPanel importState={importState({ updateRow, preview: previewWith([e1]) })} />)
+    expect(screen.getByText('Showing 1 of 1 row')).toBeInTheDocument()
+    await user.click(selectAll())
+    expect(await screen.findByText('Stopped after 0 of 1 row. Rows already updated stay as shown. Try again.')).toBeInTheDocument()
+  })
+
+  it('keeps the shown-count line static so only the bulk region announces during a run', () => {
+    render(<ImportPreviewPanel importState={importState()} />)
+    const showing = screen.getByText('Showing 5 of 5 rows')
+    expect(showing).not.toHaveAttribute('role')
+    expect(showing).not.toHaveAttribute('aria-live')
+    expect(showing.closest('[role="status"], [aria-live]')).toBeNull()
+    expect(document.querySelector('.import-review-bulk__status')).toHaveAttribute('role', 'status')
   })
 
   it('stops the loop when the external lock engages mid-run', async () => {
@@ -396,6 +432,15 @@ describe('import review in Spanish', () => {
     expect(await screen.findByText('Se seleccionó 1 gasto.')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Borrar selección' }))
     expect(await screen.findByText('Se borró la selección de 1 fila.')).toBeInTheDocument()
+  })
+
+  it('uses singular wording for one row and a non-repeating cleared message', async () => {
+    const user = userEvent.setup()
+    render(<ImportPreviewPanel importState={importState({ preview: previewWith([{ ...e1, selectedForImport: true }]) })} />)
+    expect(screen.getByText('Mostrando 1 de 1 fila')).toBeInTheDocument()
+    await user.click(screen.getByRole('radio', { name: /^Seleccionadas/ }))
+    await user.click(screen.getByRole('button', { name: /^Borrar selección/ }))
+    expect(await screen.findByText('Se borró la selección de 1 fila. Este filtro oculta las filas que ya no están seleccionadas.')).toBeInTheDocument()
   })
 
   it('localizes the saved list and actions', () => {

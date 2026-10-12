@@ -58,6 +58,9 @@
    (0px when it falls back to a non-sticky bar). Without it (no ResizeObserver) use a conservative default. */
 .import-confirm-bar[data-sticky="false"] { position: static; }
 .import-preview-row :is(input, select, button, summary, a) { scroll-margin-bottom: calc(var(--import-confirm-bar-height, calc(var(--space-8) * 3 + var(--space-6))) + var(--space-3)); }
+/* Every focusable control in the results area except the confirm bar's own controls (WCAG 2.4.11),
+   including the filter radios, bulk buttons and the keyboard-focusable table region. */
+.import-results :is(input, select, button, summary, a, [tabindex="0"]):not(.import-confirm-bar *) { scroll-margin-bottom: calc(var(--import-confirm-bar-height, calc(var(--space-8) * 3 + var(--space-6))) + var(--space-3)); }
 .import-saved { display: grid; gap: var(--space-3); }
 .import-saved__list { display: grid; gap: var(--space-2); }
 .import-saved__list h4, .import-saved__total { margin: 0; }

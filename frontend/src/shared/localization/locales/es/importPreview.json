@@ -213,9 +213,10 @@
     "deposits": "Depósitos entrantes",
     "selected": "Seleccionadas",
     "option": "{{label}} ({{count}})",
-    "showing": "Mostrando {{shown}} de {{count}} filas",
+    "showing_one": "Mostrando {{shown}} de {{count}} fila",
+    "showing_other": "Mostrando {{shown}} de {{count}} filas",
     "empty": "Ninguna fila coincide con este filtro. Filtrar nunca cambia lo que está seleccionado.",
-    "clearedHidden": "Se borró la selección. El filtro Seleccionadas ya no tiene filas que mostrar."
+    "clearedHidden": "Este filtro oculta las filas que ya no están seleccionadas."
   },
   "bulk": {
     "heading": "Selección en bloque",
@@ -227,7 +228,8 @@
     "selectedDone_other": "Se seleccionaron {{count}} gastos.",
     "clearedDone_one": "Se borró la selección de {{count}} fila.",
     "clearedDone_other": "Se borró la selección de {{count}} filas.",
-    "stopped": "Se detuvo después de {{done}} de {{total}} filas. Las filas ya actualizadas se mantienen como se muestran. Inténtalo de nuevo."
+    "stopped_one": "Se detuvo después de {{done}} de {{count}} fila. Las filas ya actualizadas se mantienen como se muestran. Inténtalo de nuevo.",
+    "stopped_other": "Se detuvo después de {{done}} de {{count}} filas. Las filas ya actualizadas se mantienen como se muestran. Inténtalo de nuevo."
   },
   "bar": {
     "label": "Confirmar importación",
