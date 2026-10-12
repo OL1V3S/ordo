@@ -224,7 +224,7 @@ describe("Commitments workspace", () => {
     current = { ...current, busyKey: null, loadError: "Something went wrong. Try again." };
     rerender(<CommitmentsPage />);
     expect(screen.getByRole("alert")).toHaveTextContent("Something went wrong");
-    expect(screen.getByText(/Displayed information may be out of date/)).toBeVisible();
+    expect(screen.getByText(/What you see may be out of date/)).toBeVisible();
     expect(screen.getByLabelText("Name")).toHaveValue("Draft gym plan");
     expect(screen.getByRole("button", { name: "Confirm recurring expense" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Cancel" })).toBeEnabled();

@@ -241,7 +241,7 @@ describe("commitment change review", () => {
       observations: [{ ...observations[0], amount: Number("9999999999999999") }],
     };
     rerender(<CommitmentChangeReview state={reviewState({ commitmentChanges: [ambiguous] })} />);
-    expect(screen.getByText(/Exact amount review is unavailable/)).toBeVisible();
+    expect(screen.getByText(/Exact amount unavailable\. Refresh the page/)).toBeVisible();
     expect(screen.getByRole("button", { name: "Use the new details: amount for Gym plan" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Keep saved details: amount for Gym plan" })).toBeDisabled();
   });
@@ -263,7 +263,7 @@ describe("commitment change review", () => {
     const confirmation = screen.getByRole("group", { name: /Mark Insurance as ended/ });
     const confirmButton = within(confirmation).getByRole("button", { name: "Yes, mark as ended: Insurance" });
     const missingDetails = screen.getByLabelText("Details: missing expense for Insurance").closest("details");
-    expect(confirmation).toHaveTextContent("you can change it again");
+    expect(confirmation).toHaveTextContent("You can change it again");
     expect(confirmButton).toHaveFocus();
     expect(missingDetails).not.toContainElement(confirmation);
     expect(state.markEndedFromChange).not.toHaveBeenCalled();

@@ -102,7 +102,7 @@ describe("commitment expectation form", () => {
       />
     );
 
-    expect(screen.getByText(/could not be loaded with reliable cent precision/)).toBeVisible();
+    expect(screen.getByText(/couldn't load the exact amount/)).toBeVisible();
     expect(screen.getByRole("button", { name: "Confirm recurring expense" })).toBeDisabled();
   });
 });
