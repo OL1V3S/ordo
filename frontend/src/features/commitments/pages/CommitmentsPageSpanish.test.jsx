@@ -99,24 +99,24 @@ describe("Commitments page in Spanish", () => {
     useCommitments.mockReturnValue(state({ commitments: [commitment, paused] }));
     renderPage();
 
-    expect(screen.getByRole("heading", { level: 1, name: "Compromisos" })).toBeInTheDocument();
-    expect(screen.getByText("Administra las previsiones guardadas y revisa los posibles cambios.")).toBeInTheDocument();
-    const nav = screen.getByRole("navigation", { name: "Revisiones de compromisos" });
+    expect(screen.getByRole("heading", { level: 1, name: "Gastos recurrentes" })).toBeInTheDocument();
+    expect(screen.getByText("Gastos que esperas que se repitan. Solo esperados; no se suman a tus totales.")).toBeInTheDocument();
+    const nav = screen.getByRole("navigation", { name: "Revisiones de gastos recurrentes" });
     expect(within(nav).getByRole("link", { name: "1 cambio por revisar" })).toHaveAttribute("href", "#changes-review-heading");
-    expect(within(nav).getByRole("link", { name: "2 posibles compromisos" })).toHaveAttribute("href", "#candidate-heading");
-    expect(screen.getByRole("heading", { level: 2, name: "Tus compromisos" })).toHaveAttribute("id", "confirmed-heading");
+    expect(within(nav).getByRole("link", { name: "2 posibles gastos recurrentes" })).toHaveAttribute("href", "#candidate-heading");
+    expect(screen.getByRole("heading", { level: 2, name: "Tus gastos recurrentes" })).toHaveAttribute("id", "confirmed-heading");
     expect(screen.getByRole("heading", { level: 2, name: "Cambios por revisar" })).toHaveAttribute("id", "changes-review-heading");
-    expect(screen.getByRole("heading", { level: 2, name: "Posibles compromisos" })).toHaveAttribute("id", "candidate-heading");
-    expect(screen.getByLabelText("Compromisos activos")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "Posibles gastos recurrentes" })).toHaveAttribute("id", "candidate-heading");
+    expect(screen.getByLabelText("Gastos recurrentes activos")).toBeInTheDocument();
     expect(screen.getByText("2 por revisar")).toBeInTheDocument();
-    expect(screen.getByText("Revisa los gastos registrados antes de confirmar una previsión.")).toBeInTheDocument();
-    expect(historyHeading("Compromisos pausados")).toBeInTheDocument();
-    expect(screen.getByLabelText("Compromisos pausados")).toBeInTheDocument();
+    expect(screen.getByText("Revisa los gastos registrados antes de confirmar un gasto recurrente.")).toBeInTheDocument();
+    expect(historyHeading("Gastos recurrentes pausados")).toBeInTheDocument();
+    expect(screen.getByLabelText("Gastos recurrentes pausados")).toBeInTheDocument();
     expect(historyHeading("Cambios revisados")).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: /^Posibles compromisos descartados \(1\)$/ })).toHaveAttribute("id", "dismissed-heading");
-    expect(screen.getByText("El descarte se aplica solo a la evidencia exacta que revisaste. Reconsidera uno para revisarlo de nuevo.")).toBeInTheDocument();
-    expect(screen.queryByText("Your commitments")).not.toBeInTheDocument();
-    expect(screen.queryByText("Possible commitments")).not.toBeInTheDocument();
+    expect(screen.getByText("El descarte se aplica solo a la evidencia exacta que revisaste. Usa Volver a revisar para revisar uno otra vez.")).toBeInTheDocument();
+    expect(screen.queryByText("Your recurring expenses")).not.toBeInTheDocument();
+    expect(screen.queryByText("Possible recurring expenses")).not.toBeInTheDocument();
   });
 
   it("keeps an expected commitment distinct from the expenses actually recorded", () => {
@@ -124,7 +124,7 @@ describe("Commitments page in Spanish", () => {
 
     const saved = within(card("Rent"));
     expect(saved.getByText("Activo")).toBeInTheDocument();
-    expect(saved.getByText("Monto previsto")).toBeInTheDocument();
+    expect(saved.getByText("Monto esperado")).toBeInTheDocument();
     expect(saved.getAllByText("USD 1,200.00")[0]).toBeInTheDocument();
     expect(saved.getByText("Mensual", { exact: false })).toBeInTheDocument();
     expect(saved.getByText("Día 1, con una ventana de 1 día antes / 1 día después")).toBeInTheDocument();
@@ -139,7 +139,7 @@ describe("Commitments page in Spanish", () => {
     expect(fixed.getByText("Idéntico cada vez")).toBeInTheDocument();
     expect(fixed.getByText("Fechas observadas")).toBeInTheDocument();
     const range = within(card("Water bill"));
-    expect(range.getByText("Basado en 3 gastos registrados. Historial observado, no una previsión guardada.")).toBeInTheDocument();
+    expect(range.getByText("Basado en 3 gastos registrados. Historial observado, no un gasto recurrente guardado.")).toBeInTheDocument();
     expect(range.getByText("Rango de monto observado")).toBeInTheDocument();
     expect(range.getByText("3 gastos registrados · Unknown rule code")).toBeInTheDocument();
     expect(range.getByText("Mediana USD 20.00")).toBeInTheDocument();
@@ -152,14 +152,14 @@ describe("Commitments page in Spanish", () => {
     expect(pending.getByText("Requiere tu decisión")).toBeInTheDocument();
     expect(pending.getByText("Revisión de monto")).toBeInTheDocument();
     expect(pending.getByText("2 gastos registrados recientes respaldan este cambio de monto.")).toBeInTheDocument();
-    expect(pending.getByText("Previsión actual")).toBeInTheDocument();
+    expect(pending.getByText("Lo guardado")).toBeInTheDocument();
     expect(pending.getByText("Cambio observado")).toBeInTheDocument();
     expect(pending.getByText("Pendiente")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Aceptar cambio de monto de Gym plan" })).toBeEnabled();
-    expect(screen.getByRole("button", { name: "Mantener previsión actual: monto de Gym plan" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Mantener lo guardado: monto de Gym plan" })).toBeEnabled();
     expect(screen.getByText("Revisión de fechas")).toBeInTheDocument();
     expect(screen.getByText("Mantenido")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Reconsiderar cambio de fechas de Gym plan", hidden: true })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Volver a revisar: cambio de fechas de Gym plan", hidden: true })).toBeInTheDocument();
   });
 
   it("runs the dismiss, review, end, and edit flows through Spanish controls without changing calls", async () => {
@@ -170,12 +170,12 @@ describe("Commitments page in Spanish", () => {
 
     await menuAction(user, "Gym membership", "Descartar Gym membership");
     expect(current.dismissCandidate).toHaveBeenCalledWith("fingerprint-1");
-    expect(screen.getByRole("button", { name: "Reconsiderar Streaming service" })).toBeInTheDocument();
-    expect(screen.getByText("Posible compromiso descartado")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Volver a revisar: Streaming service" })).toBeInTheDocument();
+    expect(screen.getByText("Posible gasto recurrente descartado")).toBeInTheDocument();
 
     await menuAction(user, "Rent", "Finalizar Rent");
     const confirmation = screen.getByRole("group", { name: "Finalizar Rent" });
-    expect(within(confirmation).getByText("¿Finalizar Rent? La previsión guardada y los registros vinculados se conservarán. Puedes reactivarlo.")).toBeInTheDocument();
+    expect(within(confirmation).getByText("¿Finalizar Rent? Lo guardado y los registros vinculados se conservarán. Puedes reactivarlo.")).toBeInTheDocument();
     expect(within(confirmation).getByRole("button", { name: "Cancelar finalización" })).toBeInTheDocument();
     await user.click(within(confirmation).getByRole("button", { name: "Confirmar finalización" }));
     expect(current.updateLifecycle).toHaveBeenCalledWith("commitment-1", "ended");
@@ -186,7 +186,7 @@ describe("Commitments page in Spanish", () => {
     renderPage();
 
     await user.click(screen.getByRole("button", { name: "Revisar y confirmar Gym membership" }));
-    expect(screen.getByRole("form", { name: "Confirmar compromiso" })).toBeInTheDocument();
+    expect(screen.getByRole("form", { name: "Confirmar gasto recurrente" })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Cancelar" }));
 
     await menuAction(user, "Rent", "Editar Rent");
@@ -196,7 +196,7 @@ describe("Commitments page in Spanish", () => {
   it("shows Spanish loading, refresh, error, and stale-information states", () => {
     useCommitments.mockReturnValue(state({ loading: true, candidates: [], commitments: [], dismissedCandidates: [], commitmentChanges: [] }));
     const { unmount } = renderPage();
-    expect(screen.getByText("Cargando compromisos...")).toBeInTheDocument();
+    expect(screen.getByText("Cargando gastos recurrentes...")).toBeInTheDocument();
     unmount();
 
     useCommitments.mockReturnValue(state({ loadError: "Algo salió mal. Inténtalo de nuevo." }));

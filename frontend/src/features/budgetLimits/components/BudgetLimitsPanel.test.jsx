@@ -113,7 +113,7 @@ describe('budget hierarchy and truthful states', () => {
     expect(within(bills).getByRole('progressbar')).toHaveValue(100)
     expect(within(bills).getByRole('progressbar')).toHaveAttribute('aria-valuetext', '$125.00 used of $100.00, 125%')
     const zero = screen.getByRole('listitem', { name: 'Zero budget' })
-    expect(within(zero).getByText('Zero limit')).toBeVisible()
+    expect(within(zero).getByText('Zero limit (no spending)')).toBeVisible()
     expect(within(zero).queryByRole('progressbar')).not.toBeInTheDocument()
     expect(zero).toHaveClass('budget-row--warning')
     expect(screen.getByText('About monthly limits').closest('details')).not.toHaveAttribute('open')
@@ -125,7 +125,7 @@ describe('budget hierarchy and truthful states', () => {
       totalsByCategory={{ food: '9999999999999999.99' }} />)
 
     const food = screen.getByRole('listitem', { name: 'Food budget' })
-    expect(within(food).getByText('Limit needs review')).toBeVisible()
+    expect(within(food).getByText('Exact limit unavailable')).toBeVisible()
     expect(within(food).queryByRole('progressbar')).not.toBeInTheDocument()
     expect(food).not.toHaveClass('budget-row--warning')
     expect(food).not.toHaveTextContent(/Over limit|Limit reached|Near limit|Within limit/)

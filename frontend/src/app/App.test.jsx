@@ -138,7 +138,7 @@ describe('application routes and shell', () => {
   })
 
   it.each([
-    ['/overview', 'Home'], ['/transactions', 'Activity'], ['/analytics', 'Insights'],
+    ['/overview', 'Home'], ['/transactions', 'Transactions'], ['/analytics', 'Reports'],
   ])('uses the same customer label in the primary navigation and the pagebar for %s', (path, label) => {
     localStorage.setItem('token', 'jwt-value')
     renderAt(path)
@@ -163,7 +163,7 @@ describe('application routes and shell', () => {
     expect(screen.getAllByRole('navigation')).toHaveLength(1)
     const topLevel = [...navigation.querySelectorAll('.app-nav__list > li > a')]
     expect(topLevel.map((link) => link.getAttribute('href'))).toEqual(['/overview', '/transactions', '/plan', '/analytics'])
-    for (const label of ['Home', 'Activity', 'Plan', 'Insights']) {
+    for (const label of ['Home', 'Transactions', 'Plan', 'Reports']) {
       const link = within(navigation).getByRole('link', { name: label })
       expect(within(link).getByText(label, { selector: 'span' })).toBeInTheDocument()
     }
@@ -186,10 +186,10 @@ describe('application routes and shell', () => {
   })
 
   it.each([
-    ['/overview', 'Home', 'page'], ['/transactions', 'Activity', 'page'],
+    ['/overview', 'Home', 'page'], ['/transactions', 'Transactions', 'page'],
     ['/plan', 'Plan', 'page'], ['/budgets', 'Plan', 'location'],
     ['/commitments', 'Plan', 'location'], ['/paychecks', 'Plan', 'location'],
-    ['/paychecks/?source=bookmark', 'Plan', 'location'], ['/analytics', 'Insights', 'page'],
+    ['/paychecks/?source=bookmark', 'Plan', 'location'], ['/analytics', 'Reports', 'page'],
   ])('marks only the correct primary destination for %s', (path, label, current) => {
     localStorage.setItem('token', 'synthetic-session')
     renderAt(path)
@@ -206,15 +206,15 @@ describe('application routes and shell', () => {
   })
 
   it.each([
-    ['/budgets', 'Budgets', 'Commitments', '/commitments', 'Commitments workspace'],
-    ['/commitments', 'Commitments', 'Paychecks', '/paychecks', 'Paychecks workspace'],
+    ['/budgets', 'Budgets', 'Recurring expenses', '/commitments', 'Commitments workspace'],
+    ['/commitments', 'Recurring expenses', 'Paychecks', '/paychecks', 'Paychecks workspace'],
     ['/paychecks', 'Paychecks', 'Budgets', '/budgets', 'Budgets workspace'],
   ])('switches Plan pages from direct bookmark %s through the Plan switcher', async (path, currentLabel, nextLabel, target, heading) => {
     const user = userEvent.setup()
     localStorage.setItem('token', 'synthetic-session')
     renderAt(path)
     const main = screen.getByRole('main')
-    const switcher = within(main).getByRole('navigation', { name: 'Planning tools' })
+    const switcher = within(main).getByRole('navigation', { name: 'Budgets, recurring expenses, and paychecks' })
     const links = within(switcher).getAllByRole('link')
     expect(links.map((link) => link.getAttribute('href'))).toEqual(['/budgets', '/commitments', '/paychecks'])
     expect(links.filter((link) => link.getAttribute('aria-current') === 'page')).toHaveLength(1)
@@ -234,7 +234,7 @@ describe('application routes and shell', () => {
     renderAt(path)
     const main = screen.getByRole('main')
     expect(within(main).getAllByRole('heading', { level: 1 })).toHaveLength(1)
-    const navs = within(main).getAllByRole('navigation', { name: 'Planning tools' })
+    const navs = within(main).getAllByRole('navigation', { name: 'Budgets, recurring expenses, and paychecks' })
     expect(navs).toHaveLength(1)
     const heading = within(main).getByRole('heading', { level: 1 })
     expect(navs[0].compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
@@ -244,7 +244,7 @@ describe('application routes and shell', () => {
   it('opens /plan on Budgets with Budgets marked current in the switcher', () => {
     localStorage.setItem('token', 'synthetic-session')
     renderAt('/plan')
-    const switcher = screen.getByRole('navigation', { name: 'Planning tools' })
+    const switcher = screen.getByRole('navigation', { name: 'Budgets, recurring expenses, and paychecks' })
     expect(screen.getByRole('heading', { level: 1, name: 'Budgets workspace' })).toBeInTheDocument()
     expect(within(switcher).getByRole('link', { name: 'Budgets' })).toHaveAttribute('aria-current', 'page')
     expect(screen.getByTestId('location')).toHaveTextContent('/plan')
@@ -254,16 +254,16 @@ describe('application routes and shell', () => {
     localStorage.setItem('token', 'synthetic-session')
     await i18n.changeLanguage('es')
     renderAt('/plan')
-    const switcher = screen.getByRole('navigation', { name: 'Herramientas de planificación' })
+    const switcher = screen.getByRole('navigation', { name: 'Presupuestos, gastos recurrentes y nómina' })
     expect(within(switcher).getByRole('link', { name: 'Presupuestos' })).toHaveAttribute('href', '/budgets')
-    expect(within(switcher).getByRole('link', { name: 'Compromisos' })).toHaveAttribute('href', '/commitments')
-    expect(within(switcher).getByRole('link', { name: 'Pagos de nómina' })).toHaveAttribute('href', '/paychecks')
+    expect(within(switcher).getByRole('link', { name: 'Gastos recurrentes' })).toHaveAttribute('href', '/commitments')
+    expect(within(switcher).getByRole('link', { name: 'Nómina' })).toHaveAttribute('href', '/paychecks')
   })
 
   it.each(['/overview', '/transactions', '/analytics', '/more', '/investing', '/settings'])('renders no Planning tools navigation for %s', (path) => {
     localStorage.setItem('token', 'synthetic-session')
     renderAt(path)
-    expect(screen.queryByRole('navigation', { name: 'Planning tools' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('navigation', { name: 'Budgets, recurring expenses, and paychecks' })).not.toBeInTheDocument()
   })
 
   it('navigates hubs and history with main focus, and opens Settings from the Account menu', async () => {
@@ -277,7 +277,7 @@ describe('application routes and shell', () => {
     expect(main).toHaveFocus()
     expect(window.scrollTo).toHaveBeenCalledWith({ top: 0, behavior: 'instant' })
     expect(within(main).getByRole('heading', { name: 'Budgets workspace', level: 1 })).toBeInTheDocument()
-    expect(within(within(main).getByRole('navigation', { name: 'Planning tools' })).getByRole('link', { name: 'Budgets' }))
+    expect(within(within(main).getByRole('navigation', { name: 'Budgets, recurring expenses, and paychecks' })).getByRole('link', { name: 'Budgets' }))
       .toHaveAttribute('aria-current', 'page')
     window.scrollTo.mockClear()
     await user.click(within(main).getByRole('link', { name: /Paychecks/ }))
@@ -330,7 +330,7 @@ describe('application routes and shell', () => {
 
     expect(screen.getByText('person@example.com')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Account person@example.com' }))
-    await user.click(screen.getByRole('button', { name: 'Logout' }))
+    await user.click(screen.getByRole('button', { name: 'Sign out' }))
 
     expect(localStorage.getItem('token')).toBeNull()
     expect(localStorage.getItem('email')).toBeNull()
@@ -473,7 +473,7 @@ describe('application routes and shell', () => {
     expect(accountMenu).toHaveAttribute('aria-expanded', 'true')
     const accountOptions = screen.getByRole('group', { name: 'Account options' })
     expect(accountOptions).toHaveTextContent('person@example.com')
-    await user.click(within(accountOptions).getByRole('button', { name: 'Logout' }))
+    await user.click(within(accountOptions).getByRole('button', { name: 'Sign out' }))
 
     expect(localStorage.getItem('token')).toBeNull()
     expect(localStorage.getItem('email')).toBeNull()
@@ -540,7 +540,7 @@ describe('application routes and shell', () => {
     expect(screen.getByRole('link', { name: 'Saltar al contenido principal' })).toHaveAttribute('href', '#main-content')
     expect(screen.getByRole('button', { name: 'Menú de la cuenta' })).toBeInTheDocument()
     expect(screen.getAllByText('person@example.com')).toHaveLength(2)
-    for (const name of ['Inicio', 'Actividad', 'Plan', 'Análisis']) {
+    for (const name of ['Inicio', 'Movimientos', 'Plan', 'Reportes']) {
       expect(within(screen.getByRole('navigation', { name: 'Navegación principal' })).getByRole('link', { name })).toBeInTheDocument()
     }
     await user.click(screen.getByRole('button', { name: 'Menú de la cuenta' }))
@@ -565,7 +565,7 @@ describe('application routes and shell', () => {
     expect(within(panel).getByRole('link', { name: /Investing/ })).toHaveTextContent('Unavailable')
     expect(within(panel).getByRole('combobox', { name: 'Theme' })).toBeInTheDocument()
     expect(within(panel).getByRole('combobox', { name: 'Language' })).toBeInTheDocument()
-    expect(within(panel).getByRole('button', { name: 'Logout' })).toBeInTheDocument()
+    expect(within(panel).getByRole('button', { name: 'Sign out' })).toBeInTheDocument()
     expect(fetchSpy).not.toHaveBeenCalled()
   })
 

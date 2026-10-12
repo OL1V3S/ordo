@@ -11,15 +11,15 @@ describe("commitment display formatting", () => {
 
   it("shows the existing review label instead of a fabricated amount", () => {
     for (const value of [null, undefined, "", "abc", "1.005"]) {
-      expect(formatMoney(value)).toBe("Amount needs review");
-      expect(formatMoney(value, "es")).toBe("Amount needs review");
+      expect(formatMoney(value)).toBe("Exact amount unavailable");
+      expect(formatMoney(value, "es")).toBe("Exact amount unavailable");
     }
   });
 
   it("formats dates in the requested language with the unknown-date fallback", () => {
     expect(formatDate("2026-03-04")).toBe("Mar 4, 2026");
     expect(formatDate("2026-03-04", undefined, "es")).toBe("4 mar 2026");
-    expect(formatDate(null)).toBe("Unknown date");
-    expect(formatDate("not a date")).toBe("Unknown date");
+    expect(formatDate(null)).toBe("Date unavailable");
+    expect(formatDate("not a date")).toBe("Date unavailable");
   });
 });

@@ -46,36 +46,36 @@ describe("Paychecks page in Spanish", () => {
     const ended = makePaycheck({ id: "33333333-3333-3333-3333-333333333333", displayName: "Ended pay", lifecycle: "ended", nextProjection: null });
     loadState({ paychecks: [makePaycheck(), paused, ended] });
     await renderPage();
-    expect(screen.getByRole("heading", { level: 1, name: "Pagos de nómina" })).toBeInTheDocument();
-    expect(screen.getByText("Administra los pagos de nómina previstos y revisa los posibles pagos de nómina.")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Nómina" })).toBeInTheDocument();
+    expect(screen.getByText("Tus calendarios de nómina y cuándo esperas que te paguen. Solo esperado; no se suma a tus totales.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Agregar pago de nómina manualmente" })).toBeEnabled();
     expect(screen.getByRole("group", { name: "Pagos de nómina activos" })).toBeInTheDocument();
     expect(screen.getByRole("group", { name: "Pagos de nómina pausados", hidden: true })).toBeInTheDocument();
     expect(screen.getByRole("group", { name: "Pagos de nómina finalizados", hidden: true })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: /^Pagos de nómina pausados \(1\)$/ })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: /^Posibles pagos de nómina descartados \(0\)$/ })).toBeInTheDocument();
-    expect(screen.getByText("Los pagos de nómina pausados no tienen una ventana prevista activa.")).toBeInTheDocument();
-    expect(screen.getByText("Los pagos de nómina finalizados no tienen una ventana prevista activa.")).toBeInTheDocument();
+    expect(screen.getByText("Los pagos de nómina pausados no tienen una ventana esperada activa.")).toBeInTheDocument();
+    expect(screen.getByText("Los pagos de nómina finalizados no tienen una ventana esperada activa.")).toBeInTheDocument();
     expect(screen.getByText("1 por revisar")).toBeInTheDocument();
-    expect(screen.getByText("Revisa los depósitos antes de confirmar una previsión.")).toBeInTheDocument();
+    expect(screen.getByText("Revisa los depósitos antes de confirmar un calendario de nómina.")).toBeInTheDocument();
 
     const profile = within(card("Acme Payroll"));
     expect(profile.getByText("Activo")).toBeInTheDocument();
-    expect(profile.getByText("Monto previsto")).toBeInTheDocument();
-    expect(profile.getByText("Próxima ventana prevista")).toBeInTheDocument();
-    expect(profile.getByText("Previsto, no garantizado.")).toBeInTheDocument();
+    expect(profile.getByText("Monto esperado")).toBeInTheDocument();
+    expect(profile.getByText("Próxima ventana esperada")).toBeInTheDocument();
+    expect(profile.getByText("Esperado, no garantizado.")).toBeInTheDocument();
     expect(profile.getByText("9 ago 2026–11 ago 2026")).toBeInTheDocument();
     expect(profile.getByText("Confirmado a partir de depósitos")).toBeInTheDocument();
     expect(profile.getByText("Calendario").closest("div")).toHaveTextContent("Mensual, día 10");
-    expect(profile.getByText("Ventana de fechas prevista").closest("div")).toHaveTextContent("1 día antes · 1 día después");
+    expect(profile.getByText("Ventana de fechas esperada").closest("div")).toHaveTextContent("1 día antes · 1 día después");
     expect(profile.getByText("Depósitos de nómina vinculados").closest("div")).toHaveTextContent("3 depósito(s) vinculado(s)");
     expect(profile.getByText("Depósitos de nómina vinculados (3)")).toBeInTheDocument();
-    expect(profile.getByText("Perfiles evaluados").closest("div")).toHaveTextContent("12 jul 2026");
+    expect(profile.getByText("Calendarios de nómina evaluados").closest("div")).toHaveTextContent("12 jul 2026");
     expect(profile.getAllByText(/En la fecha del calendario/)).toHaveLength(3);
     expect(profile.getAllByText("Historial de confirmación")).toHaveLength(3);
     expect(profile.getByRole("button", { name: "Editar Acme Payroll", hidden: true })).toBeInTheDocument();
     expect(profile.getByRole("button", { name: "Pausar Acme Payroll", hidden: true })).toBeInTheDocument();
-    expect(profile.getByRole("button", { name: "Registrar pago recibido de Acme Payroll" })).toBeInTheDocument();
+    expect(profile.getByRole("button", { name: "Vincular un depósito a Acme Payroll" })).toBeInTheDocument();
 
     const candidate = within(card("acme payroll"));
     expect(candidate.getByText("Depósitos observados")).toBeInTheDocument();
@@ -95,8 +95,8 @@ describe("Paychecks page in Spanish", () => {
     loadState({ paychecks: [profile] });
     await renderPage();
     const active = within(card("Acme Payroll"));
-    expect(active.getByText("Monto previsto")).toHaveTextContent(/previsto/);
-    expect(active.getByText("Previsto, no garantizado.")).toBeInTheDocument();
+    expect(active.getByText("Monto esperado")).toHaveTextContent(/previsto/);
+    expect(active.getByText("Esperado, no garantizado.")).toBeInTheDocument();
     expect(active.getByText("Pago de nómina recibido")).not.toHaveTextContent(/previst/i);
     expect(active.getByText("Pago de nómina recibido")).toHaveTextContent(/recibido/);
     await user.click(screen.getByLabelText("Detalles de Acme Payroll"));
@@ -105,7 +105,7 @@ describe("Paychecks page in Spanish", () => {
     expect(screen.getByRole("button", { name: "Confirmar eliminación del vínculo" })).toHaveFocus();
     await user.click(screen.getByRole("button", { name: "Confirmar eliminación del vínculo" }));
     expect(paychecksApi.removeReceipt).toHaveBeenCalledExactlyOnceWith(profile.id, 101);
-    expect(await screen.findByRole("status")).toHaveTextContent("Vínculo de pago de nómina quitado. La entrada de dinero se mantiene en Actividad.");
+    expect(await screen.findByRole("status")).toHaveTextContent("Vínculo de pago de nómina quitado. El depósito se mantiene en Movimientos.");
   });
 
   it("records a received paycheck with localized panel, warnings and cash-in validation", async () => {
@@ -113,15 +113,15 @@ describe("Paychecks page in Spanish", () => {
     const profile = makePaycheck();
     loadState({ paychecks: [profile] });
     await renderPage();
-    await user.click(screen.getByRole("button", { name: "Registrar pago recibido de Acme Payroll" }));
-    const panel = screen.getByRole("region", { name: "Registrar pago de nómina recibido de Acme Payroll" });
-    expect(within(panel).getByRole("heading", { name: "Registrar pago recibido" })).toBeInTheDocument();
-    expect(within(panel).getByText("Vincula una entrada de dinero real a este pago de nómina. Esto no cambia la previsión guardada.")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Vincular un depósito a Acme Payroll" }));
+    const panel = screen.getByRole("region", { name: "Depósito para vincular a Acme Payroll" });
+    expect(within(panel).getByRole("heading", { name: "Vincular un depósito" })).toBeInTheDocument();
+    expect(within(panel).getByText("Vincula a este calendario de nómina un depósito que recibiste. El monto y las fechas esperados no cambian.")).toBeInTheDocument();
     expect(within(panel).getByRole("option", { name: "Actual: 9 ago 2026–11 ago 2026" })).toBeInTheDocument();
     expect(within(panel).getByRole("option", { name: "Anterior: 9 jul 2026–11 jul 2026" })).toBeInTheDocument();
-    expect(within(panel).getByText("Origen de la entrada de dinero")).toBeInTheDocument();
+    expect(within(panel).getByText("¿Qué depósito?")).toBeInTheDocument();
     expect(within(panel).getByLabelText(/Ingresar una nueva entrada de dinero/)).toBeChecked();
-    const form = within(panel).getByRole("form", { name: "Agregar entrada de dinero" });
+    const form = within(panel).getByRole("form", { name: "Agregar depósito" });
     const description = within(form).getByLabelText("Descripción");
     const amount = within(form).getByLabelText("Monto");
     const date = within(form).getByLabelText("Fecha");
@@ -135,7 +135,7 @@ describe("Paychecks page in Spanish", () => {
     fireEvent.change(description, { target: { value: "" } });
     fireEvent.change(amount, { target: { value: "0" } });
     fireEvent.change(date, { target: { value: "" } });
-    await user.click(within(form).getByRole("button", { name: "Agregar entrada de dinero" }));
+    await user.click(within(form).getByRole("button", { name: "Agregar depósito" }));
     expect(paychecksApi.recordReceipt).not.toHaveBeenCalled();
     expect(within(form).getByRole("alert")).toHaveTextContent("Revisa los campos marcados.");
     expect(description).toHaveAccessibleDescription("Ingresa una descripción.");
@@ -143,7 +143,7 @@ describe("Paychecks page in Spanish", () => {
     expect(date).toHaveAccessibleDescription("Ingresa una fecha válida.");
 
     fireEvent.change(description, { target: { value: "x".repeat(501) } });
-    await user.click(within(form).getByRole("button", { name: "Agregar entrada de dinero" }));
+    await user.click(within(form).getByRole("button", { name: "Agregar depósito" }));
     expect(description).toHaveAccessibleDescription("Usa 500 caracteres o menos.");
     await act(async () => { await i18n.changeLanguage("en"); });
     expect(description).toHaveAccessibleDescription("Use 500 characters or fewer.");
@@ -154,12 +154,12 @@ describe("Paychecks page in Spanish", () => {
     fireEvent.change(amount, { target: { value: "2600.25" } });
     fireEvent.change(date, { target: { value: "2026-08-15" } });
     loadState({ paychecks: [makePaycheck({ receiptSlots: [] })] });
-    await user.click(within(form).getByRole("button", { name: "Agregar entrada de dinero" }));
+    await user.click(within(form).getByRole("button", { name: "Agregar depósito" }));
     expect(paychecksApi.recordReceipt).toHaveBeenCalledExactlyOnceWith(profile.id, {
       slotAnchor: "2026-08-10",
       newInflow: { description: "Acme Payroll", amount: "2600.25", date: "2026-08-15" },
     });
-    expect(await screen.findByRole("status")).toHaveTextContent("Pago de nómina recibido. La entrada de dinero real ya está vinculada.");
+    expect(await screen.findByRole("status")).toHaveTextContent("Depósito vinculado a este calendario de nómina.");
   });
 
   it("links existing cash in with localized search, empty and load-failure messages", async () => {
@@ -168,16 +168,16 @@ describe("Paychecks page in Spanish", () => {
     loadState({ paychecks: [profile] });
     inflowsApi.getAll.mockResolvedValue(response([{ id: 7, description: "Acme deposit", date: "2026-08-10", amount: "2500.00" }]));
     await renderPage();
-    await user.click(screen.getByRole("button", { name: "Registrar pago recibido de Acme Payroll" }));
+    await user.click(screen.getByRole("button", { name: "Vincular un depósito a Acme Payroll" }));
     await user.click(screen.getByLabelText(/Usar una entrada de dinero existente/));
-    expect(await screen.findByText("Elegir entrada de dinero")).toBeInTheDocument();
+    expect(await screen.findByText("Elegir un depósito")).toBeInTheDocument();
     expect(screen.getByLabelText(/Acme deposit · 10 ago 2026 · USD 2,500\.00/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Vincular entrada de dinero" })).toBeDisabled();
-    await user.type(screen.getByLabelText("Buscar entradas de dinero"), "zzz");
-    expect(screen.getByText("Ninguna entrada de dinero disponible coincide.")).toBeInTheDocument();
-    await user.clear(screen.getByLabelText("Buscar entradas de dinero"));
+    expect(screen.getByRole("button", { name: "Vincular este depósito" })).toBeDisabled();
+    await user.type(screen.getByLabelText("Buscar depósitos"), "zzz");
+    expect(screen.getByText("Ningún depósito guardado coincide.")).toBeInTheDocument();
+    await user.clear(screen.getByLabelText("Buscar depósitos"));
     await user.click(screen.getByLabelText(/Acme deposit/));
-    await user.click(screen.getByRole("button", { name: "Vincular entrada de dinero" }));
+    await user.click(screen.getByRole("button", { name: "Vincular este depósito" }));
     expect(paychecksApi.recordReceipt).toHaveBeenCalledExactlyOnceWith(profile.id, { slotAnchor: "2026-08-10", existingInflowId: 7 });
   });
 
@@ -185,21 +185,21 @@ describe("Paychecks page in Spanish", () => {
     const user = userEvent.setup();
     inflowsApi.getAll.mockRejectedValue(new Error("offline"));
     await renderPage();
-    await user.click(screen.getByRole("button", { name: "Registrar pago recibido de Acme Payroll" }));
+    await user.click(screen.getByRole("button", { name: "Vincular un depósito a Acme Payroll" }));
     await user.click(screen.getByLabelText(/Usar una entrada de dinero existente/));
-    expect(await screen.findByRole("alert")).toHaveTextContent("No se pudieron cargar las entradas de dinero. Cancela e inténtalo de nuevo.");
+    expect(await screen.findByRole("alert")).toHaveTextContent("No pudimos cargar tus depósitos. Cancela e inténtalo de nuevo.");
   });
 
   it("localizes the manual paycheck form, its labels and its validation messages", async () => {
     const user = userEvent.setup();
     await renderPage();
     await user.click(screen.getByRole("button", { name: "Agregar pago de nómina manualmente" }));
-    const section = screen.getByRole("region", { name: "Agregar una previsión de nómina" });
+    const section = screen.getByRole("region", { name: "Agregar un calendario de nómina" });
     expect(within(section).getByText(/Esta es tu propia previsión, no verificada por el empleador/)).toBeInTheDocument();
     const form = within(section).getByRole("form", { name: "Crear pago de nómina" });
     expect(within(form).getByText(/Crea un perfil activo para tu pago de nómina previsto/)).toBeInTheDocument();
     expect(within(form).getByRole("option", { name: "Cada dos semanas" })).toBeInTheDocument();
-    expect(within(form).getByRole("option", { name: "Dos veces al mes" })).toBeInTheDocument();
+    expect(within(form).getByRole("option", { name: "Quincenal" })).toBeInTheDocument();
     expect(within(form).getByRole("option", { name: "Rango de monto" })).toBeInTheDocument();
     expect(within(form).getByLabelText("Día del ancla mensual")).toBeInTheDocument();
 
@@ -229,7 +229,7 @@ describe("Paychecks page in Spanish", () => {
     await user.click(screen.getByRole("button", { name: "Acciones para Acme Payroll" }));
     await user.click(screen.getByRole("button", { name: "Finalizar Acme Payroll" }));
     const group = screen.getByRole("group", { name: "Finalizar Acme Payroll" });
-    expect(group).toHaveTextContent("¿Finalizar Acme Payroll? Su proyección se detendrá. El perfil y la evidencia vinculada se mantendrán, y podrás reactivarlo.");
+    expect(group).toHaveTextContent("¿Finalizar Acme Payroll? Sus pagos de nómina esperados se detendrán. El calendario de nómina y sus depósitos vinculados se quedan, y puedes volver a activarlo.");
     expect(within(group).getByRole("button", { name: "Confirmar finalización" })).toHaveFocus();
     expect(within(group).getByRole("button", { name: "Cancelar finalización" })).toBeEnabled();
   });
@@ -264,7 +264,7 @@ describe("Paychecks page in Spanish", () => {
   it("shows localized empty states", async () => {
     loadState({ candidates: [], paychecks: [] });
     render(<PaychecksPage />);
-    expect(await screen.findByText("Todavía no hay perfiles de pago de nómina")).toBeInTheDocument();
+    expect(await screen.findByText("Todavía no hay calendarios de nómina")).toBeInTheDocument();
     expect(screen.getByText(/Un depósito por sí solo no es un pago de nómina confirmado/)).toBeInTheDocument();
     expect(screen.getByText(/Ningún posible pago de nómina requiere revisión/)).toBeInTheDocument();
     expect(screen.getByText("No hay posibles pagos de nómina descartados.")).toBeInTheDocument();

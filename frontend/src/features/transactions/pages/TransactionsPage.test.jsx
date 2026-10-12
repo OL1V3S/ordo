@@ -237,7 +237,7 @@ describe('existing expense workflows', () => {
   it('keeps the page transaction-focused without chart or budget-read controls', () => {
     render(<TransactionsPage />)
 
-    expect(screen.getByRole('heading', { name: 'Activity' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Transactions' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Add expense' })).toHaveAttribute('aria-expanded', 'false')
     expect(screen.queryByRole('heading', { name: 'Spending vs Budget Limits' })).not.toBeInTheDocument()
     expect(screen.queryByLabelText('Chart month')).not.toBeInTheDocument()
@@ -273,7 +273,7 @@ describe('existing expense workflows', () => {
   it('shows the timeline empty state after a successful zero-row response and no per-type list', () => {
     render(<TransactionsPage />)
 
-    expect(screen.getByText('No recorded activity yet.')).toBeVisible()
+    expect(screen.getByText('No transactions yet.')).toBeVisible()
     expect(screen.queryByText('No expenses recorded yet.')).not.toBeInTheDocument()
     expect(screen.queryByText('Loading expenses...')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
@@ -345,7 +345,7 @@ describe('existing expense workflows', () => {
     })
     render(<TransactionsPage />)
 
-    await user.click(screen.getByRole('button', { name: 'Save 1 expense and 0 incoming deposits' }))
+    await user.click(screen.getByRole('button', { name: 'Save 1 expense and 0 deposits' }))
 
     expect(confirm).toHaveBeenCalledOnce()
     expect(refresh).toHaveBeenCalledOnce()
@@ -370,7 +370,7 @@ describe('existing expense workflows', () => {
     })
     render(<TransactionsPage />)
 
-    await user.click(screen.getByRole('button', { name: 'Save 0 expenses and 1 incoming deposit' }))
+    await user.click(screen.getByRole('button', { name: 'Save 0 expenses and 1 deposit' }))
 
     expect(refreshCash).toHaveBeenCalledOnce()
     expect(refreshExpenses).not.toHaveBeenCalled()
@@ -395,7 +395,7 @@ describe('existing expense workflows', () => {
     })
     render(<TransactionsPage />)
 
-    await user.click(screen.getByRole('button', { name: 'Save 1 expense and 1 incoming deposit' }))
+    await user.click(screen.getByRole('button', { name: 'Save 1 expense and 1 deposit' }))
 
     expect(refreshExpenses).toHaveBeenCalledOnce()
     expect(refreshCash).toHaveBeenCalledOnce()
@@ -420,7 +420,7 @@ describe('existing expense workflows', () => {
     })
     render(<TransactionsPage />)
 
-    await user.click(screen.getByRole('button', { name: 'Save 0 expenses and 1 incoming deposit' }))
+    await user.click(screen.getByRole('button', { name: 'Save 0 expenses and 1 deposit' }))
 
     expect(refreshCash).toHaveBeenCalledOnce()
     expect(refreshExpenses).not.toHaveBeenCalled()
@@ -453,7 +453,7 @@ describe('existing expense workflows', () => {
     })
     const { rerender } = render(<TransactionsPage />)
 
-    await user.click(screen.getByRole('button', { name: 'Save 1 expense and 1 incoming deposit' }))
+    await user.click(screen.getByRole('button', { name: 'Save 1 expense and 1 deposit' }))
 
     expect(refreshExpenses).toHaveBeenCalledOnce()
     expect(refreshCash).toHaveBeenCalledOnce()
@@ -489,7 +489,7 @@ describe('existing expense workflows', () => {
     })
     render(<TransactionsPage />)
 
-    await user.click(screen.getByRole('button', { name: 'Save 1 expense and 0 incoming deposits' }))
+    await user.click(screen.getByRole('button', { name: 'Save 1 expense and 0 deposits' }))
 
     expect(refresh).toHaveBeenCalledOnce()
     expect(await screen.findByRole('alert')).toHaveTextContent(
@@ -528,7 +528,7 @@ describe('existing expense workflows', () => {
 
     const table = screen.getByRole('region', { name: 'Statement import preview' })
     expect(within(table).getByText('Possible duplicate — review before selecting')).toBeInTheDocument()
-    expect(within(table).getByText('Needs review')).toBeInTheDocument()
+    expect(within(table).getByText('To review')).toBeInTheDocument()
     expect(within(table).getByLabelText('Not selectable')).toBeDisabled()
     await user.click(within(table).getByLabelText(/^Select for import for /))
     expect(updateRow).toHaveBeenCalledWith('row-1', expect.objectContaining({ selectedForImport: true }))
@@ -544,7 +544,7 @@ describe('existing expense workflows', () => {
       selectedForImport: false,
       selectedForInflow: false,
     })
-    expect(screen.getByRole('button', { name: 'Save 0 expenses and 0 incoming deposits' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Save 0 expenses and 0 deposits' })).toBeDisabled()
   })
 })
 
@@ -567,7 +567,7 @@ describe('Activity task hierarchy and safeguards', () => {
   it('starts with a status area and opens tasks with focus; a competing opener preserves the add draft', async () => {
     const user = userEvent.setup()
     render(<TransactionsPage />)
-    expect(screen.getByRole('button', { name: 'Refresh activity' })).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Refresh expenses' })).toBeVisible()
     expect(screen.queryByRole('button', { name: 'Choose PDF' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Save expense' })).not.toBeInTheDocument()
     const task = await fillNewExpense(user)
@@ -586,9 +586,9 @@ describe('Activity task hierarchy and safeguards', () => {
     render(<TransactionsPage />)
     expect(screen.queryByRole('button', { name: /records$/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('region', { name: 'Expenses table' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('region', { name: 'Cash in table' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Deposits table' })).not.toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Spending' })).not.toBeInTheDocument()
-    expect(screen.queryByLabelText('Search cash in')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Search deposits')).not.toBeInTheDocument()
     expect(document.getElementById('activity-task')).not.toBeVisible()
     expect(screen.getByText(/not automatically income or a paycheck/)).toBeVisible()
   })
@@ -621,7 +621,7 @@ describe('Activity task hierarchy and safeguards', () => {
     expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled()
     expect(screen.getByRole('alert')).toHaveTextContent('We couldn’t load your expenses')
     await user.click(screen.getByRole('button', { name: 'Cancel' }))
-    await waitFor(() => expect(screen.getByRole('heading', { level: 1, name: 'Activity' })).toHaveFocus())
+    await waitFor(() => expect(screen.getByRole('heading', { level: 1, name: 'Transactions' })).toHaveFocus())
   })
   it('returns edit Cancel focus to the menu trigger when it is still connected', async () => {
     const user = userEvent.setup()
@@ -682,9 +682,9 @@ describe('Activity task hierarchy and safeguards', () => {
     expect(save).toBeDisabled()
     await user.click(save)
     expect(addExpense).toHaveBeenCalledOnce()
-    await user.click(screen.getByRole('button', { name: 'Refresh activity' }))
+    await user.click(screen.getByRole('button', { name: 'Refresh expenses' }))
     expect(save).toBeDisabled()
-    await user.click(screen.getByRole('button', { name: 'Refresh activity' }))
+    await user.click(screen.getByRole('button', { name: 'Refresh expenses' }))
     expect(save).toBeEnabled()
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
     expect(screen.getByRole('status')).toHaveTextContent('Activity refreshed. Check the records')

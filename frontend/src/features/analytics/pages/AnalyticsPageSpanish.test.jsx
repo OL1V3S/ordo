@@ -57,8 +57,8 @@ describe("Analytics page in Spanish", () => {
 
   it("renders the header, month selector with Spanish month names, summary, and categories", () => {
     renderPage();
-    expect(screen.getByRole("heading", { level: 1, name: "Análisis" })).toBeInTheDocument();
-    expect(screen.getByText("Mira las entradas de dinero y los gastos registrados, mes por mes.")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Reportes" })).toBeInTheDocument();
+    expect(screen.getByText("Mira tus depósitos y gastos, mes por mes.")).toBeInTheDocument();
     const selector = screen.getByLabelText("Mes");
     expect(selector).toHaveValue("2026-08");
     expect(within(selector).getAllByRole("option").map(({ value, textContent }) => [value, textContent]))
@@ -70,7 +70,7 @@ describe("Analytics page in Spanish", () => {
     expect(screen.getByText("Estado de los presupuestos")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Abrir presupuestos" })).toHaveAttribute("href", "/budgets");
     expect(screen.getByRole("button", { name: "Actualizar flujo de efectivo" })).toBeInTheDocument();
-    const summary = screen.getByRole("heading", { name: "Entradas de dinero registradas vs. gastado" }).closest("section");
+    const summary = screen.getByRole("heading", { name: "Depósitos y gastos que registraste" }).closest("section");
     expect(summary).toHaveTextContent("agosto de 2026");
     expect(summary).toHaveTextContent("Hasta el 14 de agosto de 2026");
     expect(summary).toHaveTextContent("USD 100.00");
@@ -78,7 +78,7 @@ describe("Analytics page in Spanish", () => {
     expect(rows[0]).toHaveTextContent("Food");
     expect(rows[0]).toHaveTextContent("USD 90.00 · 90.0%");
     expect(screen.getByTestId("cash-flow-chart")).toBeInTheDocument();
-    expect(screen.queryByText("Insights")).not.toBeInTheDocument();
+    expect(screen.queryByText("Reports")).not.toBeInTheDocument();
     expect(screen.queryByText("Refresh cash flow")).not.toBeInTheDocument();
   });
 
@@ -86,14 +86,14 @@ describe("Analytics page in Spanish", () => {
     renderPage();
     fireEvent.change(screen.getByLabelText("Mes"), { target: { value: "2026-07" } });
     expect(useCashFlow).toHaveBeenLastCalledWith("2026-07");
-    const summary = screen.getByRole("heading", { name: "Entradas de dinero registradas vs. gastado" }).closest("section");
+    const summary = screen.getByRole("heading", { name: "Depósitos y gastos que registraste" }).closest("section");
     expect(summary).toHaveTextContent("julio de 2026");
     expect(summary).not.toHaveTextContent("Hasta el");
     await act(async () => { await i18n.changeLanguage("en"); });
-    expect(screen.getByRole("heading", { level: 1, name: "Insights" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Reports" })).toBeInTheDocument();
     expect(within(screen.getByLabelText("Month")).getAllByRole("option").map(({ textContent }) => textContent))
       .toEqual(["August 2026", "July 2026"]);
-    expect(screen.getByRole("heading", { name: "Recorded cash in vs Spent" }).closest("section")).toHaveTextContent("July 2026");
+    expect(screen.getByRole("heading", { name: "Deposits and spending you recorded" }).closest("section")).toHaveTextContent("July 2026");
   });
 
   it("renders month comparison with the previous month name, and largest expenses", () => {
@@ -108,7 +108,7 @@ describe("Analytics page in Spanish", () => {
     const largest = openDetail("Gastos más grandes");
     expect(largest).toHaveTextContent("Los cinco principales");
     expect(largest).toHaveTextContent("Groceries");
-    expect(within(largest).getByRole("link", { name: "Revisar actividad" })).toHaveAttribute("href", "/transactions");
+    expect(within(largest).getByRole("link", { name: "Revisar movimientos" })).toHaveAttribute("href", "/transactions");
   });
 
   it("labels the comparison month as the Spanish name of the previous month across a year boundary", () => {
@@ -146,7 +146,7 @@ describe("Analytics page in Spanish", () => {
     expect(openDetail("Cambio de un mes a otro")).toHaveTextContent("USD 0.00");
     openDetail("Gastos más grandes");
     expect(screen.getAllByText("No hay gastos registrados").length).toBeGreaterThan(0);
-    expect(screen.getByText("No hay entradas de dinero registradas")).toBeInTheDocument();
+    expect(screen.getByText("No hay depósitos registrados")).toBeInTheDocument();
     expect(screen.getByText("No hay cambios de categoría para mostrar entre estos meses.")).toBeInTheDocument();
     expect(screen.getByText("No hay gastos para clasificar este mes.")).toBeInTheDocument();
     expect(screen.getByText("Ninguno de los dos meses tiene gastos registrados.")).toBeInTheDocument();
@@ -155,13 +155,13 @@ describe("Analytics page in Spanish", () => {
   it("renders the cash-flow loading and retryable error states in Spanish", () => {
     useCashFlow.mockReturnValue(loadedCashFlow("2026-08", { data: null, loading: true }));
     const { rerender } = renderPage();
-    expect(screen.getByRole("region", { name: "Flujo de efectivo registrado" })).toHaveAttribute("aria-busy", "true");
-    expect(screen.getByText("Cargando el flujo de efectivo registrado...")).toHaveAttribute("role", "status");
+    expect(screen.getByRole("region", { name: "Depósitos y gastos" })).toHaveAttribute("aria-busy", "true");
+    expect(screen.getByText("Cargando depósitos y gastos...")).toHaveAttribute("role", "status");
     useCashFlow.mockReturnValue(loadedCashFlow("2026-08", {
       data: null, error: i18n.t("cashFlow.errors.loadFailed", { ns: "analytics" }),
     }));
     rerender(<MemoryRouter><AnalyticsPage /></MemoryRouter>);
-    expect(screen.getByRole("alert")).toHaveTextContent("No pudimos cargar el flujo de efectivo registrado. Inténtalo de nuevo.");
+    expect(screen.getByRole("alert")).toHaveTextContent("No pudimos cargar los depósitos y gastos. Inténtalo de nuevo.");
     fireEvent.click(screen.getByRole("button", { name: "Reintentar flujo de efectivo" }));
     expect(refreshCashFlow).toHaveBeenCalledOnce();
   });
@@ -169,7 +169,7 @@ describe("Analytics page in Spanish", () => {
   it("renders the spending loading and error states in Spanish in the status area", () => {
     useExpenses.mockReturnValue({ expenses: [], loading: true, error: null, refresh: refreshExpenses });
     const { rerender } = renderPage();
-    expect(screen.getByText("Cargando el análisis de gastos...")).toBeInTheDocument();
+    expect(screen.getByText("Cargando el reporte de gastos...")).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "Más detalle de gastos" })).toBeInTheDocument();
 
     useExpenses.mockReturnValue({ expenses: [], loading: false, error: new Error("failed"), refresh: refreshExpenses });

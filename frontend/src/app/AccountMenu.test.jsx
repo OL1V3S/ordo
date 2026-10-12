@@ -59,7 +59,7 @@ describe('AccountMenu', () => {
     const user = userEvent.setup()
     renderMenu(<AccountMenu variant="bar" email="a@example.com" onLogout={vi.fn()} panelId="panel-a" />)
     await user.click(screen.getByRole('button', { name: 'Account menu' }))
-    within(screen.getByRole('group')).getByRole('button', { name: 'Logout' }).focus()
+    within(screen.getByRole('group')).getByRole('button', { name: 'Sign out' }).focus()
     await user.tab()
     expect(screen.queryByRole('group')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Outside' })).toHaveFocus()

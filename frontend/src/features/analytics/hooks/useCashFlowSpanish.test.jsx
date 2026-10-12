@@ -22,10 +22,10 @@ describe("cash-flow hook messages in Spanish", () => {
 
   it("returns the localized sign-in message and follows a language change without refetching", async () => {
     const { result } = renderHook(() => useCashFlow("2026-08"));
-    await waitFor(() => expect(result.current.error).toBe("Inicia sesión para ver el flujo de efectivo registrado."));
+    await waitFor(() => expect(result.current.error).toBe("Inicia sesión para ver los depósitos y gastos."));
     expect(result.current.data).toBeNull();
     await act(async () => { await i18n.changeLanguage("en"); });
-    expect(result.current.error).toBe("Sign in to view recorded cash flow.");
+    expect(result.current.error).toBe("Sign in to view deposits and spending.");
     expect(cashFlowApi.get).not.toHaveBeenCalled();
   });
 
@@ -33,10 +33,10 @@ describe("cash-flow hook messages in Spanish", () => {
     establishSession("owner-a", "a@example.test");
     cashFlowApi.get.mockRejectedValue(new Error("failed"));
     const { result } = renderHook(() => useCashFlow("2026-08"));
-    await waitFor(() => expect(result.current.error).toBe("No pudimos cargar el flujo de efectivo registrado. Inténtalo de nuevo."));
+    await waitFor(() => expect(result.current.error).toBe("No pudimos cargar los depósitos y gastos. Inténtalo de nuevo."));
     expect(result.current.data).toBeNull();
     await act(async () => { await i18n.changeLanguage("en"); });
-    expect(result.current.error).toBe("We couldn’t load recorded cash flow. Try again.");
+    expect(result.current.error).toBe("We couldn’t load deposits and spending. Try again.");
     act(() => result.current.refresh());
     await waitFor(() => expect(cashFlowApi.get).toHaveBeenCalledTimes(2));
   });

@@ -65,11 +65,11 @@ describe("monthly spending insights page", () => {
   it("shows the selected total, ranked categories, budgets, comparison, and largest expenses", () => {
     renderPage();
 
-    expect(screen.getByRole("heading", { level: 1, name: "Insights" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Reports" })).toBeInTheDocument();
     expect(screen.getByLabelText("Month")).toHaveValue("2026-08");
     expect(screen.getAllByLabelText("Month")).toHaveLength(1);
     expect(useBudgetLimits).not.toHaveBeenCalled();
-    const cashFlowSummary = screen.getByRole("heading", { name: "Recorded cash in vs Spent" }).closest("section");
+    const cashFlowSummary = screen.getByRole("heading", { name: "Deposits and spending you recorded" }).closest("section");
     const refresh = screen.getByRole("button", { name: "Refresh cash flow" });
     expect(cashFlowSummary).toHaveTextContent("$100.00");
     expect(refresh.compareDocumentPosition(cashFlowSummary) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -86,7 +86,7 @@ describe("monthly spending insights page", () => {
 
     expect(openDetail("Month-over-month change")).toHaveTextContent("+$25.00");
     expect(openDetail("Largest expenses")).toHaveTextContent("Groceries");
-    expect(screen.getByRole("link", { name: "Review activity" })).toHaveAttribute("href", "/transactions");
+    expect(screen.getByRole("link", { name: "Review transactions" })).toHaveAttribute("href", "/transactions");
   });
 
   it("keeps spending detail closed by default, keyboard reachable, and open across page state updates", () => {
@@ -125,16 +125,16 @@ describe("monthly spending insights page", () => {
 
     fireEvent.change(selector, { target: { value: "2026-07" } });
     expect(useCashFlow).toHaveBeenLastCalledWith("2026-07");
-    expect(screen.getByRole("heading", { name: "Recorded cash in vs Spent" }).closest("section"))
+    expect(screen.getByRole("heading", { name: "Deposits and spending you recorded" }).closest("section"))
       .toHaveTextContent("$75.00");
   });
 
   it("renders expense loading and blocking error states without transient insights", () => {
     useExpenses.mockReturnValue({ expenses: [], loading: true, error: null, refresh: refreshExpenses });
     const { rerender } = renderPage();
-    expect(screen.getByText("Loading spending insights...").closest(".analytics-status")).not.toBeNull();
+    expect(screen.getByText("Loading spending report...").closest(".analytics-status")).not.toBeNull();
     expect(screen.queryByRole("heading", { level: 3, name: "Largest expenses" })).not.toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Recorded cash in vs Spent" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Deposits and spending you recorded" })).toBeInTheDocument();
 
     useExpenses.mockReturnValue({ expenses: [], loading: false, error: new Error("failed"), refresh: refreshExpenses });
     rerender(<MemoryRouter><AnalyticsPage /></MemoryRouter>);
@@ -170,7 +170,7 @@ describe("monthly spending insights page", () => {
     expect(openDetail("Month-over-month change")).toHaveTextContent("$0.00");
     openDetail("Largest expenses");
     expect(screen.getAllByText("No spending recorded").length).toBeGreaterThan(0);
-    expect(screen.getByText("No cash in recorded")).toBeInTheDocument();
+    expect(screen.getByText("No deposits recorded")).toBeInTheDocument();
     expect(screen.getByText("No category changes to show between these months.")).toBeInTheDocument();
     expect(screen.getByText("No expenses to rank for this month.")).toBeInTheDocument();
     expect(screen.getByText("Neither month has recorded spending.")).toBeInTheDocument();
@@ -220,15 +220,15 @@ describe("monthly spending insights page", () => {
   it("keeps all four cash-flow views unavailable during initial loading and retryable failure", () => {
     useCashFlow.mockReturnValue(loadedCashFlow("2026-08", { data: null, loading: true }));
     const { rerender } = renderPage();
-    expect(screen.getByRole("region", { name: "Recorded cash flow" })).toHaveAttribute("aria-busy", "true");
-    expect(screen.getByText("Loading recorded cash flow...")).toHaveAttribute("role", "status");
-    expect(screen.queryByRole("heading", { name: "Recorded cash in vs Spent" })).not.toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Deposits and spending" })).toHaveAttribute("aria-busy", "true");
+    expect(screen.getByText("Loading deposits and spending...")).toHaveAttribute("role", "status");
+    expect(screen.queryByRole("heading", { name: "Deposits and spending you recorded" })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Where it went" })).not.toBeInTheDocument();
     expect(screen.queryByTestId("cash-flow-chart")).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Largest expenses" })).toBeInTheDocument();
-    useCashFlow.mockReturnValue(loadedCashFlow("2026-08", { data: null, error: "We couldn’t load recorded cash flow. Try again." }));
+    useCashFlow.mockReturnValue(loadedCashFlow("2026-08", { data: null, error: "We couldn’t load deposits and spending. Try again." }));
     rerender(<MemoryRouter><AnalyticsPage /></MemoryRouter>);
-    expect(screen.getByRole("region", { name: "Recorded cash flow" })).toHaveAttribute("aria-busy", "false");
+    expect(screen.getByRole("region", { name: "Deposits and spending" })).toHaveAttribute("aria-busy", "false");
     expect(screen.getByRole("alert")).toHaveTextContent("couldn’t load recorded cash flow");
     fireEvent.click(screen.getByRole("button", { name: "Retry cash flow" }));
     expect(refreshCashFlow).toHaveBeenCalledOnce();

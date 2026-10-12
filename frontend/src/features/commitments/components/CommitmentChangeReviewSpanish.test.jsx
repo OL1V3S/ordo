@@ -61,10 +61,10 @@ afterEach(() => i18n.changeLanguage("en"));
 describe("commitment change review in Spanish", () => {
   it("renders complete count-aware phrases per cadence and change dimension", () => {
     const cases = [
-      [missingChange({}, { cadence: "monthly" }), "Han pasado 3 fechas mensuales previstas sin un gasto registrado que coincida."],
-      [missingChange({ missedSlotAnchors: ["2026-10-20"] }, { cadence: "weekly" }), "Ha pasado 1 fecha semanal prevista sin un gasto registrado que coincida."],
-      [missingChange({ missedSlotAnchors: ["2026-09-20", "2026-10-20"] }, { cadence: "yearly" }), "Han pasado 2 fechas anuales previstas sin un gasto registrado que coincida."],
-      [missingChange({ missedSlotAnchors: ["2026-10-20"] }, { cadence: "unknown" }), "Ha pasado 1 fecha prevista sin un gasto registrado que coincida."],
+      [missingChange({}, { cadence: "monthly" }), "Han pasado 3 fechas mensuales esperadas sin un gasto registrado que coincida."],
+      [missingChange({ missedSlotAnchors: ["2026-10-20"] }, { cadence: "weekly" }), "Ha pasado 1 fecha semanal esperada sin un gasto registrado que coincida."],
+      [missingChange({ missedSlotAnchors: ["2026-09-20", "2026-10-20"] }, { cadence: "yearly" }), "Han pasado 2 fechas anuales esperadas sin un gasto registrado que coincida."],
+      [missingChange({ missedSlotAnchors: ["2026-10-20"] }, { cadence: "unknown" }), "Ha pasado 1 fecha esperada sin un gasto registrado que coincida."],
     ];
     for (const [change, expected] of cases) {
       const { unmount } = render(<CommitmentChangeReview state={reviewState([change])} />);
@@ -81,12 +81,12 @@ describe("commitment change review in Spanish", () => {
     render(<CommitmentChangeReview state={reviewState([amountChange, missingChange()])} />);
 
     expect(screen.getByRole("heading", { level: 2, name: "Cambios por revisar" })).toHaveAttribute("id", "changes-review-heading");
-    expect(screen.getByText("Revisa la evidencia más reciente antes de cambiar una previsión o el estado de un compromiso. Cada decisión se aplica solo a esta evaluación exacta.")).toBeInTheDocument();
+    expect(screen.getByText("Notamos estos cambios en tus gastos recientes. Nada cambia hasta que elijas, y tu elección aplica solo a este cambio.")).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: /^Cambios revisados \(1\)$/ })).toHaveAttribute("id", "kept-changes-heading");
-    expect(screen.getByText("Estas observaciones exactas se mantuvieron sin cambiar la previsión guardada. Reconsidera una si quieres revisarla de nuevo.")).toBeInTheDocument();
+    expect(screen.getByText("Estas observaciones exactas se mantuvieron sin cambiar lo guardado. Usa Volver a revisar si quieres verla de nuevo.")).toBeInTheDocument();
     expect(screen.getByText("Revisión de monto")).toBeInTheDocument();
     expect(screen.getByText("Revisión de gasto faltante")).toBeInTheDocument();
-    expect(screen.getByText("Posiblemente finalizado")).toBeInTheDocument();
+    expect(screen.getByText("Puede que haya terminado")).toBeInTheDocument();
     expect(screen.getByText("Esto es una observación, no un cambio automático de estado.")).toBeInTheDocument();
     expect(screen.getByText("Día 15 · 0 días antes / 1 día después")).toBeInTheDocument();
     expect(screen.getByText("Día 17 · 1 día antes / 0 días después")).toBeInTheDocument();
@@ -105,14 +105,14 @@ describe("commitment change review in Spanish", () => {
 
     await user.click(screen.getByRole("button", { name: "Aceptar cambio de monto de Gym plan" }));
     expect(current.acceptAmountChange).toHaveBeenCalledWith("commitment-1", "amount-fingerprint");
-    await user.click(screen.getByRole("button", { name: "Mantener previsión actual: monto de Gym plan" }));
+    await user.click(screen.getByRole("button", { name: "Mantener lo guardado: monto de Gym plan" }));
     expect(current.keepChange).toHaveBeenCalledWith("commitment-1", "amount", "amount-fingerprint");
-    await user.click(screen.getByRole("button", { name: "Mantener activo el compromiso Insurance" }));
+    await user.click(screen.getByRole("button", { name: "Mantener activo: Insurance" }));
     expect(current.keepChange).toHaveBeenCalledWith("commitment-2", "missing", "missing-fingerprint");
 
     await user.click(screen.getByRole("button", { name: "Marcar Insurance como finalizado" }));
     const confirmation = screen.getByRole("group", { name: /¿Marcar Insurance como finalizado\?/ });
-    expect(within(confirmation).getByText("¿Marcar Insurance como finalizado? Esto cambia su estado y podrás volver a cambiarlo desde el compromiso confirmado.")).toBeInTheDocument();
+    expect(within(confirmation).getByText("¿Marcar Insurance como finalizado? Esto cambia su estado y podrás volver a cambiarlo desde este gasto recurrente.")).toBeInTheDocument();
     expect(within(confirmation).getByRole("button", { name: "Cancelar marcar Insurance como finalizado" })).toBeInTheDocument();
     await user.click(within(confirmation).getByRole("button", { name: "Confirmar marcar Insurance como finalizado" }));
     expect(current.markEndedFromChange).toHaveBeenCalledWith("commitment-2", "missing-fingerprint");
@@ -121,10 +121,10 @@ describe("commitment change review in Spanish", () => {
   it("offers the Spanish reconsider action for kept changes and follows a language change", async () => {
     render(<CommitmentChangeReview state={reviewState([amountChange])} />);
 
-    expect(screen.getByRole("button", { name: "Reconsiderar cambio de fechas de Gym plan", hidden: true })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Volver a revisar: cambio de fechas de Gym plan", hidden: true })).toBeInTheDocument();
     expect(screen.getByText("Mantenido")).toBeInTheDocument();
     await act(() => i18n.changeLanguage("en"));
-    expect(screen.getByRole("button", { name: "Reconsider timing change for Gym plan", hidden: true })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Review again: timing change for Gym plan", hidden: true })).toBeInTheDocument();
     expect(screen.getByText("1 recent expense supports this amount change.")).toBeInTheDocument();
   });
 });

@@ -76,9 +76,9 @@ describe("inflow form contracts", () => {
   it("formats exact money and refuses unsafe or malformed values without auto-rounding", () => {
     expect(formatInflowMoney(1234.56)).toBe("$1,234.56");
     expect(formatInflowMoney("9999999999999999.99")).toBe("$9,999,999,999,999,999.99");
-    expect(formatInflowMoney(Number("70368744177664.01"))).toBe("Amount needs review");
-    expect(formatInflowMoney(0.1 + 0.2)).toBe("Amount needs review");
-    expect(formatInflowMoney(null)).toBe("Amount needs review");
+    expect(formatInflowMoney(Number("70368744177664.01"))).toBe("Exact amount unavailable");
+    expect(formatInflowMoney(0.1 + 0.2)).toBe("Exact amount unavailable");
+    expect(formatInflowMoney(null)).toBe("Exact amount unavailable");
     expect(isUnsafeAmount(2 ** 46)).toBe(true);
     expect(isUnsafeAmount((2 ** 46) - 1)).toBe(false);
   });
@@ -87,15 +87,15 @@ describe("inflow form contracts", () => {
     expect(formatInflowDate("2026-03-08")).toBe("03/08/2026");
     expect(formatInflowDate("2026-11-01")).toBe("11/01/2026");
     expect(formatInflowDate("0001-01-01")).toBe("01/01/0001");
-    expect(formatInflowDate("2026-02-29")).toBe("Unknown date");
+    expect(formatInflowDate("2026-02-29")).toBe("Date unavailable");
   });
 
   it("returns caller-supplied fallback labels for unreviewable money and unknown dates", () => {
-    expect(formatInflowMoney(null, "El monto requiere revisión")).toBe("El monto requiere revisión");
-    expect(formatInflowMoney(Number("70368744177664.01"), "El monto requiere revisión")).toBe("El monto requiere revisión");
-    expect(formatInflowMoney(1234.56, "El monto requiere revisión")).toBe("$1,234.56");
-    expect(formatInflowDate("2026-02-29", "Fecha desconocida")).toBe("Fecha desconocida");
-    expect(formatInflowDate("2026-03-08", "Fecha desconocida")).toBe("03/08/2026");
+    expect(formatInflowMoney(null, "Monto exacto no disponible")).toBe("Monto exacto no disponible");
+    expect(formatInflowMoney(Number("70368744177664.01"), "Monto exacto no disponible")).toBe("Monto exacto no disponible");
+    expect(formatInflowMoney(1234.56, "Monto exacto no disponible")).toBe("$1,234.56");
+    expect(formatInflowDate("2026-02-29", "Fecha no disponible")).toBe("Fecha no disponible");
+    expect(formatInflowDate("2026-03-08", "Fecha no disponible")).toBe("03/08/2026");
   });
 
   it("handles malformed non-string drafts and display inputs without throwing", () => {
@@ -103,7 +103,7 @@ describe("inflow form contracts", () => {
     expect(validateInflow(null).payload).toBeNull();
     expect(initialInflowDraft({ description: {}, amount: {}, date: {} }))
       .toEqual({ description: "", amount: "", date: "" });
-    expect(formatInflowMoney({})).toBe("Amount needs review");
-    expect(formatInflowDate({})).toBe("Unknown date");
+    expect(formatInflowMoney({})).toBe("Exact amount unavailable");
+    expect(formatInflowDate({})).toBe("Date unavailable");
   });
 });

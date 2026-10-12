@@ -133,7 +133,7 @@ describe("paycheck state", () => {
     let outcome;
     await act(async () => { outcome = await result.current.confirmCandidate(payload); });
     expect(outcome).toEqual({ ok: true, data, refreshOk: true });
-    expect(result.current.notice).toBe("Paycheck confirmed.");
+    expect(result.current.notice).toBe("Pay schedule saved.");
   });
 
   it("guards duplicate and conflicting actions immediately, including during their refresh", async () => {

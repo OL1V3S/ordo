@@ -85,14 +85,14 @@ describe("Activity timeline on the Activity page", () => {
     useActivityTimeline.mockImplementation(() => timelineState({ items: timelineItems }));
     renderPage();
 
-    const region = screen.getByRole("region", { name: "Activity timeline" });
-    const h1 = screen.getByRole("heading", { level: 1, name: "Activity" });
+    const region = screen.getByRole("region", { name: "All transactions" });
+    const h1 = screen.getByRole("heading", { level: 1, name: "Transactions" });
     const status = document.querySelector(".activity-status");
     const task = document.getElementById("activity-task");
     const follows = (a, b) => a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING;
     expect(follows(h1, status) && follows(status, task) && follows(task, region)).toBeTruthy();
     expect(screen.queryByRole("heading", { name: "Spending" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "Cash in" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Deposits" })).not.toBeInTheDocument();
     expect(screen.queryByRole("navigation", { name: "Activity sections" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Timeline" })).not.toBeInTheDocument();
     expect(within(region).getAllByRole("listitem")).toHaveLength(2);
@@ -106,7 +106,7 @@ describe("Activity timeline on the Activity page", () => {
       expect(screen.queryByRole("navigation", { name: "Secciones de actividad" })).not.toBeInTheDocument();
       expect(screen.queryByRole("heading", { name: "Gastos" })).not.toBeInTheDocument();
       expect(screen.queryByRole("button", { name: /^Registros de/ })).not.toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "Actualizar actividad" })).toBeVisible();
+      expect(screen.getByRole("button", { name: "Actualizar gastos" })).toBeVisible();
     } finally {
       await i18n.changeLanguage("en");
     }
@@ -118,13 +118,13 @@ describe("Activity timeline on the Activity page", () => {
 
     expect(useActivityTimeline.mock.calls.length).toBeGreaterThan(0);
     expect(useActivityTimeline.mock.calls.every(([options]) => options.enabled === false)).toBe(true);
-    expect(screen.queryByRole("region", { name: "Activity timeline" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "All transactions" })).not.toBeInTheDocument();
     expect(timelineRefresh).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole("button", { name: "I checked the complete list" }));
 
     await waitFor(() => expect(useActivityTimeline).toHaveBeenLastCalledWith(expect.objectContaining({ enabled: true })));
-    expect(screen.getByRole("region", { name: "Activity timeline" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "All transactions" })).toBeInTheDocument();
   });
 
   it("refreshes the timeline after a completed expense create without changing the write", async () => {
@@ -146,7 +146,7 @@ describe("Activity timeline on the Activity page", () => {
 
     const status = document.querySelector(".activity-status");
     expect(within(status).getByRole("button", { name: "Try again" })).toBeVisible();
-    expect(within(status).getByRole("button", { name: "Refresh cash in" })).toBeVisible();
+    expect(within(status).getByRole("button", { name: "Refresh deposits" })).toBeVisible();
     expect(screen.queryByRole("button", { name: /records$/i })).not.toBeInTheDocument();
   });
 
@@ -156,9 +156,9 @@ describe("Activity timeline on the Activity page", () => {
     useActivityTimeline.mockImplementation(() => timelineState({ items: [lunchItem] }));
     renderPage();
 
-    await user.click(screen.getByRole("button", { name: "Add cash in", exact: true }));
-    expect(screen.getByRole("form", { name: "Add cash in" })).toBeVisible();
-    expect(screen.queryByRole("region", { name: "Cash in table" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Add deposit", exact: true }));
+    expect(screen.getByRole("form", { name: "Add deposit" })).toBeVisible();
+    expect(screen.queryByRole("region", { name: "Deposits table" })).not.toBeInTheDocument();
     await user.click(within(document.getElementById("cash-in-task")).getByRole("button", { name: "Cancel" }));
 
     await chooseRowAction(user, /^Edit expense Lunch/);
@@ -184,8 +184,8 @@ describe("Activity timeline on the Activity page", () => {
   it("refreshes the timeline after a completed cash-in create with the unchanged payload", async () => {
     const user = userEvent.setup();
     renderPage();
-    await user.click(screen.getByRole("button", { name: "Add cash in", exact: true }));
-    const form = screen.getByRole("form", { name: "Add cash in" });
+    await user.click(screen.getByRole("button", { name: "Add deposit", exact: true }));
+    const form = screen.getByRole("form", { name: "Add deposit" });
     await user.type(within(form).getByLabelText("Description"), "  Refund  From Store  ");
     await user.type(within(form).getByLabelText("Amount"), "9999999999999999.99");
     fireEvent.change(within(form).getByLabelText("Date"), { target: { value: "2026-09-02" } });
@@ -195,18 +195,18 @@ describe("Activity timeline on the Activity page", () => {
     await waitFor(() => expect(timelineRefresh).toHaveBeenCalledOnce());
     expect(cash.createInflow).toHaveBeenCalledExactlyOnceWith(
       { description: "Refund  From Store", amount: "9999999999999999.99", date: "2026-09-02" });
-    expect(screen.getByText("Cash in saved. Reports use this entry’s posted date.")).toBeInTheDocument();
+    expect(screen.getByText("Deposit saved. Reports use its deposit date.")).toBeInTheDocument();
   });
 
   it("refreshes the timeline after the manual per-type refresh buttons", async () => {
     const user = userEvent.setup();
     renderPage();
 
-    await user.click(screen.getByRole("button", { name: "Refresh activity" }));
+    await user.click(screen.getByRole("button", { name: "Refresh expenses" }));
     await waitFor(() => expect(timelineRefresh).toHaveBeenCalledTimes(1));
     expect(expenses.refresh).toHaveBeenCalledOnce();
 
-    await user.click(screen.getByRole("button", { name: "Refresh cash in" }));
+    await user.click(screen.getByRole("button", { name: "Refresh deposits" }));
     await waitFor(() => expect(timelineRefresh).toHaveBeenCalledTimes(2));
     expect(cash.refresh).toHaveBeenCalledOnce();
   });
@@ -220,7 +220,7 @@ describe("Activity timeline on the Activity page", () => {
     useImportPreview.mockReturnValue({ ...importHook, preview: importPreview, sourceType: "sunflower_pdf", selectedCount: 1, confirm: saved });
     const view = renderPage();
 
-    await user.click(screen.getByRole("button", { name: "Save 1 expense and 0 incoming deposits" }));
+    await user.click(screen.getByRole("button", { name: "Save 1 expense and 0 deposits" }));
 
     expect(saved).toHaveBeenCalledOnce();
     expect(expenses.refresh).toHaveBeenCalledOnce();
@@ -234,7 +234,7 @@ describe("Activity timeline on the Activity page", () => {
     });
     useImportPreview.mockReturnValue({ ...importHook, preview: importPreview, sourceType: "sunflower_pdf", selectedCount: 1, confirm: empty });
     renderPage();
-    await user.click(screen.getByRole("button", { name: "Save 1 expense and 0 incoming deposits" }));
+    await user.click(screen.getByRole("button", { name: "Save 1 expense and 0 deposits" }));
 
     expect(empty).toHaveBeenCalledOnce();
     expect(timelineRefresh).not.toHaveBeenCalled();
@@ -268,7 +268,7 @@ describe("Activity timeline on the Activity page", () => {
     await waitFor(() => expect(timelineRefresh).toHaveBeenCalled());
     expect(useActivityTimeline).toHaveBeenLastCalledWith(expect.objectContaining({ enabled: true }));
     expect(screen.getByText(/The activity timeline may be out of date/)).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Check your records" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Check your transactions" })).toBeVisible();
     expect(screen.getByRole("heading", { name: "Spending" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Add expense" })).toBeInTheDocument();
   });
@@ -277,8 +277,8 @@ describe("Activity timeline on the Activity page", () => {
     const user = userEvent.setup();
     mockLists({ cash: { createInflow: vi.fn().mockRejectedValue(new Error("network")) } });
     renderPage();
-    await user.click(screen.getByRole("button", { name: "Add cash in", exact: true }));
-    const form = screen.getByRole("form", { name: "Add cash in" });
+    await user.click(screen.getByRole("button", { name: "Add deposit", exact: true }));
+    const form = screen.getByRole("form", { name: "Add deposit" });
     await user.type(within(form).getByLabelText("Description"), "Refund");
     await user.type(within(form).getByLabelText("Amount"), "5.00");
     fireEvent.change(within(form).getByLabelText("Date"), { target: { value: "2026-09-02" } });
@@ -295,7 +295,7 @@ describe("Timeline row actions on the Activity page", () => {
   const transferRow = { kind: "account_inflow", recordId: 42, date: "2026-09-01", amount: "24.15", description: "Transfer from Savings", category: null, paycheck: null };
   const odd = { id: 43, description: "Odd", category: "bills", amount: "-5.00", date: "2026-09-02" };
   const transfer = { id: 42, description: "Transfer from Savings", amount: 24.15, date: "2026-09-01" };
-  const region = () => screen.getByRole("region", { name: "Activity timeline" });
+  const region = () => screen.getByRole("region", { name: "All transactions" });
   const trig = (pattern) => within(region()).getByRole("button", { name: pattern });
   const withRows = (items) => useActivityTimeline.mockImplementation(() => timelineState({ items }));
   const httpError = (status) => Object.assign(new Error("http"), { response: { status } });
@@ -306,7 +306,7 @@ describe("Timeline row actions on the Activity page", () => {
     withRows([lunchRow]);
     renderPage();
 
-    await chooseRowAction(user, "Edit expense Lunch from Sep 1, 2026, record 42");
+    await chooseRowAction(user, "Edit expense Lunch, Sep 1, 2026 (no. 42)");
     await waitFor(() => expect(screen.getByLabelText("Edit description")).toHaveFocus());
     expect(screen.getByLabelText("Edit description")).toBeVisible();
     expect(screen.getByRole("group", { name: "Edit expense" })).toBeVisible();
@@ -323,17 +323,17 @@ describe("Timeline row actions on the Activity page", () => {
     withRows([lunchRow]);
     const view = renderPage();
 
-    const trigger = await chooseRowAction(user, "Edit expense Lunch from Sep 1, 2026, record 42");
+    const trigger = await chooseRowAction(user, "Edit expense Lunch, Sep 1, 2026 (no. 42)");
     expect(screen.getByRole("group", { name: "Edit expense" })).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Cancel" }));
     await waitFor(() => expect(trigger).toHaveFocus());
 
-    await chooseRowAction(user, "Edit expense Lunch from Sep 1, 2026, record 42");
+    await chooseRowAction(user, "Edit expense Lunch, Sep 1, 2026 (no. 42)");
     withRows([]);
     view.rerender(<I18nextProvider i18n={i18n}><TransactionsPage /></I18nextProvider>);
     await user.click(screen.getByRole("button", { name: "Cancel" }));
-    await waitFor(() => expect(screen.getByRole("heading", { level: 1, name: "Activity" })).toHaveFocus());
-    expect(screen.getByRole("heading", { level: 1, name: "Activity" })).toBeVisible();
+    await waitFor(() => expect(screen.getByRole("heading", { level: 1, name: "Transactions" })).toHaveFocus());
+    expect(screen.getByRole("heading", { level: 1, name: "Transactions" })).toBeVisible();
   });
 
   it("deletes an expense from the timeline only after confirmation", async () => {
@@ -342,7 +342,7 @@ describe("Timeline row actions on the Activity page", () => {
     withRows([lunchRow]);
     confirmSpy = vi.spyOn(window, "confirm").mockReturnValueOnce(false).mockReturnValueOnce(true);
     renderPage();
-    const del = "Delete expense Lunch from Sep 1, 2026, record 42";
+    const del = "Delete expense Lunch, Sep 1, 2026 (no. 42)";
 
     const trigger = await chooseRowAction(user, del);
     expect(expenses.deleteExpense).not.toHaveBeenCalled();
@@ -358,9 +358,9 @@ describe("Timeline row actions on the Activity page", () => {
     withRows([lunchRow, transferRow]);
     renderPage();
 
-    await chooseRowAction(user, "Edit cash in Transfer from Savings from Sep 1, 2026, record 42");
-    expect(within(document.getElementById("cash-in-task")).getByRole("form", { name: "Edit cash in" })).toBeVisible();
-    expect(screen.queryByRole("region", { name: "Cash in table" })).not.toBeInTheDocument();
+    await chooseRowAction(user, "Edit deposit Transfer, Savings from Sep 1, 2026 (no. 42)");
+    expect(within(document.getElementById("cash-in-task")).getByRole("form", { name: "Edit deposit" })).toBeVisible();
+    expect(screen.queryByRole("region", { name: "Deposits table" })).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Edit description")).not.toBeInTheDocument();
   });
 
@@ -370,11 +370,11 @@ describe("Timeline row actions on the Activity page", () => {
     withRows([transferRow]);
     renderPage();
 
-    await chooseRowAction(user, "Delete cash in Transfer from Savings from Sep 1, 2026, record 42");
+    await chooseRowAction(user, "Delete deposit Transfer, Savings from Sep 1, 2026 (no. 42)");
     const task = document.getElementById("cash-in-task");
-    await waitFor(() => expect(within(task).getByRole("button", { name: "Confirm delete cash in" })).toHaveFocus());
-    expect(within(task).getByRole("button", { name: "Confirm delete cash in" })).toBeVisible();
-    await user.click(within(task).getByRole("button", { name: "Confirm delete cash in" }));
+    await waitFor(() => expect(within(task).getByRole("button", { name: "Confirm delete deposit" })).toHaveFocus());
+    expect(within(task).getByRole("button", { name: "Confirm delete deposit" })).toBeVisible();
+    await user.click(within(task).getByRole("button", { name: "Confirm delete deposit" }));
     expect(cash.deleteInflow).toHaveBeenCalledExactlyOnceWith(42);
   });
 
@@ -383,7 +383,7 @@ describe("Timeline row actions on the Activity page", () => {
     mockLists({ cash: { inflows: [transfer] } });
     withRows([transferRow]);
     const view = renderPage();
-    const del = "Delete cash in Transfer from Savings from Sep 1, 2026, record 42";
+    const del = "Delete deposit Transfer, Savings from Sep 1, 2026 (no. 42)";
 
     const trigger = await chooseRowAction(user, del);
     await user.click(within(document.getElementById("cash-in-task")).getByRole("button", { name: "Cancel" }));
@@ -393,7 +393,7 @@ describe("Timeline row actions on the Activity page", () => {
     withRows([]);
     view.rerender(<I18nextProvider i18n={i18n}><TransactionsPage /></I18nextProvider>);
     await user.click(within(document.getElementById("cash-in-task")).getByRole("button", { name: "Cancel" }));
-    await waitFor(() => expect(screen.getByRole("heading", { level: 1, name: "Activity" })).toHaveFocus());
+    await waitFor(() => expect(screen.getByRole("heading", { level: 1, name: "Transactions" })).toHaveFocus());
   });
 
   it("disables Edit but not Delete for a legacy non-positive expense amount", async () => {
@@ -402,8 +402,8 @@ describe("Timeline row actions on the Activity page", () => {
     withRows([oddRow]);
     renderPage();
     await openRowActions(user, /Odd/);
-    expect(screen.getByRole("button", { name: "Edit expense Odd from Sep 2, 2026, record 43" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Delete expense Odd from Sep 2, 2026, record 43" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Edit expense Odd, Sep 2, 2026 (no. 43)" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Delete expense Odd, Sep 2, 2026 (no. 43)" })).toBeEnabled();
   });
 
   it("disables triggers for unresolved records and a failed list, and every trigger once a cash task is open", async () => {
@@ -472,10 +472,10 @@ describe("Timeline row actions on the Activity page", () => {
 
     await chooseRowAction(user, /^Delete cash in Transfer/);
     const task = document.getElementById("cash-in-task");
-    await user.click(within(task).getByRole("button", { name: "Confirm delete cash in" }));
+    await user.click(within(task).getByRole("button", { name: "Confirm delete deposit" }));
 
     await waitFor(() => expect(screen.getByText(/The activity timeline may be out of date/)).toBeInTheDocument());
-    expect(screen.getByRole("region", { name: "Cash in table" })).toBeVisible();
+    expect(screen.getByRole("region", { name: "Deposits table" })).toBeVisible();
     expect(timelineRefresh).toHaveBeenCalled();
   });
 
@@ -486,7 +486,7 @@ describe("Timeline row actions on the Activity page", () => {
     withRows([lunchRow, transferRow]);
     const healthy = renderPage();
     expect(screen.queryByRole("region", { name: "Expenses table" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "Your records" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Your transactions" })).not.toBeInTheDocument();
     healthy.unmount();
 
     useActivityTimeline.mockImplementation(() => timelineState({ error: true }));
@@ -497,7 +497,7 @@ describe("Timeline row actions on the Activity page", () => {
     await user.click(within(table).getByRole("button", { name: /^Delete expense Lunch/ }));
     expect(expenses.deleteExpense).toHaveBeenCalledExactlyOnceWith(42);
     await chooseRowAction(user, /^Edit cash in Transfer/);
-    expect(within(document.getElementById("cash-in-task")).getByRole("form", { name: "Edit cash in" })).toBeVisible();
+    expect(within(document.getElementById("cash-in-task")).getByRole("form", { name: "Edit deposit" })).toBeVisible();
   });
 
   it("keeps the expense check table visible after a successful Refresh while the refreshed feedback shows", async () => {
@@ -507,9 +507,9 @@ describe("Timeline row actions on the Activity page", () => {
     await fillNewExpense(user);
     await user.click(screen.getByRole("button", { name: "Save expense" }));
     expect(await screen.findByRole("region", { name: "Expenses table" })).toBeVisible();
-    await user.click(screen.getByRole("button", { name: "Refresh activity" }));
+    await user.click(screen.getByRole("button", { name: "Refresh expenses" }));
     await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Activity refreshed. Check the records"));
-    expect(screen.getByRole("heading", { name: "Check your records" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Check your transactions" })).toBeVisible();
     expect(screen.getByRole("region", { name: "Expenses table" })).toBeVisible();
   });
 });

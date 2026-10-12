@@ -73,7 +73,7 @@ describe('ImportPreviewPanel confirmation safety', () => {
     expect(description).toHaveValue('Morning coffee')
     expect(within(table).getByRole('status')).toHaveTextContent('Unsaved changes')
     expect(screen.getByText('Save every row with unsaved changes before confirming.')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Save 1 expense and 0 incoming deposits' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Save 1 expense and 0 deposits' })).toBeDisabled()
     expect(state.confirm).not.toHaveBeenCalled()
   })
 
@@ -104,7 +104,7 @@ describe('ImportPreviewPanel confirmation safety', () => {
     await user.click(within(table).getByRole('button', { name: /^Save row for / }))
 
     expect(within(table).getByRole('status')).toHaveTextContent('Saving…')
-    expect(screen.getByRole('button', { name: 'Save 1 expense and 0 incoming deposits' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Save 1 expense and 0 deposits' })).toBeDisabled()
     expect(updateRow).toHaveBeenCalledWith('row-1', {
       editableExpenseDescription: 'Morning coffee',
       category: 'food',
@@ -116,11 +116,11 @@ describe('ImportPreviewPanel confirmation safety', () => {
       resolveUpdate({ ...row, editableExpenseDescription: 'Morning coffee' })
     })
     expect(within(table).getByRole('status')).toHaveTextContent('Saved')
-    expect(screen.getByRole('button', { name: 'Save 1 expense and 0 incoming deposits' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Save 1 expense and 0 deposits' })).toBeEnabled()
 
     await user.type(description, ' again')
     expect(within(table).getByRole('status')).toHaveTextContent('Unsaved changes')
-    expect(screen.getByRole('button', { name: 'Save 1 expense and 0 incoming deposits' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Save 1 expense and 0 deposits' })).toBeDisabled()
   })
 
   it('keeps a failed save draft visible and customer-readable', async () => {
@@ -136,7 +136,7 @@ describe('ImportPreviewPanel confirmation safety', () => {
 
     expect(await within(table).findByRole('alert')).toHaveTextContent('Save failed. Changes remain unsaved.')
     expect(description).toHaveValue('Unsaved coffee')
-    expect(screen.getByRole('button', { name: 'Save 1 expense and 0 incoming deposits' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Save 1 expense and 0 deposits' })).toBeDisabled()
   })
 
   it('tracks selection PATCH state before enabling confirmation', async () => {
@@ -150,7 +150,7 @@ describe('ImportPreviewPanel confirmation safety', () => {
 
     expect(within(table).getByLabelText(/^Select for import for /)).toBeDisabled()
     expect(within(table).getByRole('status')).toHaveTextContent('Saving…')
-    expect(screen.getByRole('button', { name: 'Save 1 expense and 0 incoming deposits' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Save 1 expense and 0 deposits' })).toBeDisabled()
 
     await act(async () => { resolveUpdate({ ...row, selectedForImport: false }) })
     expect(within(table).getByRole('status')).toHaveTextContent('Saved')
@@ -162,7 +162,7 @@ describe('ImportPreviewPanel confirmation safety', () => {
       selectedCount: 0,
     })} />)
 
-    const buttons = screen.getAllByRole('button', { name: 'Save 0 expenses and 0 incoming deposits' })
+    const buttons = screen.getAllByRole('button', { name: 'Save 0 expenses and 0 deposits' })
     expect(buttons).toHaveLength(1)
     expect(buttons[0]).toBeDisabled()
     expect(buttons[0]).toHaveAttribute('aria-describedby', 'import-confirmation-guidance')
@@ -192,8 +192,8 @@ describe('ImportPreviewPanel confirmation safety', () => {
       selectedCount: 2,
     })} />)
 
-    expect(screen.getByText('1 expense and 1 incoming deposit', { selector: 'strong' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Save 1 expense and 1 incoming deposit' })).toBeEnabled()
+    expect(screen.getByText('1 expense and 1 deposit', { selector: 'strong' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Save 1 expense and 1 deposit' })).toBeEnabled()
   })
 
   it('gives repeated row controls unique names with transaction and ordinal context', () => {
@@ -229,7 +229,7 @@ describe('ImportPreviewPanel confirmation safety', () => {
     expect(within(table).getByText('SYNTHETIC CAFE')).toBeVisible()
     expect(within(table).getByText('2026-08-12')).toBeVisible()
     expect(within(table).getByText('$8.50')).toBeVisible()
-    expect(within(table).getByText('Debit')).toBeVisible()
+    expect(within(table).getByText('Money out')).toBeVisible()
     expect(within(table).getByText('Possible duplicate — review before selecting')).toBeVisible()
     expect(within(table).getByLabelText(/^Select for import for /)).toBeVisible()
     expect(sourceDetails).not.toHaveAttribute('open')
@@ -266,7 +266,7 @@ describe('ImportPreviewPanel confirmation safety', () => {
     const onImportConfirmed = vi.fn().mockResolvedValue(undefined)
     render(<ImportPreviewPanel importState={importState({ confirm })} onImportConfirmed={onImportConfirmed} />)
 
-    await user.click(screen.getByRole('button', { name: 'Save 1 expense and 0 incoming deposits' }))
+    await user.click(screen.getByRole('button', { name: 'Save 1 expense and 0 deposits' }))
 
     expect(confirm).toHaveBeenCalledOnce()
     expect(onImportConfirmed).toHaveBeenCalledOnce()
@@ -282,7 +282,7 @@ describe('ImportPreviewPanel confirmation safety', () => {
       />,
     )
 
-    await user.click(screen.getByRole('button', { name: 'Save 1 expense and 0 incoming deposits' }))
+    await user.click(screen.getByRole('button', { name: 'Save 1 expense and 0 deposits' }))
 
     expect(onImportConfirmed).not.toHaveBeenCalled()
   })
@@ -301,7 +301,7 @@ describe('ImportPreviewPanel confirmation safety', () => {
       <ImportPreviewPanel importState={state} onImportConfirmed={vi.fn().mockRejectedValue(new Error('offline'))} />,
     )
 
-    await user.click(screen.getByRole('button', { name: 'Save 1 expense and 0 incoming deposits' }))
+    await user.click(screen.getByRole('button', { name: 'Save 1 expense and 0 deposits' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('The import succeeded, but Activity could not be refreshed')
 
     rerender(<ImportPreviewPanel importState={importState({
@@ -325,7 +325,7 @@ describe('ImportPreviewPanel confirmation safety', () => {
 
     expect(screen.getByRole('heading', { name: 'Review new duplicate warnings' })).toBeInTheDocument()
     expect(within(tableRegion()).getByText(/New possible duplicate/)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Save 1 expense and 0 incoming deposits' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Save 1 expense and 0 deposits' })).toBeDisabled()
     expect(screen.getByText(/Refresh this page to load the authoritative duplicate review/)).toBeInTheDocument()
   })
 
@@ -379,8 +379,8 @@ describe('ImportPreviewPanel confirmation safety', () => {
     expect(within(tableRegion()).getByLabelText(/^Expense description for /)).toBeDisabled()
     expect(within(tableRegion()).getByLabelText(/^Category for /)).toBeDisabled()
     expect(within(tableRegion()).getByLabelText(/^Select for import for /)).toBeDisabled()
-    expect(screen.getByRole('button', { name: 'Save 1 expense and 0 incoming deposits' })).toBeDisabled()
-    expect(screen.getByText('Finish the cash-in task before changing the statement.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Save 1 expense and 0 deposits' })).toBeDisabled()
+    expect(screen.getByText('Finish the deposit task before changing the statement.')).toBeInTheDocument()
   })
 
   it('rechecks the external lock inside source, upload, and drop handlers', () => {
@@ -423,7 +423,7 @@ describe('ImportPreviewPanel confirmation safety', () => {
     render(<ImportPreviewPanel importState={guardedState} isExternallyLocked={() => locked} />)
     locked = true
     fireEvent.click(screen.getByRole('button', { name: 'Choose another statement' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Save 1 expense and 0 incoming deposits' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save 1 expense and 0 deposits' }))
     expect(guardedState.clearForReupload).not.toHaveBeenCalled()
     expect(guardedState.confirm).not.toHaveBeenCalled()
   })
@@ -460,7 +460,7 @@ describe('ImportPreviewPanel confirmation safety', () => {
       onImportConfirmed={creditCallback}
     />)
 
-    await user.click(screen.getByRole('button', { name: 'Save 0 expenses and 1 incoming deposit' }))
+    await user.click(screen.getByRole('button', { name: 'Save 0 expenses and 1 deposit' }))
     expect(creditCallback).toHaveBeenCalledWith(creditResult)
 
     unmount()
@@ -476,7 +476,7 @@ describe('ImportPreviewPanel confirmation safety', () => {
       onImportConfirmed={alreadyConfirmedCallback}
     />)
 
-    await user.click(screen.getByRole('button', { name: 'Save 1 expense and 0 incoming deposits' }))
+    await user.click(screen.getByRole('button', { name: 'Save 1 expense and 0 deposits' }))
     expect(alreadyConfirmedCallback).toHaveBeenCalledWith(alreadyConfirmedResult)
   })
 
@@ -495,7 +495,7 @@ describe('ImportPreviewPanel confirmation safety', () => {
       <ImportPreviewPanel importState={state} onImportConfirmed={onImportConfirmed} />,
     )
 
-    await user.click(screen.getByRole('button', { name: 'Save 1 expense and 0 incoming deposits' }))
+    await user.click(screen.getByRole('button', { name: 'Save 1 expense and 0 deposits' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('The import succeeded, but Activity could not be refreshed for cash in')
     expect(onImportConfirmed).toHaveBeenCalledWith(result)
 

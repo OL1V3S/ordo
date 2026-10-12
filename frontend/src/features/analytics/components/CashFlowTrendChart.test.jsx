@@ -18,7 +18,7 @@ describe("cash-flow monthly grouped stacks", () => {
     ]);
     expect(renderedChart.data.datasets).toMatchObject([
       { label: "Confirmed paychecks", stack: "cash-in", data: [0, 0, 0, 0, 0, 120], borderWidth: 1 },
-      { label: "Other cash in", stack: "cash-in", data: [0, 0, 0, 0, 0, 30], borderWidth: 3 },
+      { label: "Other deposits", stack: "cash-in", data: [0, 0, 0, 0, 0, 30], borderWidth: 3 },
       { label: "Spent", stack: "spent", data: [0, 0, 0, 0, 0, 100], borderWidth: 1 },
     ]);
     expect(renderedChart.options.animation).toBe(false);
@@ -42,9 +42,9 @@ describe("cash-flow monthly grouped stacks", () => {
     const data = cashFlowFixture("2026-08", { cashInMinor: "999999999999999999", otherCashInMinor: "999999999999999999", paycheckCashInMinor: "0" });
     render(<CashFlowTrendChart data={data} />);
     const callbacks = renderedChart.options.plugins.tooltip.callbacks;
-    expect(callbacks.label({ dataset: { label: "Other cash in" }, datasetIndex: 1, dataIndex: 5 }))
+    expect(callbacks.label({ dataset: { label: "Other deposits" }, datasetIndex: 1, dataIndex: 5 }))
       .toBe("Other cash in: $9,999,999,999,999,999.99");
-    expect(callbacks.footer([{ dataIndex: 5 }])).toBe("Recorded cash in: $9,999,999,999,999,999.99");
+    expect(callbacks.footer([{ dataIndex: 5 }])).toBe("Deposits: $9,999,999,999,999,999.99");
   });
   it("labels a shorter representable-calendar-floor range", () => {
     const data = cashFlowFixture();

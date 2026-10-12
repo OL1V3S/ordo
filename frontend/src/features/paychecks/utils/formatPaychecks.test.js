@@ -6,13 +6,13 @@ describe("paycheck display formatting", () => {
     expect(formatDate("2026-03-08")).toBe("Mar 8, 2026");
     expect(formatDate("2026-11-01")).toBe("Nov 1, 2026");
     expect(formatDate("0001-01-01")).toBe("Jan 1, 0001");
-    expect(formatDate("2026-02-29")).toBe("Unknown date");
+    expect(formatDate("2026-02-29")).toBe("Date unavailable");
   });
   it("formats money without inventing cents discarded by JSON numeric parsing", () => {
     expect(formatMoney(1234.56)).toBe("$1,234.56");
     expect(formatMoney("9999999999999999.99")).toBe("$9,999,999,999,999,999.99");
-    expect(formatMoney(1e16)).toBe("Amount needs review");
-    expect(formatMoney(Number("70368744177664.01"))).toBe("Amount needs review");
+    expect(formatMoney(1e16)).toBe("Exact amount unavailable");
+    expect(formatMoney(Number("70368744177664.01"))).toBe("Exact amount unavailable");
     expect(formatMoney(null)).toBe("Amount unavailable");
     expect(formatAmount({ mode: "range", minimumAmount: "100.01", maximumAmount: "200.99" })).toBe("$100.01 – $200.99");
   });

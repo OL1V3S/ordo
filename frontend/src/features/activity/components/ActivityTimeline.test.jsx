@@ -36,7 +36,7 @@ describe("ActivityTimeline", () => {
   it("is a labelled region whose rows distinguish money out from money in by text and sign", () => {
     renderTimeline(state({ items: [expense(), inflow()] }));
 
-    const region = screen.getByRole("region", { name: "Activity timeline" });
+    const region = screen.getByRole("region", { name: "All transactions" });
     const rows = within(region).getAllByRole("listitem");
     expect(rows).toHaveLength(2);
     expect(within(region).queryByRole("table")).not.toBeInTheDocument();
@@ -45,7 +45,7 @@ describe("ActivityTimeline", () => {
     expect(within(rows[0]).getByText("−$12.34")).toBeInTheDocument();
     expect(within(rows[0]).getByText(/food/)).toBeInTheDocument();
     expect(within(rows[0]).getByText("Sep 22, 2026").tagName).toBe("TIME");
-    expect(within(rows[1]).getByText("Cash in")).toBeInTheDocument();
+    expect(within(rows[1]).getByText("Deposit")).toBeInTheDocument();
     expect(within(rows[1]).getByText("+$2,500.00")).toBeInTheDocument();
     expect(within(rows[1]).getByText(/Paycheck linked/)).toBeInTheDocument();
     expect(within(rows[1]).queryByText(/food/)).not.toBeInTheDocument();
@@ -66,9 +66,9 @@ describe("ActivityTimeline", () => {
 
     const rows = screen.getAllByRole("listitem");
     expect(rows).toHaveLength(3);
-    expect(within(rows[0]).getByText("Amount needs review")).toBeInTheDocument();
+    expect(within(rows[0]).getByText("Exact amount unavailable")).toBeInTheDocument();
     expect(within(rows[0]).getByText("0.00")).toBeInTheDocument();
-    expect(within(rows[1]).getByText("Amount needs review")).toBeInTheDocument();
+    expect(within(rows[1]).getByText("Exact amount unavailable")).toBeInTheDocument();
     expect(within(rows[1]).getByText("-5.00")).toBeInTheDocument();
     expect(within(rows[2]).getByText("−$3.00")).toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
@@ -77,26 +77,26 @@ describe("ActivityTimeline", () => {
   it("announces loading politely and marks the region busy", () => {
     renderTimeline(state({ loading: true }));
 
-    expect(screen.getByRole("status")).toHaveTextContent("Loading the activity timeline…");
-    expect(screen.getByRole("region", { name: "Activity timeline" })).toHaveAttribute("aria-busy", "true");
+    expect(screen.getByRole("status")).toHaveTextContent("Loading transactions…");
+    expect(screen.getByRole("region", { name: "All transactions" })).toHaveAttribute("aria-busy", "true");
   });
 
   it("shows a calm empty state", () => {
     renderTimeline(state());
 
-    expect(screen.getByText("No recorded activity yet.")).toBeInTheDocument();
+    expect(screen.getByText("No transactions yet.")).toBeInTheDocument();
     expect(screen.queryByRole("list")).not.toBeInTheDocument();
-    expect(screen.getByRole("region", { name: "Activity timeline" })).toHaveAttribute("aria-busy", "false");
+    expect(screen.getByRole("region", { name: "All transactions" })).toHaveAttribute("aria-busy", "false");
   });
 
   it("reports an initial failure with retry and no rows", () => {
     const timeline = state({ error: true });
     renderTimeline(timeline);
 
-    expect(screen.getByRole("alert")).toHaveTextContent("We couldn’t load the activity timeline.");
+    expect(screen.getByRole("alert")).toHaveTextContent("We couldn’t load your transactions.");
     fireEvent.click(screen.getByRole("button", { name: "Try again" }));
     expect(timeline.refresh).toHaveBeenCalledOnce();
-    expect(screen.queryByText("No recorded activity yet.")).not.toBeInTheDocument();
+    expect(screen.queryByText("No transactions yet.")).not.toBeInTheDocument();
   });
 
   it("fails closed on a malformed response with no rows and a retry", () => {
@@ -153,12 +153,12 @@ describe("ActivityTimeline", () => {
     const timeline = state({ items: [expense()], hasMore: true });
     const view = renderTimeline(timeline);
 
-    fireEvent.click(screen.getByRole("button", { name: "Show older activity" }));
+    fireEvent.click(screen.getByRole("button", { name: "Show older transactions" }));
     expect(timeline.loadMore).toHaveBeenCalledOnce();
 
     const loading = state({ items: [expense()], hasMore: true, loadingMore: true, loadMore: timeline.loadMore });
     view.rerenderTimeline(loading);
-    const busy = screen.getByRole("button", { name: "Loading older activity…" });
+    const busy = screen.getByRole("button", { name: "Loading older transactions…" });
     expect(busy).toHaveAttribute("aria-disabled", "true");
     expect(busy).not.toBeDisabled();
     fireEvent.click(busy);
@@ -168,7 +168,7 @@ describe("ActivityTimeline", () => {
   it("keeps focus on the older-activity button while more pages remain", async () => {
     const timeline = state({ items: [expense()], hasMore: true });
     const view = renderTimeline(timeline);
-    const button = screen.getByRole("button", { name: "Show older activity" });
+    const button = screen.getByRole("button", { name: "Show older transactions" });
     button.focus();
     fireEvent.click(button);
     view.rerenderTimeline(state({ items: [expense()], hasMore: true, loadingMore: true, loadMore: timeline.loadMore }));
@@ -177,30 +177,30 @@ describe("ActivityTimeline", () => {
       items: [expense(), expense({ recordId: 2 })], hasMore: true, loadMore: timeline.loadMore,
     }));
 
-    await waitFor(() => expect(screen.getByRole("button", { name: "Show older activity" })).toHaveFocus());
+    await waitFor(() => expect(screen.getByRole("button", { name: "Show older transactions" })).toHaveFocus());
   });
 
   it("moves focus to the heading once no older activity remains", async () => {
     const timeline = state({ items: [expense()], hasMore: true });
     const view = renderTimeline(timeline);
-    fireEvent.click(screen.getByRole("button", { name: "Show older activity" }));
+    fireEvent.click(screen.getByRole("button", { name: "Show older transactions" }));
     view.rerenderTimeline(state({ items: [expense()], hasMore: true, loadingMore: true, loadMore: timeline.loadMore }));
 
     view.rerenderTimeline(state({ items: [expense(), expense({ recordId: 2 })], hasMore: false }));
 
-    await waitFor(() => expect(screen.getByRole("heading", { name: "Activity timeline" })).toHaveFocus());
-    expect(screen.queryByRole("button", { name: "Show older activity" })).not.toBeInTheDocument();
-    expect(screen.getByText("That is all of your recorded activity.")).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole("heading", { name: "All transactions" })).toHaveFocus());
+    expect(screen.queryByRole("button", { name: "Show older transactions" })).not.toBeInTheDocument();
+    expect(screen.getByText("That is all of your transactions.")).toBeInTheDocument();
   });
 
   it("explains an older-page failure inline and offers a retry on the same button", async () => {
     const timeline = state({ items: [expense()], hasMore: true });
     const view = renderTimeline(timeline);
-    fireEvent.click(screen.getByRole("button", { name: "Show older activity" }));
+    fireEvent.click(screen.getByRole("button", { name: "Show older transactions" }));
     view.rerenderTimeline(state({ items: [expense()], hasMore: true, loadMoreFailed: true, loadMore: timeline.loadMore }));
 
-    expect(screen.getByRole("status")).toHaveTextContent("We couldn’t load older activity.");
-    const retry = screen.getByRole("button", { name: "Try loading older activity again" });
+    expect(screen.getByRole("status")).toHaveTextContent("We couldn’t load older transactions.");
+    const retry = screen.getByRole("button", { name: "Try loading older transactions again" });
     await waitFor(() => expect(retry).toHaveFocus());
     fireEvent.click(retry);
     expect(timeline.loadMore).toHaveBeenCalledTimes(2);
@@ -211,24 +211,24 @@ describe("ActivityTimeline", () => {
     await i18n.changeLanguage("es");
     renderTimeline(state({ items: [expense(), inflow()], hasMore: true }));
 
-    const region = screen.getByRole("region", { name: "Cronología de actividad" });
+    const region = screen.getByRole("region", { name: "Todos los movimientos" });
     const rows = within(region).getAllByRole("listitem");
     expect(within(rows[0]).getByText("Gasto")).toBeInTheDocument();
     expect(within(rows[0]).getByText("Corner coffee")).toBeInTheDocument();
     expect(within(rows[0]).getByText("−USD 12.34")).toBeInTheDocument();
     expect(within(rows[0]).getByText(/food/)).toBeInTheDocument();
-    expect(within(rows[1]).getByText("Entrada de dinero")).toBeInTheDocument();
+    expect(within(rows[1]).getByText("Depósito")).toBeInTheDocument();
     expect(within(rows[1]).getByText(/Vinculado a un pago de nómina/)).toBeInTheDocument();
     expect(within(rows[1]).getByText("+USD 2,500.00")).toBeInTheDocument();
     expect(within(rows[0]).getByText((_, element) => element?.tagName === "TIME")).toHaveAttribute("datetime", "2026-09-22");
-    expect(screen.getByRole("button", { name: "Mostrar actividad anterior" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Mostrar movimientos anteriores" })).toBeInTheDocument();
   });
 
   it("renders Spanish for the legacy-amount row and the failure states", async () => {
     await i18n.changeLanguage("es");
     renderTimeline(state({ items: [expense({ amount: "-5.00" })], refreshFailed: true }));
 
-    expect(screen.getByText("El monto requiere revisión")).toBeInTheDocument();
+    expect(screen.getByText("Monto exacto no disponible")).toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveTextContent("No se pudo actualizar la cronología de actividad");
   });
 
@@ -247,14 +247,14 @@ describe("ActivityTimeline", () => {
 
     it("renders no controls without a filters prop", () => {
       renderTimeline(state());
-      expect(screen.queryByLabelText("Search activity")).not.toBeInTheDocument();
+      expect(screen.queryByLabelText("Search transactions")).not.toBeInTheDocument();
     });
 
     it("keeps search visible and Type/period behind a Filters disclosure", () => {
       const filters = filtersOf({ period: "custom" });
       renderTimeline(state(), { filters });
       const toggle = screen.getByRole("button", { name: "Filters" });
-      expect(screen.getByLabelText("Search activity")).toBeVisible();
+      expect(screen.getByLabelText("Search transactions")).toBeVisible();
       expect(toggle).toHaveAttribute("aria-expanded", "false");
       expect(toggle).toHaveAttribute("aria-controls", "activity-timeline-filter-panel");
       expect(document.getElementById("activity-timeline-filter-panel")).not.toBeVisible();
@@ -264,7 +264,7 @@ describe("ActivityTimeline", () => {
       expect(toggle).toHaveAttribute("aria-expanded", "true");
       expect(document.getElementById("activity-timeline-filter-panel")).toBeVisible();
 
-      fireEvent.change(screen.getByLabelText("Search activity"), { target: { value: "cof" } });
+      fireEvent.change(screen.getByLabelText("Search transactions"), { target: { value: "cof" } });
       fireEvent.change(screen.getByLabelText("Type"), { target: { value: "expense" } });
       fireEvent.change(screen.getByLabelText("From date"), { target: { value: "2026-09-01" } });
       fireEvent.change(screen.getByLabelText("To date"), { target: { value: "2026-09-30" } });
@@ -272,7 +272,7 @@ describe("ActivityTimeline", () => {
       expect(filters.setField.mock.calls).toEqual([
         ["q", "cof"], ["kind", "expense"], ["from", "2026-09-01"], ["to", "2026-09-30"]]);
       expect(within(screen.getByLabelText("Type")).getAllByRole("option").map((option) => option.textContent))
-        .toEqual(["All activity", "Expense", "Cash in"]);
+        .toEqual(["All types", "Expense", "Deposit"]);
       expect(screen.queryByRole("button", { name: "Clear filters" })).not.toBeInTheDocument();
     });
 
@@ -324,7 +324,7 @@ describe("ActivityTimeline", () => {
       fireEvent.click(screen.getByRole("button", { name: "Remove filter: Expense" }));
       const none = { q: "", kind: "", from: "", to: "" };
       rerenderTimeline(state(), { filters: filtersOf({ draft: none, applied: none }) });
-      expect(screen.getByLabelText("Search activity")).toHaveFocus();
+      expect(screen.getByLabelText("Search transactions")).toHaveFocus();
     });
 
     it("moves focus to the previous chip when the last of several chips is removed", () => {
@@ -362,7 +362,7 @@ describe("ActivityTimeline", () => {
       renderTimeline(state({ appliedFilter: applied }), { filters: filtersOf({ draft: applied, applied, active: true }) });
 
       fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
-      expect(screen.getByLabelText("Search activity")).toHaveFocus();
+      expect(screen.getByLabelText("Search transactions")).toHaveFocus();
     });
 
     it("explains invalid filters in the live region and opens the panel so the field is visible", () => {
@@ -379,11 +379,11 @@ describe("ActivityTimeline", () => {
     it("distinguishes no matches under a filter from no recorded activity", () => {
       const applied = { q: "zzz", kind: "", from: "", to: "" };
       const { rerenderTimeline } = renderTimeline(state({ appliedFilter: emptyFilter }));
-      expect(screen.getByText("No recorded activity yet.")).toBeInTheDocument();
+      expect(screen.getByText("No transactions yet.")).toBeInTheDocument();
 
       rerenderTimeline(state({ appliedFilter: applied }), { filters: filtersOf({ applied, draft: applied, active: true }) });
-      expect(screen.getByText("No activity matches these filters.")).toBeInTheDocument();
-      expect(screen.queryByText("No recorded activity yet.")).not.toBeInTheDocument();
+      expect(screen.getByText("No transactions match these filters.")).toBeInTheDocument();
+      expect(screen.queryByText("No transactions yet.")).not.toBeInTheDocument();
       expect(screen.queryByText(/\d+ (results|matches)/i)).not.toBeInTheDocument();
     });
 
@@ -391,7 +391,7 @@ describe("ActivityTimeline", () => {
       const draft = { ...emptyFilter, q: "typing" };
       renderTimeline(state({ appliedFilter: emptyFilter }), { filters: filtersOf({ draft, active: true }) });
 
-      expect(screen.getByText("No recorded activity yet.")).toBeInTheDocument();
+      expect(screen.getByText("No transactions yet.")).toBeInTheDocument();
     });
 
     it("renders the controls in Spanish", async () => {
@@ -399,7 +399,7 @@ describe("ActivityTimeline", () => {
       const applied = { q: "caf", kind: "", from: "", to: "2026-09-30" };
       renderTimeline(state({ appliedFilter: applied }), { filters: filtersOf({ applied, draft: applied, active: true, period: "custom" }) });
 
-      expect(screen.getByLabelText("Buscar actividad")).toBeInTheDocument();
+      expect(screen.getByLabelText("Buscar movimientos")).toBeInTheDocument();
       fireEvent.click(screen.getByRole("button", { name: "Filtros" }));
       expect(screen.getByLabelText("Tipo")).toBeVisible();
       expect(screen.getByLabelText("Desde")).toBeVisible();
@@ -407,7 +407,7 @@ describe("ActivityTimeline", () => {
       expect(screen.getByRole("button", { name: "Borrar filtros" })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Quitar filtro: Hasta 2026-09-30" })).toBeVisible();
       expect(screen.getByText(/Búsqueda: “caf” · Hasta 2026-09-30/)).toBeInTheDocument();
-      expect(screen.getByText("Ninguna actividad coincide con estos filtros.")).toBeInTheDocument();
+      expect(screen.getByText("Ningún movimiento coincide con estos filtros.")).toBeInTheDocument();
     });
   });
 
@@ -422,12 +422,12 @@ describe("ActivityTimeline", () => {
     it("names each trigger and action by type, record and date, even when an expense and a cash in share an id", async () => {
       const user = userEvent.setup();
       renderTimeline(state({ items: [expense({ recordId: 3 }), inflow({ recordId: 3 })] }), { rowActions: actions() });
-      await user.click(screen.getByRole("button", { name: "Actions for expense Corner coffee from Sep 22, 2026, record 3" }));
-      expect(screen.getByRole("button", { name: "Edit expense Corner coffee from Sep 22, 2026, record 3" })).toHaveTextContent("Edit");
-      expect(screen.getByRole("button", { name: "Delete expense Corner coffee from Sep 22, 2026, record 3" })).toHaveClass("button-danger");
-      await user.click(screen.getByRole("button", { name: "Actions for cash in Payroll deposit from Sep 21, 2026, record 3" }));
-      expect(screen.getByRole("button", { name: "Edit cash in Payroll deposit from Sep 21, 2026, record 3" })).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "Delete cash in Payroll deposit from Sep 21, 2026, record 3" })).toHaveClass("button-ghost");
+      await user.click(screen.getByRole("button", { name: "Actions for expense Corner coffee, Sep 22, 2026 (no. 3)" }));
+      expect(screen.getByRole("button", { name: "Edit expense Corner coffee, Sep 22, 2026 (no. 3)" })).toHaveTextContent("Edit");
+      expect(screen.getByRole("button", { name: "Delete expense Corner coffee, Sep 22, 2026 (no. 3)" })).toHaveClass("button-danger");
+      await user.click(screen.getByRole("button", { name: "Actions for deposit Payroll deposit, Sep 21, 2026 (no. 3)" }));
+      expect(screen.getByRole("button", { name: "Edit deposit Payroll deposit, Sep 21, 2026 (no. 3)" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Delete deposit Payroll deposit, Sep 21, 2026 (no. 3)" })).toHaveClass("button-ghost");
     });
 
     it("applies getState per row, keeping Delete enabled for an amount that needs review", async () => {

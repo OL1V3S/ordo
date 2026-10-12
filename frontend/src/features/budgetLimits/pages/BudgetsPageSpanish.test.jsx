@@ -66,7 +66,7 @@ describe('Budgets page in Spanish', () => {
     expect(screen.getByText('No hay límites de presupuesto definidos para este mes.')).toBeInTheDocument()
     expect(screen.getByText('Acerca de los límites mensuales').closest('details')).not.toHaveAttribute('open')
     expect(screen.getByText(`Próximo reinicio: 1 sep 2026. Cada límite se aplica a su mes calendario seleccionado.`)).toBeInTheDocument()
-    expect(screen.getByText('Un límite de cero es un presupuesto intencional sin gastos. Es diferente a no tener un presupuesto para una categoría.')).toBeInTheDocument()
+    expect(screen.getByText('Un límite en cero es un presupuesto intencional sin gastos. Es diferente a no tener un presupuesto para una categoría.')).toBeInTheDocument()
   })
 
   it('keeps the limit distinct from recorded spending on each card and keeps stored category names and money as-is', async () => {
@@ -90,8 +90,8 @@ describe('Budgets page in Spanish', () => {
     expect(within(bills).getByRole('progressbar')).toHaveAttribute('aria-valuetext', 'USD\u00a0125.00 usado de USD\u00a0100.00, 125%')
 
     const zero = screen.getByRole('listitem', { name: 'Presupuesto de Zero' })
-    expect(within(zero).getByText('Límite de cero')).toBeVisible()
-    expect(within(zero).getByText('No hay porcentaje para un límite de cero.')).toBeVisible()
+    expect(within(zero).getByText('Límite en cero (sin gastos)')).toBeVisible()
+    expect(within(zero).getByText('No hay porcentaje para un límite en cero.')).toBeVisible()
     expect(within(zero).queryByRole('progressbar')).not.toBeInTheDocument()
     expect(zero).toHaveClass('budget-row--warning')
   })
@@ -112,7 +112,7 @@ describe('Budgets page in Spanish', () => {
 
     const options = within(screen.getByLabelText('Categoría')).getAllByRole('option').map((option) => [option.value, option.textContent])
     expect(options).toEqual([
-      ['', 'Categoría'], ['food', 'Comida'], ['transport', 'Transporte'], ['bills', 'Facturas'],
+      ['', 'Categoría'], ['food', 'Comida'], ['transport', 'Transporte'], ['bills', 'Servicios'],
       ['entertainment', 'Entretenimiento'], ['other', 'Otra'],
     ])
     await user.selectOptions(screen.getByLabelText('Categoría'), 'other')
@@ -206,12 +206,12 @@ describe('Budgets page in Spanish', () => {
     expect(within(exact).getByText('Límite alcanzado')).toBeVisible()
 
     const review = screen.getByRole('listitem', { name: 'Presupuesto de Review' })
-    expect(within(review).getByText('El gasto requiere revisión')).toBeVisible()
+    expect(within(review).getByText('Gasto exacto no disponible')).toBeVisible()
     expect(within(review).getByText(note)).toBeVisible()
     expect(within(review).queryByRole('progressbar')).not.toBeInTheDocument()
 
     const unsafe = screen.getByRole('listitem', { name: 'Presupuesto de Unsafe' })
-    expect(within(unsafe).getByText('El límite requiere revisión')).toBeVisible()
+    expect(within(unsafe).getByText('Límite exacto no disponible')).toBeVisible()
     expect(within(unsafe).getByText(note)).toBeVisible()
     expect(within(unsafe).queryByRole('progressbar')).not.toBeInTheDocument()
   })

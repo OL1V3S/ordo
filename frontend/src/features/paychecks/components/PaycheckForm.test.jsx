@@ -12,7 +12,7 @@ describe("PaycheckForm", () => {
     const model = makeCandidate();
     render(<PaycheckForm mode="confirm" model={model} onSubmit={onSubmit} onCancel={vi.fn()} />);
     expect(screen.getByLabelText("Display name")).toHaveFocus();
-    expect(screen.queryByLabelText("Cadence")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("How often")).not.toBeInTheDocument();
     expect(screen.getByText("Monthly, day 10")).toBeInTheDocument();
     expect(onSubmit).not.toHaveBeenCalled();
     await user.click(screen.getByRole("button", { name: "Confirm paycheck" }));
@@ -47,7 +47,7 @@ describe("PaycheckForm", () => {
     await user.type(screen.getByLabelText("Display name"), "  New payroll  ");
     await user.type(screen.getByLabelText("Monthly anchor day"), "10");
     await user.type(screen.getByLabelText("Fixed amount"), "100");
-    await user.selectOptions(screen.getByLabelText("Cadence"), "biweekly");
+    await user.selectOptions(screen.getByLabelText("How often"), "biweekly");
     fireEvent.change(screen.getByLabelText("Reference anchor date"), { target: { value: "2026-03-08" } });
     await user.selectOptions(screen.getByLabelText("Amount model"), "range");
     expect(screen.getByLabelText("Minimum amount")).toHaveValue("");
@@ -64,7 +64,7 @@ describe("PaycheckForm", () => {
     const onSubmit = vi.fn();
     render(<PaycheckForm mode="manual" onSubmit={onSubmit} />);
     await user.type(screen.getByLabelText("Display name"), "Payroll");
-    await user.selectOptions(screen.getByLabelText("Cadence"), "semimonthly");
+    await user.selectOptions(screen.getByLabelText("How often"), "semimonthly");
     await user.type(screen.getByLabelText("First anchor day"), "1");
     await user.selectOptions(screen.getByLabelText("Second anchor"), "month_end");
     await user.type(screen.getByLabelText("Fixed amount"), "100.001");

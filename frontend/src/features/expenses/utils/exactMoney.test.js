@@ -23,7 +23,7 @@ describe("exact Expense money", () => {
   it("accepts only legacy numeric values whose cents remain distinguishable", () => {
     expect(parseExpenseAmount(12.5)?.value).toBe("12.50");
     expect(parseExpenseAmount(Number("90071992547409.94"))).toBeNull();
-    expect(formatExactMoney(Number("9999999999999999.99"))).toBe("Amount needs review");
+    expect(formatExactMoney(Number("9999999999999999.99"))).toBe("Exact amount unavailable");
   });
 
   it("formats and derives percentages from exact minor units", () => {
@@ -45,6 +45,6 @@ describe("exact Expense money", () => {
     expect(formatExactMoney('1234.5', undefined, 'es')).toBe('USD\u00a01,234.50')
     expect(formatExactMoney('1234.5', { currency: false }, 'en')).toBe('1,234.50')
     expect(formatExactMoney('0', { allowZero: true })).toBe('$0.00')
-    expect(formatExactMoney('abc', undefined, 'es')).toBe('Amount needs review')
+    expect(formatExactMoney('abc', undefined, 'es')).toBe('Exact amount unavailable')
   })
 });

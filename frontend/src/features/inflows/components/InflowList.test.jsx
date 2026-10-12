@@ -10,14 +10,14 @@ const second = { id: 8, description: "Client Deposit", amount: 1250.5, date: "20
 describe("InflowList (read-only table)", () => {
   it("shows the true empty text", () => {
     render(<InflowList inflows={[]} />);
-    expect(screen.getByText("No cash in recorded yet.")).toBeInTheDocument();
+    expect(screen.getByText("No deposits yet.")).toBeInTheDocument();
   });
 
   it("renders one responsive table with exact descriptions, formatted values and no actions", () => {
     render(<InflowList inflows={[first, second]} />);
-    const region = screen.getByRole("region", { name: "Cash in table" });
+    const region = screen.getByRole("region", { name: "Deposits table" });
     expect(within(region).getAllByRole("table")).toHaveLength(1);
-    expect(within(region).getByText("Cash in", { selector: "caption" })).toBeInTheDocument();
+    expect(within(region).getByText("Deposits", { selector: "caption" })).toBeInTheDocument();
     expect(within(region).getAllByText("$1,250.50")).toHaveLength(2);
     expect(within(region).queryByRole("columnheader", { name: "Actions" })).toBeNull();
     expect(within(region).queryAllByRole("button")).toHaveLength(0);

@@ -72,7 +72,7 @@ describe('useImportPreview', () => {
     await act(() => result.current.selectSource('sunflower_pdf'))
     await act(() => result.current.upload(new File(['pdf'], 'statement.pdf')))
 
-    expect(result.current.error).toBe('This statement was already imported. No duplicate financial records were created.')
+    expect(result.current.error).toBe('This statement was already imported. No duplicate transactions were created.')
     expect(result.current.error).not.toContain('private server detail')
   })
 

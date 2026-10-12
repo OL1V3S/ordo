@@ -23,7 +23,7 @@ function renderForm(onSubmit = vi.fn()) {
     <CommitmentForm
       model={model}
       fingerprint="candidate-1"
-      submitLabel="Confirm commitment"
+      submitLabel="Confirm recurring expense"
       busy={false}
       onSubmit={onSubmit}
       onCancel={vi.fn()}
@@ -37,10 +37,10 @@ describe("commitment expectation form", () => {
     const user = userEvent.setup();
     const onSubmit = renderForm();
 
-    await user.selectOptions(screen.getByLabelText("Cadence"), "weekly");
+    await user.selectOptions(screen.getByLabelText("How often"), "weekly");
     await user.selectOptions(screen.getByLabelText("Expected weekday"), "tuesday");
     await user.selectOptions(screen.getByLabelText("Amount model"), "range");
-    await user.click(screen.getByRole("button", { name: "Confirm commitment" }));
+    await user.click(screen.getByRole("button", { name: "Confirm recurring expense" }));
 
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
       cadence: "weekly",
@@ -60,7 +60,7 @@ describe("commitment expectation form", () => {
     const onSubmit = renderForm();
 
     await user.selectOptions(screen.getByLabelText("Monthly timing"), "monthend");
-    await user.click(screen.getByRole("button", { name: "Confirm commitment" }));
+    await user.click(screen.getByRole("button", { name: "Confirm recurring expense" }));
 
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
       cadence: "monthly",
@@ -74,12 +74,12 @@ describe("commitment expectation form", () => {
     const user = userEvent.setup();
     const onSubmit = renderForm();
 
-    await user.selectOptions(screen.getByLabelText("Cadence"), "yearly");
+    await user.selectOptions(screen.getByLabelText("How often"), "yearly");
     await user.clear(screen.getByLabelText("Expected month"));
     await user.type(screen.getByLabelText("Expected month"), "2");
     await user.clear(screen.getByLabelText("Expected day"));
     await user.type(screen.getByLabelText("Expected day"), "28");
-    await user.click(screen.getByRole("button", { name: "Confirm commitment" }));
+    await user.click(screen.getByRole("button", { name: "Confirm recurring expense" }));
 
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
       cadence: "yearly",
@@ -95,7 +95,7 @@ describe("commitment expectation form", () => {
       <CommitmentForm
         model={{ ...model, observedMedianAmount: Number("9999999999999999") }}
         fingerprint="candidate-unsafe"
-        submitLabel="Confirm commitment"
+        submitLabel="Confirm recurring expense"
         busy={false}
         onSubmit={vi.fn()}
         onCancel={vi.fn()}
@@ -103,6 +103,6 @@ describe("commitment expectation form", () => {
     );
 
     expect(screen.getByText(/could not be loaded with reliable cent precision/)).toBeVisible();
-    expect(screen.getByRole("button", { name: "Confirm commitment" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Confirm recurring expense" })).toBeDisabled();
   });
 });
