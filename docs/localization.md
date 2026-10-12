@@ -1,34 +1,35 @@
 # Localization
 
-Ordo's browser frontend supports English and broadly neutral U.S./Latin
-American Spanish as an incremental product capability. The authenticated shell,
+Ordo's browser frontend supports English and Mexican Spanish (es-MX), using tú,
+as an incremental product capability. The authenticated shell,
 primary navigation, Plan and More hubs, and Settings were the first localized
-surfaces, and the Home, Activity, statement import, Budgets, Insights, Commitments,
-and Paychecks pages have since followed. The public account-access pages
+surfaces, and the Home, Transactions, statement import, Budgets, Reports, Recurring expenses,
+and Paychecks pages have since followed. Namespace ids (`activity`, `analytics`,
+`commitments`) and routes keep their original names; only the UI labels changed. The public account-access pages
 (sign-in, registration, email confirmation, and password recovery) are localized
 through the `auth` namespace. The unavailable Investing placeholder page is localized through the `investing`
 namespace (all copy, unchanged in meaning; no data reads).
-The Activity page is localized through the `activity` namespace: the timeline, the
-row actions menu, the page header and actions, the task area (expense form and edit panel, cash-in form and delete
+The Transactions page is localized through the `activity` namespace: the list, the
+row actions menu, the page header and actions, the task area (expense form and edit panel, deposit form and delete
 confirmation), and the read-only recovery tables, including their feedback and error messages. The statement import
 preview is localized through the `importPreview` namespace: the import panel, its
 rows, and the safe upload, confirmation, and row-warning messages that the hook
 maps from stable backend codes, so the import preview no longer stays English on
-the Spanish Activity page. The Paychecks page is localized through the `paychecks` namespace: the page, the
+the Spanish Transactions page. The Paychecks page is localized through the `paychecks` namespace: the page, the
 paycheck form and its validation messages, the linked-deposit evidence, the
-record-received panel, and the safe error and notice messages that the hook maps
-from stable backend codes. The shared cash-in form that records a paycheck receipt
+link-a-deposit panel, and the safe error and notice messages that the hook maps
+from stable backend codes. The shared deposit form that adds a deposit for a paycheck
 follows the selected language there, including its validation messages. The Budgets
 page is localized through the `budgets` namespace: the page header, the budget month
 and category-budget form, validation and feedback messages, the loading, error, and
 empty states, the budget status labels, progress text, accessible names, and the
-delete confirmation. The Analytics (Insights) page is localized through the
+delete confirmation. The Analytics (Reports) page is localized through the
 `analytics` namespace: the page, the cash-flow summary and its disclosure, the
 category ranking, the trend chart (dataset labels, tooltips, axis ticks, kicker, and
 the accessible chart-data table), the spending, budget-status, comparison, and
 largest-expense sections, and the load-failure messages that the cash-flow hook
-returns. The Commitments page is localized through the `commitments` namespace: the
-page, the commitment form, the change review (pending and reviewed changes with their
+returns. The Recurring expenses page is localized through the `commitments` namespace: the
+page, the recurring expense form, the change review (pending and reviewed changes with their
 decisions), the supporting-expense evidence, and the safe error and notice messages
 that the hook maps from stable backend codes.
 
@@ -68,9 +69,11 @@ import/export them, but the runtime must not depend on a translation service.
   stay stable.
 - Map future localized failures from stable client/backend error codes. Do not
   parse or translate raw server sentences.
-- Pure helpers that return display fallbacks (for example `formatInflowMoney` and
-  `formatInflowDate`) take the localized label from the caller and keep an English
-  default for callers that are not localized yet. Validation text that is never
+- Pure helpers that return display fallbacks (for example `formatInflowMoney`,
+  `formatInflowDate`, `formatExactMoney`, `formatSignedMoney`, and
+  `formatCommitments.formatMoney`) take the localized label from the caller (an optional
+  `unavailableLabel` where the helper has one) and keep an English default
+  (`Exact amount unavailable`, `Date unavailable`) for callers that are not localized yet. Validation text that is never
   rendered (the cash-in capture hook maps `validateInflow` results to stable
   `*_invalid` codes) stays in the helper; the page maps those codes to catalog
   messages.
@@ -104,14 +107,14 @@ import/export them, but the runtime must not depend on a translation service.
   replaced by spaces, or the generic fallback error) instead of a blank message.
   The import hook resolves its message when an outcome is recorded; the panel passes
   stable list identifiers (`expenses`, `cashIn`), not English names, for failed
-  Activity refreshes and maps them to complete localized messages.
+  Transactions refreshes and maps them to complete localized messages.
 - The import preview keeps row data as the statement parser produced it (source
   descriptions, `YYYY-MM-DD` dates, `$` amounts, and the stored category value) and
   keeps the browser-formatted expiry and confirmation timestamps in both languages
   until formatters adopt the direction below. Row counts are count-aware messages;
   English keeps `N rows` (including `1 rows`) as before localization, and Spanish
   uses `1 fila` and `N filas`.
-- Activity spending and cash-in tables keep their existing `$` amounts and
+- Transactions spending and deposit tables keep their existing `$` amounts and
   `MM/DD/YYYY` dates in both languages until formatters adopt the direction below.
 - Paychecks messages are keyed by stable code (`feedback.errors.*`,
   `feedback.notices.*`, `form.errors.*`, `receipt.cashInErrors.*`) and never by raw
@@ -125,11 +128,11 @@ import/export them, but the runtime must not depend on a translation service.
   `receipt.cashInErrors.*` by field. `inflows/utils/inflowForm.js` keeps its English
   validation text, which is never displayed: the Paychecks receipt panel and the
   Activity cash-in form each map the results to their own catalog messages.
-- Spanish keeps a paycheck expectation distinct from money actually recorded.
-  Expectation, projection, and expected-window copy uses `previsión` and
-  `previsto`; copy about money actually received uses `pago recibido` and
-  `entrada de dinero`. Do not describe a recorded deposit as `previsto` or an
-  expectation as recibido or registrado.
+- Spanish keeps an expected paycheck distinct from money actually recorded.
+  Expected-paycheck and expected-date copy uses `esperado` and
+  `pago de nómina esperado`; copy about money actually received uses `depósito`
+  and `depósito vinculado`. Do not describe a recorded deposit as `esperado` or an
+  expected paycheck as recibido or registrado. Never use a bare `pago esperado`.
 - Paychecks keeps `Mon D, YYYY` dates (English month abbreviations) and `$` amounts
   in both languages until formatters adopt the direction below. Day counts
   (`formatWindow`) are count-aware messages; English `linked deposit(s)` and
@@ -173,14 +176,14 @@ import/export them, but the runtime must not depend on a translation service.
   differently. Spanish month names are lowercase in running text and labels
   (`agosto de 2026`, `14 de agosto de 2026`, ticks `ago`); the chart's `MTD` marker
   is `Acum.` in Spanish.
-- Spanish keeps recorded cash and spending distinct from expectations: copy about
-  recorded cash uses `entradas de dinero registradas`, `gastos registrados`, and
-  `gastado`; paycheck expectations and projections are named `previsiones de nómina`
-  and `proyecciones` (budgets, expectations, and projections add nothing to the
-  recorded figures).
+- Spanish keeps recorded deposits and spending distinct from expectations: copy about
+  recorded deposits uses `depósitos registrados`, `gastos registrados`, and
+  `gastado`; expected paychecks and saved pay schedules are named
+  `pagos de nómina esperados` and `calendarios de nómina` (budgets, expected
+  paychecks, and pay schedules add nothing to the recorded figures).
   Spanish also keeps an unavailable exact figure (`no está disponible`, `No
-  disponible`) distinct from a recorded zero (`No hay gastos registrados`,
-  `No hay entradas de dinero registradas`); never describe an unavailable figure as
+  disponible`, `Monto exacto no disponible`) distinct from a recorded zero (`No hay gastos
+  registrados`, `No hay depósitos registrados`); never describe an unavailable figure as
   zero or a recorded zero as unavailable.
 - Analytics keeps `$` amounts, percentages, the `YYYY-MM` option values, the numeric
   `MM/DD/YYYY` expense dates in Largest expenses, and stored category values as
@@ -204,23 +207,23 @@ import/export them, but the runtime must not depend on a translation service.
   output is unchanged, including its existing wording for a count of one (for example
   `N linked expense(s)`, `1 days before`, `Based on 1 expenses`); Spanish uses correct
   singular and plural forms.
-- Spanish keeps an expected commitment distinct from expenses actually recorded.
-  Expectation copy uses `previsión`/`previsto`; evidence copy uses `gastos registrados`
+- Spanish keeps an expected recurring expense distinct from expenses actually recorded.
+  Expected copy uses `esperado`/`lo guardado`; evidence copy uses `gastos registrados`
   and `gastos vinculados`. Decision wording names its effect: `Descartar` and
-  `Reconsiderar` act on a possible commitment, `Aceptar cambio` updates the saved
-  expectation, `Mantener previsión actual`/`Mantener activo` leave it unchanged, and
-  `Marcar como finalizado` changes the commitment status after a confirmation.
+  `Volver a revisar` act on a possible recurring expense, `Aceptar cambio` updates the saved
+  details, `Mantener lo guardado`/`Mantener activo` leave it unchanged, and
+  `Marcar como finalizado` changes the recurring expense status after a confirmation.
 - Commitments keeps `$` amounts and the browser-language date display (`formatDate`
   uses `toLocaleDateString(undefined, ...)`, so dates follow the browser language, not
   the app language) in both languages until formatters adopt the direction below. Only
-  the `Unknown date` fallback label is localized. Element ids that Home's attention
+  the `Date unavailable` fallback label is localized. Element ids that Home's attention
   links target (`changes-review-heading`, `candidate-heading`, and the others) and all
   focus behavior are unchanged.
 
 ## Formatting direction
 
 Language and currency are separate concerns. Future presentation formatters use
-`en-US` for English and `es-US` for Spanish while retaining the
+`en-US` for English and `es-MX` for Spanish while retaining the
 application-defined USD currency and existing financial semantics.
 
 - Calendar-only `YYYY-MM-DD` values must be formatted without local-timezone day
@@ -237,41 +240,130 @@ application-defined USD currency and existing financial semantics.
 
 ## Foundational glossary
 
-This glossary is the initial reviewed terminology set. Copy may be refined for
-natural neutral Spanish when financial meaning, identifiers, and scope remain
-unchanged. Generic cash-in wording must not imply earned income.
+This glossary is the owner-approved terminology set from the plain-language wording
+review (#229). Copy may be refined for natural Mexican Spanish when financial meaning,
+identifiers, and scope remain unchanged. A deposit is **any money that came into the
+account, including transfers, refunds, reimbursements, and paychecks; it is not
+income**. Every surface that introduces deposits says so.
 
-| English | Spanish | Usage note |
-|---|---|---|
-| Home | Inicio | Primary destination |
-| Activity | Actividad | Primary destination |
-| Plan | Plan | Primary destination |
-| Insights | Análisis | Neutral product language |
-| More | Más | Primary destination |
-| Settings | Configuración | |
-| Cash in | Entradas de dinero | Includes transfers, refunds, and other non-income inflows |
-| Expense | Gasto | |
-| Paycheck | Pago de nómina | Neutral payroll label |
-| Commitment | Compromiso | Expected or recurring expense product term |
-| Expected | Previsto | |
-| Recorded | Registrado | |
-| Needs attention | Requiere atención | |
-| Account | Cuenta | |
-| Appearance | Apariencia | |
-| Theme | Tema | |
-| System / Light / Dark | Sistema / Claro / Oscuro | Theme options |
-| Language | Idioma | |
-| Logout | Cerrar sesión | |
-| Delete | Eliminar | Expense and cash-in removal |
-| Posted date | Fecha de contabilización | Cash-in date used by reports |
-| Paycheck expectation | Previsión de nómina | Saved expected paycheck |
-| Statement | Estado de cuenta | Bank statement import |
-| Incoming deposit | Depósito entrante | Imported statement credit; not classified as income |
-| Possible duplicate | Posible duplicado | Review before selecting or saving |
-| Possible paycheck | Posible pago de nómina | Detected candidate; not a confirmed paycheck |
-| Record received | Registrar pago recibido | Links actual cash in; does not change the expectation |
-| Schedule | Calendario | Paycheck schedule |
-| Anchor | Ancla | Schedule anchor day or month end |
-| Investing | Inversiones | Unavailable placeholder destination |
+**Direction rule.** In Spanish, money going **out** is always `gasto` (`gasto`, `gasto
+recurrente`). Money coming **in** is `depósito` or `pago de nómina`, and for the import
+direction label only, `abono`. A bare `pago`/`pagos` (not followed by `de nómina`) is
+never used for either direction. A bare `pago esperado` is banned; the only allowed
+forms are `pago de nómina esperado` (in) and `gasto recurrente esperado` (out). The one
+exception is the outflow phrase `pagos de deudas` in `analytics:summary.about.spending`.
+In English, a paycheck is always `paycheck`, and a recurring outflow is always
+`recurring expense`.
+
+| Concept | English | Spanish (es-MX) | Usage note |
+|---|---|---|---|
+| Home | Home | Inicio | Primary destination |
+| Transactions page | Transactions | Movimientos | Lists saved items only; route and namespace stay `activity` |
+| Plan hub | Plan | Plan | Primary destination |
+| Reports page | Reports | Reportes | Recorded-only figures; route and namespace stay `insights`/`analytics` |
+| More / Settings | More / Settings | Más / Configuración | |
+| Add from Home (section label) | Add a transaction | Agregar un movimiento | Replaces the developer word "Capture" |
+| Saved item (generic noun) | transaction | movimiento | A saved transaction differs from an imported row |
+| Expense | Expense | Gasto | Out direction |
+| Saved inflow | Deposit | Depósito | Includes transfers and refunds; not income. `abono` is rejected as the noun (installment and card-payment direction risk) |
+| Imported credit row status | Deposit | Depósito | Same name as the saved item; rows stay rows and saving stays explicit ("Deposit rows", "Deposits to save: N") |
+| Import direction label | Money out / Money in | Cargo / Abono | `Abono` only next to `Cargo`, mirroring the statement columns |
+| Income | only in negations ("isn't counted as income") | "no se cuenta como ingreso" | |
+| Spent | Spent | Gastado | |
+| Recorded | Recorded | registrado | Use only where it contrasts with expected |
+| Deposit date | Deposit date | Fecha del depósito | Replaces "Posted date" / "Fecha de contabilización"; report semantics unchanged |
+| Reports primary labels | Deposits / Spent / Deposits minus spending, under "Deposits and spending you recorded" | Depósitos / Gastado / Depósitos menos gastos, under "Depósitos y gastos que registraste" | Not a balance or safe-to-spend |
+| Other deposits | Other deposits | Otros depósitos | Can include an unlinked paycheck |
+| Confirmed paychecks | Confirmed paychecks | Pagos de nómina confirmados | Partition semantics unchanged |
+| Budget | Budgets | Presupuestos | |
+| Monthly limit | Monthly limit | Límite mensual | Limit is not spent |
+| Zero limit | Zero limit (no spending) | Límite en cero (sin gastos) | Zero is intentional; absent means no budget |
+| Recurring expense | Recurring expense (page: Recurring expenses) | Gasto recurrente (page: Gastos recurrentes) | An **expected** pattern: "Expected only. Not included in your totals." Never `pago` |
+| Possible recurring expense | Possible recurring expense | Posible gasto recurrente | A suggestion, not a fact |
+| Expected | Expected | Esperado | Expected copy never says received or recorded |
+| Saved paycheck profile | pay schedule | calendario de nómina | A saved schedule plus amount, not money; distinct from a linked deposit and an expected paycheck |
+| Received paycheck | linked deposit | depósito vinculado | Not employer-verified |
+| Expected paycheck | expected paycheck | pago de nómina esperado | Not received |
+| Home upcoming section | Upcoming paychecks | Próximos pagos de nómina | Kept separate from the transactions list |
+| Needs attention | Needs your attention (Home heading only) | Requiere tu atención | |
+| A decision is waiting | To review | Por revisar | |
+| Data cannot be read exactly | Exact amount unavailable; Date unavailable | Monto exacto no disponible; Fecha no disponible | Unavailable is not zero |
+| Possible duplicate | Possible duplicate | Posible duplicado | Never preselected |
+| Statement / import | Import statement | Importar estado de cuenta | |
+| Row (import) | Row | Fila | An unsaved line is not a transaction |
+| Paycheck | Paycheck | pago de nómina; navigation and page title: Nómina | Not an income claim |
+| Possible paycheck | Possible paycheck | Posible pago de nómina | Confirming it saves a pay schedule |
+| Link a deposit | Link a deposit (submit: Link this deposit) | Vincular un depósito (submit: Vincular este depósito) | Does not change the pay schedule |
+| How often | How often | Frecuencia | Stored cadence values unchanged |
+| Expected dates | Expected between {start} and {end} | Se espera entre el {start} y el {end} | Expected, not guaranteed |
+| Semimonthly | Twice a month | Quincenal | Ordo's semimonthly is any two ordered days at least 7 days apart, not only the 15th and the last day; never used for biweekly (`Cada dos semanas`) |
+| Why we suggested this | Why we suggested this | Por qué lo sugerimos | Replaces "Detection details" |
+| Review again | Review again | Volver a revisar | Replaces "Reconsider" |
+| Not seen / possibly ended | Not seen lately / May have ended | No ha aparecido últimamente / Puede que haya terminado | Not an automatic status change |
+| Category `bills` | Bills | Servicios | Stored value `bills` unchanged |
+| Refund / reimbursement | refund / reimbursement | devolución / reembolso | A refund does not reduce spending |
+| Auth verbs | Sign in / Create account / Sign out | Iniciar sesión / Crear cuenta / Cerrar sesión | Server 401 literals untouched |
+| Account / Appearance / Theme / Language | same | Cuenta / Apariencia / Tema / Idioma | |
+| System / Light / Dark | same | Sistema / Claro / Oscuro | Theme options |
+| Delete | Delete | Eliminar | Expense and deposit removal |
+| Statement | Statement | Estado de cuenta | Bank statement import |
+| Investing | Investing | Inversiones | Unavailable placeholder destination |
+| Voice | you | tú | Never usted |
+
+Terms that change in later area PRs of the same series (long tail of Transactions and
+import, Recurring expenses, Paychecks, then Home, navigation, Budgets, and Reports) are
+tracked on #229: `Import selected`, `Matching expenses`, `Use the new details` /
+`Keep saved details`, `Mark as ended`, `Starting pay date`, `So far` / `A la fecha`,
+`Monthly limit`, and the removal of `candidate`, `proposal`, `anchor`, `evidence`,
+`eligible`, `(s)`, and `...`.
+
+## Wording style guide
+
+- **Voice:** plain, calm, second person, one idea per sentence. Most labels are 4 words
+  or fewer; help text is 2 sentences or fewer. No internal words: candidate, proposal,
+  profile, anchor, cadence, evidence, eligible, client, algorithm, fingerprint, marker,
+  authoritative, capture.
+- **Register:** Spanish uses tú imperatives (Ingresa, Elige, Agrega, Sube, Revisa), never
+  usted. No device verbs (clic, toca); name the control instead.
+- **Direction:** Spanish outflow nouns are `gasto`; inflow nouns are `depósito` or `pago
+  de nómina`. A bare `pago` is never used for either.
+- **Case and punctuation:** sentence case in both languages. Ellipsis is always `…`,
+  never `...`. No "vs" in headings.
+- **Buttons:** a verb plus an object that names the effect (Save expense, Import
+  selected, Link this deposit, Use the new details). Never Submit, Process, or Confirm
+  on its own. Confirmation buttons say "Yes, …".
+- **Label in name:** when a control has an aria-label, it contains the visible text,
+  unchanged and at the start, followed by the object: "{visible}: {object}" or
+  "{visible} for/to {name}". The receipt panel submit (`receipt.link`, "Link this
+  deposit") differs from the opening button's name ("Link a deposit to {name}"), and
+  `paychecks:receipt.label` is a section name, not a control name.
+- **Errors:** reassure first, then the next step. Say what did not happen and whether
+  anything changed, but only when that is certain. Then give one action. Use "Try again"
+  for a retry and "Refresh" for reloading. Never claim "nothing was saved" when the
+  outcome is unknown; the existing uncertain-save rules stay.
+- **Empty states:** "No X yet." plus the one way to add X, where one exists.
+- **Expected-money pattern:** "Expected only. Not included in your totals." (Spanish:
+  "Solo esperado. No se suma a tus totales."). Expected copy never says received or
+  recorded, because Ordo cannot know whether a paycheck arrived unless it is linked.
+  Recorded copy never says expected.
+- **Deposit pattern:** wherever deposits are introduced, say "Includes transfers and
+  refunds. Not counted as income." (Spanish: "Incluye transferencias y devoluciones. No
+  se cuenta como ingreso.")
+- **Duplicate pattern:** "Possible duplicate: this looks like one you already saved.
+  Check before selecting it." Calm, never preselected, and no criteria promised beyond
+  what the backend reports.
+- **Plurals:** never "(s)". Use i18next `_one`/`_other`, or "Label: N" when the code
+  passes no count.
+- **Abbreviations:** spell them out (So far, number, MB). Keep PDF and "Amount ($)".
+- **Auth:** Sign in, Sign out, Create account, Reset password.
+- **One review rule:** "To review / Por revisar" means a decision is waiting for you.
+  "Needs your attention" is the Home heading only. "Exact … unavailable" means data
+  cannot be read exactly; that differs from "Spending unavailable" (no data) and from
+  zero. "We couldn't load/check …" means a request failed. "Review" is never used for a
+  data problem.
+
+The `shared/localization/wordingGuard.test.js` guard enforces the banned-term lists,
+the Spanish direction rules, the `Quincenal` rule, the semantic anchors for the
+disclaimers, and the label-in-name rule mechanically.
 
 Language option names are autonyms: `English` and `Español` in both catalogs.

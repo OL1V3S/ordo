@@ -118,8 +118,8 @@ displays backend ProblemDetails text.
 `frontend/src/features/activity/` owns the timeline API module, a session-scoped
 hook (request-id, abort, and session staleness guards; first page, load older,
 refresh resets to the first page), a timeline-specific response validator, and
-the presentation component. The Activity page is one list plus one task area: a status area
-(feedback, load errors with Try again, Refresh activity and Refresh cash in, the cash-in
+the presentation component. The Transactions page is one list plus one task area: a status area
+(feedback, load errors with Try again, Refresh expenses and Refresh deposits, the cash-in
 disclaimer, which stays visible when idle), a "Current task" area (expense edit panel, Add
 expense, the cash-in task, statement import; today's locks are unchanged, so tasks stack as
 before) and the timeline. There are no Spending or Cash in sections, Records toggles, expense
@@ -139,19 +139,19 @@ recovery acknowledgment are unchanged. The page heading (h1) is the last-resort 
   q/kind/from/to as before: no API change. This month is the whole calendar month.
   Active filters show as removable chips (dates shown as ISO) plus Clear filters.
 
-- Rows are a list, not a table. Each shows a text label (Expense or Cash in),
+- Rows are a list, not a table. Each shows a text label (Expense or Deposit),
   description, date, expense category, a paycheck-linked note, and an amount with
   an explicit sign. Direction never relies on color alone.
 - The validator is strict on structure and fails closed for the whole response.
   It accepts any stored `-?\d+\.\d{2}` amount; a zero, negative, or otherwise
-  non-canonical amount renders only that row as "Amount needs review" with the
+  non-canonical amount renders only that row as "Exact amount unavailable" with the
   stored value unaltered, and never blanks the page.
 - The timeline view is a read model whose failures never affect the per-type lists
   and vice versa. States are loading, ready, empty, initial failure
   with retry, failed refresh with the last rows kept, failed older-page load with
   an inline retry, and a malformed response.
 - Row actions: an optional `rowActions` prop adds one "..." overflow trigger per row ("Actions
-  for expense|cash in {description} from {date}, record {id}"), a non-modal disclosure popover (not an
+  for expense|deposit {description}, {date} (no. {id})"), a non-modal disclosure popover (not an
   ARIA menu; no focus trap) like the account menu. It holds Edit and Delete with unchanged
   accessible names (type, description, date, record id; expense Delete danger, cash-in Delete
   ghost). It closes on Escape (focus to the trigger), outside pointerdown, or focus leaving it, and
@@ -180,7 +180,7 @@ recovery acknowledgment are unchanged. The page heading (h1) is the last-resort 
 
 Timeline strings (including the filter controls under `timeline.filters`) use the `activity` catalog;
 direction labels reuse Home's keys. Timeline money and dates format with `en-US`
-or `es-US`. The rest of the Activity page (page header and actions, spending
+or `es-MX`. The rest of the Transactions page (page header and actions, spending
 area, and cash-in area) and the statement import preview are also localized, and
 the spending and cash-in lists keep their existing `$` amounts and `MM/DD/YYYY`
 dates in both languages. See [`localization.md`](localization.md).
