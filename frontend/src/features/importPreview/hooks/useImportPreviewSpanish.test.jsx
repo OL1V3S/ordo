@@ -49,7 +49,7 @@ describe('useImportPreview in Spanish', () => {
     await act(() => result.current.selectSource('sunflower_pdf'))
     await act(() => result.current.upload(new File(['pdf'], 'statement.pdf')))
 
-    expect(result.current.error).toBe('No se admiten PDF cifrados ni protegidos con contraseña.')
+    expect(result.current.error).toBe('No podemos abrir PDF protegidos con contraseña ni cifrados.')
     expect(result.current.error).not.toContain('internal detail')
   })
 
@@ -63,7 +63,7 @@ describe('useImportPreview in Spanish', () => {
     await act(() => result.current.selectSource('sunflower_pdf'))
     await act(() => result.current.upload(new File(['pdf'], 'statement.pdf')))
 
-    expect(result.current.error).toBe('No se pudo procesar el estado de cuenta de forma segura.')
+    expect(result.current.error).toBe('No pudimos leer el estado de cuenta. Intenta subirlo de nuevo.')
   })
 
   it('uses Spanish load and row-update fallbacks', async () => {
@@ -72,17 +72,17 @@ describe('useImportPreview in Spanish', () => {
     await waitFor(() => expect(result.current.loading).toBe(false))
 
     await act(() => result.current.selectSource('sunflower_pdf'))
-    expect(result.current.error).toBe('No se pudo cargar la vista previa de importación guardada.')
+    expect(result.current.error).toBe('No pudimos cargar tu vista previa de importación guardada.')
 
     importPreviewApi.getOpen.mockResolvedValueOnce({ status: 200, data: preview })
     await act(() => result.current.selectSource('sunflower_pdf'))
     importPreviewApi.updateRow.mockRejectedValue({ response: { data: { code: 'row_not_selectable' } } })
     await act(() => result.current.updateRow('row-1', { selectedForImport: true }))
-    expect(result.current.error).toBe('Esa fila no se puede seleccionar para importar.')
+    expect(result.current.error).toBe('No puedes seleccionar esa fila para importar.')
 
     importPreviewApi.updateRow.mockRejectedValue(new Error('offline'))
     await act(() => result.current.updateRow('row-1', { selectedForImport: true }))
-    expect(result.current.error).toBe('No se pudo actualizar la fila de la vista previa.')
+    expect(result.current.error).toBe('No pudimos actualizar esta fila. Inténtalo de nuevo.')
   })
 
   it('keeps the duplicate-review code and rows while showing the Spanish message', async () => {
@@ -96,7 +96,7 @@ describe('useImportPreview in Spanish', () => {
 
     expect(result.current.confirmationIssue).toEqual({
       code: 'duplicate_review_required',
-      message: 'Se encontraron posibles duplicados nuevos. Revisa las filas afectadas y selecciona de forma explícita cualquier fila que aún quieras importar.',
+      message: 'Encontramos posibles duplicados nuevos. Revisa esas filas y vuelve a seleccionar las que aún quieras importar.',
       rows: [{ rowId: 'row-1', codes: ['possible_duplicate'] }],
       requiresPreviewRefresh: false,
     })
@@ -117,7 +117,7 @@ describe('useImportPreview in Spanish', () => {
 
     expect(result.current.confirmationIssue.requiresPreviewRefresh).toBe(true)
     expect(result.current.confirmationIssue.message).toBe(
-      'Se guardaron las nuevas advertencias de duplicados, pero no se pudo cargar la vista previa más reciente. Actualiza esta página antes de confirmar.',
+      'Guardamos las nuevas advertencias de duplicados, pero no pudimos cargar la vista previa más reciente. Actualiza esta página antes de importar.',
     )
   })
 
@@ -131,21 +131,21 @@ describe('useImportPreview in Spanish', () => {
     await act(() => result.current.confirm())
     expect(result.current.confirmationIssue.code).toBe('confirmation_conflict')
     expect(result.current.confirmationIssue.message).toBe(
-      'No se pudo confirmar el estado de cuenta porque cambió el estado de su importación. Revisa la vista previa e inténtalo de nuevo.',
+      'No pudimos confirmar la importación porque cambió. Revisa la vista previa e inténtalo de nuevo.',
     )
 
     importPreviewApi.confirm.mockRejectedValueOnce({ response: { status: 500, data: { code: 'something_else' } } })
     await act(() => result.current.confirm())
     expect(result.current.confirmationIssue.code).toBe('confirmation_failed')
     expect(result.current.confirmationIssue.message).toBe(
-      'No se pudo confirmar el estado de cuenta de forma segura. No se informa que se haya importado nada; puedes intentarlo de nuevo.',
+      'No pudimos confirmar la importación, así que no se muestra nada como importado. Puedes intentarlo de nuevo.',
     )
 
     importPreviewApi.confirm.mockRejectedValueOnce({ response: { status: 404 } })
     await act(() => result.current.confirm())
     expect(result.current.confirmationIssue.code).toBe('preview_unavailable')
     expect(result.current.confirmationIssue.message).toBe(
-      'Esta vista previa de importación no está disponible. Elige el banco y carga el estado de cuenta de nuevo.',
+      'Esta vista previa no está disponible. Elige tu banco y sube el estado de cuenta de nuevo.',
     )
     expect(result.current.preview).toBeNull()
   })
@@ -158,7 +158,7 @@ describe('useImportPreview in Spanish', () => {
     await waitFor(() => expect(result.current.loading).toBe(false))
 
     expect(result.current.error).toBe(
-      'Esta vista previa de importación no está disponible. Elige el banco y carga el estado de cuenta de nuevo.',
+      'Esta vista previa no está disponible. Elige tu banco y sube el estado de cuenta de nuevo.',
     )
     expect(window.location.search).toBe('?keep=yes')
   })

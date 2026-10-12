@@ -9,7 +9,7 @@ const expense = { id: 7, description: "coffee", amount: 4.5, date: "2026-08-14",
 describe("ExpenseList (read-only table)", () => {
   it("shows the empty text and no match/filter wording", () => {
     render(<ExpenseList expenses={[]} />);
-    expect(screen.getByText("No expenses recorded yet.")).toBeVisible();
+    expect(screen.getByText("No expenses yet.")).toBeVisible();
   });
 
   it("keeps one table DOM with mobile labels and no Actions column or buttons", () => {
@@ -42,9 +42,9 @@ describe("ExpenseList (read-only table)", () => {
     const rowActions = { getState: vi.fn(() => ({ canEdit: true, canDelete: true })), onEdit: vi.fn(), onDelete: vi.fn() };
     render(<ExpenseList expenses={[expense]} rowActions={rowActions} />);
     expect(screen.getByRole("columnheader", { name: "Actions" })).toBeVisible();
-    const trigger = screen.getByRole("button", { name: "Actions for expense Coffee, 08/14/2026 (no. 7)" });
+    const trigger = screen.getByRole("button", { name: "Actions for expense Coffee, 08/14/2026 (number 7)" });
     await user.click(trigger);
-    await user.click(screen.getByRole("button", { name: "Edit expense Coffee, 08/14/2026 (no. 7)" }));
+    await user.click(screen.getByRole("button", { name: "Edit expense Coffee, 08/14/2026 (number 7)" }));
     expect(rowActions.onEdit).toHaveBeenCalledWith({ kind: "expense", recordId: 7 }, trigger);
   });
 });

@@ -139,7 +139,7 @@ describe('Activity cash-in tasks', () => {
     expect(screen.getByText(/supporting paycheck link is removed/)).toBeInTheDocument()
     expect(screen.getByText(/same confirmed statement again will not restore/)).toBeInTheDocument()
     expect(cash.deleteInflow).not.toHaveBeenCalled()
-    await user.click(screen.getByRole('button', { name: 'Confirm delete deposit' }))
+    await user.click(screen.getByRole('button', { name: 'Yes, delete deposit' }))
     expect(cash.deleteInflow).toHaveBeenCalledWith(1)
     await screen.findByText(/Deposit deleted/)
   })

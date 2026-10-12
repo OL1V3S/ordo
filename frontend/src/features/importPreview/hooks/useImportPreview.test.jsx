@@ -58,7 +58,7 @@ describe('useImportPreview', () => {
     await act(() => result.current.upload(new File(['pdf'], 'statement.pdf')))
 
     expect(importPreviewApi.upload).toHaveBeenCalledWith('sunflower_pdf', expect.any(File), expect.any(AbortSignal))
-    expect(result.current.error).toBe('Encrypted or password-protected PDFs are not supported.')
+    expect(result.current.error).toBe('We can’t open PDFs that are password-protected or encrypted.')
     expect(result.current.error).not.toContain('internal detail')
   })
 
@@ -100,7 +100,7 @@ describe('useImportPreview', () => {
     await act(() => result.current.updateRow('row-1', { selectedForImport: true }))
 
     expect(result.current.preview).toEqual(preview)
-    expect(result.current.error).toBe('That row cannot be selected for import.')
+    expect(result.current.error).toBe('You can’t select that row for import.')
     expect(result.current.error).not.toContain('internal detail')
   })
 
@@ -351,7 +351,7 @@ describe('useImportPreview', () => {
 
     await waitFor(() => expect(result.current.loading).toBe(false))
 
-    expect(result.current.error).toBe('This import preview is unavailable. Choose the bank and upload the statement again.')
+    expect(result.current.error).toBe('This preview isn’t available. Choose your bank and upload the statement again.')
     expect(window.location.search).toBe('?keep=yes')
   })
 })

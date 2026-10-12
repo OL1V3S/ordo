@@ -82,9 +82,9 @@ describe("Activity spending in Spanish", () => {
     expect(screen.getByRole("button", { name: "Importar estado de cuenta" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Gastos" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Actualizar gastos" })).toBeVisible();
-    expect(screen.getByText("Todavía no hay movimientos.")).toBeVisible();
+    expect(screen.getByText("Todavía no hay movimientos. Agrega un gasto o un depósito para empezar.")).toBeVisible();
     expect(screen.queryByRole("button", { name: "Add expense" })).not.toBeInTheDocument();
-    expect(screen.queryByText("No expenses recorded yet.")).not.toBeInTheDocument();
+    expect(screen.queryByText("No expenses yet.")).not.toBeInTheDocument();
   });
 
   it("renders the timeline filter controls in Spanish", async () => {
@@ -123,10 +123,10 @@ describe("Activity spending in Spanish", () => {
     expect(within(table).getByText("Food")).toBeInTheDocument();
     expect(within(table).getByText("Monto exacto no disponible")).toBeInTheDocument();
     await user.click(within(table).getByRole("button", { name: /^Acciones del gasto Lunch, 01\/09\/2026 \(núm\. 42\)$/ }));
-    expect(within(table).getByRole("button", { name: "Editar gasto Lunch, 01/09/2026 (núm. 42)" })).toBeEnabled();
-    expect(within(table).getByRole("button", { name: "Eliminar gasto Lunch, 01/09/2026 (núm. 42)" })).toBeEnabled();
+    expect(within(table).getByRole("button", { name: "Editar gasto Lunch, 01/09/2026 (número 42)" })).toBeEnabled();
+    expect(within(table).getByRole("button", { name: "Eliminar gasto Lunch, 01/09/2026 (número 42)" })).toBeEnabled();
     await user.click(within(table).getByRole("button", { name: /^Acciones del gasto Odd/ }));
-    expect(within(table).getByRole("button", { name: "Editar gasto Odd, 02/09/2026 (núm. 43)" })).toBeDisabled();
+    expect(within(table).getByRole("button", { name: "Editar gasto Odd, 02/09/2026 (número 43)" })).toBeDisabled();
   });
 
   it("renders the add-expense form, its validation messages, and the saved feedback in Spanish", async () => {
@@ -151,7 +151,7 @@ describe("Activity spending in Spanish", () => {
     await fillExpense(user, task, "1.001");
     await user.click(within(task).getByRole("button", { name: "Guardar gasto" }));
     expect(within(task).getByRole("alert"))
-      .toHaveTextContent("Ingresa un monto positivo con hasta dos decimales, hasta 9999999999999999.99.");
+      .toHaveTextContent("Ingresa un monto positivo con hasta dos decimales, no mayor a 9999999999999999.99.");
     expect(expenses.addExpense).not.toHaveBeenCalled();
 
     await user.clear(within(task).getByLabelText("Monto"));
@@ -173,7 +173,7 @@ describe("Activity spending in Spanish", () => {
     await user.click(within(task).getByRole("button", { name: "Guardar gasto" }));
 
     expect(screen.getByRole("status")).toHaveTextContent(
-      "Gasto guardado. No se pudieron actualizar los gastos. Actualiza la lista antes de hacer otro cambio.");
+      "Gasto guardado. No pudimos actualizar la lista, así que actualízala antes de hacer otro cambio.");
   });
 
   it("renders the inline expense edit controls in Spanish", async () => {
@@ -213,7 +213,7 @@ describe("Activity spending in Spanish", () => {
   it("renders the expense loading and load-failure states in Spanish", () => {
     mockLists({ expenses: { loading: true } });
     const view = renderPage();
-    expect(screen.getByText("Cargando gastos...")).toBeInTheDocument();
+    expect(screen.getByText("Cargando gastos…")).toBeInTheDocument();
     view.unmount();
 
     mockLists({ expenses: { expenses: [lunch], loading: true } });
@@ -246,8 +246,8 @@ describe("Activity cash in in Spanish", () => {
     expect(within(table).getByText("01/09/2026")).toBeInTheDocument();
     expect(within(table).getByText("Monto exacto no disponible")).toBeInTheDocument();
     await user.click(within(table).getByRole("button", { name: /^Acciones del depósito Transfer from Savings/ }));
-    expect(within(table).getByRole("button", { name: "Editar depósito Transfer from Savings, 01/09/2026 (núm. 1)" })).toBeEnabled();
-    expect(within(table).getByRole("button", { name: "Eliminar depósito Transfer from Savings, 01/09/2026 (núm. 1)" })).toBeEnabled();
+    expect(within(table).getByRole("button", { name: "Editar depósito Transfer from Savings, 01/09/2026 (número 1)" })).toBeEnabled();
+    expect(within(table).getByRole("button", { name: "Eliminar depósito Transfer from Savings, 01/09/2026 (número 1)" })).toBeEnabled();
   });
 
   it("renders the cash-in loading and failure states in Spanish", () => {
@@ -263,7 +263,7 @@ describe("Activity cash in in Spanish", () => {
 
     mockLists({ cash: { error: new Error("offline") } });
     renderPage();
-    expect(screen.getByText("No pudimos cargar los depósitos. Actualízalos para intentarlo de nuevo.")).toBeInTheDocument();
+    expect(screen.getByText("No pudimos cargar tus depósitos. Actualízalos para intentarlo de nuevo.")).toBeInTheDocument();
   });
 
   it("renders the cash-in form, its field errors, and the saved feedback in Spanish", async () => {
@@ -279,7 +279,7 @@ describe("Activity cash in in Spanish", () => {
     expect(within(form).getByRole("alert")).toHaveTextContent("Revisa los campos marcados.");
     expect(within(form).getByLabelText("Descripción")).toHaveAccessibleDescription("Ingresa una descripción de 1 a 500 caracteres.");
     expect(within(form).getByLabelText("Monto")).toHaveAccessibleDescription(
-      "Ingresa un monto positivo con hasta dos decimales, hasta 9999999999999999.99.");
+      "Ingresa un monto positivo con hasta dos decimales, no mayor a 9999999999999999.99.");
     expect(cash.createInflow).not.toHaveBeenCalled();
 
     await user.type(within(form).getByLabelText("Descripción"), "Reembolso");
@@ -321,10 +321,10 @@ describe("Activity cash in in Spanish", () => {
     expect(within(confirmation).getByText(/Si este depósito se importó/)).toBeInTheDocument();
     expect(within(confirmation).getByRole("button", { name: "Cancelar" })).toBeInTheDocument();
 
-    await user.click(within(confirmation).getByRole("button", { name: "Confirmar eliminación del depósito" }));
+    await user.click(within(confirmation).getByRole("button", { name: "Sí, eliminar depósito" }));
 
     expect(cash.deleteInflow).toHaveBeenCalledExactlyOnceWith(1);
-    expect(await screen.findByText("Depósito eliminado. Los reportes reflejarán que se eliminó."))
+    expect(await screen.findByText("Depósito eliminado. Tus reportes se actualizarán."))
       .toBeInTheDocument();
   });
 

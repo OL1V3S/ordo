@@ -71,7 +71,7 @@ describe('statement import entry point and results hand-off', () => {
   it('shows the prompt in Spanish', async () => {
     await i18n.changeLanguage('es')
     render(<TransactionsPage />)
-    expect(screen.getByText('¿Tienes un estado de cuenta bancario? Importa un PDF para revisar y guardar muchas transacciones a la vez.')).toBeInTheDocument()
+    expect(screen.getByText('¿Tienes un estado de cuenta? Importa el PDF para revisar y guardar varios movimientos a la vez.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Importar un PDF' })).toBeInTheDocument()
   })
 

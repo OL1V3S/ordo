@@ -151,7 +151,7 @@ describe('existing expense workflows', () => {
     fireEvent.change(document.querySelector('input[type="date"]'), { target: { value: '2026-08-14' } })
     const addEntry = screen.getByRole('heading', { name: 'Add expense' }).closest('section')
     await user.selectOptions(within(addEntry).getByRole('combobox'), 'other')
-    await user.type(screen.getByPlaceholderText('Custom Category'), '  Medical Care  ')
+    await user.type(screen.getByPlaceholderText('Custom category'), '  Medical Care  ')
     await user.click(screen.getByRole('button', { name: 'Save expense' }))
 
     expect(addExpense).toHaveBeenCalledWith(expect.objectContaining({
@@ -188,8 +188,8 @@ describe('existing expense workflows', () => {
     await user.type(textboxes[0], '  New Name  ')
     await user.clear(within(row).getByLabelText('Edit amount'))
     await user.type(within(row).getByLabelText('Edit amount'), '12.34')
-    await user.clear(screen.getByPlaceholderText('Custom Category'))
-    await user.type(screen.getByPlaceholderText('Custom Category'), '  Home Repair  ')
+    await user.clear(screen.getByPlaceholderText('Custom category'))
+    await user.type(screen.getByPlaceholderText('Custom category'), '  Home Repair  ')
     expect(within(row).getByLabelText('Edit custom category')).toBeInTheDocument()
     await user.click(within(row).getByRole('button', { name: 'Save' }))
 
@@ -250,7 +250,7 @@ describe('existing expense workflows', () => {
 
     expect(screen.getByRole('status')).toHaveTextContent('Loading expenses')
     expect(screen.getByRole('status')).toBeVisible()
-    expect(screen.queryByText('No expenses recorded yet.')).not.toBeInTheDocument()
+    expect(screen.queryByText('No expenses yet.')).not.toBeInTheDocument()
   })
 
   it('shows a retryable error instead of an empty state when expense loading fails', async () => {
@@ -265,7 +265,7 @@ describe('existing expense workflows', () => {
     render(<TransactionsPage />)
 
     expect(screen.getByRole('alert')).toHaveTextContent('We couldn’t load your expenses')
-    expect(screen.queryByText('No expenses recorded yet.')).not.toBeInTheDocument()
+    expect(screen.queryByText('No expenses yet.')).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Try again' }))
     expect(refresh).toHaveBeenCalledOnce()
   })
@@ -273,9 +273,9 @@ describe('existing expense workflows', () => {
   it('shows the timeline empty state after a successful zero-row response and no per-type list', () => {
     render(<TransactionsPage />)
 
-    expect(screen.getByText('No transactions yet.')).toBeVisible()
-    expect(screen.queryByText('No expenses recorded yet.')).not.toBeInTheDocument()
-    expect(screen.queryByText('Loading expenses...')).not.toBeInTheDocument()
+    expect(screen.getByText('No transactions yet. Add an expense or a deposit to get started.')).toBeVisible()
+    expect(screen.queryByText('No expenses yet.')).not.toBeInTheDocument()
+    expect(screen.queryByText('Loading expenses…')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
   })
 
@@ -313,7 +313,7 @@ describe('existing expense workflows', () => {
     useImportPreview.mockReturnValue({
       ...baseImportHook,
       processing: true,
-      error: 'Statement processing timed out. Try the upload again.',
+      error: 'Reading the statement took too long. Try uploading it again.',
       cancel,
     })
     render(<TransactionsPage />)
@@ -526,8 +526,8 @@ describe('existing expense workflows', () => {
     })
     render(<TransactionsPage />)
 
-    const table = screen.getByRole('region', { name: 'Statement import preview' })
-    expect(within(table).getByText('Possible duplicate — review before selecting')).toBeInTheDocument()
+    const table = screen.getByRole('region', { name: 'Statement preview' })
+    expect(within(table).getByText('Possible duplicate: this looks like one you already saved. Check before selecting it.')).toBeInTheDocument()
     expect(within(table).getByText('To review')).toBeInTheDocument()
     expect(within(table).getByLabelText('Not selectable')).toBeDisabled()
     await user.click(within(table).getByLabelText(/^Select for import for /))

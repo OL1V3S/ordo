@@ -5,7 +5,7 @@ import RowActionsMenu from "./RowActionsMenu";
 import "../../../shared/localization/i18n";
 
 const labelValues = { description: "Lunch", date: "08/14/2026", id: 42 };
-const TRIGGER = "Actions for expense Lunch, 08/14/2026 (no. 42)";
+const TRIGGER = "Actions for expense Lunch, 08/14/2026 (number 42)";
 
 function setup(props = {}) {
   const handlers = { onEdit: vi.fn(), onDelete: vi.fn() };
@@ -28,8 +28,8 @@ describe("RowActionsMenu", () => {
     expect(trigger).toHaveAttribute("aria-expanded", "true");
     expect(panel).toBeVisible();
     expect(screen.getByRole("group", { name: TRIGGER })).toBe(panel);
-    expect(screen.getByRole("button", { name: "Edit expense Lunch, 08/14/2026 (no. 42)" })).toHaveTextContent("Edit");
-    expect(screen.getByRole("button", { name: "Delete expense Lunch, 08/14/2026 (no. 42)" })).toHaveTextContent("Delete");
+    expect(screen.getByRole("button", { name: "Edit expense Lunch, 08/14/2026 (number 42)" })).toHaveTextContent("Edit");
+    expect(screen.getByRole("button", { name: "Delete expense Lunch, 08/14/2026 (number 42)" })).toHaveTextContent("Delete");
   });
 
   it("closes on Escape from the trigger and from an item, returning focus to the trigger", async () => {

@@ -7,8 +7,8 @@
     "closeImport": "Cerrar importación",
     "cashTaskLock": "Termina o cancela primero el depósito que estás editando.",
     "taskArea": "Tarea actual",
-    "importHint": "Revisa y guarda muchas transacciones desde un PDF de estado de cuenta bancario.",
-    "importPrompt": "¿Tienes un estado de cuenta bancario? Importa un PDF para revisar y guardar muchas transacciones a la vez.",
+    "importHint": "Revisa y guarda varios movimientos desde el PDF de tu estado de cuenta.",
+    "importPrompt": "¿Tienes un estado de cuenta? Importa el PDF para revisar y guardar varios movimientos a la vez.",
     "importPromptAction": "Importar un PDF"
   },
   "timeline": {
@@ -17,11 +17,11 @@
     "listLabel": "Movimientos, del más reciente al más antiguo",
     "loading": "Cargando movimientos…",
     "refreshing": "Actualizando movimientos…",
-    "empty": "Todavía no hay movimientos.",
+    "empty": "Todavía no hay movimientos. Agrega un gasto o un depósito para empezar.",
     "unavailable": "No pudimos cargar tus movimientos.",
-    "malformed": "No se pudieron verificar los movimientos, por lo que están ocultos.",
-    "refreshFailed": "No se pudieron actualizar los movimientos. Se muestran los cargados antes.",
-    "maybeStale": "Es posible que los movimientos estén desactualizados. Revisa los de arriba antes de intentarlo de nuevo.",
+    "malformed": "No pudimos revisar estos movimientos, así que no se muestran.",
+    "refreshFailed": "No pudimos actualizar tus movimientos. Se muestran los que cargaron antes.",
+    "maybeStale": "Es posible que tus movimientos estén desactualizados. Revisa la lista de arriba antes de intentarlo de nuevo.",
     "retry": "Intentar de nuevo",
     "showOlder": "Mostrar movimientos anteriores",
     "loadingMore": "Cargando movimientos anteriores…",
@@ -30,7 +30,7 @@
     "end": "Esos son todos tus movimientos.",
     "filters": {
       "searchLabel": "Buscar movimientos",
-      "searchPlaceholder": "Buscar en la cronología…",
+      "searchPlaceholder": "Buscar movimientos…",
       "kindLabel": "Tipo",
       "kindAll": "Todos los tipos",
       "fromLabel": "Desde",
@@ -43,9 +43,9 @@
         "to": "Hasta {{date}}"
       },
       "noMatches": "Ningún movimiento coincide con estos filtros.",
-      "invalid": "Revisa los filtros: la búsqueda es demasiado larga o las fechas no son válidas o están en orden incorrecto.",
+      "invalid": "Revisa tus filtros. La búsqueda es demasiado larga, o una fecha no es válida o está fuera de orden.",
       "toggle": "Filtros",
-      "toggleHint": "Se mantiene abierto mientras los filtros necesitan atención.",
+      "toggleHint": "Se queda abierto mientras un filtro tenga un problema.",
       "periodLabel": "Periodo",
       "period": {
         "all": "Todo",
@@ -60,12 +60,12 @@
     "actions": {
       "edit": "Editar",
       "delete": "Eliminar",
-      "editExpense": "Editar gasto {{description}}, {{date}} (núm. {{id}})",
-      "deleteExpense": "Eliminar gasto {{description}}, {{date}} (núm. {{id}})",
-      "editCashIn": "Editar depósito {{description}}, {{date}} (núm. {{id}})",
-      "deleteCashIn": "Eliminar depósito {{description}}, {{date}} (núm. {{id}})",
-      "moreExpense": "Acciones del gasto {{description}}, {{date}} (núm. {{id}})",
-      "moreCashIn": "Acciones del depósito {{description}}, {{date}} (núm. {{id}})"
+      "editExpense": "Editar gasto {{description}}, {{date}} (número {{id}})",
+      "deleteExpense": "Eliminar gasto {{description}}, {{date}} (número {{id}})",
+      "editCashIn": "Editar depósito {{description}}, {{date}} (número {{id}})",
+      "deleteCashIn": "Eliminar depósito {{description}}, {{date}} (número {{id}})",
+      "moreExpense": "Acciones del gasto {{description}}, {{date}} (número {{id}})",
+      "moreCashIn": "Acciones del depósito {{description}}, {{date}} (número {{id}})"
     }
   },
   "categories": {
@@ -78,20 +78,20 @@
   "spending": {
     "heading": "Gastos",
     "refresh": "Actualizar gastos",
-    "loading": "Cargando gastos...",
+    "loading": "Cargando gastos…",
     "refreshing": "Actualizando gastos…",
     "loadError": "No pudimos cargar tus gastos.",
     "retry": "Intentar de nuevo",
     "deleteConfirm": "¿Eliminar este gasto?",
     "feedback": {
       "unknown": "No pudimos confirmar el cambio. Actualiza los gastos y revísalos antes de intentarlo de nuevo.",
-      "refreshed": "Gastos actualizados. Revísalos antes de volver a intentar tu cambio.",
+      "refreshed": "Gastos actualizados. Revísalos antes de intentar tu cambio de nuevo.",
       "created": "Gasto guardado.",
       "updated": "Gasto actualizado.",
       "deleted": "Gasto eliminado.",
-      "createdRefreshFailed": "Gasto guardado. No se pudieron actualizar los gastos. Actualiza la lista antes de hacer otro cambio.",
-      "updatedRefreshFailed": "Gasto actualizado. No se pudieron actualizar los gastos. Actualiza la lista antes de hacer otro cambio.",
-      "deletedRefreshFailed": "Gasto eliminado. No se pudieron actualizar los gastos. Actualiza la lista antes de hacer otro cambio.",
+      "createdRefreshFailed": "Gasto guardado. No pudimos actualizar la lista, así que actualízala antes de hacer otro cambio.",
+      "updatedRefreshFailed": "Gasto actualizado. No pudimos actualizar la lista, así que actualízala antes de hacer otro cambio.",
+      "deletedRefreshFailed": "Gasto eliminado. No pudimos actualizar la lista, así que actualízala antes de hacer otro cambio.",
       "missing": "Este gasto ya no está disponible. Actualiza los gastos antes de hacer otro cambio."
     }
   },
@@ -114,7 +114,7 @@
     "cancel": "Cancelar"
   },
   "expenseList": {
-    "none": "Todavía no hay gastos registrados.",
+    "none": "Todavía no hay gastos.",
     "tableLabel": "Tabla de gastos",
     "caption": "Gastos",
     "columns": {
@@ -146,31 +146,31 @@
     "checked": "Revisé los depósitos",
     "loading": "Cargando depósitos…",
     "refreshing": "Actualizando depósitos…",
-    "loadError": "No pudimos cargar los depósitos. Actualízalos para intentarlo de nuevo.",
+    "loadError": "No pudimos cargar tus depósitos. Actualízalos para intentarlo de nuevo.",
     "targetMissing": "Este depósito ya no está en la lista actual. Cancela esta tarea para elegir otro depósito.",
     "delete": {
       "heading": "¿Eliminar depósito: {{description}} ({{date}})?",
-      "body": "Esto elimina el depósito del historial de flujo de efectivo. Se quita cualquier vínculo de respaldo con un pago de nómina; el calendario de nómina guardado se mantiene.",
-      "imported": "Si este depósito se importó, volver a importar el mismo estado de cuenta confirmado no lo restaurará.",
-      "confirm": "Confirmar eliminación del depósito",
+      "body": "Esto elimina el depósito y lo quita de tus reportes. Si está vinculado a un calendario de nómina, también se quita el vínculo, pero el calendario de nómina se mantiene.",
+      "imported": "Si este depósito vino de una importación, volver a importar el mismo estado de cuenta no lo recuperará.",
+      "confirm": "Sí, eliminar depósito",
       "deleting": "Eliminando…",
       "cancel": "Cancelar"
     },
     "feedback": {
       "created": "Depósito guardado. Los reportes usan la fecha del depósito.",
       "updated": "Depósito actualizado. Los reportes usan la fecha del depósito.",
-      "deleted": "Depósito eliminado. Los reportes reflejarán que se eliminó.",
-      "createdRefreshFailed": "Depósito guardado. Los reportes usan la fecha del depósito. No se pudo actualizar la lista de depósitos. Actualízala antes de hacer otro cambio.",
-      "updatedRefreshFailed": "Depósito actualizado. Los reportes usan la fecha del depósito. No se pudo actualizar la lista de depósitos. Actualízala antes de hacer otro cambio.",
-      "deletedRefreshFailed": "Depósito eliminado. Los reportes reflejarán que se eliminó. No se pudo actualizar la lista de depósitos. Actualízala antes de hacer otro cambio.",
-      "validation": "No se guardó el depósito. Revisa los detalles e inténtalo de nuevo.",
+      "deleted": "Depósito eliminado. Tus reportes se actualizarán.",
+      "createdRefreshFailed": "Depósito guardado. Los reportes usan la fecha del depósito. No pudimos actualizar la lista, así que actualízala antes de hacer otro cambio.",
+      "updatedRefreshFailed": "Depósito actualizado. Los reportes usan la fecha del depósito. No pudimos actualizar la lista, así que actualízala antes de hacer otro cambio.",
+      "deletedRefreshFailed": "Depósito eliminado. Tus reportes se actualizarán. No pudimos actualizar la lista, así que actualízala antes de hacer otro cambio.",
+      "validation": "No guardamos el depósito. Revisa los detalles e inténtalo de nuevo.",
       "unauthorized": "Tu sesión terminó. Inicia sesión de nuevo.",
       "forbidden": "No tienes permiso para cambiar este depósito.",
       "missing": "Este depósito no está disponible. Actualiza los depósitos antes de hacer otro cambio.",
       "unknown": "No pudimos confirmar el cambio. Actualiza los depósitos y revisa la lista antes de intentarlo de nuevo.",
-      "unknownChecked": "Depósitos actualizados. Verifica si se guardó el cambio antes de permitir otro intento.",
+      "unknownChecked": "Depósitos actualizados. Revisa si se guardó tu cambio antes de intentarlo de nuevo.",
       "refreshed": "Depósitos actualizados. Revisa los depósitos actuales antes de hacer otro cambio.",
-      "retryAvailable": "Revisaste los depósitos. Ya está disponible otro intento; no se ejecutará automáticamente.",
+      "retryAvailable": "Revisaste tus depósitos. Ya puedes intentarlo de nuevo; no se hará automáticamente.",
       "blocked": "Termina o cierra la tarea de gasto o de importación abierta antes de cambiar los depósitos."
     },
     "fieldErrors": {
@@ -183,7 +183,7 @@
       "editTitle": "Editar depósito",
       "save": "Agregar depósito",
       "saveChanges": "Guardar cambios",
-      "editWarning": "Los cambios actualizan el flujo de efectivo registrado. Si este depósito está vinculado a un calendario de nómina, ese vínculo se mantiene y sus detalles registrados se actualizan; el calendario de nómina guardado no cambia.",
+      "editWarning": "Los cambios también actualizan tus reportes. Si este depósito está vinculado a un calendario de nómina, el vínculo se mantiene y el calendario de nómina no cambia.",
       "amountReviewTitle": "Monto exacto no disponible.",
       "amountReviewBody": "Ingresa de nuevo el monto exacto antes de guardar.",
       "checkFields": "Revisa los campos marcados.",
