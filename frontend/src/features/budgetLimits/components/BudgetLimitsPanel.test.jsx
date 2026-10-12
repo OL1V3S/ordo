@@ -345,4 +345,10 @@ describe('budgets declutter (slice 7)', () => {
     const rows = within(screen.getByRole('list', { name: 'Category budgets' })).getAllByRole('listitem')
     expect(rows.map((row) => row.getAttribute('aria-label'))).toEqual(['Food budget', 'Bills budget', 'Zero budget'])
   })
+  it('shows the reset date in the short style and groups large percentages', () => {
+    render(<BudgetLimitsPanel {...baseProps} budgetLimits={[{ id: 1, category: 'food', limitAmount: 100 }]} totalsByCategory={{ food: 1234 }} />)
+    expect(screen.getByText('Next reset: Sep 1, 2026. Each limit applies to its selected calendar month.')).toBeInTheDocument()
+    expect(screen.getByText('1,234% used')).toBeVisible()
+    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuetext', '$1,234.00 used of $100.00, 1,234%')
+  })
 })

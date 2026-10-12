@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useLocale } from "../../../shared/localization/useLocale";
 import { formatDate, formatMoney } from "../utils/formatPaychecks";
 
 export default function PaycheckEvidence({ evidence = [], confirmed = false, disclosure = true, onRemove, disabled = false }) {
   const { t } = useTranslation("paychecks");
+  const { locale } = useLocale();
   const [pendingRemoval, setPendingRemoval] = useState(null);
   const confirmRef = useRef(null);
   const triggerRefs = useRef(new Map());
@@ -25,8 +27,8 @@ export default function PaycheckEvidence({ evidence = [], confirmed = false, dis
         <li key={row.accountInflowId} className="paycheck-evidence__row">
           <div>
             <strong>{row.description}</strong>
-            <span><time dateTime={row.postedDate}>{formatDate(row.postedDate, t)}</time> · {row.source === "imported" ? t("evidence.imported") : t("evidence.manual")}</span>
-            <span>{t("evidence.scheduleTiming", { date: formatDate(row.slotAnchor, t), timing: timing(row.timingOffsetDays) })}</span>
+            <span><time dateTime={row.postedDate}>{formatDate(row.postedDate, t, locale)}</time> · {row.source === "imported" ? t("evidence.imported") : t("evidence.manual")}</span>
+            <span>{t("evidence.scheduleTiming", { date: formatDate(row.slotAnchor, t, locale), timing: timing(row.timingOffsetDays) })}</span>
             {confirmed && <span>{row.assignmentKind === "recorded_receipt" ? t("evidence.receivedPaycheck") : t("evidence.confirmationHistory")}</span>}
             {confirmed && row.editedSinceConfirmation && <span className="paycheck-evidence__edited">{t("evidence.edited")}</span>}
             {confirmed && row.assignmentKind === "recorded_receipt" && onRemove && (pendingRemoval === row.accountInflowId ? <div role="group" aria-label={t("evidence.removeLabel", { description: row.description })}>
@@ -37,7 +39,7 @@ export default function PaycheckEvidence({ evidence = [], confirmed = false, dis
               </div>
             </div> : <button ref={(node) => { if (node) triggerRefs.current.set(row.accountInflowId, node); else triggerRefs.current.delete(row.accountInflowId); }} type="button" className="button-ghost" disabled={disabled} onClick={() => setPendingRemoval(row.accountInflowId)}>{t("evidence.removeTrigger")}</button>)}
           </div>
-          <strong>{formatMoney(row.amount, t)}</strong>
+          <strong>{formatMoney(row.amount, t, locale)}</strong>
         </li>
       ))}
     </ul>

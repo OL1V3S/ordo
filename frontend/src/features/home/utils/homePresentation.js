@@ -1,3 +1,4 @@
+import { formatCalendarDate, formatMoneyCents } from "../../../shared/localization/format";
 import { parseExactMoney } from "../../expenses/utils/exactMoney";
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -199,46 +200,22 @@ export function isHomeResponse(value) {
     || value.recentActivity.items.every(isActivityItem);
 }
 
-export function formatHomeDate(date, locale) {
+export function formatHomeDate(date, locale = "en") {
   if (!isDateOnly(date)) return null;
-  const parsed = new Date(`${date}T00:00:00.000Z`);
-  return new Intl.DateTimeFormat(locale, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    timeZone: "UTC",
-  }).format(parsed);
+  return formatCalendarDate(date, locale, "short");
 }
 
-export function formatHomeProjectionAmount(value, locale) {
+export function formatHomeProjectionAmount(value, locale = "en") {
   const parsed = parseCanonicalAmount(value);
   if (!parsed) return null;
-
-  const dollars = parsed.cents / 100n;
-  const fraction = String(parsed.cents % 100n).padStart(2, "0");
-  const parts = new Intl.NumberFormat(locale, {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).formatToParts(dollars);
-  return parts.map((part) => part.type === "fraction" ? fraction : part.value).join("");
+  return formatMoneyCents(parsed.cents, locale);
 }
 
-export function formatHomeAmount(value, kind, locale) {
+export function formatHomeAmount(value, kind, locale = "en") {
   const parsed = typeof value === "string" && DECIMAL_AMOUNT.test(value)
     ? parseExactMoney(value)
     : null;
   if (!parsed || !["expense", "account_inflow"].includes(kind)) return null;
 
-  const dollars = parsed.cents / 100n;
-  const fraction = String(parsed.cents % 100n).padStart(2, "0");
-  const parts = new Intl.NumberFormat(locale, {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).formatToParts(dollars);
-  const formatted = parts.map((part) => part.type === "fraction" ? fraction : part.value).join("");
-  return `${kind === "expense" ? "−" : "+"}${formatted}`;
+  return `${kind === "expense" ? "−" : "+"}${formatMoneyCents(parsed.cents, locale)}`;
 }

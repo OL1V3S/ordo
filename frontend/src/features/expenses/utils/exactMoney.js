@@ -1,5 +1,9 @@
+import { formatMoneyCents } from "../../../shared/localization/format";
+
 export const MAX_EXPENSE_CENTS = 999999999999999999n;
 export const UNSAFE_NUMERIC_DOLLARS = 2 ** 46;
+
+export const AMOUNT_NEEDS_REVIEW = "Amount needs review";
 
 const UNSIGNED_DECIMAL = /^(?:\d+(?:\.\d{1,2})?|\.\d{1,2})$/;
 
@@ -37,24 +41,22 @@ export function decimalFromCents(cents) {
   return `${negative ? "-" : ""}${whole}.${fraction}`;
 }
 
-export function formatCents(cents) {
-  const decimal = decimalFromCents(cents);
-  const negative = decimal.startsWith("-");
-  const [whole, fraction] = (negative ? decimal.slice(1) : decimal).split(".");
-  return `${negative ? "-" : ""}$${whole.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}.${fraction}`;
+export function formatCents(cents, locale = "en", options) {
+  return formatMoneyCents(cents, locale, options);
 }
 
-export function formatExactMoney(value, options) {
-  const parsed = parseExactMoney(value, options);
-  return parsed ? formatCents(parsed.cents) : "Amount needs review";
+// `currency: false` omits the currency token (for columns whose header names the unit).
+export function formatExactMoney(value, { currency, ...parseOptions } = {}, locale = "en") {
+  const parsed = parseExactMoney(value, parseOptions);
+  return parsed ? formatCents(parsed.cents, locale, { currency }) : AMOUNT_NEEDS_REVIEW;
 }
 
-export function formatSignedMoney(value) {
+export function formatSignedMoney(value, locale = "en") {
   const text = String(value ?? "").trim();
   const match = /^(-)?(\d+)\.(\d{2})$/.exec(text);
-  if (!match) return "Amount needs review";
+  if (!match) return AMOUNT_NEEDS_REVIEW;
   const cents = BigInt(match[2]) * 100n + BigInt(match[3]);
-  return formatCents(match[1] ? -cents : cents);
+  return formatCents(match[1] ? -cents : cents, locale);
 }
 
 export function compareCents(left, right) {

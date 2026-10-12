@@ -1,4 +1,6 @@
 import { useTranslation } from "react-i18next";
+import { formatMoneyDecimal } from "../../../shared/localization/format";
+import { useLocale } from "../../../shared/localization/useLocale";
 import { DEFAULT_CATEGORIES } from "../../../shared/constants/categories";
 import { displayText } from "../../../utils/text";
 
@@ -123,6 +125,7 @@ export default function ImportPreviewRow({
   onSelectionChange,
 }) {
   const { t } = useTranslation("importPreview");
+  const { locale } = useLocale();
   const isInflow = row.isInflowEligible;
   const isSelectable = row.isEligible || isInflow;
   const isSelected = row.isEligible ? row.selectedForImport : row.selectedForInflow;
@@ -152,7 +155,7 @@ export default function ImportPreviewRow({
       <strong className="import-row-transaction__description">{sourceDescription}</strong>
       <div className="import-row-transaction__facts">
         <div><span className="import-field-label">{t("row.facts.date")}</span>{row.postedDate ?? t("row.unavailable")}</div>
-        <div><span className="import-field-label">{t("row.facts.amount")}</span>{row.amount == null ? t("row.unavailable") : `$${Number(row.amount).toFixed(2)}`}</div>
+        <div><span className="import-field-label">{t("row.facts.amount")}</span>{row.amount == null ? t("row.unavailable") : (formatMoneyDecimal(row.amount, locale) ?? t("row.unavailable"))}</div>
         <div><span className="import-field-label">{t("row.facts.direction")}</span>{row.direction ? t(`row.directions.${row.direction}`, { defaultValue: displayText(row.direction) }) : ""}</div>
       </div>
       {isInflow && (

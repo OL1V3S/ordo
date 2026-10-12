@@ -14,7 +14,6 @@ import { formatTimelineAmount, formatTimelineDate, timelineItemKey } from "../ut
 export default function ActivityTimeline({ timeline, filters = null, uncertain = false, rowActions = null }) {
   const { t } = useTranslation(["activity", "home"]);
   const { locale } = useLocale();
-  const moneyLocale = locale === "es" ? "es-US" : "en-US";
   const headingRef = useRef(null);
   const moreButtonRef = useRef(null);
   const moreRequested = useRef(false);
@@ -68,8 +67,8 @@ export default function ActivityTimeline({ timeline, filters = null, uncertain =
       {settled && !refreshFailed && items.length === 0 && <EmptyState>{t(noMatches ? "activity:timeline.filters.noMatches" : "activity:timeline.empty")}</EmptyState>}
       {showRows && <ul className="activity-timeline__list" aria-label={t("activity:timeline.listLabel")}>
         {items.map((item) => {
-          const amount = formatTimelineAmount(item.amount, item.kind, moneyLocale);
-          const date = formatTimelineDate(item.date, moneyLocale);
+          const amount = formatTimelineAmount(item.amount, item.kind, locale);
+          const date = formatTimelineDate(item.date, locale);
           const actionState = rowActions?.getState(item);
           const labelValues = { description: item.description, date: date ?? t("home:activity.dateUnknown"), id: item.recordId };
           return (

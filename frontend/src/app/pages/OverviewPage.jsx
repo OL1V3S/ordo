@@ -36,7 +36,6 @@ export default function OverviewPage() {
   const cashInButton = useRef(null);
   const recoveryLink = useRef(null);
   const addMenu = useForcedOpen(Boolean(active));
-  const moneyLocale = locale === "es" ? "es-US" : "en-US";
   const refreshAfterWrite = async () => {
     const session = getSessionSnapshot();
     const result = await data.refresh();
@@ -176,8 +175,8 @@ export default function OverviewPage() {
         && <ul className="home-attention__list" aria-label={t("attention.listLabel")}>
         {visibleAttention.map(({ type, item }) => {
           if (type === "budget") {
-            const spent = formatHomeProjectionAmount(item.spentAmount, moneyLocale);
-            const limit = formatHomeProjectionAmount(item.limitAmount, moneyLocale);
+            const spent = formatHomeProjectionAmount(item.spentAmount, locale);
+            const limit = formatHomeProjectionAmount(item.limitAmount, locale);
             return <ListRow key={`budget-${item.category}`} title={item.category}
               meta={t(`attention.budgetStates.${item.state}`, { category: item.category, spent, limit })}
               actions={<Link to="/budgets" aria-label={t("attention.openBudgetForCategory", { category: item.category })}>
@@ -209,9 +208,9 @@ export default function OverviewPage() {
       {!data.loading && !data.error && data.data?.recentActivity.availability.state === "available" && (rows.length ?
         <ul className="home-recent__list">{rows.map((row) => <ListRow key={`${row.kind}-${row.recordId}`}
           label={t(row.kind === "expense" ? "activity.expense" : "activity.cashIn")} title={row.description}
-          meta={<>{formatHomeDate(row.date, moneyLocale)}{row.category ? ` · ${row.category}` : ""}
+          meta={<>{formatHomeDate(row.date, locale)}{row.category ? ` · ${row.category}` : ""}
             {row.paycheck && <> · {t("activity.paycheckLinked")}</>}</>}
-          amount={<strong>{formatHomeAmount(row.amount, row.kind, moneyLocale) ?? t("activity.amountReview")}</strong>} />)}</ul> : <StatusMessage>{t("activity.empty")}</StatusMessage>)}
+          amount={<strong>{formatHomeAmount(row.amount, row.kind, locale) ?? t("activity.amountReview")}</strong>} />)}</ul> : <StatusMessage>{t("activity.empty")}</StatusMessage>)}
     </section>
     <section className="home-coming-up" aria-labelledby="home-coming-up-heading" aria-busy={upcomingState === "loading"}>
       <SectionHeader id="home-coming-up-heading" title={t("comingUp.heading")}
@@ -220,23 +219,23 @@ export default function OverviewPage() {
       {upcomingState === "available" && <ul className="home-coming-up__list" aria-label={t("comingUp.listLabel")}>
         {upcoming.items.map((item) => {
           const windowLabel = item.earliestExpectedDate === item.latestExpectedDate
-            ? t("comingUp.expectedDate", { date: formatHomeDate(item.earliestExpectedDate, moneyLocale) })
+            ? t("comingUp.expectedDate", { date: formatHomeDate(item.earliestExpectedDate, locale) })
             : t("comingUp.expectedWindow", {
-              start: formatHomeDate(item.earliestExpectedDate, moneyLocale),
-              end: formatHomeDate(item.latestExpectedDate, moneyLocale),
+              start: formatHomeDate(item.earliestExpectedDate, locale),
+              end: formatHomeDate(item.latestExpectedDate, locale),
             });
           const amountLabel = item.amount.mode === "fixed"
-            ? t("comingUp.fixedAmount", { amount: formatHomeProjectionAmount(item.amount.fixedAmount, moneyLocale) })
+            ? t("comingUp.fixedAmount", { amount: formatHomeProjectionAmount(item.amount.fixedAmount, locale) })
             : t("comingUp.rangeAmount", {
-              minimum: formatHomeProjectionAmount(item.amount.minimumAmount, moneyLocale),
-              maximum: formatHomeProjectionAmount(item.amount.maximumAmount, moneyLocale),
+              minimum: formatHomeProjectionAmount(item.amount.minimumAmount, locale),
+              maximum: formatHomeProjectionAmount(item.amount.maximumAmount, locale),
             });
           const cadence = t(`comingUp.cadences.${item.cadence}`);
           const amountValue = item.amount.mode === "fixed"
-            ? formatHomeProjectionAmount(item.amount.fixedAmount, moneyLocale)
+            ? formatHomeProjectionAmount(item.amount.fixedAmount, locale)
             : t("comingUp.rangeValue", {
-              minimum: formatHomeProjectionAmount(item.amount.minimumAmount, moneyLocale),
-              maximum: formatHomeProjectionAmount(item.amount.maximumAmount, moneyLocale),
+              minimum: formatHomeProjectionAmount(item.amount.minimumAmount, locale),
+              maximum: formatHomeProjectionAmount(item.amount.maximumAmount, locale),
             });
           return <ListRow key={item.paycheckProfileId} className="home-coming-up__row" title={item.displayName}
             aria-label={t("comingUp.itemLabel", { name: item.displayName, amount: amountLabel, cadence: t("comingUp.cadence", { cadence }), window: windowLabel })}

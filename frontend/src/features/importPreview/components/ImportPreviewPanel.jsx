@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
+import { formatDateTime } from "../../../shared/localization/format";
+import { useLocale } from "../../../shared/localization/useLocale";
 import { DEFAULT_CATEGORIES } from "../../../shared/constants/categories";
 import Card from "../../../shared/ui/Card";
 import { isDefaultCategory, normalizeText } from "../../../utils/text";
@@ -29,9 +31,8 @@ function isDraftDirty(draft, row) {
     || categoryFromDraft(draft) !== (row.category ?? "");
 }
 
-function parseConfirmationTime(value) {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? null : date.toLocaleString();
+function parseConfirmationTime(value, locale) {
+  return formatDateTime(value, locale);
 }
 
 function formatSelectionCounts(t, expenseCount, inflowCount) {
@@ -46,9 +47,9 @@ function issueTitle(t, code) {
   return t(`panel.issueTitle.${known.includes(code) ? code : "default"}`);
 }
 
-function completionMessage(t, confirmation) {
+function completionMessage(t, confirmation, locale) {
   const summary = formatSelectionCounts(t, confirmation.importedExpenseCount, confirmation.importedInflowCount);
-  const time = parseConfirmationTime(confirmation.confirmedAt);
+  const time = parseConfirmationTime(confirmation.confirmedAt, locale);
   const prefix = confirmation.status === "already_confirmed" ? "alreadySaved" : "saved";
   return time === null
     ? t(`completion.${prefix}UnavailableTime`, { summary })
@@ -63,6 +64,7 @@ function focusAfterRender(ref) {
 
 export default function ImportPreviewPanel({ importState, onImportConfirmed = async () => {}, externalLocked = false, isExternallyLocked = () => false }) {
   const { t } = useTranslation("importPreview");
+  const { locale } = useLocale();
   const externallyBlocked = () => externalLocked || isExternallyLocked();
   const {
     preview,
@@ -322,7 +324,7 @@ export default function ImportPreviewPanel({ importState, onImportConfirmed = as
           <h3 className="h3" ref={completionHeading} tabIndex="-1">
             {confirmation.status === "already_confirmed" ? t("completion.alreadyTitle") : t("completion.title")}
           </h3>
-          <p>{completionMessage(t, confirmation)}</p>
+          <p>{completionMessage(t, confirmation, locale)}</p>
         </div>
       )}
 
@@ -389,7 +391,7 @@ export default function ImportPreviewPanel({ importState, onImportConfirmed = as
           <div className="import-results__summary">
             <div>
               <h3 className="h3" ref={resultsHeading} tabIndex="-1">{t("results.heading")}</h3>
-              <p className="muted">{t("results.meta", { count: preview.rows.length, expires: new Date(preview.expiresAt).toLocaleString() })}</p>
+              <p className="muted">{t("results.meta", { count: preview.rows.length, expires: formatDateTime(preview.expiresAt, locale) ?? String(preview.expiresAt) })}</p>
             </div>
             <div className="import-confirmation-actions">
               <p className="import-confirmation-actions__selection">

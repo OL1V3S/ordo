@@ -1,3 +1,4 @@
+import { formatCalendarDate, formatMoneyCents } from "../../../shared/localization/format";
 import { parseExactMoney } from "../../expenses/utils/exactMoney";
 
 // Home's recent-activity validator rejects a legacy zero or negative expense amount for the
@@ -55,32 +56,18 @@ export function timelineItemKey(item) {
   return `${item.kind}:${item.recordId}`;
 }
 
-export function formatTimelineDate(date, locale) {
+export function formatTimelineDate(date, locale = "en") {
   if (!isDateOnly(date)) return null;
-  return new Intl.DateTimeFormat(locale, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    timeZone: "UTC",
-  }).format(new Date(`${date}T00:00:00.000Z`));
+  return formatCalendarDate(date, locale, "short");
 }
 
 // Returns a signed display amount for a canonical positive amount, or null when the stored
 // value is zero, negative, or otherwise not a positive two-decimal amount. Callers show
 // "Amount needs review" and the stored value unaltered in that case; nothing is repaired.
-export function formatTimelineAmount(value, kind, locale) {
+export function formatTimelineAmount(value, kind, locale = "en") {
   if (typeof value !== "string" || !CANONICAL_POSITIVE_AMOUNT.test(value) || !KINDS.has(kind)) return null;
   const parsed = parseExactMoney(value);
   if (!parsed || parsed.value !== value) return null;
 
-  const dollars = parsed.cents / 100n;
-  const fraction = String(parsed.cents % 100n).padStart(2, "0");
-  const parts = new Intl.NumberFormat(locale, {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).formatToParts(dollars);
-  const formatted = parts.map((part) => part.type === "fraction" ? fraction : part.value).join("");
-  return `${kind === "expense" ? "−" : "+"}${formatted}`;
+  return `${kind === "expense" ? "−" : "+"}${formatMoneyCents(parsed.cents, locale)}`;
 }

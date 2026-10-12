@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useLocale } from "../../../shared/localization/useLocale";
 import ListRow from "../../../shared/ui/ListRow";
 import RowActionsMenu from "../../../shared/ui/RowActionsMenu";
 import SectionHeader from "../../../shared/ui/SectionHeader";
@@ -26,17 +27,18 @@ function timingSummary(model, t) {
   return t("timing.summary.dayOfMonth", { day: model.expectedDay, ...window });
 }
 
-function amountSummary(model) {
+function amountSummary(model, locale) {
   if (model.amountMode) {
-    if (model.amountMode === "fixed") return formatMoney(model.expectedAmount);
-    return `${formatMoney(model.expectedMinimumAmount)}–${formatMoney(model.expectedMaximumAmount)}`;
+    if (model.amountMode === "fixed") return formatMoney(model.expectedAmount, locale);
+    return `${formatMoney(model.expectedMinimumAmount, locale)}–${formatMoney(model.expectedMaximumAmount, locale)}`;
   }
-  if (model.observedAmountMode === "fixed") return formatDerivedMoney(model.observedMedianAmount);
-  return `${formatDerivedMoney(model.observedMinimumAmount)}–${formatDerivedMoney(model.observedMaximumAmount)}`;
+  if (model.observedAmountMode === "fixed") return formatDerivedMoney(model.observedMedianAmount, locale);
+  return `${formatDerivedMoney(model.observedMinimumAmount, locale)}–${formatDerivedMoney(model.observedMaximumAmount, locale)}`;
 }
 
 function CandidateRow({ candidate, dismissed, state, task, disabled, onOpen, onCancel, onDraftChange, onSubmit, onDecision }) {
   const { t } = useTranslation("commitments");
+  const { locale } = useLocale();
   const reviewing = task?.mode === "confirm" && task.key === candidate.fingerprint;
   const busy = Boolean(state.busyKey) || state.loading;
   const name = candidate.description;
@@ -55,15 +57,15 @@ function CandidateRow({ candidate, dismissed, state, task, disabled, onOpen, onC
         <span>{displayText(candidate.category)} · {cadenceLabel(candidate.cadence, t)}</span>
         <span>{t(candidate.observedAmountMode === "fixed" ? "candidates.basedOnFixed" : "candidates.basedOnRange", { count: candidate.occurrenceCount })}</span>
       </>}
-      amount={<><span className="commitment-row__caption">{candidate.observedAmountMode === "fixed" ? t("candidates.observedAmount") : t("candidates.observedAmountRange")}</span><strong className="commitment-row__amount">{amountSummary(candidate)}</strong></>}
+      amount={<><span className="commitment-row__caption">{candidate.observedAmountMode === "fixed" ? t("candidates.observedAmount") : t("candidates.observedAmountRange")}</span><strong className="commitment-row__amount">{amountSummary(candidate, locale)}</strong></>}
       actions={actions}>
       <details className="commitment-details">
         <summary aria-label={t("saved.detailsLabel", { name })}>{t("saved.details")}</summary>
         <dl className="commitment-facts">
           <div><dt>{t("candidates.evidence")}</dt><dd>{t("candidates.evidenceSummary", { count: candidate.occurrenceCount, rule: evidenceRuleLabel(candidate.evidenceRule, t) })}</dd></div>
-          <div><dt>{t("candidates.coveredPeriod")}</dt><dd>{formatDate(candidate.coveredFrom, t)}–{formatDate(candidate.coveredTo, t)}</dd></div>
+          <div><dt>{t("candidates.coveredPeriod")}</dt><dd>{formatDate(candidate.coveredFrom, t, locale)}–{formatDate(candidate.coveredTo, t, locale)}</dd></div>
           <div><dt>{t("candidates.observedTiming")}</dt><dd>{timingSummary(candidate, t)}</dd></div>
-          <div><dt>{t("candidates.observedAmount")}</dt><dd>{candidate.observedAmountMode === "fixed" ? t("candidates.identical") : t("candidates.median", { amount: formatDerivedMoney(candidate.observedMedianAmount) })}</dd></div>
+          <div><dt>{t("candidates.observedAmount")}</dt><dd>{candidate.observedAmountMode === "fixed" ? t("candidates.identical") : t("candidates.median", { amount: formatDerivedMoney(candidate.observedMedianAmount, locale) })}</dd></div>
           <div><dt>{t("candidates.detectionDetails")}</dt><dd>{candidate.algorithmVersion}</dd></div>
         </dl>
         <CommitmentEvidence evidence={candidate.evidence} />
@@ -75,6 +77,7 @@ function CandidateRow({ candidate, dismissed, state, task, disabled, onOpen, onC
 
 function ConfirmedCommitmentRow({ commitment, state, task, disabled, onOpen, onCancel, onDraftChange, onSubmit, onLifecycle }) {
   const { t } = useTranslation("commitments");
+  const { locale } = useLocale();
   const confirmRef = useRef(null);
   const editing = task?.mode === "edit" && task.key === commitment.id;
   const ending = task?.mode === "end" && task.key === commitment.id && task.lifecycle === commitment.lifecycle;
@@ -98,7 +101,7 @@ function ConfirmedCommitmentRow({ commitment, state, task, disabled, onOpen, onC
         <span>{displayText(commitment.category)} · {cadenceLabel(commitment.cadence, t)}</span>
         <span>{timingSummary(commitment, t)}</span>
       </>}
-      amount={<><span className="commitment-row__caption">{t("saved.expectedAmount")}</span><strong className="commitment-row__amount">{amountSummary(commitment)}</strong></>}
+      amount={<><span className="commitment-row__caption">{t("saved.expectedAmount")}</span><strong className="commitment-row__amount">{amountSummary(commitment, locale)}</strong></>}
       actions={actions}>
       <details className="commitment-details">
         <summary aria-label={t("saved.detailsLabel", { name })}>{t("saved.details")}</summary>

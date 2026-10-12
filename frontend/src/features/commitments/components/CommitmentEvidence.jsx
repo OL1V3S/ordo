@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { useLocale } from "../../../shared/localization/useLocale";
 import { formatDate, formatDerivedMoney } from "../utils/formatCommitments";
 import { displayText } from "../../../utils/text";
 
@@ -8,6 +9,7 @@ function sourceLabel(source, t) {
 
 export default function CommitmentEvidence({ evidence, heading }) {
   const { t } = useTranslation("commitments");
+  const { locale } = useLocale();
   return (
     <div className="commitment-evidence">
       <h4>{heading ?? t("evidence.heading")}</h4>
@@ -16,10 +18,10 @@ export default function CommitmentEvidence({ evidence, heading }) {
           <li key={expense.expenseId} className="commitment-evidence__item">
             <div>
               <strong>{expense.description}</strong>
-              <span>{formatDate(expense.date, t)} · {displayText(expense.category)}</span>
+              <span>{formatDate(expense.date, t, locale)} · {displayText(expense.category)}</span>
               <span>{sourceLabel(expense.source, t)}</span>
             </div>
-            <strong>{formatDerivedMoney(expense.amount)}</strong>
+            <strong>{formatDerivedMoney(expense.amount, locale)}</strong>
           </li>
         ))}
       </ul>

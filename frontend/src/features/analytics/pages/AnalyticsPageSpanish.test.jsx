@@ -73,10 +73,10 @@ describe("Analytics page in Spanish", () => {
     const summary = screen.getByRole("heading", { name: "Entradas de dinero registradas vs. gastado" }).closest("section");
     expect(summary).toHaveTextContent("agosto de 2026");
     expect(summary).toHaveTextContent("Hasta el 14 de agosto de 2026");
-    expect(summary).toHaveTextContent("$100.00");
+    expect(summary).toHaveTextContent("USD 100.00");
     const rows = within(screen.getByRole("heading", { name: "Dónde se gastó" }).closest("section")).getAllByRole("listitem");
     expect(rows[0]).toHaveTextContent("Food");
-    expect(rows[0]).toHaveTextContent("$90.00 · 90.0%");
+    expect(rows[0]).toHaveTextContent("USD 90.00 · 90.0%");
     expect(screen.getByTestId("cash-flow-chart")).toBeInTheDocument();
     expect(screen.queryByText("Insights")).not.toBeInTheDocument();
     expect(screen.queryByText("Refresh cash flow")).not.toBeInTheDocument();
@@ -100,10 +100,10 @@ describe("Analytics page in Spanish", () => {
     renderPage();
     const comparison = openDetail("Cambio de un mes a otro");
     expect(comparison).toHaveTextContent("Comparado con julio de 2026");
-    expect(comparison).toHaveTextContent("+$25.00");
+    expect(comparison).toHaveTextContent("+USD 25.00");
     expect(comparison).toHaveTextContent("Mayores aumentos");
     expect(comparison).toHaveTextContent("Mayores disminuciones");
-    expect(comparison).toHaveTextContent("+33.3% desde $75.00");
+    expect(comparison).toHaveTextContent("+33.3% desde USD 75.00");
 
     const largest = openDetail("Gastos más grandes");
     expect(largest).toHaveTextContent("Los cinco principales");
@@ -143,7 +143,7 @@ describe("Analytics page in Spanish", () => {
     useCashFlow.mockReturnValue(loadedCashFlow("2026-08", { data: empty }));
     useExpenses.mockReturnValue({ expenses: [], loading: false, error: null, refresh: refreshExpenses });
     renderPage();
-    expect(openDetail("Cambio de un mes a otro")).toHaveTextContent("$0.00");
+    expect(openDetail("Cambio de un mes a otro")).toHaveTextContent("USD 0.00");
     openDetail("Gastos más grandes");
     expect(screen.getAllByText("No hay gastos registrados").length).toBeGreaterThan(0);
     expect(screen.getByText("No hay entradas de dinero registradas")).toBeInTheDocument();

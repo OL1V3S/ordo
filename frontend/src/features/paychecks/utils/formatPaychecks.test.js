@@ -25,4 +25,13 @@ describe("paycheck display formatting", () => {
       .toBe("Twice a month, day 15 and month end");
     expect(formatWindow(1, 3)).toBe("1 day before · 3 days after");
   });
+  it("shows negative zero without a sign and keeps real negatives", () => {
+    expect(formatMoney("-0.00")).toBe("$0.00");
+    expect(formatMoney("-0.50")).toBe("-$0.50");
+    expect(formatMoney("12.5")).toBe("$12.50");
+  });
+  it("formats dates in the requested language and keeps four-digit years", () => {
+    expect(formatDate("2026-03-08", undefined, "es")).toBe("8 mar 2026");
+    expect(formatDate("0099-03-08", undefined, "en")).toBe("Mar 8, 0099");
+  });
 });

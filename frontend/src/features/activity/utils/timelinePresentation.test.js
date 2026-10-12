@@ -76,7 +76,7 @@ describe("formatTimelineAmount", () => {
     expect(formatTimelineAmount("12.34", "expense", "en-US")).toBe("−$12.34");
     expect(formatTimelineAmount("2500.00", "account_inflow", "en-US")).toBe("+$2,500.00");
     expect(formatTimelineAmount("9999999999999999.99", "expense", "en-US")).toBe("−$9,999,999,999,999,999.99");
-    expect(formatTimelineAmount("0.01", "account_inflow", "es-US")).toBe("+$0.01");
+    expect(formatTimelineAmount("0.01", "account_inflow", "es")).toBe("+USD\u00a00.01");
   });
 
   it.each(["0.00", "-5.00", "007.00", "1.5", "10000000000000000.00", 12.34, null])(

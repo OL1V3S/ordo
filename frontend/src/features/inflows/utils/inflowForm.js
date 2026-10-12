@@ -1,3 +1,5 @@
+import { formatCalendarDate, formatMoneyDecimal } from "../../../shared/localization/format";
+
 const MAX_CENTS = 999999999999999999n;
 const UNSAFE_NUMERIC_AMOUNT = 2 ** 46;
 
@@ -74,17 +76,14 @@ export function validateInflow(draft) {
   };
 }
 
-export function formatInflowMoney(value, reviewLabel = "Amount needs review") {
+export function formatInflowMoney(value, reviewLabel = "Amount needs review", locale = "en") {
   if (isUnsafeAmount(value)) return reviewLabel;
   const parsed = parseAmount(value);
   if (!parsed) return reviewLabel;
-  const [whole] = parsed.value.split(".");
-  const grouped = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-  return `$${grouped}.${parsed.fraction.padEnd(2, "0")}`;
+  return formatMoneyDecimal(parsed.value, locale) ?? reviewLabel;
 }
 
-export function formatInflowDate(value, unknownLabel = "Unknown date") {
+export function formatInflowDate(value, unknownLabel = "Unknown date", locale = "en") {
   if (!isCalendarDate(value)) return unknownLabel;
-  const [year, month, day] = value.split("-");
-  return `${month}/${day}/${year}`;
+  return formatCalendarDate(value, locale, "numeric") ?? unknownLabel;
 }

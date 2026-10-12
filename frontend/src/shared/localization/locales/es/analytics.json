@@ -141,7 +141,7 @@
     "kicker": "Comparado con {{month}}",
     "unavailable": "La comparación exacta de un mes a otro no está disponible.",
     "neither": "Ninguno de los dos meses tiene gastos registrados.",
-    "percentageUnavailable": "La comparación porcentual no está disponible porque el mes anterior tuvo $0.00 en gastos registrados.",
+    "percentageUnavailable": "La comparación porcentual no está disponible porque el mes anterior tuvo {{amount}} en gastos registrados.",
     "percentFrom": "{{percent}} desde {{amount}}",
     "empty": "No hay cambios de categoría para mostrar entre estos meses.",
     "increases": "Mayores aumentos",

@@ -39,4 +39,12 @@ describe("exact Expense money", () => {
     expect(parseBudgetLimit(Number("9999999999999999"))).toBeNull();
     expect(parseBudgetLimit("90.25")).toBeNull();
   });
+  it('formats cents in the requested language without changing the English output', () => {
+    expect(formatCents(123456n)).toBe('$1,234.56')
+    expect(formatCents(-125n, 'es')).toBe('-USD\u00a01.25')
+    expect(formatExactMoney('1234.5', undefined, 'es')).toBe('USD\u00a01,234.50')
+    expect(formatExactMoney('1234.5', { currency: false }, 'en')).toBe('1,234.50')
+    expect(formatExactMoney('0', { allowZero: true })).toBe('$0.00')
+    expect(formatExactMoney('abc', undefined, 'es')).toBe('Amount needs review')
+  })
 });

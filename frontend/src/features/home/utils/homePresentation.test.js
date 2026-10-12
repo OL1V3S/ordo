@@ -177,7 +177,7 @@ describe("Home presentation contract", () => {
       .toBe("−$9,999,999,999,999,999.99");
     expect(formatHomeAmount("1234.56", "account_inflow", "en-US")).toBe("+$1,234.56");
     expect(formatHomeDate("2026-03-08", "en-US")).toBe("Mar 8, 2026");
-    expect(formatHomeDate("2026-03-08", "es-US")).toBe("8 mar 2026");
+    expect(formatHomeDate("2026-03-08", "es")).toBe("8 mar 2026");
     expect(formatHomeDate("2026-02-29", "en-US")).toBeNull();
   });
 
@@ -221,7 +221,7 @@ describe("Home presentation contract", () => {
   it("formats exact projection values in USD without adding an actual-inflow sign", () => {
     expect(formatHomeProjectionAmount("9999999999999999.99", "en-US"))
       .toBe("$9,999,999,999,999,999.99");
-    expect(formatHomeProjectionAmount("1234.56", "es-US")).toBe("$1,234.56");
+    expect(formatHomeProjectionAmount("1234.56", "es")).toBe("USD\u00a01,234.56");
     expect(formatHomeProjectionAmount("10000000000000000.00", "en-US")).toBeNull();
   });
 });

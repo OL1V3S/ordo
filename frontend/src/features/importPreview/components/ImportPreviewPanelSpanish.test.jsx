@@ -345,4 +345,8 @@ describe('import preview in Spanish', () => {
     expect(screen.getByText('Warning: brand new warning')).toBeInTheDocument()
     expect(screen.getByText('Issue: brand new confirmation')).toBeInTheDocument()
   })
+  it('formats the row amount in USD with the code in Spanish', () => {
+    render(<ImportPreviewPanel importState={importState({ preview: previewWith([{ ...expenseRow, amount: 1234.5 }]) })} />)
+    expect(screen.getByText('USD 1,234.50')).toBeInTheDocument()
+  })
 })

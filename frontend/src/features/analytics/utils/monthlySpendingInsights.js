@@ -1,3 +1,4 @@
+import { formatMonthYear } from "../../../shared/localization/format";
 import { formatLocalCalendarDate } from "../../expenses/utils/calendarDate";
 import { cashMonthLabel } from "./cashFlowPresentation";
 import {
@@ -60,8 +61,7 @@ export function formatMonthLabel(monthYear, t) {
   const match = MONTH_PATTERN.exec(String(monthYear));
   if (!match) return monthYear;
   if (typeof t === "function") return cashMonthLabel(monthYear, { t });
-  return new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" })
-    .format(new Date(Number(match[1]), Number(match[2]) - 1, 1));
+  return formatMonthYear(Number(match[1]), Number(match[2])) ?? monthYear;
 }
 
 export function getAvailableMonths(expenses, now = new Date()) {

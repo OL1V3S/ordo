@@ -15,6 +15,7 @@ import InflowList from "../../inflows/components/InflowList";
 import { isUnsafeAmount, formatInflowDate } from "../../inflows/utils/inflowForm";
 import { useCaptureRecovery } from "../../home/recovery/captureRecovery";
 import { useTranslation } from "react-i18next";
+import { useLocale } from "../../../shared/localization/useLocale";
 import { useActivityTimeline } from "../../activity/hooks/useActivityTimeline";
 import { useTimelineFilters } from "../../activity/hooks/useTimelineFilters";
 import ActivityTimeline from "../../activity/components/ActivityTimeline";
@@ -75,6 +76,7 @@ function inflowFeedbackMessage(feedback, t) {
 export default function TransactionsPage() {
   const { t } = useTranslation("home");
   const { t: ta } = useTranslation("activity");
+  const { locale } = useLocale();
   const captureRecovery = useCaptureRecovery();
   const timelineEnabled = !captureRecovery.source;
   const timelineFilters = useTimelineFilters();
@@ -376,7 +378,7 @@ export default function TransactionsPage() {
           {inflowCapture.task?.type === "delete" && <div className="inflow-delete-confirmation" role="group" aria-labelledby="cash-in-delete-heading">
             <h3 id="cash-in-delete-heading">{ta("cashIn.delete.heading", {
               description: inflowCapture.task.record.description,
-              date: formatInflowDate(inflowCapture.task.record.date, ta("cashIn.list.unknownDate")),
+              date: formatInflowDate(inflowCapture.task.record.date, ta("cashIn.list.unknownDate"), locale),
             })}</h3>
             <p>{ta("cashIn.delete.body")}</p>
             <p>{ta("cashIn.delete.imported")}</p>
