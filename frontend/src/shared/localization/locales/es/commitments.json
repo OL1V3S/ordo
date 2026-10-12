@@ -9,17 +9,17 @@
     "possibleLink_other": "{{count}} posibles gastos recurrentes"
   },
   "feedback": {
-    "outOfDate": "La información mostrada puede estar desactualizada. Actualiza antes de tomar otra decisión.",
+    "outOfDate": "Lo que ves puede estar desactualizado. Actualiza antes de tomar otra decisión.",
     "refresh": "Actualizar gastos recurrentes",
     "tryAgain": "Intentar de nuevo",
-    "refreshing": "Actualizando gastos recurrentes...",
-    "loading": "Cargando gastos recurrentes...",
-    "saving": "Guardando tu decisión...",
+    "refreshing": "Actualizando gastos recurrentes…",
+    "loading": "Cargando gastos recurrentes…",
+    "saving": "Guardando tu decisión…",
     "errors": {
-      "candidate_changed": "Esta propuesta cambió o ya no está disponible. Se cargó la evidencia más reciente.",
-      "candidate_dismissed": "Vuelve a revisar esta propuesta antes de confirmarla.",
-      "confirmation_conflict": "Esta propuesta cambió mientras se confirmaba. Se cargó el estado más reciente.",
-      "fingerprint_invalid": "Esta propuesta ya no se puede revisar. Actualiza e inténtalo de nuevo.",
+      "candidate_changed": "Este posible gasto recurrente cambió o ya no está disponible. Cargamos los gastos más recientes que coinciden.",
+      "candidate_dismissed": "Vuelve a revisar este posible gasto recurrente antes de confirmarlo.",
+      "confirmation_conflict": "Este posible gasto recurrente cambió mientras lo confirmabas. Cargamos los datos más recientes.",
+      "fingerprint_invalid": "Este posible gasto recurrente ya no se puede revisar. Actualiza e inténtalo de nuevo.",
       "name_invalid": "Ingresa un nombre de gasto recurrente de 500 caracteres o menos.",
       "category_invalid": "Ingresa una categoría válida de 100 caracteres o menos.",
       "cadence_invalid": "Elige con qué frecuencia se repite.",
@@ -27,13 +27,13 @@
       "amount_invalid": "Ingresa un monto fijo o un rango de montos válido.",
       "lifecycle_invalid": "Elige activo, pausado o finalizado.",
       "commitment_not_found": "Ese gasto recurrente ya no está disponible.",
-      "dimension_invalid": "Ese tipo de cambio ya no se puede revisar. Actualiza e inténtalo de nuevo.",
-      "change_proposal_changed": "Esta propuesta de cambio cambió. Se cargaron la evidencia y la recomendación más recientes.",
+      "dimension_invalid": "Este cambio ya no se puede revisar. Actualiza e inténtalo de nuevo.",
+      "change_proposal_changed": "Este cambio se actualizó. Cargamos los detalles más recientes.",
       "request_failed": "Algo salió mal. Inténtalo de nuevo."
     },
     "notices": {
-      "dismissed": "Propuesta descartada. Puedes volver a revisarla más abajo.",
-      "reconsidered": "La propuesta volvió a tu lista de revisión.",
+      "dismissed": "Posible gasto recurrente descartado. Puedes volver a revisarlo más abajo.",
+      "reconsidered": "El posible gasto recurrente volvió a tu lista de revisión.",
       "confirmed": "Gasto recurrente confirmado.",
       "updated": "Gasto recurrente actualizado.",
       "lifecycle": "Estado del gasto recurrente actualizado.",
@@ -70,14 +70,14 @@
   },
   "timing": {
     "summary": {
-      "weekly": "{{weekday}}, con una ventana de {{before}} / {{after}}",
-      "monthEnd": "Fin de mes, con una ventana de {{before}} / {{after}}",
-      "yearly": "Mes {{month}}, día {{day}}, con una ventana de {{before}} / {{after}}",
-      "dayOfMonth": "Día {{day}}, con una ventana de {{before}} / {{after}}",
-      "before_one": "{{count}} día antes",
-      "before_other": "{{count}} días antes",
-      "after_one": "{{count}} día después",
-      "after_other": "{{count}} días después"
+      "weekly": "{{weekday}}, hasta {{before}} antes o {{after}} después",
+      "monthEnd": "Fin de mes, hasta {{before}} antes o {{after}} después",
+      "yearly": "Mes {{month}}, día {{day}}, hasta {{before}} antes o {{after}} después",
+      "dayOfMonth": "Día {{day}}, hasta {{before}} antes o {{after}} después",
+      "before_one": "{{count}} día",
+      "before_other": "{{count}} días",
+      "after_one": "{{count}} día",
+      "after_other": "{{count}} días"
     },
     "compact": {
       "weekly": "{{weekday}} · {{before}} / {{after}}",
@@ -91,7 +91,7 @@
     }
   },
   "evidence": {
-    "heading": "Gastos de respaldo",
+    "heading": "Gastos que coinciden",
     "rules": {
       "consecutive_calendar_months": "Meses calendario consecutivos",
       "weekly_six_to_eight_day_gaps": "Semanal, con 6–8 días entre gastos",
@@ -99,18 +99,18 @@
     },
     "sources": {
       "sunflower_pdf": "Estado de cuenta de Sunflower",
-      "manual": "Ingresado manualmente"
+      "manual": "Agregado manualmente"
     }
   },
   "saved": {
     "heading": "Tus gastos recurrentes",
     "activeGroup": "Gastos recurrentes activos",
-    "emptyNone": "Aún no hay gastos recurrentes confirmados.",
+    "emptyNone": "Aún no hay gastos recurrentes.",
     "emptyNoActive": "No hay gastos recurrentes activos.",
     "expectedAmount": "Monto esperado",
     "details": "Detalles",
     "detailsLabel": "Detalles de {{name}}",
-    "recordsUsed": "Registros usados para confirmar",
+    "recordsUsed": "Gastos que coinciden",
     "linkedExpenses_one": "{{count}} gasto vinculado",
     "linkedExpenses_other": "{{count}} gastos vinculados",
     "edit": "Editar",
@@ -122,35 +122,35 @@
     "endLabel": "Finalizar {{name}}",
     "reactivate": "Reactivar",
     "reactivateLabel": "Reactivar {{name}}",
-    "endPrompt": "¿Finalizar {{name}}? Lo guardado y los registros vinculados se conservarán. Puedes reactivarlo.",
-    "confirmEnd": "Confirmar finalización",
+    "endPrompt": "¿Finalizar {{name}}? Se conservan sus datos guardados y los gastos vinculados. Puedes reactivarlo.",
+    "confirmEnd": "Sí, finalizarlo",
     "cancelEnd": "Cancelar finalización"
   },
   "candidates": {
     "heading": "Posibles gastos recurrentes",
-    "intro": "Revisa los gastos registrados antes de confirmar un gasto recurrente.",
+    "intro": "Revisa los gastos que coinciden antes de confirmar un gasto recurrente.",
     "toReview": "{{count}} por revisar",
     "empty": "No hay posibles gastos recurrentes por revisar.",
     "dismissedStatus": "Posible gasto recurrente descartado",
     "observedAmount": "Monto observado",
     "observedAmountRange": "Rango de monto observado",
-    "basedOnFixed_one": "Basado en {{count}} gasto registrado",
-    "basedOnFixed_other": "Basado en {{count}} gastos registrados",
-    "basedOnRange_one": "Basado en {{count}} gasto registrado. Historial observado, no un gasto recurrente guardado.",
-    "basedOnRange_other": "Basado en {{count}} gastos registrados. Historial observado, no un gasto recurrente guardado.",
-    "evidence": "Evidencia",
-    "evidenceSummary_one": "{{count}} gasto registrado · {{rule}}",
-    "evidenceSummary_other": "{{count}} gastos registrados · {{rule}}",
-    "coveredPeriod": "Período cubierto",
+    "basedOnFixed_one": "Basado en {{count}} gasto",
+    "basedOnFixed_other": "Basado en {{count}} gastos",
+    "basedOnRange_one": "Basado en {{count}} gasto. Es historial pasado, no un gasto recurrente guardado.",
+    "basedOnRange_other": "Basado en {{count}} gastos. Es historial pasado, no un gasto recurrente guardado.",
+    "evidence": "Gastos que coinciden",
+    "evidenceSummary_one": "{{count}} gasto · {{rule}}",
+    "evidenceSummary_other": "{{count}} gastos · {{rule}}",
+    "coveredPeriod": "Fechas que abarca",
     "observedTiming": "Fechas observadas",
-    "identical": "Idéntico cada vez",
-    "median": "Mediana {{amount}}",
+    "identical": "Igual cada vez",
+    "median": "Monto intermedio: {{amount}}",
     "detectionDetails": "Por qué lo sugerimos",
     "reviewAndConfirm": "Revisar y confirmar",
-    "reviewAndConfirmLabel": "Revisar y confirmar {{name}}",
+    "reviewAndConfirmLabel": "Revisar y confirmar: {{name}}",
     "confirmCommitment": "Confirmar gasto recurrente",
     "dismiss": "Descartar",
-    "dismissLabel": "Descartar {{name}}",
+    "dismissLabel": "Descartar: {{name}}",
     "reconsider": "Volver a revisar",
     "reconsiderLabel": "Volver a revisar: {{name}}"
   },
@@ -163,11 +163,11 @@
     "ended": "Gastos recurrentes finalizados",
     "locked": "Termina o cancela la acción abierta antes de cerrar este grupo.",
     "dismissedHeading": "Posibles gastos recurrentes descartados",
-    "dismissedIntro": "El descarte se aplica solo a la evidencia exacta que revisaste. Usa Volver a revisar para revisar uno otra vez.",
+    "dismissedIntro": "El descarte aplica solo a los gastos exactos que revisaste. Usa Volver a revisar para revisar uno de nuevo.",
     "dismissedEmpty": "No hay posibles gastos recurrentes descartados."
   },
   "form": {
-    "observedAmountUnsafe": "El monto observado no se pudo cargar con precisión confiable de centavos. Actualiza antes de confirmar.",
+    "observedAmountUnsafe": "No pudimos cargar el monto exacto. Actualiza antes de confirmar.",
     "name": "Nombre",
     "category": "Categoría",
     "cadence": "Frecuencia",
@@ -185,7 +185,7 @@
     "expectedAmount": "Monto esperado",
     "minimumAmount": "Monto mínimo",
     "maximumAmount": "Monto máximo",
-    "saving": "Guardando...",
+    "saving": "Guardando…",
     "cancel": "Cancelar"
   },
   "changes": {
@@ -193,32 +193,32 @@
     "intro": "Notamos estos cambios en tus gastos recientes. Nada cambia hasta que elijas, y tu elección aplica solo a este cambio.",
     "emptyPending": "No hay cambios de gastos recurrentes por revisar.",
     "reviewedHeading": "Cambios revisados",
-    "reviewedIntro": "Estas observaciones exactas se mantuvieron sin cambiar lo guardado. Usa Volver a revisar si quieres verla de nuevo.",
-    "reviewedLocked": "Termina de volver a revisar este cambio antes de cerrar el historial revisado.",
+    "reviewedIntro": "Mantuviste lo guardado en estos cambios. Usa Volver a revisar si quieres verlo de nuevo.",
+    "reviewedLocked": "Termina de revisar este cambio otra vez antes de cerrar los cambios revisados.",
     "emptyReviewed": "No hay cambios revisados.",
-    "eyebrowPending": "Requiere tu decisión",
+    "eyebrowPending": "Por revisar",
     "eyebrowReviewed": "Cambio revisado",
     "statusPending": "Pendiente",
     "statusKept": "Mantenido",
     "dimension": {
-      "amount": "Revisión de monto",
-      "timing": "Revisión de fechas",
-      "missing": "Revisión de gasto faltante"
+      "amount": "Cambio de monto",
+      "timing": "Cambio de fechas",
+      "missing": "Gasto faltante"
     },
     "explanation": {
-      "amount_one": "{{count}} gasto registrado reciente respalda este cambio de monto.",
-      "amount_other": "{{count}} gastos registrados recientes respaldan este cambio de monto.",
-      "timing_one": "{{count}} gasto registrado reciente respalda este cambio de fechas.",
-      "timing_other": "{{count}} gastos registrados recientes respaldan este cambio de fechas.",
+      "amount_one": "{{count}} gasto reciente respalda este cambio de monto.",
+      "amount_other": "{{count}} gastos recientes respaldan este cambio de monto.",
+      "timing_one": "{{count}} gasto reciente respalda este cambio de fechas.",
+      "timing_other": "{{count}} gastos recientes respaldan este cambio de fechas.",
       "missing": {
-        "weekly_one": "Ha pasado {{count}} fecha semanal esperada sin un gasto registrado que coincida.",
-        "weekly_other": "Han pasado {{count}} fechas semanales esperadas sin un gasto registrado que coincida.",
-        "monthly_one": "Ha pasado {{count}} fecha mensual esperada sin un gasto registrado que coincida.",
-        "monthly_other": "Han pasado {{count}} fechas mensuales esperadas sin un gasto registrado que coincida.",
-        "yearly_one": "Ha pasado {{count}} fecha anual esperada sin un gasto registrado que coincida.",
-        "yearly_other": "Han pasado {{count}} fechas anuales esperadas sin un gasto registrado que coincida.",
-        "other_one": "Ha pasado {{count}} fecha esperada sin un gasto registrado que coincida.",
-        "other_other": "Han pasado {{count}} fechas esperadas sin un gasto registrado que coincida."
+        "weekly_one": "Ha pasado {{count}} fecha semanal esperada sin un gasto que coincida.",
+        "weekly_other": "Han pasado {{count}} fechas semanales esperadas sin un gasto que coincida.",
+        "monthly_one": "Ha pasado {{count}} fecha mensual esperada sin un gasto que coincida.",
+        "monthly_other": "Han pasado {{count}} fechas mensuales esperadas sin un gasto que coincida.",
+        "yearly_one": "Ha pasado {{count}} fecha anual esperada sin un gasto que coincida.",
+        "yearly_other": "Han pasado {{count}} fechas anuales esperadas sin un gasto que coincida.",
+        "other_one": "Ha pasado {{count}} fecha esperada sin un gasto que coincida.",
+        "other_other": "Han pasado {{count}} fechas esperadas sin un gasto que coincida."
       }
     },
     "possiblyEnded": "Puede que haya terminado",
@@ -226,20 +226,20 @@
     "observationNote": "Esto es una observación, no un cambio automático de estado.",
     "currentExpectation": "Lo guardado",
     "observedChange": "Cambio observado",
-    "exactUnavailable": "La revisión del monto exacto no está disponible. Actualiza con una versión más reciente de la aplicación antes de decidir sobre este monto.",
+    "exactUnavailable": "Monto exacto no disponible. Actualiza la página para tener la versión más reciente antes de decidir sobre este cambio.",
     "details": "Detalles",
     "detailsLabel": {
-      "amount": "Detalles del cambio de monto de {{name}}",
-      "timing": "Detalles del cambio de fechas de {{name}}",
-      "missing": "Detalles del cambio por gasto faltante de {{name}}"
+      "amount": "Detalles: cambio de monto de {{name}}",
+      "timing": "Detalles: cambio de fechas de {{name}}",
+      "missing": "Detalles: gasto faltante de {{name}}"
     },
-    "evaluated": "Evaluado",
+    "evaluated": "Verificado el",
     "detectionDetails": "Por qué lo sugerimos",
-    "updating": "Actualizando...",
-    "accept": "Aceptar cambio",
+    "updating": "Actualizando…",
+    "accept": "Usar los datos nuevos",
     "acceptLabel": {
-      "amount": "Aceptar cambio de monto de {{name}}",
-      "timing": "Aceptar cambio de fechas de {{name}}"
+      "amount": "Usar los datos nuevos: monto de {{name}}",
+      "timing": "Usar los datos nuevos: fechas de {{name}}"
     },
     "keepCurrent": "Mantener lo guardado",
     "keepCurrentLabel": {
@@ -252,15 +252,15 @@
     "reconsiderLabel": {
       "amount": "Volver a revisar: cambio de monto de {{name}}",
       "timing": "Volver a revisar: cambio de fechas de {{name}}",
-      "missing": "Volver a revisar: cambio por gasto faltante de {{name}}"
+      "missing": "Volver a revisar: gasto faltante de {{name}}"
     },
     "markEnded": "Marcar como finalizado",
-    "markEndedLabel": "Marcar {{name}} como finalizado",
-    "markEndedPrompt": "¿Marcar {{name}} como finalizado? Esto cambia su estado y podrás volver a cambiarlo desde este gasto recurrente.",
-    "markingEnded": "Marcando como finalizado...",
-    "confirmMarkEnded": "Confirmar como finalizado",
-    "confirmMarkEndedLabel": "Confirmar marcar {{name}} como finalizado",
+    "markEndedLabel": "Marcar como finalizado: {{name}}",
+    "markEndedPrompt": "¿Marcar {{name}} como finalizado? Esto cambia su estado. Podrás volver a cambiarlo desde este gasto recurrente.",
+    "markingEnded": "Marcando como finalizado…",
+    "confirmMarkEnded": "Sí, marcar como finalizado",
+    "confirmMarkEndedLabel": "Sí, marcar como finalizado: {{name}}",
     "cancelMarkEnded": "Cancelar",
-    "cancelMarkEndedLabel": "Cancelar marcar {{name}} como finalizado"
+    "cancelMarkEndedLabel": "Cancelar: {{name}}"
   }
 }

@@ -33,7 +33,7 @@ describe("commitment state in Spanish", () => {
     await act(() => result.current.confirmCandidate({ fingerprint: "candidate-1", name: "Rent" }));
     expect(result.current.notice).toBe("Gasto recurrente confirmado.");
     await act(() => result.current.dismissCandidate("candidate-1"));
-    expect(result.current.notice).toBe("Propuesta descartada. Puedes volver a revisarla más abajo.");
+    expect(result.current.notice).toBe("Posible gasto recurrente descartado. Puedes volver a revisarlo más abajo.");
     await act(() => result.current.keepChange("commitment-1", "missing", "missing-fingerprint"));
     expect(result.current.notice).toBe("El gasto recurrente se mantiene activo.");
     await act(() => result.current.keepChange("commitment-1", "amount", "amount-fingerprint"));
@@ -51,13 +51,13 @@ describe("commitment state in Spanish", () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     await act(() => result.current.dismissCandidate("candidate-1"));
-    expect(result.current.actionError).toBe("Esta propuesta cambió o ya no está disponible. Se cargó la evidencia más reciente.");
+    expect(result.current.actionError).toBe("Este posible gasto recurrente cambió o ya no está disponible. Cargamos los gastos más recientes que coinciden.");
     expect(result.current.actionError).not.toContain("sensitive");
 
     expect(getCommitmentErrorMessage({ response: { data: { code: "unknown", detail: "private" } } }, i18n.getFixedT("es", "commitments")))
       .toBe("Algo salió mal. Inténtalo de nuevo.");
     expect(getCommitmentErrorMessage({ response: { data: { code: "change_proposal_changed" } } }))
-      .toBe("This change proposal changed. The latest evidence and recommendation have been loaded.");
+      .toBe("This change was updated. We loaded the latest details.");
   });
 
   it("returns a Spanish load error that follows the language", async () => {
@@ -65,8 +65,8 @@ describe("commitment state in Spanish", () => {
     const { result } = renderHook(() => useCommitments());
     await waitFor(() => expect(result.current.loading).toBe(false));
 
-    expect(result.current.loadError).toBe("Ese tipo de cambio ya no se puede revisar. Actualiza e inténtalo de nuevo.");
+    expect(result.current.loadError).toBe("Este cambio ya no se puede revisar. Actualiza e inténtalo de nuevo.");
     await act(() => i18n.changeLanguage("en"));
-    expect(result.current.loadError).toBe("That change type can no longer be reviewed. Refresh and try again.");
+    expect(result.current.loadError).toBe("This change can no longer be reviewed. Refresh and try again.");
   });
 });

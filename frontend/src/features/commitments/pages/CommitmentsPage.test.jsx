@@ -113,15 +113,15 @@ describe("Commitments workspace", () => {
     expect(saved.getByText("Expected amount")).toBeVisible();
     expect(saved.getAllByText("$1,200.00")[0]).toBeVisible();
     expect(saved.getByText("Housing · Monthly")).toBeVisible();
-    expect(saved.getByText("Day 1, with a 1-day before / 1-day after window")).toBeVisible();
+    expect(saved.getByText("Day 1,, up to 1-day before early or 1-day after late")).toBeVisible();
     expect(saved.getByRole("button", { name: "Actions for Rent" })).toBeVisible();
     expect(saved.getByRole("button", { name: "Edit Rent", hidden: true })).not.toBeVisible();
     expect(saved.getByRole("button", { name: "Pause Rent", hidden: true })).not.toBeVisible();
-    expect(saved.getByText("Records used to confirm", { selector: "h4" })).not.toBeVisible();
+    expect(saved.getByText("Matching expenses", { selector: "h4" })).not.toBeVisible();
     expect(disclosure("Rent")).not.toHaveAttribute("open");
     await user.click(saved.getByLabelText("Details for Rent"));
-    expect(saved.getByText("3 linked expense(s)")).toBeVisible();
-    expect(saved.getByText("Records used to confirm", { selector: "h4" })).toBeVisible();
+    expect(saved.getByText("3 linked expenses")).toBeVisible();
+    expect(saved.getByText("Matching expenses", { selector: "h4" })).toBeVisible();
     expect(saved.getByText("Sunflower statement")).toBeVisible();
     expect(saved.getByText("May 15, 2026 · Housing")).toBeVisible();
     expect(saved.queryByText(/revision/i)).not.toBeInTheDocument();
@@ -134,7 +134,7 @@ describe("Commitments workspace", () => {
     expect(disclosure("Gym membership")).not.toHaveAttribute("open");
     await user.click(possible.getByLabelText("Details for Gym membership"));
     expect(possible.getByText("3 expenses · Consecutive calendar months")).toBeVisible();
-    expect(possible.getByText("Identical each time")).toBeVisible();
+    expect(possible.getByText("Same every time")).toBeVisible();
     expect(possible.getByText("commitment-v1")).toBeVisible();
     expect(possible.getByText("Health · Monthly")).toBeVisible();
     expect(possible.getByText("Sunflower statement")).toBeVisible();
@@ -163,11 +163,11 @@ describe("Commitments workspace", () => {
     useCommitments.mockReturnValue(state({ candidates: [monthEndCandidate], commitments: [monthEndCommitment], dismissedCandidates: [] }));
     renderCommitmentsPage();
 
-    expect(within(card("Rent")).getByText("Month end, with a 2-day before / 1-day after window")).toBeVisible();
+    expect(within(card("Rent")).getByText("Month end,, up to 2-day before early or 1-day after late")).toBeVisible();
     const possible = within(card("Gym membership"));
-    expect(possible.getByText("Month end, with a 2-day before / 1-day after window")).not.toBeVisible();
+    expect(possible.getByText("Month end,, up to 2-day before early or 1-day after late")).not.toBeVisible();
     await user.click(possible.getByLabelText("Details for Gym membership"));
-    expect(possible.getByText("Month end, with a 2-day before / 1-day after window")).toBeVisible();
+    expect(possible.getByText("Month end,, up to 2-day before early or 1-day after late")).toBeVisible();
   });
 
   it("keeps the legacy English wording for a count of one", async () => {
@@ -182,11 +182,11 @@ describe("Commitments workspace", () => {
     renderCommitmentsPage();
 
     const possible = within(card("Gym membership"));
-    expect(possible.getByText("Based on 1 expenses")).toBeVisible();
+    expect(possible.getByText("Based on 1 expense")).toBeVisible();
     await user.click(possible.getByLabelText("Details for Gym membership"));
-    expect(possible.getByText("1 expenses · Consecutive calendar months")).toBeVisible();
-    expect(possible.getByText("Day 15, with a 1-day before / 1-day after window")).toBeVisible();
-    expect(within(card("Rent")).getByText("Day 1, with a 1-day before / 1-day after window")).toBeVisible();
+    expect(possible.getByText("1 expense · Consecutive calendar months")).toBeVisible();
+    expect(possible.getByText("Day 15,, up to 1-day before early or 1-day after late")).toBeVisible();
+    expect(within(card("Rent")).getByText("Day 1,, up to 1-day before early or 1-day after late")).toBeVisible();
     expect(screen.getByText("Day 15 · 1 days before / 1 days after")).toBeVisible();
     expect(screen.getByText("Day 17 · 1 days before / 1 days after")).toBeVisible();
   });
@@ -196,7 +196,7 @@ describe("Commitments workspace", () => {
     let current = state();
     useCommitments.mockImplementation(() => current);
     const { rerender } = renderCommitmentsPage();
-    await user.click(screen.getByRole("button", { name: "Review and confirm Gym membership" }));
+    await user.click(screen.getByRole("button", { name: "Review and confirm: Gym membership" }));
     const form = screen.getByRole("form", { name: "Confirm recurring expense" });
     const name = within(form).getByLabelText("Name");
     expect(name).toHaveFocus();
@@ -213,13 +213,13 @@ describe("Commitments workspace", () => {
     expect(screen.getByRole("status")).toHaveTextContent("Refreshing recurring expenses");
     expect(screen.getByLabelText("Name")).toHaveValue("Draft gym plan");
     expect(screen.getByLabelText("Name")).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Saving..." })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Saving…" })).toBeDisabled();
 
     current = { ...current, loading: false, busyKey: "confirm:fingerprint-1" };
     rerender(<CommitmentsPage />);
     expect(screen.getByLabelText("Name")).toBeDisabled();
     expect(screen.getByLabelText("Category")).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Saving..." })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Saving…" })).toBeDisabled();
 
     current = { ...current, busyKey: null, loadError: "Something went wrong. Try again." };
     rerender(<CommitmentsPage />);
@@ -294,7 +294,7 @@ describe("Commitments workspace", () => {
     const current = state();
     useCommitments.mockReturnValue(current);
     renderCommitmentsPage();
-    await user.click(screen.getByRole("button", { name: "Review and confirm Gym membership" }));
+    await user.click(screen.getByRole("button", { name: "Review and confirm: Gym membership" }));
     const form = screen.getByRole("form", { name: "Confirm recurring expense" });
     const name = within(form).getByLabelText("Name");
     expect(within(form).getByLabelText("Expected day")).toHaveValue(15);
@@ -350,8 +350,8 @@ describe("Commitments workspace", () => {
     await menuAction(user, "Rent", "End Rent");
     const confirmation = screen.getByRole("group", { name: "End Rent" });
     expect(confirmation.closest("details")).toBeNull();
-    expect(within(confirmation).getByRole("button", { name: "Confirm end" })).toHaveFocus();
-    await user.click(within(confirmation).getByRole("button", { name: "Confirm end" }));
+    expect(within(confirmation).getByRole("button", { name: "Yes, end it" })).toHaveFocus();
+    await user.click(within(confirmation).getByRole("button", { name: "Yes, end it" }));
     expect(current.updateLifecycle).toHaveBeenLastCalledWith("commitment-1", "ended");
   });
 
@@ -360,13 +360,13 @@ describe("Commitments workspace", () => {
     useCommitments.mockReturnValue(state({ commitmentChanges: [commitmentChange] }));
     renderCommitmentsPage();
     await menuAction(user, "Rent", "Edit Rent");
-    expect(screen.getByRole("button", { name: "Review and confirm Gym membership" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Dismiss Gym membership", hidden: true })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Accept amount change for Gym plan" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Review and confirm: Gym membership" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Dismiss: Gym membership", hidden: true })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Use the new details: amount for Gym plan" })).toBeDisabled();
     await user.click(screen.getByRole("button", { name: "Cancel" }));
     await waitFor(() => expect(screen.getByRole("button", { name: "Actions for Rent" })).toHaveFocus());
     await menuAction(user, "Rent", "End Rent");
-    expect(screen.getByRole("button", { name: "Confirm end" })).toHaveFocus();
+    expect(screen.getByRole("button", { name: "Yes, end it" })).toHaveFocus();
     await user.click(screen.getByRole("button", { name: "Cancel ending" }));
     await waitFor(() => expect(screen.getByRole("button", { name: "Actions for Rent" })).toHaveFocus());
     expect(disclosure("Rent")).not.toHaveAttribute("open");
@@ -377,7 +377,7 @@ describe("Commitments workspace", () => {
     const current = state();
     useCommitments.mockReturnValue(current);
     renderCommitmentsPage();
-    await menuAction(user, "Gym membership", "Dismiss Gym membership");
+    await menuAction(user, "Gym membership", "Dismiss: Gym membership");
     expect(current.dismissCandidate).toHaveBeenCalledExactlyOnceWith("fingerprint-1");
     expect(historyButton("Dismissed possible recurring expenses")).toHaveAttribute("aria-expanded", "true");
     await waitFor(() => expect(historyButton("Dismissed possible recurring expenses")).toHaveFocus());
@@ -391,7 +391,7 @@ describe("Commitments workspace", () => {
     let current = state();
     useCommitments.mockImplementation(() => current);
     const { rerender } = renderCommitmentsPage();
-    await user.click(screen.getByRole("button", { name: "Review and confirm Gym membership" }));
+    await user.click(screen.getByRole("button", { name: "Review and confirm: Gym membership" }));
     await user.clear(screen.getByLabelText("Name"));
     await user.type(screen.getByLabelText("Name"), "Stale draft");
     current = { ...current, loadError: "Refresh failed" };
@@ -400,7 +400,7 @@ describe("Commitments workspace", () => {
     current = { ...current, loadError: null, candidates: [{ ...candidate, fingerprint: "replacement-fingerprint" }] };
     rerender(<CommitmentsPage />);
     await waitFor(() => expect(screen.queryByRole("form", { name: "Confirm recurring expense" })).not.toBeInTheDocument());
-    expect(screen.getByRole("button", { name: "Review and confirm Gym membership" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Review and confirm: Gym membership" })).toBeEnabled();
   });
 
   it("shows honest empty, refresh, and retry states without inventing forecasts or manual creation", async () => {
@@ -408,7 +408,7 @@ describe("Commitments workspace", () => {
     let current = state({ candidates: [], dismissedCandidates: [], commitments: [], commitmentChanges: [] });
     useCommitments.mockImplementation(() => current);
     const { rerender } = renderCommitmentsPage();
-    expect(screen.getByText("No recurring expenses confirmed yet.")).toBeInTheDocument();
+    expect(screen.getByText("No recurring expenses yet.")).toBeInTheDocument();
     expect(screen.getByText("No recurring expense changes to review.")).toBeInTheDocument();
     expect(screen.getByText("No possible recurring expenses to review.")).toBeInTheDocument();
     expect(screen.getByText("No reviewed changes.")).not.toBeVisible();
@@ -437,7 +437,7 @@ describe("Commitments workspace", () => {
     useCommitments.mockReturnValue(state({ loading: false, loadError: "Something went wrong. Try again.", candidates: [], dismissedCandidates: [], commitments: [], refresh }));
     rerender(<CommitmentsPage />);
     expect(screen.getByRole("alert")).toHaveTextContent("Something went wrong");
-    expect(screen.queryByText("No recurring expenses confirmed yet.")).not.toBeInTheDocument();
+    expect(screen.queryByText("No recurring expenses yet.")).not.toBeInTheDocument();
     await userEvent.setup().click(screen.getByRole("button", { name: "Try again" }));
     expect(refresh).toHaveBeenCalledTimes(1);
   });
@@ -451,7 +451,7 @@ describe("Commitments workspace", () => {
     const area = document.getElementById("commitments-feedback");
     expect([...area.children].map((node) => node.textContent)).toEqual([
       "Load failed.", expect.stringContaining("may be out of date"), "Action failed.", "Saved it.",
-      "Refreshing recurring expenses...", "Saving your decision...", "Refresh recurring expenses",
+      "Refreshing recurring expenses…", "Saving your decision…", "Refresh recurring expenses",
     ]);
     expect([...area.querySelectorAll("[role]")].map((node) => node.getAttribute("role"))).toEqual(["alert", "alert", "status", "status", "status"]);
     expect(area.lastElementChild).toContainElement(screen.getByRole("button", { name: "Refresh recurring expenses" }));
@@ -471,8 +471,8 @@ describe("Commitments workspace", () => {
     expect(menuNames("Paused rent")).toEqual(["Reactivate Paused rent", "Edit Paused rent", "End Paused rent"]);
     expect(menuNames("Ended rent")).toEqual(["Reactivate Ended rent", "Edit Ended rent", "Pause Ended rent"]);
     expect(within(card("Paused rent")).getByRole("button", { name: "Reactivate Paused rent" })).toBeVisible();
-    expect(within(card("Gym membership")).getByRole("button", { name: "Review and confirm Gym membership" })).toBeVisible();
-    expect(within(card("Gym membership")).getByRole("button", { name: "Dismiss Gym membership", hidden: true })).not.toBeVisible();
+    expect(within(card("Gym membership")).getByRole("button", { name: "Review and confirm: Gym membership" })).toBeVisible();
+    expect(within(card("Gym membership")).getByRole("button", { name: "Dismiss: Gym membership", hidden: true })).not.toBeVisible();
   });
 
   it("keeps headings out of summaries and announces locked history as a disabled button with the lock note", async () => {
