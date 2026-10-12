@@ -21,14 +21,16 @@ function timingSummary(model, t) {
   return t("timing.compact.dayOfMonth", { day: model.expectedDay, ...window });
 }
 
-function amountSummary(model, locale) {
-  if (model.amountMode === "fixed") return formatMoney(model.expectedAmount, locale);
-  return `${formatMoney(model.expectedMinimumAmount, locale)}–${formatMoney(model.expectedMaximumAmount, locale)}`;
+function amountSummary(model, locale, t) {
+  const unavailable = t("format.amountUnavailable");
+  if (model.amountMode === "fixed") return formatMoney(model.expectedAmount, locale, unavailable);
+  return `${formatMoney(model.expectedMinimumAmount, locale, unavailable)}–${formatMoney(model.expectedMaximumAmount, locale, unavailable)}`;
 }
 
-function proposedAmountSummary(assessment, locale) {
-  if (assessment.proposedMode === "fixed") return formatDerivedMoney(assessment.proposedAmount, locale);
-  return `${formatDerivedMoney(assessment.proposedMinimumAmount, locale)}–${formatDerivedMoney(assessment.proposedMaximumAmount, locale)}`;
+function proposedAmountSummary(assessment, locale, t) {
+  const unavailable = t("format.amountUnavailable");
+  if (assessment.proposedMode === "fixed") return formatDerivedMoney(assessment.proposedAmount, locale, unavailable);
+  return `${formatDerivedMoney(assessment.proposedMinimumAmount, locale, unavailable)}–${formatDerivedMoney(assessment.proposedMaximumAmount, locale, unavailable)}`;
 }
 
 function proposedTimingSummary(commitment, assessment, t) {
@@ -88,10 +90,10 @@ function Comparison({ change, dimension, assessment }) {
   }
 
   const current = dimension === "amount"
-    ? amountSummary(change.commitment, locale)
+    ? amountSummary(change.commitment, locale, t)
     : timingSummary(change.commitment, t);
   const proposed = dimension === "amount"
-    ? proposedAmountSummary(assessment, locale)
+    ? proposedAmountSummary(assessment, locale, t)
     : proposedTimingSummary(change.commitment, assessment, t);
   return (
     <dl className="commitment-change__comparison">

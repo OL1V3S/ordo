@@ -21,7 +21,7 @@ export default function CommitmentEvidence({ evidence, heading }) {
               <span>{formatDate(expense.date, t, locale)} · {displayText(expense.category)}</span>
               <span>{sourceLabel(expense.source, t)}</span>
             </div>
-            <strong>{formatDerivedMoney(expense.amount, locale)}</strong>
+            <strong>{formatDerivedMoney(expense.amount, locale, t("format.amountUnavailable"))}</strong>
           </li>
         ))}
       </ul>

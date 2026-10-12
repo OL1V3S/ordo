@@ -76,14 +76,14 @@ export function validateInflow(draft) {
   };
 }
 
-export function formatInflowMoney(value, reviewLabel = "Amount needs review", locale = "en") {
+export function formatInflowMoney(value, reviewLabel = "Exact amount unavailable", locale = "en") {
   if (isUnsafeAmount(value)) return reviewLabel;
   const parsed = parseAmount(value);
   if (!parsed) return reviewLabel;
   return formatMoneyDecimal(parsed.value, locale) ?? reviewLabel;
 }
 
-export function formatInflowDate(value, unknownLabel = "Unknown date", locale = "en") {
+export function formatInflowDate(value, unknownLabel = "Date unavailable", locale = "en") {
   if (!isCalendarDate(value)) return unknownLabel;
   return formatCalendarDate(value, locale, "numeric") ?? unknownLabel;
 }

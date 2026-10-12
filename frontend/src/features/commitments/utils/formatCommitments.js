@@ -11,14 +11,14 @@ const EVIDENCE_RULES = new Set(["consecutive_calendar_months", "weekly_six_to_ei
 // localization yet keep the English catalog wording, read from the same English catalog.
 export const englishT = (key, options) => i18n.getFixedT("en", "commitments")(key, options);
 
-// Missing or unparseable amounts show the shared "Amount needs review" label instead of
-// a fabricated zero or NaN amount.
-export function formatMoney(value, locale = "en") {
-  return formatMoneyDecimal(value, locale) ?? AMOUNT_NEEDS_REVIEW;
+// Missing or unparseable amounts show the shared "Exact amount unavailable" label (or the
+// caller's localized `unavailableLabel`) instead of a fabricated zero or NaN amount.
+export function formatMoney(value, locale = "en", unavailableLabel = AMOUNT_NEEDS_REVIEW) {
+  return formatMoneyDecimal(value, locale) ?? unavailableLabel;
 }
 
-export function formatDerivedMoney(value, locale = "en") {
-  return formatExactMoney(value, undefined, locale);
+export function formatDerivedMoney(value, locale = "en", unavailableLabel = AMOUNT_NEEDS_REVIEW) {
+  return formatExactMoney(value, { unavailableLabel }, locale);
 }
 
 export function formatDate(value, t = englishT, locale = "en") {

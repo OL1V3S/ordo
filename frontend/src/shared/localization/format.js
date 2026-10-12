@@ -3,7 +3,7 @@ import { FORMAT_TAGS, normalizeLocale } from "./locale";
 // Locale-aware presentation of money, percentages and dates. Every function is pure, takes
 // the app locale ("en", "es", or a tag such as "en-US" that normalizeLocale accepts) and
 // returns null when the input cannot be formatted exactly; callers keep their own
-// "Amount needs review" / "unavailable" fallbacks. Currency is always USD and amounts are
+// "Exact amount unavailable" / "unavailable" fallbacks. Currency is always USD and amounts are
 // never converted or rounded here.
 //
 // Exactness: Intl.NumberFormat on a Number loses cents beyond 2^53, so the structure
