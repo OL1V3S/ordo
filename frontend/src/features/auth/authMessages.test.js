@@ -44,7 +44,7 @@ describe("mapSubmitError", () => {
 
   it("maps the two exact login 401 literals", () => {
     const bad = mapSubmitError(registerErr("Invalid email or password", 401), { mode: "login", email });
-    const unconfirmed = mapSubmitError(registerErr("Please confirm your email before signing in.", 401), { mode: "login", email });
+    const unconfirmed = mapSubmitError(registerErr("Please confirm your email before logging in.", 401), { mode: "login", email });
     expect(bad.messages).toEqual([{ key: "errors.login.invalidCredentials" }]);
     expect(unconfirmed.messages).toEqual([{ key: "errors.login.emailNotConfirmed" }]);
   });

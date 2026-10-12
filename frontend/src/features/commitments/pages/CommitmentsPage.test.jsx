@@ -210,7 +210,7 @@ describe("Commitments workspace", () => {
 
     current = { ...current, loading: true };
     rerender(<CommitmentsPage />);
-    expect(screen.getByRole("status")).toHaveTextContent("Refreshing commitments");
+    expect(screen.getByRole("status")).toHaveTextContent("Refreshing recurring expenses");
     expect(screen.getByLabelText("Name")).toHaveValue("Draft gym plan");
     expect(screen.getByLabelText("Name")).toBeDisabled();
     expect(screen.getByRole("button", { name: "Saving..." })).toBeDisabled();
@@ -413,12 +413,12 @@ describe("Commitments workspace", () => {
     expect(screen.getByText("No possible recurring expenses to review.")).toBeInTheDocument();
     expect(screen.getByText("No reviewed changes.")).not.toBeVisible();
     expect(screen.getByText("No dismissed possible recurring expenses.")).not.toBeVisible();
-    expect(screen.queryByRole("button", { name: /add|create.*commitment/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /add|create.*(commitment|recurring expense)/i })).not.toBeInTheDocument();
     expect(screen.queryByText(/next payment|next commitment|upcoming commitment/i)).not.toBeInTheDocument();
 
     current = { ...current, loading: true };
     rerender(<CommitmentsPage />);
-    expect(screen.getByRole("status")).toHaveTextContent("Refreshing commitments");
+    expect(screen.getByRole("status")).toHaveTextContent("Refreshing recurring expenses");
     expect(screen.getByRole("heading", { name: "Your recurring expenses" })).toBeInTheDocument();
     current = { ...current, loading: false, loadError: "Something went wrong. Try again." };
     rerender(<CommitmentsPage />);
@@ -432,7 +432,7 @@ describe("Commitments workspace", () => {
     const refresh = vi.fn();
     useCommitments.mockReturnValue(state({ loading: true, candidates: [], dismissedCandidates: [], commitments: [], refresh }));
     const { rerender } = renderCommitmentsPage();
-    expect(screen.getByRole("status")).toHaveTextContent("Loading commitments");
+    expect(screen.getByRole("status")).toHaveTextContent("Loading recurring expenses");
     expect(screen.queryByRole("heading", { name: "Your recurring expenses" })).not.toBeInTheDocument();
     useCommitments.mockReturnValue(state({ loading: false, loadError: "Something went wrong. Try again.", candidates: [], dismissedCandidates: [], commitments: [], refresh }));
     rerender(<CommitmentsPage />);

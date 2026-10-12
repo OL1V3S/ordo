@@ -419,7 +419,7 @@ describe('authentication pages in Spanish', () => {
     expect(error).toHaveTextContent('Correo electrónico o contraseña no válidos')
     expect(error).not.toHaveTextContent('Invalid')
 
-    authApi.login.mockRejectedValueOnce({ response: { status: 401, data: 'Please confirm your email before signing in.' } })
+    authApi.login.mockRejectedValueOnce({ response: { status: 401, data: 'Please confirm your email before logging in.' } })
     await user.click(screen.getByRole('button', { name: 'Iniciar sesión' }))
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Confirma tu correo electrónico antes de iniciar sesión.'))
   })

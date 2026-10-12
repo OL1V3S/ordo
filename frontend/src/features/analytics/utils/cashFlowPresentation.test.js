@@ -43,7 +43,7 @@ describe("exact cash-flow presentation", () => {
   });
   it("reports only factual period notes", () => {
     expect(periodNotes({ month: "2026-08", to: "2026-08-14", cashInMinor: "0", spentMinor: "0" }, "2026-08-14"))
-      .toBe("Through August 14, 2026 · No cash in recorded · No spending recorded");
+      .toBe("Through August 14, 2026 · No deposits recorded · No spending recorded");
     expect(periodNotes({ month: "2026-07", cashInMinor: "100", spentMinor: "100" }, "2026-08-14")).toBe("—");
   });
 });

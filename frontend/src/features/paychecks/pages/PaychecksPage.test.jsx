@@ -102,7 +102,7 @@ describe("Paychecks page", () => {
     expect(profile.getByText("Why we suggested this").closest("div")).toHaveTextContent("paycheck-candidate-v1");
     expect(profile.getByText("Expected paycheck details").closest("div")).toHaveTextContent("paycheck-projector-v1");
     expect(profile.getByText("Linked paycheck deposits (3)")).toBeVisible();
-    expect(profile.getByText(/Edited since this deposit was linked\. The saved expectation is unchanged/)).toBeVisible();
+    expect(profile.getByText(/Edited since this deposit was linked\. The pay schedule is unchanged/)).toBeVisible();
     expect(profile.getAllByRole("listitem")).toHaveLength(3);
     expect(profile.getByText(/May 10, 2026/, { selector: "time" })).toHaveAttribute("datetime", "2026-05-10");
     const candidate = within(card("acme payroll"));
@@ -213,7 +213,7 @@ describe("Paychecks page", () => {
     loadState({ candidates: [], dismissedCandidates: [], paychecks: [] });
     await userEvent.setup().click(screen.getByRole("button", { name: "Refresh paychecks" }));
     expect(await screen.findByText("No pay schedules yet")).toBeInTheDocument();
-    expect(screen.getByText(/No possible paychecks need review/)).toBeInTheDocument();
+    expect(screen.getByText(/No possible paychecks to review/)).toBeInTheDocument();
     expect(screen.getByText("No dismissed possible paychecks.")).toBeInTheDocument();
   });
 
@@ -221,7 +221,7 @@ describe("Paychecks page", () => {
     loadState({ candidates: candidatesOnly ? [makeCandidate()] : [], paychecks: candidatesOnly ? [] : [makePaycheck()] });
     await renderPage();
     expect(Boolean(screen.queryByText("No pay schedules yet"))).toBe(candidatesOnly);
-    expect(Boolean(screen.queryByText(/No possible paychecks need review/))).toBe(!candidatesOnly);
+    expect(Boolean(screen.queryByText(/No possible paychecks to review/))).toBe(!candidatesOnly);
   });
 
   it("requires explicit fixed confirmation and sends the exact candidate schedule and accepted decimal", async () => {
@@ -316,7 +316,7 @@ describe("Paychecks page", () => {
     expect(paychecksApi.createPaycheck).toHaveBeenCalledTimes(1);
     await user.click(screen.getByRole("button", { name: "Refresh paychecks" }));
     await waitFor(() => expect(within(form).getByRole("button", { name: "Create paycheck" })).toBeEnabled());
-    expect(screen.getByRole("status")).toHaveTextContent("Check the saved profiles");
+    expect(screen.getByRole("status")).toHaveTextContent("Check the saved pay schedules");
     expect(paychecksApi.createPaycheck).toHaveBeenCalledTimes(1);
   });
 
@@ -334,15 +334,15 @@ describe("Paychecks page", () => {
     await user.type(within(form).getByLabelText("Amount"), "2600.25");
     await user.clear(within(form).getByLabelText("Date"));
     await user.type(within(form).getByLabelText("Date"), "2026-08-15");
-    expect(within(panel).getByText(/Amount differs from the fixed expectation/)).toBeVisible();
-    expect(within(panel).getByText(/Date is outside this paycheck's expected window/)).toBeVisible();
+    expect(within(panel).getByText(/Amount differs from the fixed expected amount/)).toBeVisible();
+    expect(within(panel).getByText(/Date is outside this paycheck’s expected dates/)).toBeVisible();
     loadState({ paychecks: [makePaycheck({ receiptSlots: [] })] });
     await user.click(within(form).getByRole("button", { name: "Add deposit" }));
     expect(paychecksApi.recordReceipt).toHaveBeenCalledExactlyOnceWith(profile.id, {
       slotAnchor: "2026-08-10",
       newInflow: { description: "Acme Payroll", amount: "2600.25", date: "2026-08-15" },
     });
-    expect(await screen.findByRole("status")).toHaveTextContent("Paycheck received");
+    expect(await screen.findByRole("status")).toHaveTextContent("Deposit linked to this pay schedule.");
   });
 
   it("preserves the exact receipt draft and slot after an uncertain result is checked", async () => {
@@ -393,7 +393,7 @@ describe("Paychecks page", () => {
     const choices = screen.getAllByRole("radio", { name: /available/ });
     expect(choices.map((choice) => choice.value)).toEqual(["201", "202"]);
     await user.click(choices[0]);
-    expect(screen.getByText(/Amount differs from the fixed expectation/)).toBeVisible();
+    expect(screen.getByText(/Amount differs from the fixed expected amount/)).toBeVisible();
     loadState({ paychecks: [makePaycheck({ receiptSlots: [] })] });
     await user.click(screen.getByRole("button", { name: "Link this deposit" }));
     expect(paychecksApi.recordReceipt).toHaveBeenCalledExactlyOnceWith(profile.id, {
@@ -414,7 +414,7 @@ describe("Paychecks page", () => {
     expect(screen.getByText("Received paycheck")).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Remove paycheck link" }));
     expect(paychecksApi.removeReceipt).not.toHaveBeenCalled();
-    expect(screen.getByText(/cash-in record will remain in Activity/)).toBeVisible();
+    expect(screen.getByText(/deposit will remain in Transactions/)).toBeVisible();
     expect(screen.getByRole("button", { name: "Confirm removal" })).toHaveFocus();
     loadState({ paychecks: [makePaycheck({ evidence: [evidence[1]] })] });
     await user.click(screen.getByRole("button", { name: "Confirm removal" }));

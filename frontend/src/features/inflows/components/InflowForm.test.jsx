@@ -104,8 +104,8 @@ describe("InflowForm", () => {
     render(<InflowForm {...formProps({ mode: "edit", amountNeedsReview: true, draft: { ...draft, amount: "" } })} />);
 
     expect(screen.getByRole("form", { name: "Edit deposit" })).toBeInTheDocument();
-    expect(screen.getByText(/If this entry supports a saved paycheck/)).toBeVisible();
-    expect(screen.getByText(/Amount needs review/)).toBeVisible();
+    expect(screen.getByText(/If this deposit is linked to a pay schedule/)).toBeVisible();
+    expect(screen.getByText(/Exact amount unavailable/)).toBeVisible();
     expect(screen.getByText(/Enter the exact amount again/)).toBeVisible();
     expect(screen.getByLabelText("Amount")).toHaveValue("");
   });

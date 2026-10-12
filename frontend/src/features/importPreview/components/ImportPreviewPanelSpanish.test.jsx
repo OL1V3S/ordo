@@ -140,12 +140,12 @@ describe('import preview in Spanish', () => {
     expect(within(table).getAllByText('Detalles del origen').length).toBeGreaterThan(0)
 
     const deposit = 'SYNTHETIC DEPOSIT, 2026-08-12, fila 2 del estado de cuenta'
-    expect(within(table).getByRole('checkbox', { name: `Guardar depósito entrante: ${deposit}` })).not.toBeChecked()
+    expect(within(table).getByRole('checkbox', { name: `Guardar depósito: ${deposit}` })).not.toBeChecked()
     expect(within(table).getByText('Depósito')).toBeInTheDocument()
     expect(within(table).getByText('Abono')).toBeInTheDocument()
     expect(within(table).getByText('Depósitos')).toBeInTheDocument()
     expect(within(table).getByText('No editable')).toBeInTheDocument()
-    expect(within(table).getByText(/No lo clasifica como ingreso ni como pago de nómina\./)).toBeInTheDocument()
+    expect(within(table).getByText(/No se cuenta como ingreso ni como pago de nómina\./)).toBeInTheDocument()
   })
 
   it('keeps the exact meaning of the duplicate warnings in Spanish', () => {
@@ -205,7 +205,7 @@ describe('import preview in Spanish', () => {
 
   it('announces the saving state and refresh-required guidance in Spanish', () => {
     const { rerender } = render(<ImportPreviewPanel importState={importState({ confirming: true })} />)
-    expect(screen.getByRole('button', { name: 'Guardando 1 gasto y 0 depósitos entrantes…' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Guardando 1 gasto y 0 depósitos…' })).toBeDisabled()
 
     rerender(<ImportPreviewPanel importState={importState({
       confirmationIssue: { code: 'duplicate_review_required', message: 'Mensaje.', rows: [], requiresPreviewRefresh: true },
@@ -219,7 +219,7 @@ describe('import preview in Spanish', () => {
   it('renders the completion summary in Spanish, including already-imported statements', () => {
     const { rerender } = render(<ImportPreviewPanel importState={importState({ preview: null, selectedCount: 0, confirmation: confirmed })} />)
     expect(screen.getByRole('heading', { name: 'Importación completada' })).toBeInTheDocument()
-    expect(screen.getByText(/^Se guardaron 1 gasto y 1 depósito entrante el /)).toBeInTheDocument()
+    expect(screen.getByText(/^Se guardaron 1 gasto y 1 depósito el /)).toBeInTheDocument()
 
     rerender(<ImportPreviewPanel importState={importState({
       preview: null,
@@ -227,20 +227,20 @@ describe('import preview in Spanish', () => {
       confirmation: { ...confirmed, status: 'already_confirmed', importedExpenseCount: 2, importedInflowCount: 0 },
     })} />)
     expect(screen.getByRole('heading', { name: 'Estado de cuenta ya importado' })).toBeInTheDocument()
-    expect(screen.getByText(/^Ya se habían guardado 2 gastos y 0 depósitos entrantes el /)).toBeInTheDocument()
+    expect(screen.getByText(/^Ya se habían guardado 2 gastos y 0 depósitos el /)).toBeInTheDocument()
 
     rerender(<ImportPreviewPanel importState={importState({
       preview: null,
       selectedCount: 0,
       confirmation: { ...confirmed, confirmedAt: 'not a date' },
     })} />)
-    expect(screen.getByText('Se guardaron 1 gasto y 1 depósito entrante en un momento no disponible.')).toBeInTheDocument()
+    expect(screen.getByText('Se guardaron 1 gasto y 1 depósito en un momento no disponible.')).toBeInTheDocument()
   })
 
   it.each([
-    [['expenses'], 'actividad de gastos. Usa'],
-    [['cashIn'], 'actividad de entradas de dinero. Usa'],
-    [['expenses', 'cashIn'], 'actividad de gastos ni de entradas de dinero. Usa'],
+    [['expenses'], 'los gastos en Movimientos. Usa'],
+    [['cashIn'], 'los depósitos en Movimientos. Usa'],
+    [['expenses', 'cashIn'], 'los gastos ni los depósitos en Movimientos. Usa'],
   ])('maps failed list identifiers %j to a Spanish refresh message', async (failedLists, expected) => {
     const user = userEvent.setup()
     const onImportConfirmed = vi.fn().mockResolvedValue({ failedLists })
@@ -250,7 +250,7 @@ describe('import preview in Spanish', () => {
     await user.click(screen.getByRole('button', { name: 'Guardar 1 gasto y 0 depósitos' }))
 
     const alert = await screen.findByRole('alert')
-    expect(alert).toHaveTextContent('La importación se realizó correctamente, pero no se pudo actualizar la')
+    expect(alert).toHaveTextContent('La importación se realizó correctamente, pero no se pudieron actualizar')
     expect(alert).toHaveTextContent(expected)
     expect(onImportConfirmed).toHaveBeenCalledWith(confirmed)
   })
@@ -263,7 +263,7 @@ describe('import preview in Spanish', () => {
 
     await user.click(screen.getByRole('button', { name: 'Guardar 1 gasto y 0 depósitos' }))
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Vuelve a cargar esta página para ver los registros importados.')
+    expect(await screen.findByRole('alert')).toHaveTextContent('Vuelve a cargar esta página para ver los movimientos importados.')
   })
 
   it('uses count-aware row totals and keeps the English wording unchanged', async () => {

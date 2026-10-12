@@ -229,7 +229,7 @@ describe("monthly spending insights page", () => {
     useCashFlow.mockReturnValue(loadedCashFlow("2026-08", { data: null, error: "We couldn’t load deposits and spending. Try again." }));
     rerender(<MemoryRouter><AnalyticsPage /></MemoryRouter>);
     expect(screen.getByRole("region", { name: "Deposits and spending" })).toHaveAttribute("aria-busy", "false");
-    expect(screen.getByRole("alert")).toHaveTextContent("couldn’t load recorded cash flow");
+    expect(screen.getByRole("alert")).toHaveTextContent("couldn’t load deposits and spending");
     fireEvent.click(screen.getByRole("button", { name: "Retry cash flow" }));
     expect(refreshCashFlow).toHaveBeenCalledOnce();
   });

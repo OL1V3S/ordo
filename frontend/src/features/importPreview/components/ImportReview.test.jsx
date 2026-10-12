@@ -92,9 +92,9 @@ describe('import review summary, filters and bar', () => {
     expect(value('Cannot be selected, includes rows to review')).toHaveTextContent('1')
 
     expect(screen.getByRole('radio', { name: 'All (5)' })).toBeChecked()
-    expect(screen.getByRole('radio', { name: 'Needs attention (1)' })).not.toBeChecked()
+    expect(screen.getByRole('radio', { name: 'To review (1)' })).not.toBeChecked()
     expect(screen.getByRole('radio', { name: 'Possible duplicates (1)' })).toBeInTheDocument()
-    expect(screen.getByRole('radio', { name: 'Incoming deposits (1)' })).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: 'Deposit rows (1)' })).toBeInTheDocument()
     expect(screen.getByRole('radio', { name: 'Selected (1)' })).toBeInTheDocument()
     expect(screen.getByText('Showing 5 of 5 rows')).toBeInTheDocument()
   })
@@ -132,7 +132,7 @@ describe('import review summary, filters and bar', () => {
     })
     rerender(<ImportPreviewPanel importState={importState({ preview: previewWith(rows(flagged)), updateRow })} />)
 
-    await user.click(screen.getByRole('radio', { name: 'Needs attention (2)' }))
+    await user.click(screen.getByRole('radio', { name: 'To review (2)' }))
     expect(within(tableRegion()).queryByText('CAFE TWO')).not.toBeInTheDocument()
     await user.type(within(tableRegion()).getByLabelText(/^Expense description for CAFE ONE/), ' latte')
     const save = within(tableRegion()).getByRole('button', { name: /^Save row/ })
@@ -143,7 +143,7 @@ describe('import review summary, filters and bar', () => {
     expect(within(table).getByText('CAFE ONE')).toBeInTheDocument()
     expect(await within(table).findByText('Saved')).toBeInTheDocument()
     expect(within(table).getByRole('button', { name: /^Save row/ })).toHaveFocus()
-    expect(screen.getByRole('radio', { name: 'Needs attention (1)' })).toBeChecked()
+    expect(screen.getByRole('radio', { name: 'To review (1)' })).toBeChecked()
   })
 
   it('keeps the bulk status live region rendered while empty', () => {
@@ -323,12 +323,12 @@ describe('import review bulk selection', () => {
     await user.click(selectAll())
 
     expect(screen.getByText('Updating row 1 of 2…')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /^Save 0 expenses and 1 incoming deposit/ })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /^Save 0 expenses and 1 deposit/ })).toBeDisabled()
     expect(screen.getByText('Wait for the selection update to finish before confirming.')).toBeInTheDocument()
     expect(selectAll()).toHaveAttribute('aria-disabled', 'true')
     expect(clearSelection()).toHaveAttribute('aria-disabled', 'true')
     expect(screen.getByRole('button', { name: 'Choose another statement' })).toBeDisabled()
-    expect(within(tableRegion()).getByLabelText(/^Save incoming deposit for /)).toBeDisabled()
+    expect(within(tableRegion()).getByLabelText(/^Save deposit for /)).toBeDisabled()
     await user.click(selectAll())
     expect(updateRow).toHaveBeenCalledTimes(1)
 
@@ -366,7 +366,7 @@ describe('import results', () => {
     const list = screen.getByRole('region', { name: 'Rows saved from this review' })
     expect(within(list).getByText('Coffee')).toBeInTheDocument()
     expect(within(list).getByText(/Expense · Aug 12, 2026 · Food · \$8\.50/)).toBeInTheDocument()
-    expect(within(list).getByText(/Incoming deposit · Aug 13, 2026 · \$100\.00/)).toBeInTheDocument()
+    expect(within(list).getByText(/Deposit · Aug 13, 2026 · \$100\.00/)).toBeInTheDocument()
     expect(within(list).getByText('Expenses saved: 1 · $8.50')).toBeInTheDocument()
     expect(within(list).getByText('Deposits saved: 1 · $100.00')).toBeInTheDocument()
     const live = screen.getByRole('status')
@@ -421,11 +421,11 @@ describe('import review in Spanish', () => {
     render(<ImportPreviewPanel importState={state} />)
 
     expect(screen.getByRole('region', { name: 'Resumen del estado de cuenta' })).toBeInTheDocument()
-    expect(screen.getByRole('radio', { name: 'Requieren atención (1)' })).toBeInTheDocument()
-    expect(screen.getByRole('radio', { name: 'Depósitos entrantes (1)' })).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: 'Por revisar (1)' })).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: 'Filas de depósito (1)' })).toBeInTheDocument()
     expect(screen.getByText('Mostrando 5 de 5 filas')).toBeInTheDocument()
     expect(screen.getByText(/^Gastos por guardar: 1 · USD\s1,234\.50$/)).toBeInTheDocument()
-    expect(screen.getByText(/^Depósitos entrantes por guardar: 0 · USD\s0\.00$/)).toBeInTheDocument()
+    expect(screen.getByText(/^Depósitos por guardar: 0 · USD\s0\.00$/)).toBeInTheDocument()
     expect(screen.getByRole('group', { name: 'Confirmar importación' })).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: /^Seleccionar todos los gastos elegibles \(1\)/ }))

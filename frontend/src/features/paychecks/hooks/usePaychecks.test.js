@@ -234,7 +234,7 @@ describe("paycheck state", () => {
     await act(async () => { outcome = await result.current.createPaycheck(payload); });
     expect(outcome).toEqual({ ok: false, code: "creation_uncertain", uncertain: true });
     expect(result.current.uncertainCreate).toBe(true);
-    expect(result.current.actionError).toContain("check the saved profiles");
+    expect(result.current.actionError).toContain("check the saved pay schedules");
     act(() => result.current.clearMessages());
     expect(result.current.actionError).toContain("could not confirm");
     expect(await result.current.createPaycheck(payload)).toEqual(outcome);
@@ -243,7 +243,7 @@ describe("paycheck state", () => {
     expect(result.current.uncertainCreate).toBe(true);
     await act(() => result.current.refresh());
     expect(result.current.uncertainCreate).toBe(false);
-    expect(result.current.notice).toContain("Check the saved profiles");
+    expect(result.current.notice).toContain("Check the saved pay schedules");
     expect(paychecksApi.createPaycheck).toHaveBeenCalledTimes(1);
   });
 

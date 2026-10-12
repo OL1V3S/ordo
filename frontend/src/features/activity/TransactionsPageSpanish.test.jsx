@@ -122,7 +122,7 @@ describe("Activity spending in Spanish", () => {
     expect(within(table).getByText("01/09/2026")).toBeInTheDocument();
     expect(within(table).getByText("Food")).toBeInTheDocument();
     expect(within(table).getByText("Monto exacto no disponible")).toBeInTheDocument();
-    await user.click(within(table).getByRole("button", { name: /^Acciones del gasto Lunch del 01\/09\/2026, registro 42$/ }));
+    await user.click(within(table).getByRole("button", { name: /^Acciones del gasto Lunch, 01\/09\/2026 \(núm\. 42\)$/ }));
     expect(within(table).getByRole("button", { name: "Editar gasto Lunch, 01/09/2026 (núm. 42)" })).toBeEnabled();
     expect(within(table).getByRole("button", { name: "Eliminar gasto Lunch, 01/09/2026 (núm. 42)" })).toBeEnabled();
     await user.click(within(table).getByRole("button", { name: /^Acciones del gasto Odd/ }));
@@ -181,7 +181,7 @@ describe("Activity spending in Spanish", () => {
     mockLists({ expenses: { expenses: [lunch] } });
     renderPage();
 
-    await chooseRowAction(user, /^Editar gasto Lunch del .*, registro 42$/);
+    await chooseRowAction(user, /^Editar gasto Lunch, .* \(núm\. 42\)$/);
 
     expect(screen.getByRole("group", { name: "Editar gasto" })).toBeVisible();
     expect(screen.getByLabelText("Editar descripción")).toHaveValue("Lunch");
@@ -203,7 +203,7 @@ describe("Activity spending in Spanish", () => {
     mockLists({ expenses: { expenses: [lunch] } });
     renderPage();
 
-    await chooseRowAction(user, /^Eliminar gasto Lunch del .*, registro 42$/);
+    await chooseRowAction(user, /^Eliminar gasto Lunch, .* \(núm\. 42\)$/);
 
     expect(confirmSpy).toHaveBeenCalledExactlyOnceWith("¿Eliminar este gasto?");
     expect(expenses.deleteExpense).toHaveBeenCalledExactlyOnceWith(42);
@@ -235,7 +235,7 @@ describe("Activity cash in in Spanish", () => {
     mockLists({ cash: { inflows: [transfer, unsafeTransfer] } });
     renderPage();
 
-    expect(screen.getByText(/Dinero entrante registrado, incluidas transferencias y reembolsos\./)).toBeVisible();
+    expect(screen.getByText(/Dinero que entró a tu cuenta, incluidas transferencias y devoluciones\./)).toBeVisible();
     expect(screen.getByRole("button", { name: "Actualizar depósitos" })).toBeVisible();
     expect(screen.queryByLabelText("Buscar depósitos")).not.toBeInTheDocument();
     const table = screen.getByRole("region", { name: "Tabla de depósitos" });
@@ -245,7 +245,7 @@ describe("Activity cash in in Spanish", () => {
     expect(within(table).getByText("USD 24.15")).toBeInTheDocument();
     expect(within(table).getByText("01/09/2026")).toBeInTheDocument();
     expect(within(table).getByText("Monto exacto no disponible")).toBeInTheDocument();
-    await user.click(within(table).getByRole("button", { name: /^Acciones de la entrada de dinero Transfer from Savings/ }));
+    await user.click(within(table).getByRole("button", { name: /^Acciones del depósito Transfer from Savings/ }));
     expect(within(table).getByRole("button", { name: "Editar depósito Transfer from Savings, 01/09/2026 (núm. 1)" })).toBeEnabled();
     expect(within(table).getByRole("button", { name: "Eliminar depósito Transfer from Savings, 01/09/2026 (núm. 1)" })).toBeEnabled();
   });
@@ -299,7 +299,7 @@ describe("Activity cash in in Spanish", () => {
     mockLists({ cash: { inflows: [unsafeTransfer] } });
     renderPage();
 
-    await chooseRowAction(user, /^Editar entrada de dinero Large transfer del .*, registro 2$/);
+    await chooseRowAction(user, /^Editar depósito Large transfer, .* \(núm\. 2\)$/);
     const form = screen.getByRole("form", { name: "Editar depósito" });
 
     expect(within(form).getByText(/Los cambios actualizan el flujo de efectivo registrado\./)).toBeVisible();
@@ -314,11 +314,11 @@ describe("Activity cash in in Spanish", () => {
     mockLists({ cash: { inflows: [transfer] } });
     renderPage();
 
-    await chooseRowAction(user, /^Eliminar entrada de dinero Transfer from Savings del .*, registro 1$/);
+    await chooseRowAction(user, /^Eliminar depósito Transfer from Savings, .* \(núm\. 1\)$/);
     const confirmation = screen.getByRole("group", { name: "¿Eliminar depósito: Transfer from Savings (01/09/2026)?" });
 
-    expect(within(confirmation).getByText(/Esto elimina el registro del historial de flujo de efectivo\./)).toBeInTheDocument();
-    expect(within(confirmation).getByText(/Si esta entrada se importó/)).toBeInTheDocument();
+    expect(within(confirmation).getByText(/Esto elimina el depósito del historial de flujo de efectivo\./)).toBeInTheDocument();
+    expect(within(confirmation).getByText(/Si este depósito se importó/)).toBeInTheDocument();
     expect(within(confirmation).getByRole("button", { name: "Cancelar" })).toBeInTheDocument();
 
     await user.click(within(confirmation).getByRole("button", { name: "Confirmar eliminación del depósito" }));
@@ -333,7 +333,7 @@ describe("Activity cash in in Spanish", () => {
     mockLists({ cash: { inflows: [transfer] } });
     await i18n.changeLanguage("en");
     renderPage();
-    await chooseRowAction(user, /^Edit cash in Transfer from Savings from .*, record 1$/);
+    await chooseRowAction(user, /^Edit deposit Transfer from Savings, .* \(no\. 1\)$/);
 
     expect(screen.getByRole("form", { name: "Edit deposit" })).toBeVisible();
     expect(screen.getByRole("heading", { level: 1, name: "Transactions" })).toBeVisible();
@@ -349,8 +349,8 @@ describe("Activity cash in in Spanish", () => {
     renderPage();
 
     const region = screen.getByRole("region", { name: "Todos los movimientos" });
-    await user.click(within(region).getByRole("button", { name: /^Acciones del gasto Lunch del .*, registro 42$/ }));
-    expect(within(region).getByRole("button", { name: /^Editar gasto Lunch del .*, registro 42$/ })).toHaveTextContent("Editar");
+    await user.click(within(region).getByRole("button", { name: /^Acciones del gasto Lunch, .* \(núm\. 42\)$/ }));
+    expect(within(region).getByRole("button", { name: /^Editar gasto Lunch, .* \(núm\. 42\)$/ })).toHaveTextContent("Editar");
     await user.click(within(region).getByRole("button", { name: /^Eliminar gasto Lunch/ }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Este gasto ya no está disponible.");
   });

@@ -113,7 +113,7 @@ describe("ActivityTimeline", () => {
     const timeline = state({ items: [expense()], refreshFailed: true });
     renderTimeline(timeline);
 
-    expect(screen.getByRole("status")).toHaveTextContent("could not be refreshed. Showing the records loaded earlier.");
+    expect(screen.getByRole("status")).toHaveTextContent("could not be refreshed. Showing the ones loaded earlier.");
     expect(screen.getAllByRole("listitem")).toHaveLength(1);
     fireEvent.click(screen.getByRole("button", { name: "Try again" }));
     expect(timeline.refresh).toHaveBeenCalledOnce();
@@ -229,7 +229,7 @@ describe("ActivityTimeline", () => {
     renderTimeline(state({ items: [expense({ amount: "-5.00" })], refreshFailed: true }));
 
     expect(screen.getByText("Monto exacto no disponible")).toBeInTheDocument();
-    expect(screen.getByRole("status")).toHaveTextContent("No se pudo actualizar la cronología de actividad");
+    expect(screen.getByRole("status")).toHaveTextContent("No se pudieron actualizar los movimientos");
   });
 
   it("has no hard-coded English: every visible string comes from a catalog or from the record", () => {
@@ -434,7 +434,7 @@ describe("ActivityTimeline", () => {
       const user = userEvent.setup();
       const rowActions = actions((item) => item.kind === "expense" ? { canEdit: false, canDelete: true } : { canEdit: false, canDelete: false });
       renderTimeline(state({ items: [expense({ amount: "-5.00" }), inflow()] }), { rowActions });
-      expect(screen.getByRole("button", { name: /^Actions for cash in/ })).toBeDisabled();
+      expect(screen.getByRole("button", { name: /^Actions for deposit/ })).toBeDisabled();
       await user.click(screen.getByRole("button", { name: /^Actions for expense/ }));
       expect(screen.getByRole("button", { name: /^Edit expense/ })).toBeDisabled();
       expect(screen.getByRole("button", { name: /^Delete expense/ })).toBeEnabled();
@@ -445,11 +445,11 @@ describe("ActivityTimeline", () => {
       const rowActions = actions();
       const item = inflow({ recordId: 9 });
       renderTimeline(state({ items: [item] }), { rowActions });
-      const trigger = screen.getByRole("button", { name: /^Actions for cash in/ });
+      const trigger = screen.getByRole("button", { name: /^Actions for deposit/ });
       await user.click(trigger);
-      await user.click(screen.getByRole("button", { name: /^Edit cash in/ }));
+      await user.click(screen.getByRole("button", { name: /^Edit deposit/ }));
       await user.click(trigger);
-      await user.click(screen.getByRole("button", { name: /^Delete cash in/ }));
+      await user.click(screen.getByRole("button", { name: /^Delete deposit/ }));
       expect(rowActions.onEdit).toHaveBeenCalledWith(item, trigger);
       expect(rowActions.onDelete).toHaveBeenCalledWith(item, trigger);
     });
@@ -458,8 +458,8 @@ describe("ActivityTimeline", () => {
       const user = userEvent.setup();
       await i18n.changeLanguage("es");
       renderTimeline(state({ items: [expense({ recordId: 3 })] }), { rowActions: actions() });
-      await user.click(screen.getByRole("button", { name: /^Acciones del gasto Corner coffee del .*, registro 3$/ }));
-      expect(screen.getByRole("button", { name: /^Editar gasto Corner coffee del .*, registro 3$/ })).toHaveTextContent("Editar");
+      await user.click(screen.getByRole("button", { name: /^Acciones del gasto Corner coffee, .* \(núm\. 3\)$/ }));
+      expect(screen.getByRole("button", { name: /^Editar gasto Corner coffee, .* \(núm\. 3\)$/ })).toHaveTextContent("Editar");
       expect(screen.getByRole("button", { name: /^Eliminar gasto/ })).toHaveTextContent("Eliminar");
     });
   });

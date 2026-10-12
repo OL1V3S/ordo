@@ -33,8 +33,8 @@ describe("cash-flow monthly grouped stacks", () => {
     const table = within(disclosure).getByRole("table", { hidden: true });
     const rows = within(table).getAllByRole("row", { hidden: true });
     expect(rows).toHaveLength(7);
-    expect(rows[0]).toHaveTextContent("Recorded cash inConfirmed paychecksOther cash inSpentNet recorded cash flowPeriod note");
-    expect(rows[1]).toHaveTextContent("No cash in recorded · No spending recorded");
+    expect(rows[0]).toHaveTextContent("DepositsConfirmed paychecksOther depositsSpentDeposits minus spendingPeriod note");
+    expect(rows[1]).toHaveTextContent("No deposits recorded · No spending recorded");
     expect(rows[6]).toHaveTextContent("August 2026$150.00$120.00$30.00$100.00+$50.00Through August 14, 2026");
     expect(table.parentElement).toHaveAttribute("tabindex", "0");
   });
@@ -43,7 +43,7 @@ describe("cash-flow monthly grouped stacks", () => {
     render(<CashFlowTrendChart data={data} />);
     const callbacks = renderedChart.options.plugins.tooltip.callbacks;
     expect(callbacks.label({ dataset: { label: "Other deposits" }, datasetIndex: 1, dataIndex: 5 }))
-      .toBe("Other cash in: $9,999,999,999,999,999.99");
+      .toBe("Other deposits: $9,999,999,999,999,999.99");
     expect(callbacks.footer([{ dataIndex: 5 }])).toBe("Deposits: $9,999,999,999,999,999.99");
   });
   it("labels a shorter representable-calendar-floor range", () => {

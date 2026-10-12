@@ -230,7 +230,7 @@ describe("capture-first Home", () => {
     expect(items[0]).toHaveAccessibleName(/Primary paycheck.*Expected amount: \$9,999,999,999,999,999\.99/);
     expect(items[0]).toHaveTextContent("Expected between Sep 11, 2026 and Sep 13, 2026");
     expect(items[0]).toHaveTextContent("Every two weeks");
-    expect(items[0]).toHaveAccessibleName(/Cadence: Every two weeks/);
+    expect(items[0]).toHaveAccessibleName(/How often: Every two weeks/);
     expect(items[1]).toHaveAccessibleName(/Second paycheck.*Expected range: \$1,234\.56–\$1,234\.57/);
     expect(items[1]).toHaveTextContent("Expected between Sep 9, 2026 and Sep 12, 2026");
     expect(items[1]).toHaveTextContent("Monthly");
@@ -241,7 +241,7 @@ describe("capture-first Home", () => {
     const activity = screen.getByRole("region", { name: "Recent transactions" });
     expect(within(activity).queryByText("Primary paycheck")).not.toBeInTheDocument();
     const comingUp = screen.getByRole("region", { name: "Upcoming paychecks" });
-    expect(comingUp.textContent).not.toMatch(/received|late|available|balance|safe to spend|total/i);
+    expect(comingUp.textContent).not.toMatch(/received|late|available|balance|safe to spend|(?<!not included in your )totals?/i);
     expect(comingUp.textContent).not.toMatch(/\+\$/);
   });
 
@@ -307,7 +307,7 @@ describe("capture-first Home", () => {
     expect(within(list).getByText("USD 9,999,999,999,999,999.99")).toBeInTheDocument();
     expect(within(list).getByText("Esperado para el 12 sep 2026")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Ver pagos de nómina" })).toHaveAttribute("href", "/paychecks");
-    expect(within(list).getByRole("listitem")).toHaveAccessibleName(/Primary paycheck.*Monto previsto/);
+    expect(within(list).getByRole("listitem")).toHaveAccessibleName(/Primary paycheck.*Monto esperado/);
   });
 
   it("renders separate loading and whole-Home failure states without fabricated expectations", async () => {
@@ -427,7 +427,7 @@ describe("capture-first Home", () => {
     await user.type(within(cashForm).getByLabelText("Amount"), "3.45");
     fireEvent.change(within(cashForm).getByLabelText("Date"), { target: { value: "2026-09-01" } });
     await user.click(within(cashForm).getByRole("button", { name: "Add deposit" }));
-    expect(await screen.findByText(/Cash in saved\. Home activity could not be refreshed/)).toBeInTheDocument();
+    expect(await screen.findByText(/Deposit saved\. Home didn’t update/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Add expense" })).toBeDisabled();
     expect(sessionStorage.length).toBe(0);
   });
@@ -495,7 +495,7 @@ describe("capture-first Home", () => {
     for (const item of items) expect(item.querySelectorAll(".ui-list-row__meta")).toHaveLength(1);
     expect(items[0].querySelector(".ui-list-row__amount")).toHaveTextContent(/^\$9,999,999,999,999,999\.99$/);
     expect(items[1].querySelector(".ui-list-row__amount")).toHaveTextContent(/^\$1,234\.56–\$1,234\.57$/);
-    expect(items[0].querySelector(".ui-list-row__meta")).toHaveTextContent("Every two weeks · Expected window Sep 11, 2026–Sep 13, 2026");
+    expect(items[0].querySelector(".ui-list-row__meta")).toHaveTextContent("Every two weeks · Expected between Sep 11, 2026 and Sep 13, 2026");
     expect(list).not.toHaveTextContent("+");
   });
 

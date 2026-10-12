@@ -113,7 +113,7 @@ describe("Commitments page in Spanish", () => {
     expect(historyHeading("Gastos recurrentes pausados")).toBeInTheDocument();
     expect(screen.getByLabelText("Gastos recurrentes pausados")).toBeInTheDocument();
     expect(historyHeading("Cambios revisados")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { level: 2, name: /^Posibles compromisos descartados \(1\)$/ })).toHaveAttribute("id", "dismissed-heading");
+    expect(screen.getByRole("heading", { level: 2, name: /^Posibles gastos recurrentes descartados \(1\)$/ })).toHaveAttribute("id", "dismissed-heading");
     expect(screen.getByText("El descarte se aplica solo a la evidencia exacta que revisaste. Usa Volver a revisar para revisar uno otra vez.")).toBeInTheDocument();
     expect(screen.queryByText("Your recurring expenses")).not.toBeInTheDocument();
     expect(screen.queryByText("Possible recurring expenses")).not.toBeInTheDocument();

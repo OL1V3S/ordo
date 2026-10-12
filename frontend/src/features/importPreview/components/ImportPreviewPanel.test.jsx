@@ -247,7 +247,7 @@ describe('ImportPreviewPanel confirmation safety', () => {
     const state = importState({ confirming: true })
     render(<ImportPreviewPanel importState={state} />)
 
-    const button = screen.getByRole('button', { name: 'Saving 1 expense and 0 incoming deposits…' })
+    const button = screen.getByRole('button', { name: 'Saving 1 expense and 0 deposits…' })
     expect(button).toBeDisabled()
     expect(button).toHaveAttribute('aria-busy', 'true')
     expect(within(tableRegion()).getByLabelText(/^Select for import for /)).toBeDisabled()
@@ -302,7 +302,7 @@ describe('ImportPreviewPanel confirmation safety', () => {
     )
 
     await user.click(screen.getByRole('button', { name: 'Save 1 expense and 0 deposits' }))
-    expect(await screen.findByRole('alert')).toHaveTextContent('The import succeeded, but Activity could not be refreshed')
+    expect(await screen.findByRole('alert')).toHaveTextContent('The import succeeded, but Transactions could not be refreshed')
 
     rerender(<ImportPreviewPanel importState={importState({
       preview: null,
@@ -310,7 +310,7 @@ describe('ImportPreviewPanel confirmation safety', () => {
       confirmation: result,
     })} />)
     expect(screen.getByRole('heading', { name: 'Statement already imported' })).toBeInTheDocument()
-    expect(screen.getByText(/1 expense and 0 incoming deposits were already saved/)).toBeInTheDocument()
+    expect(screen.getByText(/1 expense and 0 deposits were already saved/)).toBeInTheDocument()
   })
 
   it('shows safe row-level duplicate guidance and blocks a stale review', () => {
@@ -353,8 +353,8 @@ describe('ImportPreviewPanel confirmation safety', () => {
     const table = tableRegion()
 
     expect(within(table).queryByLabelText(/^Expense description for /)).not.toBeInTheDocument()
-    expect(within(table).getByText(/does not classify it as income or a paycheck/)).toBeInTheDocument()
-    await user.click(within(table).getByLabelText(/^Save incoming deposit for /))
+    expect(within(table).getByText(/Not counted as income or as a paycheck/)).toBeInTheDocument()
+    await user.click(within(table).getByLabelText(/^Save deposit for /))
 
     expect(updateRow).toHaveBeenCalledWith('credit-1', {
       editableExpenseDescription: null,
@@ -496,7 +496,7 @@ describe('ImportPreviewPanel confirmation safety', () => {
     )
 
     await user.click(screen.getByRole('button', { name: 'Save 1 expense and 0 deposits' }))
-    expect(await screen.findByRole('alert')).toHaveTextContent('The import succeeded, but Activity could not be refreshed for cash in')
+    expect(await screen.findByRole('alert')).toHaveTextContent('The import succeeded, but Transactions could not be refreshed for deposits')
     expect(onImportConfirmed).toHaveBeenCalledWith(result)
 
     rerender(<ImportPreviewPanel
@@ -504,7 +504,7 @@ describe('ImportPreviewPanel confirmation safety', () => {
       onImportConfirmed={onImportConfirmed}
     />)
     expect(screen.getByRole('heading', { name: 'Import complete' })).toBeInTheDocument()
-    expect(screen.getByText(/1 expense and 1 incoming deposit saved/)).toBeInTheDocument()
+    expect(screen.getByText(/1 expense and 1 deposit saved/)).toBeInTheDocument()
     expect(screen.getByRole('alert')).toHaveTextContent('The import succeeded')
   })
   it('groups the row amount like every other amount', () => {
