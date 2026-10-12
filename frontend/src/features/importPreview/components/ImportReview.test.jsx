@@ -119,6 +119,40 @@ describe('import review summary, filters and bar', () => {
     expect(state.updateRow).not.toHaveBeenCalled()
   })
 
+  it('keeps a saved row visible, focused and marked Saved when it leaves the Needs attention filter', async () => {
+    const user = userEvent.setup()
+    const flagged = { ...e1, errors: ['invalid_transaction_amount'] }
+    const rows = (first) => [first, e2, dup, dep, review]
+    const { rerender } = render(<ImportPreviewPanel importState={importState({ preview: previewWith(rows(flagged)) })} />)
+    const updateRow = vi.fn(async (rowId, payload) => {
+      // The hook clears the flag after a successful update, so the row stops matching the filter.
+      const cleared = { ...e1, ...payload, errors: [] }
+      rerender(<ImportPreviewPanel importState={importState({ preview: previewWith(rows(cleared)), updateRow })} />)
+      return cleared
+    })
+    rerender(<ImportPreviewPanel importState={importState({ preview: previewWith(rows(flagged)), updateRow })} />)
+
+    await user.click(screen.getByRole('radio', { name: 'Needs attention (2)' }))
+    expect(within(tableRegion()).queryByText('CAFE TWO')).not.toBeInTheDocument()
+    await user.type(within(tableRegion()).getByLabelText(/^Expense description for CAFE ONE/), ' latte')
+    const save = within(tableRegion()).getByRole('button', { name: /^Save row/ })
+    await user.click(save)
+
+    expect(updateRow).toHaveBeenCalledTimes(1)
+    const table = tableRegion()
+    expect(within(table).getByText('CAFE ONE')).toBeInTheDocument()
+    expect(await within(table).findByText('Saved')).toBeInTheDocument()
+    expect(within(table).getByRole('button', { name: /^Save row/ })).toHaveFocus()
+    expect(screen.getByRole('radio', { name: 'Needs attention (1)' })).toBeChecked()
+  })
+
+  it('keeps the bulk status live region rendered while empty', () => {
+    render(<ImportPreviewPanel importState={importState()} />)
+    const status = document.querySelector('.import-review-bulk__status')
+    expect(status).toHaveAttribute('role', 'status')
+    expect(status).toBeEmptyDOMElement()
+  })
+
   it('shows an empty message when a filter matches nothing', async () => {
     const user = userEvent.setup()
     render(<ImportPreviewPanel importState={importState()} />)

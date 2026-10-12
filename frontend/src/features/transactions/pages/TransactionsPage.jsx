@@ -370,7 +370,7 @@ export default function TransactionsPage() {
         </div>
         <p className="muted">{ta("cashIn.intro")}</p>
       </div>
-      {showImportPrompt && <section className="card activity-import-prompt" aria-label={ta("page.importPromptAction")}>
+      {showImportPrompt && <section className="card activity-import-prompt">
         <p>{ta("page.importPrompt")}</p>
         <button type="button" onClick={openImport}>{ta("page.importPromptAction")}</button>
       </section>}

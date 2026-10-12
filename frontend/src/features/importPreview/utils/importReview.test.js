@@ -98,6 +98,10 @@ describe('importReview bulk targets', () => {
     expect(bulkSelectableExpenses([{ ...expense, duplicateExpenseIds: undefined }])).toHaveLength(1)
   })
 
+  it('excludes possible inflow duplicates', () => {
+    expect(bulkSelectableExpenses([{ ...expense, isPossibleInflowDuplicate: true }])).toEqual([])
+  })
+
   it('clears every selected expense and deposit', () => {
     expect(bulkClearTargets(all).map((row) => row.rowId)).toEqual(['se', 'sd'])
   })

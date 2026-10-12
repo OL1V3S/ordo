@@ -412,7 +412,7 @@ export default function ImportPreviewPanel({ importState, onImportConfirmed = as
         confirmationCodes={confirmationCodesFor(row.rowId)}
         disabled={externalLocked || confirming || confirmationNeedsRefresh || bulkRunning}
         onDraftChange={(changes) => changeDraft(row, changes)}
-        onSave={() => saveRow(row)}
+        onSave={() => { pinRows([row.rowId]); return saveRow(row); }}
         onSelectionChange={(selected) => { pinRows([row.rowId]); return updateSelection(row, selected); }}
       />
     );

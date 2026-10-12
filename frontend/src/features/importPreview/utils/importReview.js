@@ -65,6 +65,7 @@ export function filterCounts(rows, codesFor = () => []) {
 export function bulkSelectableExpenses(rows) {
   return rows.filter((row) => row.isEligible
     && !row.isPossibleDuplicate
+    && !row.isPossibleInflowDuplicate
     && (row.duplicateExpenseIds ?? []).length === 0
     && row.classification === "expense_candidate"
     && !row.selectedForImport);

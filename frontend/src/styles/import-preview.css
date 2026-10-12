@@ -13,8 +13,6 @@
 .import-results { display: grid; gap: var(--space-4); }
 .import-results__summary { display: flex; align-items: end; justify-content: space-between; gap: var(--space-4); }
 .import-results__summary h3, .import-results__summary p, .import-completion h3, .import-completion p { margin-bottom: var(--space-1); }
-.import-confirmation-actions { display: grid; justify-items: end; gap: var(--space-2); text-align: right; }
-.import-confirmation-actions p { max-width: 460px; }
 .import-preview-table .data-table { min-width: 1100px; }
 .import-preview-table .data-table td:nth-child(2) { min-width: 190px; }
 .import-preview-table .data-table td:nth-child(5) { min-width: 250px; }
@@ -50,12 +48,16 @@
 .import-review-bulk__actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 .import-review-bulk button[aria-disabled="true"] { opacity: .6; cursor: not-allowed; }
 .import-review-bulk__hint, .import-review-bulk__status { margin: 0; }
-.import-review-bulk__status:empty { display: none; }
+/* Keep the live region rendered while empty (display: none would drop it from the accessibility tree). */
+.import-review-bulk__status:empty { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
 .import-confirm-bar { position: sticky; bottom: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); padding: var(--space-3) var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); }
 .import-confirm-bar__summary { display: grid; min-width: 0; gap: var(--space-1); }
 .import-confirm-bar__summary p { max-width: 460px; margin: 0; overflow-wrap: anywhere; }
 .import-confirm-bar > button { flex: 0 0 auto; }
-.import-preview-row :is(input, select, button, summary, a) { scroll-margin-bottom: calc(var(--space-8) + var(--space-6)); }
+/* ImportConfirmBar publishes its measured height as --import-confirm-bar-height on .import-results
+   (0px when it falls back to a non-sticky bar). Without it (no ResizeObserver) use a conservative default. */
+.import-confirm-bar[data-sticky="false"] { position: static; }
+.import-preview-row :is(input, select, button, summary, a) { scroll-margin-bottom: calc(var(--import-confirm-bar-height, calc(var(--space-8) * 3 + var(--space-6))) + var(--space-3)); }
 .import-saved { display: grid; gap: var(--space-3); }
 .import-saved__list { display: grid; gap: var(--space-2); }
 .import-saved__list h4, .import-saved__total { margin: 0; }
@@ -67,11 +69,9 @@
 @media (max-width: 599.98px) {
   .import-confirm-bar { bottom: calc(var(--mobile-nav-clearance) + env(safe-area-inset-bottom, 0px)); flex-direction: column; align-items: stretch; gap: var(--space-2); padding: var(--space-2) var(--space-3); }
   .import-confirm-bar > button { width: 100%; }
-  .import-preview-row :is(input, select, button, summary, a) { scroll-margin-bottom: calc(var(--space-8) * 2 + var(--space-6)); }
 }
 
 @media (max-width: 760px) {
   .import-preview__header, .import-processing, .import-results__summary { align-items: stretch; flex-direction: column; }
-  .import-confirmation-actions { justify-items: stretch; text-align: left; }
   .import-preview-table { display: none; }
 }
