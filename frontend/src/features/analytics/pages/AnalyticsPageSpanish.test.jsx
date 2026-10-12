@@ -179,4 +179,9 @@ describe("Analytics page in Spanish", () => {
     expect(refreshExpenses).toHaveBeenCalledOnce();
     expect(useBudgetLimits).not.toHaveBeenCalled();
   });
+
+  it("localizes the unavailable-amount label passed to the exact-money helpers", () => {
+    expect(i18n.t("format.amountUnavailable", { ns: "analytics" })).toBe("Monto exacto no disponible");
+    expect(i18n.t("format.amountUnavailable", { ns: "analytics", lng: "en" })).toBe("Exact amount unavailable");
+  });
 });

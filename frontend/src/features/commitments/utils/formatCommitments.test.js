@@ -22,4 +22,11 @@ describe("commitment display formatting", () => {
     expect(formatDate(null)).toBe("Date unavailable");
     expect(formatDate("not a date")).toBe("Date unavailable");
   });
+
+  it("uses the caller's localized label for unavailable amounts", () => {
+    expect(formatMoney("abc", "es", "Monto exacto no disponible")).toBe("Monto exacto no disponible");
+    expect(formatDerivedMoney("abc", "es", "Monto exacto no disponible")).toBe("Monto exacto no disponible");
+    expect(formatMoney("1200", "es", "Monto exacto no disponible")).toBe("USD\u00a01,200.00");
+    expect(formatDerivedMoney("20.00", "es", "unused")).toBe("USD\u00a020.00");
+  });
 });

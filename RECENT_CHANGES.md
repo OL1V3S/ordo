@@ -24,6 +24,14 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-12 — Plain-language wording: core terms
+
+[PR #230](https://github.com/OL1V3S/ordo/pull/230) ·
+[Issue #229](https://github.com/OL1V3S/ordo/issues/229)
+
+- First of five wording PRs: English and Mexican Spanish now use one approved name per concept in every namespace. Examples: Transactions/Movimientos and Reports/Reportes for the pages, Deposit/Depósito for saved inflows (including transfers and refunds; not income), Recurring expense/Gasto recurrente, pay schedule/calendario de nómina, "Esperado" for expected money, and Quincenal for semimonthly pay.
+- Fallback labels now read "Exact amount unavailable" / "Date unavailable" and are localized by the caller. Added the approved glossary and style guide to `docs/localization.md`, the new Reports label sentence in the financial-invariants doc, and a wording guard test. Frontend and docs only; no API, schema or financial-semantics change.
+
 ### 2026-10-12 — Statement import review and results polish
 
 [PR #228](https://github.com/OL1V3S/ordo/pull/228) ·
@@ -185,17 +193,3 @@ the permanent, complete archive.
   reachable through "Show older activity".
 - `GET /api/expenses` now guarantees newest-first order (date, then id, descending),
   so the Expenses table lists the latest records first.
-
-### 2026-10-05 — Review follow-ups for the V2 localization work
-
-[PR #185](https://github.com/OL1V3S/ordo/pull/185) ·
-[Issue #184](https://github.com/OL1V3S/ordo/issues/184)
-
-- Fixed the Spanish Commitments "keep current" accessible names, made the Activity
-  timeline's out-of-date notice a persistent live region, and made the import
-  preview row total count-aware ("1 fila" in Spanish; English wording unchanged).
-- Clarified a few Spanish phrases ("Por encima del límite", "tus categorías"), removed
-  a fragile `{{context}}` placeholder name, and added tests for previously untested
-  messages and the READ ONLY timeline transaction.
-- Corrected stale statements in the architecture and product overviews and in the
-  localization, Home read-model, and Activity timeline documentation.

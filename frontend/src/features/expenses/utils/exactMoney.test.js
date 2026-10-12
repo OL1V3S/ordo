@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  AMOUNT_NEEDS_REVIEW,
   formatCents,
   formatExactMoney,
+  formatSignedMoney,
   parseBudgetLimit,
   parseExpenseAmount,
   percentageFromRatio,
@@ -47,4 +49,21 @@ describe("exact Expense money", () => {
     expect(formatExactMoney('0', { allowZero: true })).toBe('$0.00')
     expect(formatExactMoney('abc', undefined, 'es')).toBe('Exact amount unavailable')
   })
+});
+
+describe("localized unavailable-amount label", () => {
+  it("keeps the English constant as the default fallback", () => {
+    expect(AMOUNT_NEEDS_REVIEW).toBe("Exact amount unavailable");
+    expect(formatExactMoney("abc")).toBe("Exact amount unavailable");
+    expect(formatSignedMoney("abc")).toBe("Exact amount unavailable");
+    expect(formatSignedMoney("abc", "es")).toBe("Exact amount unavailable");
+  });
+
+  it("uses the caller's label for unreadable amounts and never for valid ones", () => {
+    expect(formatExactMoney("abc", { unavailableLabel: "Monto exacto no disponible" }, "es")).toBe("Monto exacto no disponible");
+    expect(formatExactMoney("1.005", { allowZero: true, unavailableLabel: "Monto exacto no disponible" }, "es")).toBe("Monto exacto no disponible");
+    expect(formatExactMoney("1234.5", { unavailableLabel: "Monto exacto no disponible" }, "es")).toBe("USD\u00a01,234.50");
+    expect(formatSignedMoney("x", "es", "Monto exacto no disponible")).toBe("Monto exacto no disponible");
+    expect(formatSignedMoney("-1.25", "en", "unused")).toBe("-$1.25");
+  });
 });
