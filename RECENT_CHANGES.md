@@ -24,6 +24,14 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-12 — Plain-language wording: Recurring expenses
+
+[PR #232](https://github.com/OL1V3S/ordo/pull/232) ·
+[Issue #229](https://github.com/OL1V3S/ordo/issues/229)
+
+- Third of five wording PRs: the Recurring expenses page now uses plain wording in English and Mexican Spanish. "Supporting expenses" became "Matching expenses", the change buttons read "Use the new details" and "Keep saved details", "Mark as ended" is confirmed with "Yes, mark as ended", and "proposal" and "candidate" are now "possible recurring expense" or "this change".
+- Date ranges read "up to 2 days early or 1 day late" with correct singular and plural forms, ellipses are "…", and the wording guard now also bans internal words in this area and checks that each button's accessible name starts with its visible text. Frontend and docs only; no API, schema or financial-semantics change.
+
 ### 2026-10-12 — Plain-language wording: Transactions and import
 
 [PR #231](https://github.com/OL1V3S/ordo/pull/231) ·
@@ -180,13 +188,3 @@ the permanent, complete archive.
   Spending and Cash in edit and delete flows; no new write path, payload, or API.
 - An expense that is already gone (404 on edit or delete) now says so, closes the open
   edit, and prompts a refresh; a cash-in 404 now also refreshes the timeline.
-
-### 2026-10-07 — Account-access pages in English and Spanish
-
-[PR #191](https://github.com/OL1V3S/ordo/pull/191) ·
-[Issue #190](https://github.com/OL1V3S/ordo/issues/190)
-
-- Sign-in, registration, email confirmation, and password recovery pages now follow
-  the selected language, and a language selector is available before sign-in.
-- Backend messages are mapped to localized text by stable code or HTTP status; unknown
-  failures show a fixed localized message instead of raw server text.
