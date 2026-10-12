@@ -236,21 +236,32 @@ apply production migrations.
 
 ## Approved and planned extension points
 
-Sunflower statement upload, row parsing, preview, confirmation, and persistence
-remain planned future capabilities. The bounded PDF text extractor is current
-private backend infrastructure but is not exposed by an endpoint. Its approved
-untrusted-document security and privacy boundary is
-defined in [`docs/import-threat-model.md`](docs/import-threat-model.md), and its
-approved V1 normalized financial-processing and review pipeline is defined in
+Statement import is a shipped capability with one supported source,
+`sunflower_pdf` (text-extractable Sunflower Bank PDF statements). The
+authenticated, owner-scoped `/api/import-previews` endpoints upload a statement,
+return the open preview, read a preview, edit a row's selection and eligible
+fields, and confirm the preview. The Activity page's import review consumes
+these endpoints through the `importPreview` frontend feature. The private,
+contained PDF text extractor remains infrastructure behind that flow and is not
+exposed by any endpoint of its own. A parsed preview is stored as normalized
+rows for 24 hours, without the original PDF, and possible duplicates of
+existing Expenses or AccountInflows are flagged for review. Confirmation is
+atomic and all-or-nothing: only explicitly selected, revalidated rows are
+persisted through the authoritative backend write boundary, with selected
+debits saved as Expenses and selected credits or deposits saved as generic
+AccountInflows, never as income or paychecks. The untrusted-document security
+and privacy boundary is defined in
+[`docs/import-threat-model.md`](docs/import-threat-model.md), and the
+normalized financial-processing and review pipeline is defined in
 [`docs/import-pipeline.md`](docs/import-pipeline.md).
 
-Future implementation may extend the import boundary to parse supported
-extracted statement text, normalize it into reviewed bank-neutral rows, and
-persists only explicitly confirmed valid expense candidates through the
-authoritative backend financial write boundary. Sunflower row parsing, API/UI
-implementation, import storage/schema design, and any required migrations remain
-future scoped work. Imported expense persistence remains blocked until the
-applicable approved date-only semantics are implemented and verified.
+Additional institutions, statement reconciliation, refund and reversal
+relationships beyond direction-based treatment, merchant extraction, a broader
+income model, scanned-PDF support, and source-account semantics beyond the
+single tracked checking account remain future scoped work. See the deferred
+import decisions in
+[`docs/financial-domain-invariants.md`](docs/financial-domain-invariants.md) and
+Track F in [`ROADMAP.md`](ROADMAP.md).
 
 Likewise, approved target representations such as date-only financial semantics
 remain future roadmap work until their implementation issues are separately
