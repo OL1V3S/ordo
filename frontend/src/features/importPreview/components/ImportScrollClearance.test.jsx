@@ -69,7 +69,7 @@ describe('import results scroll clearance', () => {
     const table = screen.getByRole('region', { name: 'Statement preview' })
     const controls = [
       ...screen.getAllByRole('radio'),
-      screen.getByRole('button', { name: /^Select all eligible expenses/ }),
+      screen.getByRole('button', { name: /^Select all expenses that can be imported/ }),
       screen.getByRole('button', { name: 'Clear selection' }),
       table,
       ...within(table).getAllByRole('checkbox'),

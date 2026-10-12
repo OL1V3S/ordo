@@ -28,10 +28,10 @@ describe("InflowList (read-only table)", () => {
     const user = userEvent.setup();
     const rowActions = { getState: () => ({ canEdit: true, canDelete: true }), onEdit: vi.fn(), onDelete: vi.fn() };
     render(<InflowList inflows={[first, second]} rowActions={rowActions} />);
-    const seven = screen.getByRole("button", { name: /^Actions for deposit Client Deposit, .* \(no\. 7\)$/ });
-    expect(screen.getByRole("button", { name: /^Actions for deposit Client Deposit, .* \(no\. 8\)$/ })).toBeVisible();
+    const seven = screen.getByRole("button", { name: /^Actions for deposit Client Deposit, .* \(number 7\)$/ });
+    expect(screen.getByRole("button", { name: /^Actions for deposit Client Deposit, .* \(number 8\)$/ })).toBeVisible();
     await user.click(seven);
-    await user.click(screen.getByRole("button", { name: /^Delete deposit Client Deposit, .* \(no\. 7\)$/ }));
+    await user.click(screen.getByRole("button", { name: /^Delete deposit Client Deposit, .* \(number 7\)$/ }));
     expect(rowActions.onDelete).toHaveBeenCalledWith({ kind: "account_inflow", recordId: 7 }, seven);
     expect(seven).toHaveFocus();
   });

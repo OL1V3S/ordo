@@ -77,7 +77,7 @@ function deferred() {
 }
 
 const tableRegion = () => screen.getByRole('region', { name: 'Statement preview' })
-const selectAll = () => screen.getByRole('button', { name: /^Select all eligible expenses/ })
+const selectAll = () => screen.getByRole('button', { name: /^Select all expenses that can be imported/ })
 const clearSelection = () => screen.getByRole('button', { name: 'Clear selection' })
 
 describe('import review summary, filters and bar', () => {
@@ -224,7 +224,7 @@ describe('import review bulk selection', () => {
     render(<ImportPreviewPanel importState={importState({ preview: previewWith([{ ...e1, selectedForImport: true }, e2]) })} />)
     await user.click(screen.getByRole('radio', { name: 'Selected (1)' }))
     await user.click(clearSelection())
-    expect(await screen.findByText('Cleared the selection of 1 row. Rows no longer selected are hidden by this filter.')).toBeInTheDocument()
+    expect(await screen.findByText('Cleared the selection of 1 row. This filter hides rows that are no longer selected.')).toBeInTheDocument()
     expect(clearSelection()).toHaveFocus()
   })
 
@@ -428,7 +428,7 @@ describe('import review in Spanish', () => {
     expect(screen.getByText(/^Depósitos por guardar: 0 · USD\s0\.00$/)).toBeInTheDocument()
     expect(screen.getByRole('group', { name: 'Importar seleccionados' })).toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: /^Seleccionar todos los gastos elegibles \(1\)/ }))
+    await user.click(screen.getByRole('button', { name: /^Seleccionar todos los gastos que se pueden importar \(1\)/ }))
     expect(await screen.findByText('Se seleccionó 1 gasto.')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Borrar selección' }))
     expect(await screen.findByText('Se borró la selección de 1 fila.')).toBeInTheDocument()

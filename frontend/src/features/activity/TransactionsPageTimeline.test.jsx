@@ -267,7 +267,7 @@ describe("Activity timeline on the Activity page", () => {
 
     await waitFor(() => expect(timelineRefresh).toHaveBeenCalled());
     expect(useActivityTimeline).toHaveBeenLastCalledWith(expect.objectContaining({ enabled: true }));
-    expect(screen.getByText(/The transactions may be out of date/)).toBeInTheDocument();
+    expect(screen.getByText(/Your transactions may be out of date/)).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Check your transactions" })).toBeVisible();
     expect(screen.getByRole("heading", { name: "Spending" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Add expense" })).toBeInTheDocument();
@@ -285,7 +285,7 @@ describe("Activity timeline on the Activity page", () => {
 
     fireEvent.submit(form);
 
-    await waitFor(() => expect(screen.getByText(/The transactions may be out of date/)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/Your transactions may be out of date/)).toBeInTheDocument());
     expect(timelineRefresh).toHaveBeenCalled();
   });
 
@@ -445,7 +445,7 @@ describe("Timeline row actions on the Activity page", () => {
     await chooseRowAction(user, /^Delete expense Lunch/);
 
     expect(await screen.findByRole("alert")).toHaveTextContent(/This expense is no longer available\. Refresh expenses/);
-    expect(screen.getByText(/The transactions may be out of date/)).toBeInTheDocument();
+    expect(screen.getByText(/Your transactions may be out of date/)).toBeInTheDocument();
     await waitFor(() => expect(timelineRefresh).toHaveBeenCalled());
     await waitFor(() => expect(document.querySelector(".activity-feedback")).toHaveFocus());
   });
@@ -474,7 +474,7 @@ describe("Timeline row actions on the Activity page", () => {
     const task = document.getElementById("cash-in-task");
     await user.click(within(task).getByRole("button", { name: "Yes, delete deposit" }));
 
-    await waitFor(() => expect(screen.getByText(/The transactions may be out of date/)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/Your transactions may be out of date/)).toBeInTheDocument());
     expect(screen.getByRole("region", { name: "Deposits table" })).toBeVisible();
     expect(timelineRefresh).toHaveBeenCalled();
   });

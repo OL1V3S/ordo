@@ -88,8 +88,8 @@ describe('import preview in Spanish', () => {
 
     expect(screen.getByText('Importación de estado de cuenta')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Importar estado de cuenta' })).toBeInTheDocument()
-    expect(screen.getByText(/Elige el banco y luego carga un PDF con texto extraíble de hasta 10 MiB/)).toBeInTheDocument()
-    expect(screen.getByText(/Revisa y guarda cualquier edición antes de confirmar/)).toBeInTheDocument()
+    expect(screen.getByText(/Elige tu banco y sube el PDF que descargaste de él \(hasta 10 MB\)/)).toBeInTheDocument()
+    expect(screen.getByText(/Primero guarda los cambios de cada fila/)).toBeInTheDocument()
     expect(screen.getByLabelText('Banco')).toHaveValue('sunflower_pdf')
     expect(screen.getByRole('option', { name: 'Elige un banco' })).toBeInTheDocument()
     expect(screen.getByLabelText('PDF del estado de cuenta de Sunflower')).toBeInTheDocument()
@@ -219,7 +219,7 @@ describe('import preview in Spanish', () => {
   it('renders the completion summary in Spanish, including already-imported statements', () => {
     const { rerender } = render(<ImportPreviewPanel importState={importState({ preview: null, selectedCount: 0, confirmation: confirmed })} />)
     expect(screen.getByRole('heading', { name: 'Importación completada' })).toBeInTheDocument()
-    expect(screen.getByText(/^Se guardaron 1 gasto y 1 depósito el /)).toBeInTheDocument()
+    expect(screen.getByText(/^Guardado el .+: 1 gasto y 1 depósito\.$/)).toBeInTheDocument()
 
     rerender(<ImportPreviewPanel importState={importState({
       preview: null,
@@ -227,7 +227,7 @@ describe('import preview in Spanish', () => {
       confirmation: { ...confirmed, status: 'already_confirmed', importedExpenseCount: 2, importedInflowCount: 0 },
     })} />)
     expect(screen.getByRole('heading', { name: 'Estado de cuenta ya importado' })).toBeInTheDocument()
-    expect(screen.getByText(/^Ya se habían guardado 2 gastos y 0 depósitos el /)).toBeInTheDocument()
+    expect(screen.getByText(/^Ya se guardó el .+: 2 gastos y 0 depósitos\.$/)).toBeInTheDocument()
 
     rerender(<ImportPreviewPanel importState={importState({
       preview: null,
@@ -238,9 +238,9 @@ describe('import preview in Spanish', () => {
   })
 
   it.each([
-    [['expenses'], 'los gastos en Movimientos. Usa'],
-    [['cashIn'], 'los depósitos en Movimientos. Usa'],
-    [['expenses', 'cashIn'], 'los gastos ni los depósitos en Movimientos. Usa'],
+    [['expenses'], 'tus gastos en Movimientos. Usa el botón'],
+    [['cashIn'], 'tus depósitos en Movimientos. Usa el botón'],
+    [['expenses', 'cashIn'], 'tus gastos ni tus depósitos en Movimientos. Usa el botón'],
   ])('maps failed list identifiers %j to a Spanish refresh message', async (failedLists, expected) => {
     const user = userEvent.setup()
     const onImportConfirmed = vi.fn().mockResolvedValue({ failedLists })
@@ -250,7 +250,7 @@ describe('import preview in Spanish', () => {
     await user.click(screen.getByRole('button', { name: 'Guardar 1 gasto y 0 depósitos' }))
 
     const alert = await screen.findByRole('alert')
-    expect(alert).toHaveTextContent('La importación se realizó correctamente, pero no se pudieron actualizar')
+    expect(alert).toHaveTextContent('La importación funcionó, pero no pudimos actualizar')
     expect(alert).toHaveTextContent(expected)
     expect(onImportConfirmed).toHaveBeenCalledWith(confirmed)
   })
@@ -263,7 +263,7 @@ describe('import preview in Spanish', () => {
 
     await user.click(screen.getByRole('button', { name: 'Guardar 1 gasto y 0 depósitos' }))
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Vuelve a cargar esta página para ver los movimientos importados.')
+    expect(await screen.findByRole('alert')).toHaveTextContent('Vuelve a cargar esta página para ver tus movimientos importados.')
   })
 
   it('uses count-aware row totals and keeps the English wording unchanged', async () => {

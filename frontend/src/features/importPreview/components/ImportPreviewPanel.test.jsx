@@ -146,9 +146,9 @@ describe('ImportPreviewPanel confirmation safety', () => {
     render(<ImportPreviewPanel importState={importState({ updateRow })} />)
     const table = tableRegion()
 
-    await user.click(within(table).getByLabelText(/^Select for import for /))
+    await user.click(within(table).getByLabelText(/^Select for import: /))
 
-    expect(within(table).getByLabelText(/^Select for import for /)).toBeDisabled()
+    expect(within(table).getByLabelText(/^Select for import: /)).toBeDisabled()
     expect(within(table).getByRole('status')).toHaveTextContent('Saving…')
     expect(screen.getByRole('button', { name: 'Save 1 expense and 0 deposits' })).toBeDisabled()
 
@@ -231,7 +231,7 @@ describe('ImportPreviewPanel confirmation safety', () => {
     expect(within(table).getByText('$8.50')).toBeVisible()
     expect(within(table).getByText('Money out')).toBeVisible()
     expect(within(table).getByText('Possible duplicate: this looks like one you already saved. Check before selecting it.')).toBeVisible()
-    expect(within(table).getByLabelText(/^Select for import for /)).toBeVisible()
+    expect(within(table).getByLabelText(/^Select for import: /)).toBeVisible()
     expect(sourceDetails).not.toHaveAttribute('open')
 
     const sourceSummary = within(table).getByText('Statement details', { selector: 'summary' })
@@ -250,7 +250,7 @@ describe('ImportPreviewPanel confirmation safety', () => {
     const button = screen.getByRole('button', { name: 'Saving 1 expense and 0 deposits…' })
     expect(button).toBeDisabled()
     expect(button).toHaveAttribute('aria-busy', 'true')
-    expect(within(tableRegion()).getByLabelText(/^Select for import for /)).toBeDisabled()
+    expect(within(tableRegion()).getByLabelText(/^Select for import: /)).toBeDisabled()
   })
 
   it('refreshes ordinary Expenses only after a successful confirmation result', async () => {
@@ -302,7 +302,7 @@ describe('ImportPreviewPanel confirmation safety', () => {
     )
 
     await user.click(screen.getByRole('button', { name: 'Save 1 expense and 0 deposits' }))
-    expect(await screen.findByRole('alert')).toHaveTextContent('The import succeeded, but Transactions could not be refreshed')
+    expect(await screen.findByRole('alert')).toHaveTextContent('The import worked, but we couldn’t refresh Transactions')
 
     rerender(<ImportPreviewPanel importState={importState({
       preview: null,
@@ -310,7 +310,7 @@ describe('ImportPreviewPanel confirmation safety', () => {
       confirmation: result,
     })} />)
     expect(screen.getByRole('heading', { name: 'Statement already imported' })).toBeInTheDocument()
-    expect(screen.getByText(/1 expense and 0 deposits were already saved/)).toBeInTheDocument()
+    expect(screen.getByText(/Already saved on .+: 1 expense and 0 deposits\./)).toBeInTheDocument()
   })
 
   it('shows safe row-level duplicate guidance and blocks a stale review', () => {
@@ -326,7 +326,7 @@ describe('ImportPreviewPanel confirmation safety', () => {
     expect(screen.getByRole('heading', { name: 'New possible duplicates to review' })).toBeInTheDocument()
     expect(within(tableRegion()).getByText(/New possible duplicate/)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Save 1 expense and 0 deposits' })).toBeDisabled()
-    expect(screen.getByText(/Refresh this page to load the authoritative duplicate review/)).toBeInTheDocument()
+    expect(screen.getByText(/Refresh the page to get the latest duplicate check before importing/)).toBeInTheDocument()
   })
 
   it('offers a separate default-off incoming-deposit evidence control without expense fields', async () => {
@@ -378,7 +378,7 @@ describe('ImportPreviewPanel confirmation safety', () => {
     expect(screen.getByRole('button', { name: 'Choose another statement' })).toBeDisabled()
     expect(within(tableRegion()).getByLabelText(/^Expense description for /)).toBeDisabled()
     expect(within(tableRegion()).getByLabelText(/^Category for /)).toBeDisabled()
-    expect(within(tableRegion()).getByLabelText(/^Select for import for /)).toBeDisabled()
+    expect(within(tableRegion()).getByLabelText(/^Select for import: /)).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Save 1 expense and 0 deposits' })).toBeDisabled()
     expect(screen.getByText('Finish the deposit you’re working on before changing the statement.')).toBeInTheDocument()
   })
@@ -413,7 +413,7 @@ describe('ImportPreviewPanel confirmation safety', () => {
     locked = true
     fireEvent.change(description, { target: { value: 'Blocked edit' } })
     fireEvent.click(within(tableRegion()).getByRole('button', { name: /^Save row for / }))
-    fireEvent.click(within(tableRegion()).getByLabelText(/^Select for import for /))
+    fireEvent.click(within(tableRegion()).getByLabelText(/^Select for import: /))
     expect(description).toHaveValue('Dirty before lock')
     expect(state.updateRow).not.toHaveBeenCalled()
 
@@ -496,7 +496,7 @@ describe('ImportPreviewPanel confirmation safety', () => {
     )
 
     await user.click(screen.getByRole('button', { name: 'Save 1 expense and 0 deposits' }))
-    expect(await screen.findByRole('alert')).toHaveTextContent('The import succeeded, but Transactions could not be refreshed for deposits')
+    expect(await screen.findByRole('alert')).toHaveTextContent('The import worked, but we couldn’t refresh your deposits in Transactions')
     expect(onImportConfirmed).toHaveBeenCalledWith(result)
 
     rerender(<ImportPreviewPanel
@@ -504,8 +504,8 @@ describe('ImportPreviewPanel confirmation safety', () => {
       onImportConfirmed={onImportConfirmed}
     />)
     expect(screen.getByRole('heading', { name: 'Import complete' })).toBeInTheDocument()
-    expect(screen.getByText(/1 expense and 1 deposit saved/)).toBeInTheDocument()
-    expect(screen.getByRole('alert')).toHaveTextContent('The import succeeded')
+    expect(screen.getByText(/Saved on .+: 1 expense and 1 deposit\./)).toBeInTheDocument()
+    expect(screen.getByRole('alert')).toHaveTextContent('The import worked')
   })
   it('groups the row amount like every other amount', () => {
     render(<ImportPreviewPanel importState={importState({ preview: { ...preview, rows: [{ ...row, amount: 1234.5 }] } })} />)

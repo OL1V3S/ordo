@@ -24,6 +24,14 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-12 — Plain-language wording: Transactions and import
+
+[PR #231](https://github.com/OL1V3S/ordo/pull/231) ·
+[Issue #229](https://github.com/OL1V3S/ordo/issues/229)
+
+- Second of five wording PRs: the Transactions page and the statement import now use plain, calm wording in English and Mexican Spanish. Errors reassure first and give one next step, empty states say how to add, "(no. N)" and "MiB" are spelled out, and the import row problems read as full phrases.
+- The import copy names what you do ("Import selected", "Select all expenses that can be imported", "Can't be imported") and keeps uncertain-save wording honest. The wording guard now also bans internal words in these two areas. Frontend only; no API, schema or financial-semantics change.
+
 ### 2026-10-12 — Plain-language wording: core terms
 
 [PR #230](https://github.com/OL1V3S/ordo/pull/230) ·
@@ -182,14 +190,3 @@ the permanent, complete archive.
   the selected language, and a language selector is available before sign-in.
 - Backend messages are mapped to localized text by stable code or HTTP status; unknown
   failures show a fixed localized message instead of raw server text.
-
-### 2026-10-06 — Activity timeline search and filters; newest-first Expenses
-
-[PR #189](https://github.com/OL1V3S/ordo/pull/189) ·
-[Issue #188](https://github.com/OL1V3S/ordo/issues/188)
-
-- The Activity timeline can be searched (description and expense category) and
-  filtered by type and date range on the server, so every page of history stays
-  reachable through "Show older activity".
-- `GET /api/expenses` now guarantees newest-first order (date, then id, descending),
-  so the Expenses table lists the latest records first.

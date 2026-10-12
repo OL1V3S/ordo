@@ -290,7 +290,7 @@ describe('existing expense workflows', () => {
     await user.upload(screen.getByLabelText('Sunflower statement PDF'), file)
 
     expect(upload).toHaveBeenCalledWith(file)
-    expect(screen.getByText(/Expenses and explicitly selected deposits are created only after confirmation/)).toBeInTheDocument()
+    expect(screen.getByText(/Only the expenses and deposits you select are added, and only after you confirm/)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /confirm|import expenses/i })).not.toBeInTheDocument()
   })
 
@@ -318,8 +318,8 @@ describe('existing expense workflows', () => {
     })
     render(<TransactionsPage />)
 
-    expect(screen.getByRole('status')).toHaveTextContent('Processing the statement safely')
-    expect(screen.getByRole('alert')).toHaveTextContent('Statement processing timed out')
+    expect(screen.getByRole('status')).toHaveTextContent('Reading your statement')
+    expect(screen.getByRole('alert')).toHaveTextContent('Reading the statement took too long')
     await user.click(screen.getByRole('button', { name: 'Cancel' }))
     expect(cancel).toHaveBeenCalled()
   })
@@ -459,14 +459,14 @@ describe('existing expense workflows', () => {
     expect(refreshCash).toHaveBeenCalledOnce()
     expect(confirm).toHaveBeenCalledOnce()
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      `The import succeeded, but Transactions could not be refreshed for ${failedList}`,
+      `The import worked, but we couldn’t refresh your ${failedList} in Transactions`,
     )
 
     useImportPreview.mockReturnValue({ ...baseImportHook, confirmation: result })
     rerender(<TransactionsPage />)
     expect(screen.getByRole('heading', { name: 'Import complete' })).toBeInTheDocument()
-    expect(screen.getByText(/1 expense and 1 deposit saved/)).toBeInTheDocument()
-    expect(screen.getByRole('alert')).toHaveTextContent('The import succeeded')
+    expect(screen.getByText(/Saved on .+: 1 expense and 1 deposit\./)).toBeInTheDocument()
+    expect(screen.getByRole('alert')).toHaveTextContent('The import worked')
   })
 
   it('surfaces the established warning when post-confirmation Expense refresh fails', async () => {
@@ -493,7 +493,7 @@ describe('existing expense workflows', () => {
 
     expect(refresh).toHaveBeenCalledOnce()
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'The import succeeded, but Transactions could not be refreshed'
+      'The import worked, but we couldn’t refresh'
     )
   })
 
@@ -530,7 +530,7 @@ describe('existing expense workflows', () => {
     expect(within(table).getByText('Possible duplicate: this looks like one you already saved. Check before selecting it.')).toBeInTheDocument()
     expect(within(table).getByText('To review')).toBeInTheDocument()
     expect(within(table).getByLabelText('Not selectable')).toBeDisabled()
-    await user.click(within(table).getByLabelText(/^Select for import for /))
+    await user.click(within(table).getByLabelText(/^Select for import: /))
     expect(updateRow).toHaveBeenCalledWith('row-1', expect.objectContaining({ selectedForImport: true }))
 
     const description = within(table).getByLabelText(/^Expense description for /)
@@ -644,10 +644,10 @@ describe('Activity task hierarchy and safeguards', () => {
     const user = userEvent.setup()
     useExpenses.mockReturnValue({ ...baseExpensesHook, expenses: [expense, { ...expense, id: 43 }] })
     render(<TransactionsPage />)
-    await openRowActions(user, /\(no\. 42\)$/)
-    expect(screen.getByRole('button', { name: /^Edit expense Synthetic Coffee, .* \(no\. 42\)$/i })).toHaveTextContent('Edit')
-    expect(screen.getByRole('button', { name: /^Delete expense Synthetic Coffee, .* \(no\. 42\)$/i })).toHaveTextContent('Delete')
-    expect(screen.getByRole('button', { name: /^Actions for expense Synthetic Coffee, .* \(no\. 43\)$/i })).toBeVisible()
+    await openRowActions(user, /\(number 42\)$/)
+    expect(screen.getByRole('button', { name: /^Edit expense Synthetic Coffee, .* \(number 42\)$/i })).toHaveTextContent('Edit')
+    expect(screen.getByRole('button', { name: /^Delete expense Synthetic Coffee, .* \(number 42\)$/i })).toHaveTextContent('Delete')
+    expect(screen.getByRole('button', { name: /^Actions for expense Synthetic Coffee, .* \(number 43\)$/i })).toBeVisible()
   })
   it('locks a pending save and keeps the task visible until the write completes', async () => {
     const user = userEvent.setup()
@@ -697,7 +697,7 @@ describe('Activity task hierarchy and safeguards', () => {
     const task = await fillNewExpense(user)
     await user.click(within(task).getByRole('button', { name: 'Save expense' }))
     expect(task).not.toBeVisible()
-    expect(screen.getByRole('status')).toHaveTextContent('Expense saved. Expenses could not be refreshed.')
+    expect(screen.getByRole('status')).toHaveTextContent('Expense saved. We couldn’t refresh the list')
     expect(addExpense).toHaveBeenCalledOnce()
   })
   it('requires an explicit confirmation before deleting an expense', async () => {
