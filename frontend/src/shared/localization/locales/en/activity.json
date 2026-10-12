@@ -6,7 +6,10 @@
     "importStatement": "Import statement",
     "closeImport": "Close import",
     "cashTaskLock": "Finish the cash-in task or its refresh check before starting an expense or import task.",
-    "taskArea": "Current task"
+    "taskArea": "Current task",
+    "importHint": "Review and save many transactions from a bank statement PDF.",
+    "importPrompt": "Have a bank statement? Import a PDF to review and save many transactions at once.",
+    "importPromptAction": "Import a PDF"
   },
   "timeline": {
     "heading": "Activity timeline",

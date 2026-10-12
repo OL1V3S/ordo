@@ -6,7 +6,10 @@
     "importStatement": "Importar estado de cuenta",
     "closeImport": "Cerrar importación",
     "cashTaskLock": "Termina la tarea de entrada de dinero o su revisión de actualización antes de iniciar una tarea de gasto o de importación.",
-    "taskArea": "Tarea actual"
+    "taskArea": "Tarea actual",
+    "importHint": "Revisa y guarda muchas transacciones desde un PDF de estado de cuenta bancario.",
+    "importPrompt": "¿Tienes un estado de cuenta bancario? Importa un PDF para revisar y guardar muchas transacciones a la vez.",
+    "importPromptAction": "Importar un PDF"
   },
   "timeline": {
     "heading": "Cronología de actividad",

@@ -97,7 +97,8 @@
       "pending": "Espera a que termine la actualización de todas las filas antes de confirmar.",
       "dirty": "Guarda todas las filas con cambios sin guardar antes de confirmar.",
       "noneSelected": "Selecciona al menos una fila elegible para importar.",
-      "ready": "Revisa los registros seleccionados y luego guárdalos juntos."
+      "ready": "Revisa los registros seleccionados y luego guárdalos juntos.",
+      "bulk": "Espera a que termine la actualización de la selección antes de confirmar."
     }
   },
   "columns": {
@@ -195,5 +196,55 @@
       "saveRow": "Guardar fila",
       "saveRowAria": "Guardar fila: {{row}}"
     }
+  },
+  "summary": {
+    "heading": "Resumen del estado de cuenta",
+    "expensesSelected": "Gastos seleccionados",
+    "depositsSelected": "Depósitos entrantes seleccionados",
+    "possibleDuplicates": "Posibles duplicados",
+    "needsReview": "Requieren revisión o no son válidas",
+    "cannotBeSelected": "No se pueden seleccionar; incluye filas que requieren revisión"
+  },
+  "filters": {
+    "legend": "Mostrar filas",
+    "all": "Todas",
+    "attention": "Requieren atención",
+    "duplicates": "Posibles duplicados",
+    "deposits": "Depósitos entrantes",
+    "selected": "Seleccionadas",
+    "option": "{{label}} ({{count}})",
+    "showing_one": "Mostrando {{shown}} de {{count}} fila",
+    "showing_other": "Mostrando {{shown}} de {{count}} filas",
+    "empty": "Ninguna fila coincide con este filtro. Filtrar nunca cambia lo que está seleccionado.",
+    "clearedHidden": "Este filtro oculta las filas que ya no están seleccionadas."
+  },
+  "bulk": {
+    "heading": "Selección en bloque",
+    "selectAll": "Seleccionar todos los gastos elegibles ({{count}})",
+    "hint": "Omite los posibles duplicados y los depósitos entrantes. Selecciónalos tú.",
+    "clear": "Borrar selección",
+    "progress": "Actualizando fila {{done}} de {{total}}…",
+    "selectedDone_one": "Se seleccionó {{count}} gasto.",
+    "selectedDone_other": "Se seleccionaron {{count}} gastos.",
+    "clearedDone_one": "Se borró la selección de {{count}} fila.",
+    "clearedDone_other": "Se borró la selección de {{count}} filas.",
+    "stopped_one": "Se detuvo después de {{done}} de {{count}} fila. Las filas ya actualizadas se mantienen como se muestran. Inténtalo de nuevo.",
+    "stopped_other": "Se detuvo después de {{done}} de {{count}} filas. Las filas ya actualizadas se mantienen como se muestran. Inténtalo de nuevo."
+  },
+  "bar": {
+    "label": "Confirmar importación",
+    "expensesToSave": "Gastos por guardar: {{count}} · {{total}}",
+    "depositsToSave": "Depósitos entrantes por guardar: {{count}} · {{total}}",
+    "totalUnavailable": "Total no disponible"
+  },
+  "saved": {
+    "heading": "Filas guardadas de esta revisión",
+    "expense": "Gasto",
+    "deposit": "Depósito entrante",
+    "expenseTotal": "Gastos guardados: {{count}} · {{total}}",
+    "depositTotal": "Depósitos entrantes guardados: {{count}} · {{total}}",
+    "unavailable": "La lista de filas guardadas no está disponible. Abre Actividad para ver tus registros.",
+    "viewActivity": "Ver en Actividad",
+    "done": "Listo"
   }
 }

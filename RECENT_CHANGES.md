@@ -24,6 +24,14 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-12 — Statement import review and results polish
+
+[PR #228](https://github.com/OL1V3S/ordo/pull/228) ·
+[Issue #226](https://github.com/OL1V3S/ordo/issues/226)
+
+- The statement import review now opens with a whole-statement summary, row filters (all, needs attention, possible duplicates, incoming deposits, selected), whole-batch "Select all eligible expenses" and "Clear selection" actions, and a sticky confirm bar showing exact, separate expense and incoming-deposit totals.
+- After saving, the import shows the rows it saved with their exact totals and a "View in Activity" action; the Import statement entry point is more prominent and an empty Activity page offers a PDF import prompt. English and Spanish; frontend only, with no API, schema or financial-semantics change.
+
 ### 2026-10-12 — Language-aware money, percent and date formatting
 
 [PR #224](https://github.com/OL1V3S/ordo/pull/224) ·
@@ -191,20 +199,3 @@ the permanent, complete archive.
   messages and the READ ONLY timeline transaction.
 - Corrected stale statements in the architecture and product overviews and in the
   localization, Home read-model, and Activity timeline documentation.
-
-### 2026-10-05 — Spanish Commitments page
-
-[PR #183](https://github.com/OL1V3S/ordo/pull/183) ·
-[Issue #182](https://github.com/OL1V3S/ordo/issues/182)
-
-- Localized the Commitments page (the page, commitment form, change review with its
-  pending and reviewed decisions, supporting-expense evidence, and the error and
-  notice messages the hook maps from stable backend codes) in English and Spanish
-  through a new `commitments` catalog namespace. Count-dependent text is now complete
-  count-aware messages per cadence and change dimension instead of concatenated
-  English fragments; English wording is unchanged.
-- Spanish keeps an expected commitment distinct from expenses actually recorded and
-  names what each accept, keep, dismiss, and mark-ended decision does. Commitment
-  detection, change-review and decision logic, payloads, element ids, and focus
-  behavior are unchanged; `$` amounts and the browser-language date display keep
-  their existing form in both languages.
