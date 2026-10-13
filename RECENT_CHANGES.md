@@ -24,6 +24,14 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-12 — Plain-language wording: Paychecks
+
+[PR #233](https://github.com/OL1V3S/ordo/pull/233) ·
+[Issue #229](https://github.com/OL1V3S/ordo/issues/229)
+
+- Fourth of five wording PRs: the Paychecks page now uses plain wording in English and Mexican Spanish. Saved schedules are "pay schedules" (Spanish "calendarios de nómina"), the date fields read "Starting pay date" and "First pay day", and the leftover words "candidate", "evidence", "anchor" and "(s)" are gone. The amount error now says "Enter an amount above zero with up to two decimals" on Paychecks and Transactions.
+- Choosing the Quincenal (twice a month) option now shows a short hint: two pay days a month, at least 7 days apart. The wording guard now also covers this page. Frontend and docs only; no API, schema or financial-semantics change.
+
 ### 2026-10-12 — Plain-language wording: Recurring expenses
 
 [PR #232](https://github.com/OL1V3S/ordo/pull/232) ·
@@ -178,13 +186,3 @@ the permanent, complete archive.
 
 - Activity timeline filters moved behind a Filters disclosure with period chips and removable filter chips; the section links were removed.
 - Spending and Cash in lists are now collapsed Records disclosures that open automatically when a task, error, or recovery needs them; frontend only, no API change.
-
-### 2026-10-07 — Edit and delete from the Activity timeline
-
-[PR #193](https://github.com/OL1V3S/ordo/pull/193) ·
-[Issue #192](https://github.com/OL1V3S/ordo/issues/192)
-
-- Each Activity timeline row now has Edit and Delete buttons that open the existing
-  Spending and Cash in edit and delete flows; no new write path, payload, or API.
-- An expense that is already gone (404 on edit or delete) now says so, closes the open
-  edit, and prompts a refresh; a cash-in 404 now also refreshes the timeline.
