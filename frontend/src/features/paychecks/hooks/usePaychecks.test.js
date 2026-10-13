@@ -74,7 +74,7 @@ describe("paycheck state", () => {
   it("exposes a persistent safe initial failure and supports a read-only retry", async () => {
     paychecksApi.getCandidates.mockRejectedValueOnce(serverError(500, "private"));
     const { result } = await ready();
-    expect(result.current.loadError).toContain("could not be loaded");
+    expect(result.current.loadError).toContain("couldn’t load your paychecks");
     expect(result.current.loadError).not.toContain("PRIVATE");
     let refreshed;
     await act(async () => { refreshed = await result.current.refresh(); });
@@ -178,7 +178,7 @@ describe("paycheck state", () => {
     expect(outcome).toEqual({ ok: true, data: { id: "saved" }, refreshOk: false });
     expect(result.current.notice).toBe("Pay schedule created.");
     expect(result.current.actionError).toBeNull();
-    expect(result.current.loadError).toContain("could not be loaded");
+    expect(result.current.loadError).toContain("couldn’t load your paychecks");
     expect(result.current.uncertainCreate).toBe(false);
     act(() => result.current.clearMessages());
     expect(result.current.loadError).toBeTruthy();
@@ -222,7 +222,7 @@ describe("paycheck state", () => {
     await act(async () => { outcome = await result.current.createPaycheck(payload); });
     expect(outcome).toEqual({ ok: false, code: "amount_invalid" });
     expect(result.current.uncertainCreate).toBe(false);
-    expect(result.current.actionError).toContain("positive fixed amount");
+    expect(result.current.actionError).toContain("fixed amount above zero");
     expect(paychecksApi.getPaychecks).toHaveBeenCalledTimes(1);
     expect(getPaycheckErrorMessage(serverError(400, "__proto__"))).toBe("We couldn’t complete that request. Try again.");
   });
@@ -234,16 +234,16 @@ describe("paycheck state", () => {
     await act(async () => { outcome = await result.current.createPaycheck(payload); });
     expect(outcome).toEqual({ ok: false, code: "creation_uncertain", uncertain: true });
     expect(result.current.uncertainCreate).toBe(true);
-    expect(result.current.actionError).toContain("check the saved pay schedules");
+    expect(result.current.actionError).toContain("check your pay schedules");
     act(() => result.current.clearMessages());
-    expect(result.current.actionError).toContain("could not confirm");
+    expect(result.current.actionError).toContain("couldn’t confirm");
     expect(await result.current.createPaycheck(payload)).toEqual(outcome);
     paychecksApi.getPaychecks.mockRejectedValueOnce(new Error("still offline"));
     await act(() => result.current.refresh());
     expect(result.current.uncertainCreate).toBe(true);
     await act(() => result.current.refresh());
     expect(result.current.uncertainCreate).toBe(false);
-    expect(result.current.notice).toContain("Check the saved pay schedules");
+    expect(result.current.notice).toContain("Check your pay schedules");
     expect(paychecksApi.createPaycheck).toHaveBeenCalledTimes(1);
   });
 

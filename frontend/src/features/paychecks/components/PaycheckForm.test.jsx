@@ -92,7 +92,7 @@ describe("PaycheckForm", () => {
     expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
     expect(screen.getByLabelText("Fixed amount")).toBeDisabled();
     reject(new Error("private response must not be shown"));
-    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("The action could not be completed"));
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("We couldn’t finish that action"));
     expect(screen.getByLabelText("Display name")).toHaveValue("Revised payroll");
     expect(screen.queryByText(/private response/)).not.toBeInTheDocument();
   });
@@ -112,7 +112,7 @@ describe("PaycheckForm", () => {
   it("explains unsafe numeric amounts persistently instead of accepting rounded values", () => {
     render(<PaycheckForm mode="edit" model={makePaycheck({ amount: { mode: "fixed", fixedAmount: 1e16 } })} onSubmit={vi.fn()} />);
     expect(screen.getByLabelText("Fixed amount")).toHaveValue("");
-    expect(screen.getByText(/could not be loaded with reliable cent precision/)).toBeInTheDocument();
+    expect(screen.getByText(/couldn’t load the exact amount/)).toBeInTheDocument();
   });
 
   it("blocks uncertain resubmission while keeping cancel and draft inputs available", async () => {

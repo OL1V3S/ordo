@@ -52,7 +52,7 @@ describe("Paychecks page in Spanish", () => {
     expect(screen.getByRole("group", { name: "Calendarios de nómina activos" })).toBeInTheDocument();
     expect(screen.getByRole("group", { name: "Calendarios de nómina pausados", hidden: true })).toBeInTheDocument();
     expect(screen.getByRole("group", { name: "Calendarios de nómina finalizados", hidden: true })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { level: 2, name: /^Pagos de nómina pausados \(1\)$/ })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: /^Calendarios de nómina pausados \(1\)$/ })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: /^Posibles pagos de nómina descartados \(0\)$/ })).toBeInTheDocument();
     expect(screen.getByText("Los calendarios de nómina pausados no tienen fechas esperadas.")).toBeInTheDocument();
     expect(screen.getByText("Los calendarios de nómina finalizados no tienen fechas esperadas.")).toBeInTheDocument();
@@ -71,7 +71,7 @@ describe("Paychecks page in Spanish", () => {
     expect(profile.getByText("Depósitos de nómina vinculados").closest("div")).toHaveTextContent("Depósitos vinculados: 3");
     expect(profile.getByText("Depósitos de nómina vinculados (3)")).toBeInTheDocument();
     expect(profile.getByText("Calendarios de nómina verificados el").closest("div")).toHaveTextContent("12 jul 2026");
-    expect(profile.getAllByText(/En la fecha del calendario/)).toHaveLength(3);
+    expect(profile.getAllByText(/En esa fecha/)).toHaveLength(3);
     expect(profile.getAllByText("Historial de confirmación")).toHaveLength(3);
     expect(profile.getByRole("button", { name: "Editar Acme Payroll", hidden: true })).toBeInTheDocument();
     expect(profile.getByRole("button", { name: "Pausar Acme Payroll", hidden: true })).toBeInTheDocument();
@@ -98,10 +98,10 @@ describe("Paychecks page in Spanish", () => {
     expect(active.getByText("Monto esperado")).toHaveTextContent(/esperado/);
     expect(active.getByText("Esperado, no garantizado.")).toBeInTheDocument();
     expect(active.getByText("Vinculado por ti")).not.toHaveTextContent(/esperad/i);
-    expect(active.getByText("Vinculado por ti")).toHaveTextContent(/vinculado/);
+    expect(active.getByText("Vinculado por ti")).toHaveTextContent(/Vinculado/);
     await user.click(screen.getByLabelText("Detalles de Acme Payroll"));
     await user.click(active.getByRole("button", { name: "Quitar vínculo del depósito" }));
-    expect(screen.getByRole("group", { name: "Quitar vínculo del depósito: Acme Payroll" })).toHaveTextContent(/El depósito se mantendrá en Movimientos/);
+    expect(screen.getByRole("group", { name: "Quitar vínculo del depósito: Acme Payroll" })).toHaveTextContent(/El depósito se mantiene en Movimientos/);
     expect(screen.getByRole("button", { name: "Sí, quitar vínculo" })).toHaveFocus();
     await user.click(screen.getByRole("button", { name: "Sí, quitar vínculo" }));
     expect(paychecksApi.removeReceipt).toHaveBeenCalledExactlyOnceWith(profile.id, 101);
@@ -129,8 +129,8 @@ describe("Paychecks page in Spanish", () => {
     await user.clear(amount);
     await user.type(amount, "2600.25");
     fireEvent.change(date, { target: { value: "2026-08-15" } });
-    expect(within(panel).getByText(/El monto difiere del monto esperado fijo/)).toBeInTheDocument();
-    expect(within(panel).getByText(/La fecha está fuera de las fechas esperadas de este pago de nómina/)).toBeInTheDocument();
+    expect(within(panel).getByText(/Este monto es distinto del monto esperado/)).toBeInTheDocument();
+    expect(within(panel).getByText(/Esta fecha está fuera de las fechas esperadas/)).toBeInTheDocument();
 
     fireEvent.change(description, { target: { value: "" } });
     fireEvent.change(amount, { target: { value: "0" } });
@@ -257,7 +257,7 @@ describe("Paychecks page in Spanish", () => {
   it("shows a Spanish load failure and refresh action", async () => {
     paychecksApi.getCandidates.mockRejectedValue({ response: { status: 500 } });
     render(<PaychecksPage />);
-    expect(await screen.findByRole("alert")).toHaveTextContent("No se pudieron cargar los pagos de nómina. Actualiza para intentarlo de nuevo");
+    expect(await screen.findByRole("alert")).toHaveTextContent("No pudimos cargar tu nómina. Actualiza para intentarlo de nuevo");
     expect(screen.getByRole("button", { name: "Actualizar nómina" })).toBeInTheDocument();
   });
 
