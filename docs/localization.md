@@ -144,7 +144,7 @@ import/export them, but the runtime must not depend on a translation service.
   so a displayed message follows a language change. A write whose refresh failed has
   its own complete message instead of concatenated fragments.
 - Spanish keeps a budget limit distinct from recorded spending. Limit copy uses
-  `límite` and `monto límite`; copy about money actually recorded uses `gasto`,
+  `límite` and `límite mensual`; copy about money actually recorded uses `gasto`,
   `gastos registrados`, and `usado`. Do not describe a limit as spent or recorded
   spending as a limit.
 - Budget cards show the stored category value as stored (for example `Food`, a custom
@@ -174,8 +174,8 @@ import/export them, but the runtime must not depend on a translation service.
   original English formatting. No `Date` object, timezone conversion, or `Intl` locale
   formatter is used for the translated labels, and no month or date is computed
   differently. Spanish month names are lowercase in running text and labels
-  (`agosto de 2026`, `14 de agosto de 2026`, ticks `ago`); the chart's `MTD` marker
-  is `Acum.` in Spanish.
+  (`agosto de 2026`, `14 de agosto de 2026`, ticks `ago`); the chart's month-to-date marker
+  is `So far` in English and `A la fecha` in Spanish.
 - Spanish keeps recorded deposits and spending distinct from expectations: copy about
   recorded deposits uses `depósitos registrados`, `gastos registrados`, and
   `gastado`; expected paychecks and saved pay schedules are named
@@ -278,6 +278,7 @@ In English, a paycheck is always `paycheck`, and a recurring outflow is always
 | Budget | Budgets | Presupuestos | |
 | Monthly limit | Monthly limit | Límite mensual | Limit is not spent |
 | Zero limit | Zero limit (no spending) | Límite en cero (sin gastos) | Zero is intentional; absent means no budget |
+| Month to date (chart tick) | So far | A la fecha | Replaces the abbreviations `MTD` / `Acum.`; meaning unchanged |
 | Recurring expense | Recurring expense (page: Recurring expenses) | Gasto recurrente (page: Gastos recurrentes) | An **expected** pattern: "Expected only. Not included in your totals." Never `pago` |
 | Possible recurring expense | Possible recurring expense | Posible gasto recurrente | A suggestion, not a fact |
 | Expected | Expected | Esperado | Expected copy never says received or recorded |
@@ -297,7 +298,7 @@ In English, a paycheck is always `paycheck`, and a recurring outflow is always
 | How often | How often | Frecuencia | Stored cadence values unchanged |
 | Expected dates | Expected between {start} and {end} | Se espera entre el {start} y el {end} | Expected, not guaranteed |
 | Semimonthly | Twice a month | Quincenal | Ordo's semimonthly is any two ordered days at least 7 days apart, not only the 15th and the last day; never used for biweekly (`Cada dos semanas`) |
-| Pay date fields | Pay dates; Starting pay date; First / Second pay day; Day of the month you're paid | Fechas en que te pagan; Fecha inicial en que te pagan; Primer / Segundo día en que te pagan; Día del mes en que te pagan | Replace anchor and schedule wording; Spanish never uses a bare `pago` here |
+| Pay date fields | Pay dates; Starting pay date; First / Second pay day; Day of the month you're paid; Monthly pay day | Fechas en que te pagan; Fecha inicial en que te pagan; Primer / Segundo día en que te pagan; Día del mes en que te pagan; Cuándo te pagan cada mes | Replace anchor and schedule wording; Spanish never uses a bare `pago` here |
 | Why we suggested this | Why we suggested this | Por qué lo sugerimos | Replaces "Detection details" |
 | Review again | Review again | Volver a revisar | Replaces "Reconsider" |
 | Not seen / possibly ended | Not seen lately / May have ended | No ha aparecido últimamente / Puede que haya terminado | Not an automatic status change |
@@ -310,13 +311,6 @@ In English, a paycheck is always `paycheck`, and a recurring outflow is always
 | Statement | Statement | Estado de cuenta | Bank statement import |
 | Investing | Investing | Inversiones | Unavailable placeholder destination |
 | Voice | you | tú | Never usted |
-
-Terms still pending in the last area PR of the same series (Home, navigation, Budgets,
-Reports, and the other remaining namespaces) are tracked on #229: `So far` / `A la
-fecha` (replacing `MTD` / `Acum.`), `Monthly limit` / `Límite mensual`, and the removal of
-the remaining area terms (`Retry`, `(s)`, `...`, and the other words listed under Voice)
-from those namespaces. Transactions and import, Recurring expenses, and Paychecks already
-follow the glossary above.
 
 ## Wording style guide
 

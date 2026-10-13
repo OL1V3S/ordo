@@ -71,7 +71,7 @@ describe('existing authentication flows', () => {
     const onLogin = vi.fn()
     const alert = vi.spyOn(window, 'alert').mockImplementation(() => {})
     const log = vi.spyOn(console, 'log').mockImplementation(() => {})
-    authApi.login.mockRejectedValue({ response: { status: 401, data: 'Incorrect email or password' } })
+    authApi.login.mockRejectedValue({ response: { status: 401, data: 'Invalid email or password' } })
     renderAt(<AuthPage onLogin={onLogin} />)
     await user.type(screen.getByLabelText('Email'), 'person@example.invalid')
     await user.type(screen.getByLabelText('Password'), 'Synthetic1!')
@@ -107,7 +107,7 @@ describe('existing authentication flows', () => {
       response: {
         data: {
           code: 'confirmation_email_delivery_failed',
-          message: "Your account was created, but we couldn't send the confirmation email.",
+          message: "Your account was created, but we couldn’t send the confirmation email.",
         },
       },
     })
@@ -125,7 +125,7 @@ describe('existing authentication flows', () => {
     await user.click(screen.getByRole('button', { name: 'Create account' }))
 
     expect(await screen.findByRole('heading', { name: 'Check your email', level: 1 })).toBeInTheDocument()
-    expect(screen.getByRole('status')).toHaveTextContent("Your account was created, but we couldn't send the confirmation email.")
+    expect(screen.getByRole('status')).toHaveTextContent("Your account was created, but we couldn’t send the confirmation email.")
     await user.click(screen.getByRole('button', { name: 'Resend confirmation email' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('Too many requests. Wait a moment, then try again.')
   })
@@ -159,7 +159,7 @@ describe('existing authentication flows', () => {
   it('does not call confirmation without both required query parameters', async () => {
     renderAt(<ConfirmEmailPage />, '/confirm-email?userId=user-123')
     expect(await screen.findByRole('heading', { name: 'We couldn’t confirm your email', level: 1 })).toBeInTheDocument()
-    expect(screen.getByRole('alert')).toHaveTextContent('invalid, expired, or already used')
+    expect(screen.getByRole('alert')).toHaveTextContent('isn’t valid, has expired, or was already used')
     expect(authApi.confirmEmail).not.toHaveBeenCalled()
   })
 
@@ -411,7 +411,7 @@ describe('authentication pages in Spanish', () => {
 
   it('maps login 401 literals to Spanish and never shows the server English', async () => {
     const user = userEvent.setup()
-    authApi.login.mockRejectedValueOnce({ response: { status: 401, data: 'Incorrect email or password' } })
+    authApi.login.mockRejectedValueOnce({ response: { status: 401, data: 'Invalid email or password' } })
     renderAt(<AuthPage onLogin={vi.fn()} />)
     await fillLogin(user)
     await user.click(screen.getByRole('button', { name: 'Iniciar sesión' }))
@@ -441,7 +441,7 @@ describe('authentication pages in Spanish', () => {
     const error = await screen.findByRole('alert')
     expect(error).toHaveTextContent("Tu contraseña necesita al menos 1 número (0-9).")
     expect(error).toHaveTextContent("El correo 'person@example.com' ya está en uso.")
-    expect(error).toHaveTextContent('No se puede crear tu cuenta.')
+    expect(error).toHaveTextContent('No pudimos crear tu cuenta.')
     expect(error).not.toHaveTextContent('Some new English text')
   })
 
@@ -500,7 +500,7 @@ describe('authentication pages in Spanish', () => {
 
   it('offers a language selector that keeps focus and re-renders an on-screen error', async () => {
     const user = userEvent.setup()
-    authApi.login.mockRejectedValue({ response: { status: 401, data: 'Incorrect email or password' } })
+    authApi.login.mockRejectedValue({ response: { status: 401, data: 'Invalid email or password' } })
     renderAt(<AuthPage onLogin={vi.fn()} />)
     await fillLogin(user)
     await user.click(screen.getByRole('button', { name: 'Iniciar sesión' }))

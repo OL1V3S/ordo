@@ -13,7 +13,7 @@ describe('Investing unavailable surface', () => {
     render(<InvestingPage />)
 
     expect(screen.getByRole('heading', { name: 'No investment account connected' })).toBeInTheDocument()
-    expect(screen.getByText(/No investment data is being fetched, imported, inferred, or evaluated/)).toBeInTheDocument()
+    expect(screen.getByText(/doesn’t read investment data/)).toBeInTheDocument()
 
     const capabilities = screen.getByRole('heading', { name: 'What may come later' }).closest('section')
     expect(within(capabilities).getByRole('heading', { name: 'Connections' })).toBeInTheDocument()

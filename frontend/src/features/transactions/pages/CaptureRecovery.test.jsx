@@ -53,7 +53,7 @@ describe("uncertain Home write recovery in Activity", () => {
     expect(sessionStorage.length).toBe(1);
     fireEvent.click(screen.getByRole("button", { name: "I checked the complete list" }));
     expect(sessionStorage.length).toBe(0);
-    expect(screen.getByText(/Ordo did not determine whether the entry was saved/)).toBeInTheDocument();
+    expect(screen.getByText(/Ordo can’t tell whether it was saved/)).toBeInTheDocument();
     await waitFor(() => expect(screen.getByRole("heading", { level: 1, name: "Transactions" })).toHaveFocus());
     expect(screen.getByRole("heading", { level: 1, name: "Transactions" })).toBeVisible();
     expect(screen.queryByRole("region", { name: "Expenses table" })).toBeNull();

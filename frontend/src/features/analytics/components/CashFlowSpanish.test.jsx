@@ -40,7 +40,7 @@ describe("cash-flow components in Spanish", () => {
     expect(disclosure).toHaveTextContent("no es un saldo de la cuenta, ahorros ni dinero disponible para gastar");
     expect(disclosure).toHaveTextContent("incluidos los activos, en pausa y finalizados");
     expect(disclosure).toHaveTextContent("un depósito no se cuenta como ingreso");
-    expect(disclosure).toHaveTextContent("los pagos de nómina esperados, los gastos recurrentes esperados y las vistas previas de importación sin guardar no se suman a estas cifras");
+    expect(disclosure).toHaveTextContent("No se incluyen los presupuestos, los pagos de nómina esperados, los gastos recurrentes esperados ni las vistas previas de importación sin guardar");
     expect(disclosure).toHaveTextContent("Gastado como porcentaje de los depósitos66.7%");
     expect(disclosure).toHaveTextContent("Depósitos registrados3 (vinculados a un calendario de nómina: 2, otros: 1)");
     expect(disclosure).toHaveTextContent("Gastos registrados2");
@@ -115,7 +115,7 @@ describe("cash-flow components in Spanish", () => {
     const table = within(disclosure).getByRole("table", { hidden: true });
     expect(within(table).getByText("Depósitos y gastos por mes, en dólares estadounidenses")).toBeInTheDocument();
     const rows = within(table).getAllByRole("row", { hidden: true });
-    expect(rows[0]).toHaveTextContent("MesDepósitosPagos de nómina confirmadosOtros depósitosGastadoDepósitos menos gastosNota del período");
+    expect(rows[0]).toHaveTextContent("MesDepósitosPagos de nómina confirmadosOtros depósitosGastadoDepósitos menos gastosNota del periodo");
     expect(rows[1]).toHaveTextContent("marzo de 2026USD 0.00USD 0.00USD 0.00USD 0.00USD 0.00No hay depósitos registrados · No hay gastos registrados");
     expect(rows[6]).toHaveTextContent("agosto de 2026USD 150.00USD 120.00USD 30.00USD 100.00+USD 50.00Hasta el 14 de agosto de 2026");
   });

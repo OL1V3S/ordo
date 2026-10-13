@@ -43,7 +43,7 @@ describe("mapSubmitError", () => {
   });
 
   it("maps the two exact login 401 literals", () => {
-    const bad = mapSubmitError(registerErr("Incorrect email or password", 401), { mode: "login", email });
+    const bad = mapSubmitError(registerErr("Invalid email or password", 401), { mode: "login", email });
     const unconfirmed = mapSubmitError(registerErr("Please confirm your email before logging in.", 401), { mode: "login", email });
     expect(bad.messages).toEqual([{ key: "errors.login.invalidCredentials" }]);
     expect(unconfirmed.messages).toEqual([{ key: "errors.login.emailNotConfirmed" }]);
@@ -58,8 +58,8 @@ describe("mapSubmitError", () => {
   );
 
   it("does not apply login literals outside login or outside 401", () => {
-    expect(mapSubmitError(registerErr("Incorrect email or password", 400), { mode: "login", email }).messages).toEqual([{ key: "errors.generic" }]);
-    expect(mapSubmitError(registerErr("Incorrect email or password", 401), { mode: "register", email }).messages).toEqual([{ key: "errors.generic" }]);
+    expect(mapSubmitError(registerErr("Invalid email or password", 400), { mode: "login", email }).messages).toEqual([{ key: "errors.generic" }]);
+    expect(mapSubmitError(registerErr("Invalid email or password", 401), { mode: "register", email }).messages).toEqual([{ key: "errors.generic" }]);
   });
 
   it.each([
@@ -75,7 +75,7 @@ describe("mapSubmitError", () => {
 
   it("returns only catalog keys and never echoes server text", () => {
     const cases = [
-      registerErr("Incorrect email or password", 401),
+      registerErr("Invalid email or password", 401),
       registerErr([{ code: "Nope", description: "LEAK" }]),
       registerErr({ message: "LEAK" }),
       new Error("LEAK"),

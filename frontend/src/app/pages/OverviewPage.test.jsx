@@ -100,7 +100,7 @@ describe("capture-first Home", () => {
     expect(within(list).getByText("Commitment 2")).toBeInTheDocument();
     expect(within(list).queryByText("Commitment 3")).not.toBeInTheDocument();
     expect(within(list).getByText("Amount change to review")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "See the 3 items to item to review" })).toHaveAttribute("href", "/commitments#changes-review-heading");
+    expect(screen.getByRole("link", { name: "See all 3 items to review" })).toHaveAttribute("href", "/commitments#changes-review-heading");
     expect(homeApi.getHome).toHaveBeenCalledTimes(1);
     expect(paychecksApi.getPaychecks).not.toHaveBeenCalled();
   });
@@ -158,7 +158,7 @@ describe("capture-first Home", () => {
     expect(within(list).queryByText("Commitment 2")).not.toBeInTheDocument();
     expect(within(list).queryByText("Food")).not.toBeInTheDocument();
     expect(within(list).getByRole("link", { name: "Open Groceries budget" })).toHaveAttribute("href", "/budgets");
-    expect(screen.getByRole("link", { name: "See the 3 items to item to review" }))
+    expect(screen.getByRole("link", { name: "See all 3 items to review" }))
       .toHaveAttribute("href", "/commitments#changes-review-heading");
   });
 

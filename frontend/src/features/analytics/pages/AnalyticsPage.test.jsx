@@ -188,7 +188,7 @@ describe("monthly spending insights page", () => {
     renderPage();
 
     const ranking = openDetail("Largest expenses");
-    expect(ranking).toHaveTextContent("Exact largest-expense ranking is unavailable");
+    expect(ranking).toHaveTextContent("The exact ranking of your largest expenses is unavailable");
     expect(within(ranking).queryByText("Known smaller")).not.toBeInTheDocument();
   });
   it("offers historical months represented only by other recorded inflows", () => {

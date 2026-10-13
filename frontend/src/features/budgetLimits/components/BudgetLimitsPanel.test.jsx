@@ -229,7 +229,7 @@ describe('budget hierarchy and truthful states', () => {
     await chooseRowAction(user, 'Edit Food budget')
     await user.click(screen.getByRole('button', { name: 'Save limit' }))
     expect(screen.queryByLabelText('Monthly limit for Food')).not.toBeInTheDocument()
-    expect(screen.getByRole('status')).toHaveTextContent('Budget limit saved. Budget limits could not be refreshed.')
+    expect(screen.getByRole('status')).toHaveTextContent('Budget limit saved. We couldn’t refresh the limits.')
     expect(screen.getByRole('button', { name: 'Actions for Food budget' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Edit Food budget', hidden: true })).toBeDisabled()
   })

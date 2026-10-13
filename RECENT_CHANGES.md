@@ -24,6 +24,14 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-12 — Plain-language wording: the rest of the app (final wording PR)
+
+[PR #234](https://github.com/OL1V3S/ordo/pull/234) ·
+[Issue #229](https://github.com/OL1V3S/ordo/issues/229)
+
+- Fifth and last of the wording PRs: Home, navigation, Settings, sign-in and account pages, Investing, Budgets and Reports now use the same plain wording in English and Mexican Spanish. Examples: "Monthly limit" / "Límite mensual", "So far" / "A la fecha" on the chart, "Limits start over on {date}", "Try again" instead of "Retry", and a plainer Investing page that says Ordo isn't connected to any investment account.
+- Review fixes from the earlier wording PRs are included: Paychecks notices after an uncertain save now say "Paychecks reloaded" instead of "updated", and empty states, error sentences and a few button names are clearer. The wording guard now covers every namespace. Frontend and docs only; no API, schema or financial-semantics change.
+
 ### 2026-10-12 — Plain-language wording: Paychecks
 
 [PR #233](https://github.com/OL1V3S/ordo/pull/233) ·
@@ -45,7 +53,7 @@ the permanent, complete archive.
 [PR #231](https://github.com/OL1V3S/ordo/pull/231) ·
 [Issue #229](https://github.com/OL1V3S/ordo/issues/229)
 
-- Second of five wording PRs: the Transactions page and the statement import now use plain, calm wording in English and Mexican Spanish. Errors reassure first and give one next step, empty states say how to add, "(no. N)" and "MiB" are spelled out, and the import row problems read as full phrases.
+- Second of five wording PRs: the Transactions page and the statement import now use plain, calm wording in English and Mexican Spanish. Errors reassure first and give one next step, the Transactions empty state says how to add, "(no. N)" and "MiB" are spelled out, and the import row problems read as full phrases.
 - The import copy names what you do ("Import selected", "Select all expenses that can be imported", "Can't be imported") and keeps uncertain-save wording honest. The wording guard now also bans internal words in these two areas. Frontend only; no API, schema or financial-semantics change.
 
 ### 2026-10-12 — Plain-language wording: core terms
@@ -179,10 +187,3 @@ the permanent, complete archive.
 - Warning status messages now have a distinct amber style in light and dark themes instead of rendering as a neutral box.
 - The Home recent-list divider follows the dark theme; CSS-only, with tabular numerals for amounts and existing tokens replacing raw spacing and pill radii.
 
-### 2026-10-08 — Activity page declutter (part 1)
-
-[PR #196](https://github.com/OL1V3S/ordo/pull/196) ·
-[Issue #194](https://github.com/OL1V3S/ordo/issues/194)
-
-- Activity timeline filters moved behind a Filters disclosure with period chips and removable filter chips; the section links were removed.
-- Spending and Cash in lists are now collapsed Records disclosures that open automatically when a task, error, or recovery needs them; frontend only, no API change.
