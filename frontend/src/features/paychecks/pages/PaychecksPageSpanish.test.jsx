@@ -219,7 +219,7 @@ describe("Paychecks page in Spanish", () => {
     await user.type(within(form).getByLabelText("Días antes"), "9");
     await user.click(within(form).getByRole("button", { name: "Crear calendario de nómina" }));
     expect(paychecksApi.createPaycheck).not.toHaveBeenCalled();
-    expect(within(form).getByLabelText("Segundo día en que te pagan")).toHaveAccessibleDescription(/incluso al cruzar el límite de febrero/);
+    expect(within(form).getByLabelText("Segundo día en que te pagan")).toHaveAccessibleDescription(/también en febrero/);
     expect(within(form).getByLabelText("Días antes")).toHaveAccessibleDescription("Ingresa un número entero del 0 al 3.");
   });
 

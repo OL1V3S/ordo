@@ -195,6 +195,9 @@
       "range": "Amount range",
       "fixed": "Fixed amount"
     },
+    "hints": {
+      "semimonthly": "Two pay days a month, at least 7 days apart."
+    },
     "errors": {
       "display_name_invalid": "Enter a display name of 1 to 500 characters.",
       "cadence_invalid": "Choose how often you’re paid.",

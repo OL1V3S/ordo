@@ -195,6 +195,9 @@
       "range": "Rango de monto",
       "fixed": "Monto fijo"
     },
+    "hints": {
+      "semimonthly": "Dos días al mes en que te pagan, con al menos 7 días entre ellos."
+    },
     "errors": {
       "display_name_invalid": "Ingresa un nombre para mostrar de 1 a 500 caracteres.",
       "cadence_invalid": "Elige con qué frecuencia te pagan.",

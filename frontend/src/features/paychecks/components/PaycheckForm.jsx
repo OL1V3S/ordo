@@ -55,15 +55,18 @@ export default function PaycheckForm({ mode, model, busy = false, submitDisabled
   }
 
   function field(name, label, options = {}) {
-    const { choices, ...inputProps } = options;
+    const { choices, hint, ...inputProps } = options;
     const errorId = `${generatedId}-${name}-error`;
+    const hintId = `${generatedId}-${name}-hint`;
+    const describedBy = [hint ? hintId : null, errors[name] ? errorId : null].filter(Boolean).join(" ") || undefined;
     return <div className="paycheck-form__field" key={name}><FormField label={label}>{(id) => <>
       {choices ? <select id={id} value={form[name]} onChange={(event) => update(name, event.target.value)}
-        aria-invalid={Boolean(errors[name])} aria-describedby={errors[name] ? errorId : undefined}>
+        aria-invalid={Boolean(errors[name])} aria-describedby={describedBy}>
         {choices.map(([value, text]) => <option key={value} value={value}>{text}</option>)}
       </select> : <input id={id} value={form[name]} onChange={(event) => update(name, event.target.value)}
-        required aria-invalid={Boolean(errors[name])} aria-describedby={errors[name] ? errorId : undefined} {...inputProps} />}
-    </>}</FormField>{errors[name] && <span className="paycheck-form__error" id={errorId}>{t(`form.errors.${errors[name]}`)}</span>}</div>;
+        required aria-invalid={Boolean(errors[name])} aria-describedby={describedBy} {...inputProps} />}
+    </>}</FormField>{hint && <p className="paycheck-form__note" id={hintId}>{hint}</p>}
+    {errors[name] && <span className="paycheck-form__error" id={errorId}>{t(`form.errors.${errors[name]}`)}</span>}</div>;
   }
 
   function anchorFields(prefix, labelKey) {
@@ -89,7 +92,7 @@ export default function PaycheckForm({ mode, model, busy = false, submitDisabled
       <div className="paycheck-form__grid">
         {field("displayName", t("form.fields.displayName"), { maxLength: 500 })}
         {mode === "manual" && <>
-          {field("cadence", t("form.fields.cadence"), { choices: CADENCES.map((cadence) => [cadence, cadenceLabel(cadence, t)]) })}
+          {field("cadence", t("form.fields.cadence"), { hint: form.cadence === "semimonthly" ? t("form.hints.semimonthly") : undefined, choices: CADENCES.map((cadence) => [cadence, cadenceLabel(cadence, t)]) })}
           {["weekly", "biweekly"].includes(form.cadence)
             ? field("referenceAnchorDate", t("form.fields.referenceAnchorDate"), { type: "date", min: "0001-01-01", max: "9999-12-31" })
             : <>{anchorFields("first", form.cadence === "monthly" ? "monthlyAnchor" : "firstAnchor")}

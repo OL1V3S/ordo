@@ -1,11 +1,13 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import PaycheckForm from "./PaycheckForm";
-import "../../../shared/localization/i18n";
+import i18n from "../../../shared/localization/i18n";
 import { makeCandidate, makePaycheck } from "../test/paycheckFixtures";
 
 describe("PaycheckForm", () => {
+  afterEach(async () => { await i18n.changeLanguage("en"); });
+
   it("focuses the name, displays immutable candidate schedule and requires explicit submission", async () => {
     const user = userEvent.setup();
     const onSubmit = vi.fn();
@@ -33,7 +35,7 @@ describe("PaycheckForm", () => {
     const minimum = screen.getByLabelText("Minimum amount");
     expect(minimum).toHaveFocus();
     expect(minimum).toHaveAttribute("aria-invalid", "true");
-    expect(minimum).toHaveAccessibleDescription(/positive amount/);
+    expect(minimum).toHaveAccessibleDescription(/amount above zero/);
     await user.type(minimum, "2100.01");
     await user.type(screen.getByLabelText("Maximum amount"), "2900.99");
     await user.click(screen.getByRole("button", { name: "Save pay schedule" }));
@@ -124,5 +126,37 @@ describe("PaycheckForm", () => {
     expect(onSubmit).not.toHaveBeenCalled();
     await user.click(screen.getByRole("button", { name: "Cancel" }));
     expect(onCancel).toHaveBeenCalledOnce();
+  });
+
+  it("explains the semimonthly spacing only while the semimonthly option is chosen", async () => {
+    const user = userEvent.setup();
+    const hint = "Two pay days a month, at least 7 days apart.";
+    render(<PaycheckForm mode="manual" onSubmit={vi.fn()} />);
+    const cadence = screen.getByLabelText("How often");
+    expect(screen.queryByText(hint)).not.toBeInTheDocument();
+    for (const other of ["weekly", "biweekly", "monthly"]) {
+      await user.selectOptions(cadence, other);
+      expect(screen.queryByText(hint)).not.toBeInTheDocument();
+      expect(cadence).not.toHaveAccessibleDescription(hint);
+    }
+    await user.selectOptions(cadence, "semimonthly");
+    expect(screen.getByText(hint)).toBeInTheDocument();
+    expect(cadence).toHaveAccessibleDescription(hint);
+    await user.selectOptions(cadence, "monthly");
+    expect(screen.queryByText(hint)).not.toBeInTheDocument();
+  });
+
+  it("explains the semimonthly spacing in Spanish without a bare pago", async () => {
+    await i18n.changeLanguage("es");
+    const user = userEvent.setup();
+    const hint = "Dos días al mes en que te pagan, con al menos 7 días entre ellos.";
+    render(<PaycheckForm mode="manual" onSubmit={vi.fn()} />);
+    const cadence = screen.getByLabelText("Frecuencia");
+    expect(screen.queryByText(hint)).not.toBeInTheDocument();
+    await user.selectOptions(cadence, "biweekly");
+    expect(screen.queryByText(hint)).not.toBeInTheDocument();
+    await user.selectOptions(cadence, "semimonthly");
+    expect(screen.getByText(hint)).toBeInTheDocument();
+    expect(cadence).toHaveAccessibleDescription(hint);
   });
 });
