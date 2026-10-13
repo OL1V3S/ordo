@@ -24,6 +24,14 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-12 — Wording cleanup: leftovers from the wording series
+
+[PR #236](https://github.com/OL1V3S/ordo/pull/236) ·
+[Issue #235](https://github.com/OL1V3S/ordo/issues/235)
+
+- Small follow-ups to the plain-language wording work: notices after an uncertain save in Transactions and Budgets now say the list was reloaded (Spanish "Se volvió a cargar…") instead of "actualizados"; the Reports month buttons are plainly "Earlier month" and "Later month"; Spanish "Verificado el" dates now read "Revisado el"; and the linked-deposit count on a pay schedule no longer repeats its label.
+- The wording guard now also catches "no se guardó." at the end of a sentence. Docs only otherwise: product overview terms and the architecture notes on date-only dates and the import boundary. Frontend and docs only; no API, schema or financial-semantics change.
+
 ### 2026-10-12 — Plain-language wording: the rest of the app (final wording PR)
 
 [PR #234](https://github.com/OL1V3S/ordo/pull/234) ·
@@ -46,7 +54,7 @@ the permanent, complete archive.
 [Issue #229](https://github.com/OL1V3S/ordo/issues/229)
 
 - Third of five wording PRs: the Recurring expenses page now uses plain wording in English and Mexican Spanish. "Supporting expenses" became "Matching expenses", the change buttons read "Use the new details" and "Keep saved details", "Mark as ended" is confirmed with "Yes, mark as ended", and "proposal" and "candidate" are now "possible recurring expense" or "this change".
-- Date ranges read "up to 2 days early or 1 day late" with correct singular and plural forms, ellipses are "…", and the wording guard now also bans internal words in this area and checks that each button's accessible name starts with its visible text. Frontend and docs only; no API, schema or financial-semantics change.
+- Date ranges read "up to 2 days early or 1 day late" with correct singular and plural forms, ellipses are "…", and the wording guard now also bans internal words in this area and checks that the listed buttons' accessible names start with their visible text. Frontend and docs only; no API, schema or financial-semantics change.
 
 ### 2026-10-12 — Plain-language wording: Transactions and import
 
@@ -178,12 +186,3 @@ the permanent, complete archive.
 
 - Colors, radii, type, weights and spacing now come from tiered design tokens; each theme color is written once and a CSS-only mode switch serves light, dark and system dark (see [docs/design-tokens.md](docs/design-tokens.md)).
 - Visual: flat opaque cards, no button hover lift or body gradient, no page bar/bottom nav shadows, 6/8/12px radii, smaller headings, 700 max font weight (except statement import), system font. A lint test blocks new raw literals.
-
-### 2026-10-08 — Visual hygiene fixes (warning style, dark divider, tokens)
-
-[PR #198](https://github.com/OL1V3S/ordo/pull/198) ·
-[Issue #197](https://github.com/OL1V3S/ordo/issues/197)
-
-- Warning status messages now have a distinct amber style in light and dark themes instead of rendering as a neutral box.
-- The Home recent-list divider follows the dark theme; CSS-only, with tabular numerals for amounts and existing tokens replacing raw spacing and pill radii.
-

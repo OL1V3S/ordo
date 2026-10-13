@@ -42,8 +42,8 @@
     "description": "See your deposits and spending, month by month.",
     "month": "Month",
     "refresh": "Refresh deposits and spending",
-    "earlierMonth": "Earlier month with data",
-    "laterMonth": "Later month with data",
+    "earlierMonth": "Earlier month",
+    "laterMonth": "Later month",
     "currentMonth": "This month"
   },
   "cashFlow": {

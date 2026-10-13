@@ -101,6 +101,7 @@ describe("Paychecks page", () => {
     expect(profile.getByText("Pay schedules checked on").closest("div")).toHaveTextContent("Jul 12, 2026");
     expect(profile.getByText("Why we suggested this").closest("div")).toHaveTextContent("paycheck-candidate-v1");
     expect(profile.getByText("Expected paycheck details").closest("div")).toHaveTextContent("paycheck-projector-v1");
+    expect(profile.getByText("Linked paycheck deposits").closest("div")).toHaveTextContent("Linked paycheck deposits3");
     expect(profile.getByText("Linked paycheck deposits (3)")).toBeVisible();
     expect(profile.getByText(/Edited since this deposit was linked\. The pay schedule is unchanged/)).toBeVisible();
     expect(profile.getAllByRole("listitem")).toHaveLength(3);

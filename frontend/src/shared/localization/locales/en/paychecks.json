@@ -69,7 +69,7 @@
     "sourceConfirmed": "Confirmed from deposits",
     "expectedWindow": "Days before and after",
     "linkedDeposits": "Linked paycheck deposits",
-    "linkedCount": "Linked deposits: {{total}}",
+    "linkedCount": "{{total}}",
     "profilesEvaluated": "Pay schedules checked on",
     "projectionAmount": "Expected paycheck amount",
     "scheduleDate": "Expected pay date",

@@ -94,7 +94,7 @@ describe("commitment change review in Spanish", () => {
     expect(screen.getByLabelText("Detalles: gasto faltante de Insurance")).toBeInTheDocument();
     expect(screen.getAllByText("Gastos que coinciden").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Estado de cuenta de Sunflower").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Verificado el").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Revisado el").length).toBeGreaterThan(0);
     expect(screen.queryByText("Changes to review")).not.toBeInTheDocument();
   });
 

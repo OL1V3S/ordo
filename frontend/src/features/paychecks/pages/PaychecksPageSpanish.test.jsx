@@ -68,9 +68,9 @@ describe("Paychecks page in Spanish", () => {
     expect(profile.getByText("Confirmado a partir de depósitos")).toBeInTheDocument();
     expect(profile.getByText("Fechas en que te pagan").closest("div")).toHaveTextContent("Mensual, día 10");
     expect(profile.getByText("Días antes y después").closest("div")).toHaveTextContent("1 día antes · 1 día después");
-    expect(profile.getByText("Depósitos de nómina vinculados").closest("div")).toHaveTextContent("Depósitos vinculados: 3");
+    expect(profile.getByText("Depósitos de nómina vinculados").closest("div")).toHaveTextContent("Depósitos de nómina vinculados3");
     expect(profile.getByText("Depósitos de nómina vinculados (3)")).toBeInTheDocument();
-    expect(profile.getByText("Calendarios de nómina verificados el").closest("div")).toHaveTextContent("12 jul 2026");
+    expect(profile.getByText("Calendarios de nómina revisados el").closest("div")).toHaveTextContent("12 jul 2026");
     expect(profile.getAllByText(/En esa fecha/)).toHaveLength(3);
     expect(profile.getAllByText("Historial de confirmación")).toHaveLength(3);
     expect(profile.getByRole("button", { name: "Editar Acme Payroll", hidden: true })).toBeInTheDocument();

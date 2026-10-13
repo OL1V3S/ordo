@@ -65,8 +65,8 @@ describe("Analytics page in Spanish", () => {
       .toEqual([["2026-08", "agosto de 2026"], ["2026-07", "julio de 2026"]]);
     expect(useBudgetLimits).not.toHaveBeenCalled();
     expect(screen.getAllByLabelText("Mes")).toHaveLength(1);
-    expect(screen.getByRole("button", { name: "Mes anterior con datos" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Mes siguiente con datos" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Mes anterior" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Mes siguiente" })).toBeInTheDocument();
     expect(screen.getByText("Estado de los presupuestos")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Abrir presupuestos" })).toHaveAttribute("href", "/budgets");
     expect(screen.getByRole("button", { name: "Actualizar depósitos y gastos" })).toBeInTheDocument();

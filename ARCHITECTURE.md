@@ -138,8 +138,12 @@ strings. This is a transport hardening only; persistence, approved monetary
 range, financial semantics, and commitment detector arithmetic remain decimal
 and unchanged.
 
-`backend/Import/` contains the bounded PDF-to-text application boundary. Its
-private `backend.PdfWorker` child process is packaged inside the backend publish
+`backend/Import/` contains the statement-import boundary. A per-user admission
+filter allows one import request at a time. The preview service creates, reads,
+edits and confirms import previews. The Sunflower parser turns extracted PDF text
+into normalized rows with source provenance, and shared input rules normalize
+and validate editable expense fields. PDF text extraction runs behind a bounded
+PDF-to-text application boundary. Its private `backend.PdfWorker` child process is packaged inside the backend publish
 artifact and exists only for one extraction call. The worker has no endpoint,
 independent deployment, data store, or service identity; it receives one bounded
 binary stdin frame and returns one bounded stdout frame. The parent backend owns
@@ -263,9 +267,11 @@ import decisions in
 [`docs/financial-domain-invariants.md`](docs/financial-domain-invariants.md) and
 Track F in [`ROADMAP.md`](ROADMAP.md).
 
-Likewise, approved target representations such as date-only financial semantics
-remain future roadmap work until their implementation issues are separately
-approved and completed.
+Expense and inflow dates are already date-only (`Expense.Date` and
+`AccountInflow.Date` are .NET `DateOnly`, stored as PostgreSQL `date`). Other
+approved target representations, and date-only treatment of fields that are
+still timestamp-shaped (for example budget limit months), remain future roadmap
+work until their implementation issues are separately approved and completed.
 
 ## Architecture non-goals
 

@@ -55,7 +55,7 @@
     "deleted": "Límite de presupuesto eliminado.",
     "deletedRefreshFailed": "Límite de presupuesto eliminado. No pudimos actualizar los límites. Actualiza los límites antes de hacer otro cambio.",
     "unconfirmed": "No pudimos confirmar el cambio. Actualiza los límites y revisa los presupuestos guardados antes de intentarlo de nuevo.",
-    "refreshed": "Límites de presupuesto actualizados. Revisa los límites guardados antes de volver a intentar tu cambio."
+    "refreshed": "Se volvieron a cargar los límites de presupuesto. Revisa los límites guardados antes de volver a intentar tu cambio."
   },
   "confirmDelete": "¿Eliminar el límite de presupuesto de la categoría \"{{category}}\"?",
   "card": {

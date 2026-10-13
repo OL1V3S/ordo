@@ -35,7 +35,7 @@ silently treating every detected pattern as a financial fact.
   before deciding whether to retry.
 - **Transactions:** A timeline lists recorded expenses and
   deposits together, newest first, with exact signed amounts and older activity
-  loaded on request, and can be searched, with type and period (last 7/30 days, this month, custom) filters behind a Filters disclosure shown as removable chips; it shows no totals or balance. Each row has a "..." actions menu with Edit and Delete. Add expense, Add deposit, edits and Import statement open in one "Current task" area; a status area carries save feedback, load errors and Refresh. Cash-in edits and deletions can
+  loaded on request, and can be searched, with type and period (last 7/30 days, this month, custom) filters behind a Filters disclosure shown as removable chips; it shows no totals or balance. Each row has a "..." actions menu with Edit and Delete. Add expense, Add deposit, edits and Import statement open in one "Current task" area; a status area carries save feedback, load errors and Refresh. Deposit edits and deletions can
   affect imported records and supporting paycheck links; visible warnings explain
   these effects. The timeline is the only list; full read-only expense and cash-in
   tables appear only when a save could not be confirmed, after a Home recovery
@@ -45,7 +45,7 @@ silently treating every detected pattern as a financial fact.
   previous, next, a month list or This month; edit or delete from each row’s "..."
   menu. Open add or edit when needed; drafts keep their original month. Zero limits remain explicit
   no-spend budgets, and unavailable spending is shown separately from zero.
-- **Recurring expenses:** See active saved expectations, amounts, and timing patterns
+- **Recurring expenses:** See active saved recurring expenses, amounts, and timing patterns
   first, then review supported changes and possible recurring expenses. Edit,
   pause, reactivate, or end saved recurring expenses; confirm or dismiss suggestions.
   Rows show one main action with the rest in an actions menu, details disclose
@@ -64,12 +64,12 @@ silently treating every detected pattern as a financial fact.
   Card Details reveal linked records and schedule information. Profiles support
   several pay schedules and fixed amounts or expected ranges. These are
   expectations, not guaranteed deposits or employer-verified earnings.
-- **Reports:** Compare recorded cash in with spending for a selected
+- **Reports:** Compare recorded deposits with spending for a selected
   month and see the difference as net recorded cash flow. Explore a six-month
   trend and ranked spending categories, with month-over-month category changes
   and largest expenses available under More spending detail and a link to
   Budgets for budget status. Step between months that have recorded data.
-  Cash in is split into amounts linked to confirmed
+  Deposits are split into amounts linked to confirmed
   paychecks and all other recorded inflows.
 - **Statement import:** Open import from Transactions and upload a supported,
   text-extractable Sunflower Bank PDF,
