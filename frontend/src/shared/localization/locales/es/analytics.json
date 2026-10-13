@@ -42,8 +42,8 @@
     "description": "Mira tus depósitos y gastos, mes por mes.",
     "month": "Mes",
     "refresh": "Actualizar depósitos y gastos",
-    "earlierMonth": "Mes anterior con datos",
-    "laterMonth": "Mes siguiente con datos",
+    "earlierMonth": "Mes anterior",
+    "laterMonth": "Mes siguiente",
     "currentMonth": "Este mes"
   },
   "cashFlow": {

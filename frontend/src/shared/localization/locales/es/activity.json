@@ -85,7 +85,7 @@
     "deleteConfirm": "¿Eliminar este gasto?",
     "feedback": {
       "unknown": "No pudimos confirmar el cambio. Actualiza los gastos y revísalos antes de intentarlo de nuevo.",
-      "refreshed": "Gastos actualizados. Revísalos antes de intentar tu cambio de nuevo.",
+      "refreshed": "Se volvió a cargar la lista de gastos. Revísala antes de intentar tu cambio de nuevo.",
       "created": "Gasto guardado.",
       "updated": "Gasto actualizado.",
       "deleted": "Gasto eliminado.",
@@ -168,8 +168,8 @@
       "forbidden": "No tienes permiso para cambiar este depósito.",
       "missing": "Este depósito no está disponible. Actualiza los depósitos antes de hacer otro cambio.",
       "unknown": "No pudimos confirmar el cambio. Actualiza los depósitos y revisa la lista antes de intentarlo de nuevo.",
-      "unknownChecked": "Depósitos actualizados. Revisa si se guardó tu cambio antes de intentarlo de nuevo.",
-      "refreshed": "Depósitos actualizados. Revisa los depósitos actuales antes de hacer otro cambio.",
+      "unknownChecked": "Se volvió a cargar la lista de depósitos. Revisa si se guardó tu cambio antes de intentarlo de nuevo.",
+      "refreshed": "Se volvió a cargar la lista de depósitos. Revisa los depósitos actuales antes de hacer otro cambio.",
       "retryAvailable": "Revisaste tus depósitos. Ya puedes intentarlo de nuevo; no se hará automáticamente.",
       "blocked": "Termina o cierra la tarea de gasto o de importación abierta antes de cambiar los depósitos."
     },

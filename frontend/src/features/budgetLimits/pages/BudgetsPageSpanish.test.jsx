@@ -157,7 +157,7 @@ describe('Budgets page in Spanish', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Límite de presupuesto guardado. No pudimos actualizar los límites. Actualiza los límites antes de hacer otro cambio.')
 
     await user.click(screen.getByRole('button', { name: 'Actualizar límites' }))
-    expect(screen.getByRole('status')).toHaveTextContent('Límites de presupuesto actualizados. Revisa los límites guardados antes de volver a intentar tu cambio.')
+    expect(screen.getByRole('status')).toHaveTextContent('Se volvieron a cargar los límites de presupuesto. Revisa los límites guardados antes de volver a intentar tu cambio.')
 
     upsertLimit.mockRejectedValueOnce(new Error('offline'))
     await chooseRowAction(user, 'Editar presupuesto de Food')

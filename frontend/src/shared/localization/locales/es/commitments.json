@@ -233,7 +233,7 @@
       "timing": "Detalles: cambio de fechas de {{name}}",
       "missing": "Detalles: gasto faltante de {{name}}"
     },
-    "evaluated": "Verificado el",
+    "evaluated": "Revisado el",
     "detectionDetails": "Por qué lo sugerimos",
     "updating": "Actualizando…",
     "accept": "Usar los datos nuevos",

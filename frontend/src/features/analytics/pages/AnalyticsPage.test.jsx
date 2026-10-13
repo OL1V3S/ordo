@@ -203,14 +203,14 @@ describe("monthly spending insights page", () => {
   it("steps between available months with the picker and never requests a month outside the list", () => {
     useCashFlow.mockReturnValue(loadedCashFlow("2026-08", { availableMonths: ["2026-08", "2026-07", "2026-02"] }));
     renderPage();
-    expect(screen.getByRole("button", { name: "Later month with data" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Later month" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "This month" })).toBeDisabled();
-    fireEvent.click(screen.getByRole("button", { name: "Earlier month with data" }));
+    fireEvent.click(screen.getByRole("button", { name: "Earlier month" }));
     expect(useCashFlow).toHaveBeenLastCalledWith("2026-07");
-    fireEvent.click(screen.getByRole("button", { name: "Earlier month with data" }));
+    fireEvent.click(screen.getByRole("button", { name: "Earlier month" }));
     expect(useCashFlow).toHaveBeenLastCalledWith("2026-02");
-    expect(screen.getByRole("button", { name: "Earlier month with data" })).toBeDisabled();
-    fireEvent.click(screen.getByRole("button", { name: "Later month with data" }));
+    expect(screen.getByRole("button", { name: "Earlier month" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Later month" }));
     expect(useCashFlow).toHaveBeenLastCalledWith("2026-07");
     fireEvent.click(screen.getByRole("button", { name: "This month" }));
     expect(useCashFlow).toHaveBeenLastCalledWith("2026-08");

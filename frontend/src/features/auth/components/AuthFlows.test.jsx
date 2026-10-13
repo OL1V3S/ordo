@@ -107,7 +107,7 @@ describe('existing authentication flows', () => {
       response: {
         data: {
           code: 'confirmation_email_delivery_failed',
-          message: "Your account was created, but we couldn’t send the confirmation email.",
+          message: "Your account was created, but we couldn't send the confirmation email.",
         },
       },
     })

@@ -27,6 +27,10 @@ function flatCatalog(language) {
 const en = flatCatalog("en");
 const es = flatCatalog("es");
 
+// The Spanish "not saved" claim that an uncertain-save message must never make, anywhere in a
+// sentence (including at its end: "no se guardó.").
+const ES_NOT_SAVED = /no se guardó nada|no se guardó\b/i;
+
 // Placeholders and markup are not wording.
 const visible = (text) => text.replace(/\{\{[^}]*\}\}/g, " ").replace(/<\/?\w+>/g, " ");
 
@@ -178,7 +182,7 @@ describe("wording guard: core terms", () => {
 });
 
 describe("wording guard: no Spanish left in English", () => {
-  // The fixed set of keys whose Spanish value is legitimately identical to English:
+  // The fixed set of 13 keys whose Spanish value is legitimately identical to English:
   // interpolation-only templates, a proper noun, a separator, and the language autonyms.
   const IDENTICAL_ALLOWED = [
     "analytics:chart.tooltipValue",
@@ -189,13 +193,14 @@ describe("wording guard: no Spanish left in English", () => {
     "importPreview:source.sunflower",
     "importPreview:filters.option",
     "navigation:destinations.plan.label",
+    "paychecks:facts.linkedCount",
     "paychecks:format.scheduleMonthly",
     "paychecks:format.window",
     "settings:language.options.en",
     "settings:language.options.es",
   ];
 
-  it("translates every Spanish string except the fixed 12-key allowlist", () => {
+  it("translates every Spanish string except the fixed 13-key allowlist", () => {
     const identical = Object.keys(en).filter((key) => es[key] === en[key]);
     expect(identical.sort()).toEqual([...IDENTICAL_ALLOWED].sort());
   });
@@ -248,6 +253,19 @@ describe("wording guard: semantic anchors", () => {
     expect(es[key]).not.toMatch(/no se (?:import|guard)ó nada/i);
   });
 
+  it("never opens an uncertain-save refresh notice in Activity or Budgets as if the change took effect", () => {
+    const keys = [
+      "activity:cashIn.feedback.unknownChecked",
+      "activity:cashIn.feedback.refreshed",
+      "activity:spending.feedback.refreshed",
+      "budgets:feedback.refreshed",
+    ];
+    for (const key of keys) {
+      expect(es[key], key).not.toMatch(/^[^.]*\bactualizad[oa]s?\b/i);
+      expect(es[key], key).toMatch(/^Se volvi(?:ó|eron) a cargar /);
+    }
+  });
+
   it("never opens an uncertain-save paychecks notice as if the change took effect", () => {
     for (const key of ["paychecks:feedback.uncertainCreateLoaded", "paychecks:feedback.uncertainReceiptLoaded"]) {
       expect(en[key]).not.toMatch(/^\s*(?:paychecks\s+)?updated/i);
@@ -262,8 +280,15 @@ describe("wording guard: semantic anchors", () => {
     expect(keys.length).toBeGreaterThan(3);
     for (const key of keys) {
       expect(en[key], key).not.toMatch(/nothing was saved|wasn[’']t saved|was not saved/i);
-      expect(es[key], key).not.toMatch(/no se guardó nada|no se guardó\b(?!\.)/i);
+      expect(es[key], key).not.toMatch(ES_NOT_SAVED);
     }
+  });
+
+  it("catches an injected 'no se guardó' claim, including at the end of a sentence", () => {
+    expect("Revisa tu lista. Tu cambio no se guardó.").toMatch(ES_NOT_SAVED);
+    expect("Tu cambio no se guardó. Inténtalo de nuevo.").toMatch(ES_NOT_SAVED);
+    expect("No se guardó nada.").toMatch(ES_NOT_SAVED);
+    expect("Revisa si se guardó tu cambio antes de intentarlo de nuevo.").not.toMatch(ES_NOT_SAVED);
   });
 
   it("keeps unavailable data distinct from a zero limit in Budgets", () => {
