@@ -43,7 +43,7 @@ describe("ActivityTimeline", () => {
     expect(within(rows[0]).getByText("Expense")).toBeInTheDocument();
     expect(within(rows[0]).getByText("Corner coffee")).toBeInTheDocument();
     expect(within(rows[0]).getByText("−$12.34")).toBeInTheDocument();
-    expect(within(rows[0]).getByText(/food/)).toBeInTheDocument();
+    expect(within(rows[0]).getByText(/Food/)).toBeInTheDocument();
     expect(within(rows[0]).getByText("Sep 22, 2026").tagName).toBe("TIME");
     expect(within(rows[1]).getByText("Deposit")).toBeInTheDocument();
     expect(within(rows[1]).getByText("+$2,500.00")).toBeInTheDocument();
@@ -207,6 +207,27 @@ describe("ActivityTimeline", () => {
     expect(screen.getAllByRole("listitem")).toHaveLength(1);
   });
 
+  it("shows the localized label for stored category keys and a custom category exactly as stored", async () => {
+    const items = [
+      expense({ recordId: 1, category: "bills" }),
+      expense({ recordId: 2, category: "entertainment" }),
+      expense({ recordId: 3, category: "home repair" }),
+    ];
+    const { rerenderTimeline } = renderTimeline(state({ items }));
+    let rows = screen.getAllByRole("listitem");
+    expect(rows[0]).toHaveTextContent("· Bills");
+    expect(rows[1]).toHaveTextContent("· Entertainment");
+    expect(rows[2]).toHaveTextContent("· home repair");
+
+    await i18n.changeLanguage("es");
+    rerenderTimeline(state({ items }));
+    rows = screen.getAllByRole("listitem");
+    expect(rows[0]).toHaveTextContent("· Servicios");
+    expect(rows[1]).toHaveTextContent("· Entretenimiento");
+    expect(rows[2]).toHaveTextContent("· home repair");
+    expect(screen.queryByText(/bills|entertainment/)).not.toBeInTheDocument();
+  });
+
   it("renders Spanish labels and keeps user text and exact money unchanged", async () => {
     await i18n.changeLanguage("es");
     renderTimeline(state({ items: [expense(), inflow()], hasMore: true }));
@@ -216,7 +237,8 @@ describe("ActivityTimeline", () => {
     expect(within(rows[0]).getByText("Gasto")).toBeInTheDocument();
     expect(within(rows[0]).getByText("Corner coffee")).toBeInTheDocument();
     expect(within(rows[0]).getByText("−USD 12.34")).toBeInTheDocument();
-    expect(within(rows[0]).getByText(/food/)).toBeInTheDocument();
+    expect(within(rows[0]).getByText(/Comida/)).toBeInTheDocument();
+    expect(within(rows[0]).queryByText(/food/i)).not.toBeInTheDocument();
     expect(within(rows[1]).getByText("Depósito")).toBeInTheDocument();
     expect(within(rows[1]).getByText(/Vinculado a un pago de nómina/)).toBeInTheDocument();
     expect(within(rows[1]).getByText("+USD 2,500.00")).toBeInTheDocument();

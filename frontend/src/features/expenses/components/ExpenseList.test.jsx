@@ -1,10 +1,12 @@
-import { render, screen, within } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import ExpenseList from "./ExpenseList";
-import "../../../shared/localization/i18n";
+import i18n from "../../../shared/localization/i18n";
 
 const expense = { id: 7, description: "coffee", amount: 4.5, date: "2026-08-14", category: "food" };
+
+afterEach(async () => { await i18n.changeLanguage("en"); });
 
 describe("ExpenseList (read-only table)", () => {
   it("shows the empty text and no match/filter wording", () => {
@@ -27,6 +29,18 @@ describe("ExpenseList (read-only table)", () => {
     expect(screen.getByText("9,999,999,999,999,999.99")).toBeVisible();
     rerender(<ExpenseList expenses={[{ ...expense, amount: Number("9999999999999999") }]} />);
     expect(screen.getByText("Exact amount unavailable")).toBeVisible();
+  });
+
+  it("localizes a stored category key and keeps a custom category in its existing display form", async () => {
+    const rows = [{ ...expense, id: 1, category: "bills" }, { ...expense, id: 2, category: "home repair" }];
+    render(<ExpenseList expenses={rows} />);
+    expect(screen.getByText("Bills")).toBeVisible();
+    expect(screen.getByText("Home Repair")).toBeVisible();
+
+    await act(async () => { await i18n.changeLanguage("es"); });
+    expect(screen.getByText("Servicios")).toBeVisible();
+    expect(screen.queryByText("Bills")).not.toBeInTheDocument();
+    expect(screen.getByText("Home Repair")).toBeVisible();
   });
 
   it("renders every row in the order received (newest first from the backend)", () => {
