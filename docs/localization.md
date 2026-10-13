@@ -136,8 +136,8 @@ import/export them, but the runtime must not depend on a translation service.
 - Paychecks keeps `Mon D, YYYY` dates (English month abbreviations) and `$` amounts
   in both languages until formatters adopt the direction below. Day counts
   (`formatWindow`) are count-aware messages. Where the code passes no count, the label
-  carries the number instead of a `(s)` form: `Linked deposits: N`, `Days before: N`
-  (Spanish `Depósitos vinculados: N`, `Días antes: N`).
+  carries the number instead of a `(s)` form: `Days before: N`
+  (Spanish `Días antes: N`).
 - Budgets messages are keyed by outcome (`feedback.*`, `card.status.*`, `states.*`)
   and never by raw server text; the Budgets page shows no backend-provided message.
   The panel keeps a feedback catalog key in its state and resolves it when rendering,
