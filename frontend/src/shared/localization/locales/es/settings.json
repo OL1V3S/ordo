@@ -3,7 +3,7 @@
   "description": "Elige cómo se ve Ordo y qué idioma usa en este dispositivo.",
   "appearance": {
     "title": "Apariencia",
-    "helper": "La opción Sistema sigue la configuración de tu dispositivo. La opción Claro u Oscuro se guarda en este dispositivo."
+    "helper": "Sistema sigue tu dispositivo. Claro u Oscuro se guarda en este dispositivo."
   },
   "language": {
     "title": "Idioma",
@@ -16,6 +16,6 @@
   },
   "account": {
     "title": "Cuenta",
-    "signedInEmail": "Correo electrónico con el que iniciaste sesión"
+    "signedInEmail": "Correo con el que inicias sesión"
   }
 }

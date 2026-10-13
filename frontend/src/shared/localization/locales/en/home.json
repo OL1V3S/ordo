@@ -23,7 +23,7 @@
       "categoryPlaceholder": "Choose a category",
       "categories": { "food": "Food", "transport": "Transport", "bills": "Bills", "entertainment": "Entertainment", "other": "Other" },
       "customCategoryPlaceholder": "Custom category",
-      "amountInvalid": "Enter a positive amount with at most two decimals, up to 9999999999999999.99.",
+      "amountInvalid": "Enter an amount above zero with up to two decimals (maximum 9999999999999999.99).",
       "fieldsRequired": "Complete the required expense fields."
     },
     "cashIn": {
@@ -35,7 +35,7 @@
       "save": "Add deposit",
       "saving": "Saving…",
       "cancel": "Cancel",
-      "amountInvalid": "Enter a positive amount with at most two decimals, up to 9999999999999999.99.",
+      "amountInvalid": "Enter an amount above zero with up to two decimals (maximum 9999999999999999.99).",
       "descriptionInvalid": "Enter a description of 1 to 500 characters.",
       "dateInvalid": "Enter a valid calendar date.",
       "checkFields": "Check the highlighted fields."
@@ -61,8 +61,8 @@
     "empty": "No recent transactions to show.",
     "loading": "Loading recent transactions…",
     "unavailable": "Recent transactions are unavailable right now.",
-    "retry": "Retry Home",
-    "requestUnavailable": "Home could not be loaded. Try again.",
+    "retry": "Try again",
+    "requestUnavailable": "We couldn’t load Home. Try again.",
     "amountReview": "Exact amount unavailable",
     "dateUnknown": "Date unavailable"
   },
@@ -71,19 +71,19 @@
     "listLabel": "Items needing attention",
     "loading": "Loading attention items…",
     "empty": "Nothing needs your attention right now.",
-    "unavailable": "Attention items are unavailable right now.",
-    "homeUnavailable": "Attention items are unavailable because Home could not be loaded.",
-    "malformed": "Attention items could not be verified, so they are hidden.",
-    "partialUnavailable": "Some attention items could not be checked. Available items are shown.",
+    "unavailable": "These items aren’t available right now.",
+    "homeUnavailable": "These items aren’t available because Home couldn’t load.",
+    "malformed": "We couldn’t check these items, so they’re hidden.",
+    "partialUnavailable": "We couldn’t check some items. The rest are shown.",
     "openReviews": "Review recurring expenses",
     "openBudgets": "Open budgets",
     "openBudgetForCategory": "Open {{category}} budget",
-    "viewAll_one": "See all {{count}} review",
-    "viewAll_other": "See all {{count}} reviews",
+    "viewAll_one": "See the {{count}} item to review",
+    "viewAll_other": "See all {{count}} items to review",
     "reasonSeparator": "; ",
     "budgetStates": {
       "at_limit": "At limit: {{spent}} of {{limit}}.",
-      "over_limit": "Over limit: {{spent}} spent against {{limit}}.",
+      "over_limit": "Over limit: {{spent}} spent of {{limit}}.",
       "zero_limit_spending": "Spent {{spent}} with a zero limit."
     },
     "dimensions": {
@@ -114,20 +114,20 @@
     "homeUnavailable": "Upcoming paychecks aren’t available because Home couldn’t load.",
     "empty": "No upcoming paychecks to show.",
     "unavailable": "Upcoming paychecks aren’t available right now.",
-    "malformed": "We couldn’t verify the expected paychecks, so they’re hidden."
+    "malformed": "We couldn’t check the expected paychecks, so they’re hidden."
   },
   "recovery": {
     "heading": "Check the complete list of transactions",
-    "bodyExpense": "We couldn’t confirm whether your expense was saved. Home shows only a few recent transactions, so it cannot verify this write. Review all expenses in Transactions before deciding whether to try again.",
-    "bodyCashIn": "We couldn’t confirm whether your deposit was saved. Home shows only a few recent transactions, so it cannot verify this write. Review all deposits in Transactions before deciding whether to try again.",
+    "bodyExpense": "We couldn’t confirm whether your expense was saved. Home shows only a few recent transactions, so it can’t tell. Check all your expenses in Transactions before trying again.",
+    "bodyCashIn": "We couldn’t confirm whether your deposit was saved. Home shows only a few recent transactions, so it can’t tell. Check all your deposits in Transactions before trying again.",
     "openActivity": "Open Transactions to check",
-    "activityBannerExpense": "An expense save could not be confirmed. Review the complete expense list below. Do not retry until you have checked it.",
-    "activityBannerCashIn": "A deposit save could not be confirmed. Review the complete deposits list below. Do not retry until you have checked it.",
+    "activityBannerExpense": "We couldn’t confirm whether your expense was saved. Check the full list of expenses below before trying again.",
+    "activityBannerCashIn": "We couldn’t confirm whether your deposit was saved. Check the full list of deposits below before trying again.",
     "loadingList": "Loading the complete list…",
-    "listUnavailable": "The complete list could not be loaded. Retry before acknowledging this check.",
-    "retryList": "Retry full list",
+    "listUnavailable": "We couldn’t load the full list. Try again before you confirm you checked it.",
+    "retryList": "Try loading the full list again",
     "acknowledge": "I checked the complete list",
-    "acknowledged": "Check acknowledged. Ordo did not determine whether the entry was saved; decide whether to retry based on the records above.",
+    "acknowledged": "Thanks. Ordo can’t tell whether it was saved. If it isn’t in the list above, you can add it again.",
     "storageVolatile": "Keep this tab open until you’ve checked Transactions. This browser couldn’t save a reminder."
   }
 }
