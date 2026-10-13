@@ -8,7 +8,7 @@
     "activity": { "label": "Transactions" },
     "budgets": {
       "label": "Budgets",
-      "description": "Set and review monthly category limits."
+      "description": "Set a monthly spending limit for each category."
     },
     "insights": { "label": "Reports" },
     "commitments": {
@@ -21,11 +21,11 @@
     },
     "investing": {
       "label": "Investing",
-      "description": "Planned for a future release."
+      "description": "Not available yet."
     },
     "settings": {
       "label": "Settings",
-      "description": "Choose your theme and review your signed-in email."
+      "description": "Theme, language, and your account."
     },
     "plan": { "label": "Plan" },
     "more": { "label": "More" }
@@ -36,8 +36,8 @@
     },
     "more": {
       "title": "More",
-      "description": "Settings and other secondary tools.",
-      "ariaLabel": "More destinations",
+      "description": "Settings and other options.",
+      "ariaLabel": "More pages",
       "unavailable": "Unavailable"
     }
   }

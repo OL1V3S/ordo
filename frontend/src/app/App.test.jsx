@@ -581,7 +581,7 @@ describe('application routes and shell', () => {
     vi.stubGlobal('fetch', fetchSpy)
     localStorage.setItem('token', 'jwt-value')
     renderAt('/investing')
-    expect(screen.getByRole('heading', { name: 'No investment source connected' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'No investment account connected' })).toBeInTheDocument()
     await waitFor(() => expect(fetchSpy).not.toHaveBeenCalled())
   })
 

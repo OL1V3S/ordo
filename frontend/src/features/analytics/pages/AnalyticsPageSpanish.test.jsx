@@ -69,7 +69,7 @@ describe("Analytics page in Spanish", () => {
     expect(screen.getByRole("button", { name: "Mes siguiente con datos" })).toBeInTheDocument();
     expect(screen.getByText("Estado de los presupuestos")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Abrir presupuestos" })).toHaveAttribute("href", "/budgets");
-    expect(screen.getByRole("button", { name: "Actualizar flujo de efectivo" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Actualizar depósitos y gastos" })).toBeInTheDocument();
     const summary = screen.getByRole("heading", { name: "Depósitos y gastos que registraste" }).closest("section");
     expect(summary).toHaveTextContent("agosto de 2026");
     expect(summary).toHaveTextContent("Hasta el 14 de agosto de 2026");
@@ -79,7 +79,7 @@ describe("Analytics page in Spanish", () => {
     expect(rows[0]).toHaveTextContent("USD 90.00 · 90.0%");
     expect(screen.getByTestId("cash-flow-chart")).toBeInTheDocument();
     expect(screen.queryByText("Reports")).not.toBeInTheDocument();
-    expect(screen.queryByText("Refresh cash flow")).not.toBeInTheDocument();
+    expect(screen.queryByText("Refresh deposits and spending")).not.toBeInTheDocument();
   });
 
   it("follows the selected month and a language change at runtime", async () => {
@@ -98,7 +98,7 @@ describe("Analytics page in Spanish", () => {
 
   it("renders month comparison with the previous month name, and largest expenses", () => {
     renderPage();
-    const comparison = openDetail("Cambio de un mes a otro");
+    const comparison = openDetail("Cambio respecto al mes anterior");
     expect(comparison).toHaveTextContent("Comparado con julio de 2026");
     expect(comparison).toHaveTextContent("+USD 25.00");
     expect(comparison).toHaveTextContent("Mayores aumentos");
@@ -108,7 +108,7 @@ describe("Analytics page in Spanish", () => {
     const largest = openDetail("Gastos más grandes");
     expect(largest).toHaveTextContent("Los cinco principales");
     expect(largest).toHaveTextContent("Groceries");
-    expect(within(largest).getByRole("link", { name: "Revisar movimientos" })).toHaveAttribute("href", "/transactions");
+    expect(within(largest).getByRole("link", { name: "Ver movimientos" })).toHaveAttribute("href", "/transactions");
   });
 
   it("labels the comparison month as the Spanish name of the previous month across a year boundary", () => {
@@ -116,7 +116,7 @@ describe("Analytics page in Spanish", () => {
     vi.setSystemTime(new Date(2026, 0, 14, 12, 0, 0));
     renderPage();
     fireEvent.change(screen.getByLabelText("Mes"), { target: { value: "2026-01" } });
-    expect(openDetail("Cambio de un mes a otro")).toHaveTextContent("Comparado con diciembre de 2025");
+    expect(openDetail("Cambio respecto al mes anterior")).toHaveTextContent("Comparado con diciembre de 2025");
   });
 
   it("keeps an unavailable exact figure distinct from a recorded zero", () => {
@@ -128,13 +128,13 @@ describe("Analytics page in Spanish", () => {
       loading: false, error: null, refresh: refreshExpenses,
     });
     renderPage();
-    expect(screen.getByText("No se pudieron verificar con exactitud algunos montos de gastos. Las comparaciones de gastos afectadas no están disponibles."))
+    expect(screen.getByText("Los montos exactos de algunos gastos no están disponibles, así que no se pueden mostrar algunas comparaciones."))
       .toBeInTheDocument();
-    expect(openDetail("Cambio de un mes a otro")).toHaveTextContent("La comparación exacta de un mes a otro no está disponible.");
+    expect(openDetail("Cambio respecto al mes anterior")).toHaveTextContent("La comparación exacta con el mes anterior no está disponible.");
     expect(screen.queryByText("Ninguno de los dos meses tiene gastos registrados.")).not.toBeInTheDocument();
     const largest = openDetail("Gastos más grandes");
-    expect(largest).toHaveTextContent("La clasificación exacta de los gastos más grandes no está disponible porque no se pudo verificar un monto.");
-    expect(largest).not.toHaveTextContent("No hay gastos para clasificar este mes.");
+    expect(largest).toHaveTextContent("El orden exacto de tus gastos más grandes no está disponible porque no pudimos verificar un monto.");
+    expect(largest).not.toHaveTextContent("No hay gastos para mostrar este mes.");
   });
 
   it("shows honest Spanish empty states for a month without expenses or limits", () => {
@@ -143,12 +143,12 @@ describe("Analytics page in Spanish", () => {
     useCashFlow.mockReturnValue(loadedCashFlow("2026-08", { data: empty }));
     useExpenses.mockReturnValue({ expenses: [], loading: false, error: null, refresh: refreshExpenses });
     renderPage();
-    expect(openDetail("Cambio de un mes a otro")).toHaveTextContent("USD 0.00");
+    expect(openDetail("Cambio respecto al mes anterior")).toHaveTextContent("USD 0.00");
     openDetail("Gastos más grandes");
     expect(screen.getAllByText("No hay gastos registrados").length).toBeGreaterThan(0);
     expect(screen.getByText("No hay depósitos registrados")).toBeInTheDocument();
     expect(screen.getByText("No hay cambios de categoría para mostrar entre estos meses.")).toBeInTheDocument();
-    expect(screen.getByText("No hay gastos para clasificar este mes.")).toBeInTheDocument();
+    expect(screen.getByText("No hay gastos para mostrar este mes.")).toBeInTheDocument();
     expect(screen.getByText("Ninguno de los dos meses tiene gastos registrados.")).toBeInTheDocument();
   });
 
@@ -156,20 +156,20 @@ describe("Analytics page in Spanish", () => {
     useCashFlow.mockReturnValue(loadedCashFlow("2026-08", { data: null, loading: true }));
     const { rerender } = renderPage();
     expect(screen.getByRole("region", { name: "Depósitos y gastos" })).toHaveAttribute("aria-busy", "true");
-    expect(screen.getByText("Cargando depósitos y gastos...")).toHaveAttribute("role", "status");
+    expect(screen.getByText("Cargando depósitos y gastos…")).toHaveAttribute("role", "status");
     useCashFlow.mockReturnValue(loadedCashFlow("2026-08", {
       data: null, error: i18n.t("cashFlow.errors.loadFailed", { ns: "analytics" }),
     }));
     rerender(<MemoryRouter><AnalyticsPage /></MemoryRouter>);
     expect(screen.getByRole("alert")).toHaveTextContent("No pudimos cargar los depósitos y gastos. Inténtalo de nuevo.");
-    fireEvent.click(screen.getByRole("button", { name: "Reintentar flujo de efectivo" }));
+    fireEvent.click(screen.getByRole("button", { name: "Intentar cargar los depósitos y gastos de nuevo" }));
     expect(refreshCashFlow).toHaveBeenCalledOnce();
   });
 
   it("renders the spending loading and error states in Spanish in the status area", () => {
     useExpenses.mockReturnValue({ expenses: [], loading: true, error: null, refresh: refreshExpenses });
     const { rerender } = renderPage();
-    expect(screen.getByText("Cargando el reporte de gastos...")).toBeInTheDocument();
+    expect(screen.getByText("Cargando el reporte de gastos…")).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "Más detalle de gastos" })).toBeInTheDocument();
 
     useExpenses.mockReturnValue({ expenses: [], loading: false, error: new Error("failed"), refresh: refreshExpenses });

@@ -105,7 +105,7 @@
   "saved": {
     "heading": "Your recurring expenses",
     "activeGroup": "Active recurring expenses",
-    "emptyNone": "No recurring expenses yet.",
+    "emptyNone": "No recurring expenses yet. Confirm a possible one to add it.",
     "emptyNoActive": "No active recurring expenses.",
     "expectedAmount": "Expected amount",
     "details": "Details",
@@ -193,7 +193,7 @@
     "intro": "We noticed these changes in your recent expenses. Nothing changes until you choose, and your choice applies only to this change.",
     "emptyPending": "No recurring expense changes to review.",
     "reviewedHeading": "Reviewed changes",
-    "reviewedIntro": "You kept the saved details for these changes. Use Review again to look at one again.",
+    "reviewedIntro": "You kept the saved details for these exact changes. Use Review again to look at one again.",
     "reviewedLocked": "Finish reviewing this change again before you close the reviewed changes.",
     "emptyReviewed": "No reviewed changes.",
     "eyebrowPending": "To review",

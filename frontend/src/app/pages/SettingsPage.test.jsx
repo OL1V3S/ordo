@@ -25,7 +25,7 @@ describe('Settings supported account and appearance behavior', () => {
       'Language',
       'Account',
     ])
-    expect(screen.getByText('Signed-in email').tagName).toBe('DT')
+    expect(screen.getByText('Email you sign in with').tagName).toBe('DT')
   })
 
   it('uses the existing theme preference and persistence behavior', async () => {
@@ -50,7 +50,7 @@ describe('Settings supported account and appearance behavior', () => {
 
     expect(within(screen.getByRole('region', { name: 'Appearance' })).getByRole('combobox', { name: 'Theme preference' })).toBeInTheDocument()
     expect(within(screen.getByRole('region', { name: 'Language' })).getByRole('combobox', { name: 'Language preference' })).toBeInTheDocument()
-    expect(within(screen.getByRole('region', { name: 'Account' })).getByText('Signed-in email').tagName).toBe('DT')
+    expect(within(screen.getByRole('region', { name: 'Account' })).getByText('Email you sign in with').tagName).toBe('DT')
     expect(container.querySelector('.card')).toBeNull()
   })
 

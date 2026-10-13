@@ -168,7 +168,7 @@ describe('import review summary, filters and bar', () => {
       { ...dep, selectedForInflow: true },
     ]
     const { container } = render(<ImportPreviewPanel importState={importState({ preview: previewWith(rows) })} />)
-    const bar = screen.getByRole('group', { name: 'Import selected' })
+    const bar = screen.getByRole('group', { name: 'Rows to import' })
     expect(within(bar).getByText('Expenses to save: 2 · $0.30')).toBeInTheDocument()
     expect(within(bar).getByText('Deposits to save: 1 · $100.00')).toBeInTheDocument()
     expect(within(bar).getByText('2 expenses and 1 deposit', { selector: 'strong' })).toBeInTheDocument()
@@ -426,7 +426,7 @@ describe('import review in Spanish', () => {
     expect(screen.getByText('Mostrando 5 de 5 filas')).toBeInTheDocument()
     expect(screen.getByText(/^Gastos por guardar: 1 · USD\s1,234\.50$/)).toBeInTheDocument()
     expect(screen.getByText(/^Depósitos por guardar: 0 · USD\s0\.00$/)).toBeInTheDocument()
-    expect(screen.getByRole('group', { name: 'Importar seleccionados' })).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: 'Filas por importar' })).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: /^Seleccionar todos los gastos que se pueden importar \(1\)/ }))
     expect(await screen.findByText('Se seleccionó 1 gasto.')).toBeInTheDocument()

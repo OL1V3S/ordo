@@ -21,7 +21,7 @@ describe("cash-flow components in Spanish", () => {
     const card = screen.getByRole("region", { name: "Depósitos y gastos que registraste" });
     expect(card).toHaveTextContent("agosto de 2026");
     expect(card).toHaveTextContent("Hasta el 14 de agosto de 2026");
-    expect(card).toHaveTextContent("Basado en tus transacciones registradas.");
+    expect(card).toHaveTextContent("Basado en tus movimientos registrados.");
     expect(card).toHaveTextContent("DepósitosUSD 150.00");
     expect(card).toHaveTextContent("GastadoUSD 300.00");
     expect(within(card).getByRole("heading", { name: "Depósitos menos gastos" })).toBeInTheDocument();
@@ -40,13 +40,13 @@ describe("cash-flow components in Spanish", () => {
     expect(disclosure).toHaveTextContent("no es un saldo de la cuenta, ahorros ni dinero disponible para gastar");
     expect(disclosure).toHaveTextContent("incluidos los activos, en pausa y finalizados");
     expect(disclosure).toHaveTextContent("un depósito no se cuenta como ingreso");
-    expect(disclosure).toHaveTextContent("los pagos de nómina esperados, los gastos recurrentes esperados y las vistas previas de importación sin guardar no se suman a estas cifras");
+    expect(disclosure).toHaveTextContent("No se incluyen los presupuestos, los pagos de nómina esperados, los gastos recurrentes esperados ni las vistas previas de importación sin guardar");
     expect(disclosure).toHaveTextContent("Gastado como porcentaje de los depósitos66.7%");
     expect(disclosure).toHaveTextContent("Depósitos registrados3 (vinculados a un calendario de nómina: 2, otros: 1)");
     expect(disclosure).toHaveTextContent("Gastos registrados2");
     expect(disclosure).toHaveTextContent("Calendarios de nómina con depósitos vinculados1");
     expect(disclosure).toHaveTextContent("Depósitos vinculados editados después de vincularlos1");
-    expect(disclosure).toHaveTextContent("los porcentajes redondeados no sumen 100.0%");
+    expect(disclosure).toHaveTextContent("los porcentajes redondeados pueden no sumar 100.0%");
   });
 
   it("omits the through-date note for a past month and shows it as a Spanish month label", () => {
@@ -81,7 +81,7 @@ describe("cash-flow components in Spanish", () => {
   it("gives the chart Spanish dataset labels, month ticks, tooltips, and axis, with the currency code unchanged", () => {
     render(<CashFlowTrendChart data={cashFlowFixture()} />);
     expect(renderedChart.data.labels).toEqual([
-      ["mar", "2026"], ["abr", "2026"], ["may", "2026"], ["jun", "2026"], ["jul", "2026"], ["ago", "2026", "Acum."],
+      ["mar", "2026"], ["abr", "2026"], ["may", "2026"], ["jun", "2026"], ["jul", "2026"], ["ago", "2026", "A la fecha"],
     ]);
     expect(renderedChart.data.datasets.map(({ label }) => label))
       .toEqual(["Pagos de nómina confirmados", "Otros depósitos", "Gastado"]);
@@ -110,12 +110,12 @@ describe("cash-flow components in Spanish", () => {
     const region = screen.getByRole("region", { name: "Depósitos y gastos a lo largo del tiempo" });
     expect(region).toHaveTextContent("Seis meses calendario");
     expect(within(region).getByRole("list", { name: "Leyenda del gráfico" })).toHaveTextContent("Pagos de nómina confirmadosOtros depósitosGastado");
-    expect(screen.getByText("Acum.: acumulado del mes hasta la fecha")).toBeInTheDocument();
+    expect(screen.getByText("A la fecha: este mes hasta hoy")).toBeInTheDocument();
     const disclosure = screen.getByText("Ver datos del gráfico").closest("details");
     const table = within(disclosure).getByRole("table", { hidden: true });
-    expect(within(table).getByText("Flujo de efectivo mensual registrado en dólares estadounidenses")).toBeInTheDocument();
+    expect(within(table).getByText("Depósitos y gastos por mes, en dólares estadounidenses")).toBeInTheDocument();
     const rows = within(table).getAllByRole("row", { hidden: true });
-    expect(rows[0]).toHaveTextContent("MesDepósitosPagos de nómina confirmadosOtros depósitosGastadoDepósitos menos gastosNota del período");
+    expect(rows[0]).toHaveTextContent("MesDepósitosPagos de nómina confirmadosOtros depósitosGastadoDepósitos menos gastosNota del periodo");
     expect(rows[1]).toHaveTextContent("marzo de 2026USD 0.00USD 0.00USD 0.00USD 0.00USD 0.00No hay depósitos registrados · No hay gastos registrados");
     expect(rows[6]).toHaveTextContent("agosto de 2026USD 150.00USD 120.00USD 30.00USD 100.00+USD 50.00Hasta el 14 de agosto de 2026");
   });

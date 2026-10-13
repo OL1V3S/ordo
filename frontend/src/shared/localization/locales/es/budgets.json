@@ -16,15 +16,15 @@
     "addHeading": "Agregar presupuesto por categoría",
     "editHeading": "Editar presupuesto de {{category}}",
     "forMonth": "Para {{month}}",
-    "validation": "Elige una categoría e ingresa un monto límite.",
+    "validation": "Elige una categoría e ingresa un límite mensual.",
     "details": "Detalles del presupuesto",
     "category": "Categoría",
     "categoryPlaceholder": "Categoría",
     "customCategory": "Categoría personalizada",
     "customCategoryPlaceholder": "Categoría personalizada",
-    "limitAmount": "Monto límite",
-    "editLimitAmount": "Monto límite de {{category}}",
-    "limitAmountPlaceholder": "Monto límite",
+    "limitAmount": "Límite mensual",
+    "editLimitAmount": "Límite mensual de {{category}}",
+    "limitAmountPlaceholder": "Límite mensual",
     "save": "Guardar límite",
     "saving": "Guardando…",
     "cancel": "Cancelar"
@@ -42,18 +42,18 @@
   },
   "states": {
     "chooseMonth": "Elige un mes para ver los presupuestos de tus categorías.",
-    "loadingLimits": "Cargando límites de presupuesto...",
+    "loadingLimits": "Cargando límites de presupuesto…",
     "limitsError": "No pudimos cargar los límites de presupuesto de {{month}}. Actualiza los límites para intentarlo de nuevo.",
-    "loadingSpending": "Cargando gastos registrados...",
+    "loadingSpending": "Cargando gastos registrados…",
     "spendingError": "No pudimos cargar los gastos registrados. Los montos usados y el progreso no están disponibles.",
-    "retrySpending": "Reintentar gastos",
-    "empty": "No hay límites de presupuesto definidos para este mes."
+    "retrySpending": "Intentar cargar los gastos de nuevo",
+    "empty": "Aún no hay límites de presupuesto para este mes. Agrega un presupuesto por categoría para definir uno."
   },
   "feedback": {
     "saved": "Límite de presupuesto guardado.",
-    "savedRefreshFailed": "Límite de presupuesto guardado. No se pudieron actualizar los límites de presupuesto. Actualiza los límites antes de hacer otro cambio.",
+    "savedRefreshFailed": "Límite de presupuesto guardado. No pudimos actualizar los límites. Actualiza los límites antes de hacer otro cambio.",
     "deleted": "Límite de presupuesto eliminado.",
-    "deletedRefreshFailed": "Límite de presupuesto eliminado. No se pudieron actualizar los límites de presupuesto. Actualiza los límites antes de hacer otro cambio.",
+    "deletedRefreshFailed": "Límite de presupuesto eliminado. No pudimos actualizar los límites. Actualiza los límites antes de hacer otro cambio.",
     "unconfirmed": "No pudimos confirmar el cambio. Actualiza los límites y revisa los presupuestos guardados antes de intentarlo de nuevo.",
     "refreshed": "Límites de presupuesto actualizados. Revisa los límites guardados antes de volver a intentar tu cambio."
   },
@@ -85,7 +85,7 @@
   },
   "explanation": {
     "summary": "Acerca de los límites mensuales",
-    "reset": "Próximo reinicio: {{date}}. Cada límite se aplica a su mes calendario seleccionado.",
+    "reset": "Los límites empiezan de nuevo el {{date}}. Cada límite cubre un mes calendario.",
     "zeroLimit": "Un límite en cero es un presupuesto intencional sin gastos. Es diferente a no tener un presupuesto para una categoría."
   }
 }

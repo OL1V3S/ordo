@@ -23,7 +23,7 @@
       "categoryPlaceholder": "Elige una categoría",
       "categories": { "food": "Comida", "transport": "Transporte", "bills": "Servicios", "entertainment": "Entretenimiento", "other": "Otra" },
       "customCategoryPlaceholder": "Categoría personalizada",
-      "amountInvalid": "Ingresa un monto positivo con hasta dos decimales, hasta 9999999999999999.99.",
+      "amountInvalid": "Ingresa un monto mayor que cero, con hasta dos decimales (máximo 9999999999999999.99).",
       "fieldsRequired": "Completa los campos obligatorios del gasto."
     },
     "cashIn": {
@@ -35,7 +35,7 @@
       "save": "Agregar depósito",
       "saving": "Guardando…",
       "cancel": "Cancelar",
-      "amountInvalid": "Ingresa un monto positivo con hasta dos decimales, hasta 9999999999999999.99.",
+      "amountInvalid": "Ingresa un monto mayor que cero, con hasta dos decimales (máximo 9999999999999999.99).",
       "descriptionInvalid": "Ingresa una descripción de 1 a 500 caracteres.",
       "dateInvalid": "Ingresa una fecha válida.",
       "checkFields": "Revisa los campos marcados."
@@ -61,8 +61,8 @@
     "empty": "No hay movimientos recientes para mostrar.",
     "loading": "Cargando movimientos recientes…",
     "unavailable": "Los movimientos recientes no están disponibles en este momento.",
-    "retry": "Reintentar Inicio",
-    "requestUnavailable": "No se pudo cargar Inicio. Inténtalo de nuevo.",
+    "retry": "Intentar de nuevo",
+    "requestUnavailable": "No pudimos cargar Inicio. Inténtalo de nuevo.",
     "amountReview": "Monto exacto no disponible",
     "dateUnknown": "Fecha no disponible"
   },
@@ -71,19 +71,19 @@
     "listLabel": "Elementos que requieren atención",
     "loading": "Cargando elementos de atención…",
     "empty": "Nada requiere tu atención en este momento.",
-    "unavailable": "Los elementos de atención no están disponibles en este momento.",
-    "homeUnavailable": "Los elementos de atención no están disponibles porque no se pudo cargar Inicio.",
-    "malformed": "No pudimos verificar los elementos de atención, así que no se muestran.",
-    "partialUnavailable": "No se pudieron revisar algunos elementos. Se muestran los que están disponibles.",
+    "unavailable": "Estos elementos no están disponibles en este momento.",
+    "homeUnavailable": "Estos elementos no están disponibles porque no se pudo cargar Inicio.",
+    "malformed": "No pudimos revisar estos elementos, así que no se muestran.",
+    "partialUnavailable": "No pudimos revisar algunos elementos. Se muestran los demás.",
     "openReviews": "Revisar gastos recurrentes",
     "openBudgets": "Abrir presupuestos",
     "openBudgetForCategory": "Abrir el presupuesto de {{category}}",
-    "viewAll_one": "Ver {{count}} revisión",
-    "viewAll_other": "Ver las {{count}} revisiones",
+    "viewAll_one": "Ver el {{count}} elemento por revisar",
+    "viewAll_other": "Ver los {{count}} elementos por revisar",
     "reasonSeparator": "; ",
     "budgetStates": {
       "at_limit": "En el límite: {{spent}} de {{limit}}.",
-      "over_limit": "Por encima del límite: se gastaron {{spent}} de {{limit}}.",
+      "over_limit": "Pasaste el límite: gastaste {{spent}} de {{limit}}.",
       "zero_limit_spending": "Gastaste {{spent}} con un límite en cero."
     },
     "dimensions": {
@@ -114,20 +114,20 @@
     "homeUnavailable": "Los próximos pagos de nómina no están disponibles porque no se pudo cargar Inicio.",
     "empty": "No hay próximos pagos de nómina para mostrar.",
     "unavailable": "Los próximos pagos de nómina no están disponibles en este momento.",
-    "malformed": "No pudimos verificar los pagos de nómina esperados, así que no se muestran."
+    "malformed": "No pudimos revisar los pagos de nómina esperados, así que no se muestran."
   },
   "recovery": {
     "heading": "Revisa la lista completa de movimientos",
-    "bodyExpense": "No pudimos confirmar si se guardó el gasto. Inicio solo muestra algunos movimientos recientes y no puede verificarlo. Revisa todos los gastos en Movimientos antes de decidir si lo intentas de nuevo.",
-    "bodyCashIn": "No pudimos confirmar si se guardó el depósito. Inicio solo muestra algunos movimientos recientes y no puede verificarlo. Revisa todos los depósitos en Movimientos antes de decidir si lo intentas de nuevo.",
+    "bodyExpense": "No pudimos confirmar si se guardó tu gasto. Inicio solo muestra algunos movimientos recientes y no puede saberlo. Revisa todos tus gastos en Movimientos antes de intentarlo de nuevo.",
+    "bodyCashIn": "No pudimos confirmar si se guardó tu depósito. Inicio solo muestra algunos movimientos recientes y no puede saberlo. Revisa todos tus depósitos en Movimientos antes de intentarlo de nuevo.",
     "openActivity": "Abrir Movimientos para revisar",
-    "activityBannerExpense": "No se pudo confirmar el guardado del gasto. Revisa la lista completa de gastos a continuación. No lo intentes de nuevo hasta revisarla.",
-    "activityBannerCashIn": "No se pudo confirmar el guardado del depósito. Revisa la lista completa de depósitos a continuación. No lo intentes de nuevo hasta revisarla.",
+    "activityBannerExpense": "No pudimos confirmar si se guardó tu gasto. Revisa la lista completa de gastos de abajo antes de intentarlo de nuevo.",
+    "activityBannerCashIn": "No pudimos confirmar si se guardó tu depósito. Revisa la lista completa de depósitos de abajo antes de intentarlo de nuevo.",
     "loadingList": "Cargando la lista completa…",
-    "listUnavailable": "No se pudo cargar la lista completa. Reintenta antes de confirmar que la revisaste.",
-    "retryList": "Reintentar lista completa",
+    "listUnavailable": "No pudimos cargar la lista completa. Inténtalo de nuevo antes de confirmar que la revisaste.",
+    "retryList": "Intentar cargar la lista completa de nuevo",
     "acknowledge": "Ya revisé la lista completa",
-    "acknowledged": "Revisión confirmada. Ordo no determinó si el registro se guardó; decide si debes intentarlo de nuevo según los registros anteriores.",
+    "acknowledged": "Gracias. Ordo no puede saber si se guardó. Si no está en la lista de arriba, puedes agregarlo de nuevo.",
     "storageVolatile": "Deja esta pestaña abierta hasta revisar Movimientos. Este navegador no pudo guardar un recordatorio."
   }
 }

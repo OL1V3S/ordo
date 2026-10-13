@@ -1,29 +1,29 @@
 {
   "title": "Investing",
-  "description": "A future home for investment information from sources you may choose.",
+  "description": "Investment information from sources you choose. Planned for later.",
   "status": {
-    "label": "Unavailable today",
-    "title": "No investment source connected",
-    "body": "No portfolio, brokerage, signal provider, market-data source, or other investment integration is connected. No investment data is being fetched, imported, inferred, or evaluated."
+    "label": "Not available yet",
+    "title": "No investment account connected",
+    "body": "Investing isn’t available yet. Ordo isn’t connected to any investment account and doesn’t read investment data."
   },
   "capabilities": {
-    "title": "Planned capability areas",
+    "title": "What may come later",
     "status": "Not available",
     "connections": {
       "title": "Connections",
-      "body": "Future sources would require a source-specific adapter and a normalized application contract. No provider is supported today."
+      "body": "Connecting investment accounts isn’t available yet. No provider is supported today."
     },
     "portfolio": {
-      "title": "Portfolio and positions",
-      "body": "No portfolio values, holdings, or positions are available without a real source supplying them."
+      "title": "Portfolio and holdings",
+      "body": "Ordo can’t show portfolio values or holdings because no source is connected."
     },
     "signals": {
       "title": "Signals",
-      "body": "No investment signals, recommendations, or trading guidance are generated."
+      "body": "Ordo doesn’t give investment signals, recommendations, or trading advice."
     },
     "activity": {
       "title": "Activity and performance",
-      "body": "No investment activity or performance information is available to report."
+      "body": "There’s no investment activity or performance to show."
     }
   }
 }

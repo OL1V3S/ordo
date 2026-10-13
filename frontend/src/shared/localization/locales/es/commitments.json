@@ -105,7 +105,7 @@
   "saved": {
     "heading": "Tus gastos recurrentes",
     "activeGroup": "Gastos recurrentes activos",
-    "emptyNone": "Aún no hay gastos recurrentes.",
+    "emptyNone": "Aún no hay gastos recurrentes. Confirma uno posible para agregarlo.",
     "emptyNoActive": "No hay gastos recurrentes activos.",
     "expectedAmount": "Monto esperado",
     "details": "Detalles",
@@ -193,7 +193,7 @@
     "intro": "Notamos estos cambios en tus gastos recientes. Nada cambia hasta que elijas, y tu elección aplica solo a este cambio.",
     "emptyPending": "No hay cambios de gastos recurrentes por revisar.",
     "reviewedHeading": "Cambios revisados",
-    "reviewedIntro": "Mantuviste lo guardado en estos cambios. Usa Volver a revisar si quieres verlo de nuevo.",
+    "reviewedIntro": "Mantuviste lo guardado en estos cambios exactos. Usa Volver a revisar si quieres verlo de nuevo.",
     "reviewedLocked": "Termina de revisar este cambio otra vez antes de cerrar los cambios revisados.",
     "emptyReviewed": "No hay cambios revisados.",
     "eyebrowPending": "Por revisar",

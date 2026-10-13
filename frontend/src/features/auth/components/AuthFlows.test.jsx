@@ -77,7 +77,7 @@ describe('existing authentication flows', () => {
     await user.type(screen.getByLabelText('Password'), 'Synthetic1!')
     await user.click(screen.getByRole('button', { name: 'Sign in' }))
     const error = await screen.findByRole('alert')
-    expect(error).toHaveTextContent('Invalid email or password')
+    expect(error).toHaveTextContent('Incorrect email or password')
     expect(error).toHaveFocus()
     expect(alert).not.toHaveBeenCalled()
     expect(onLogin).not.toHaveBeenCalled()
@@ -96,7 +96,7 @@ describe('existing authentication flows', () => {
     await user.type(screen.getByLabelText('Password'), 'Synthetic1!')
     await user.click(screen.getByRole('button', { name: 'Sign in' }))
     const error = await screen.findByRole('alert')
-    expect(error).toHaveTextContent('Unable to sign in right now. Please try again.')
+    expect(error).toHaveTextContent('We couldn’t sign you in. Try again.')
     expect(error).not.toHaveTextContent('invalid email or password')
     log.mockRestore()
   })
@@ -107,7 +107,7 @@ describe('existing authentication flows', () => {
       response: {
         data: {
           code: 'confirmation_email_delivery_failed',
-          message: "Your account was created, but we couldn't send the confirmation email.",
+          message: "Your account was created, but we couldn’t send the confirmation email.",
         },
       },
     })
@@ -118,16 +118,16 @@ describe('existing authentication flows', () => {
     await user.click(screen.getByRole('button', { name: 'Need an account? Create one' }))
     expect(screen.getByRole('heading', { name: 'Create account', level: 1 })).toHaveFocus()
     expect(screen.getByText('Confirm password', { selector: 'label' })).toBeVisible()
-    expect(screen.getByLabelText('Confirm password')).toBe(screen.getByPlaceholderText('Confirm Password'))
+    expect(screen.getByLabelText('Confirm password')).toBe(screen.getByPlaceholderText('Confirm password'))
     await user.type(screen.getByPlaceholderText('Email'), 'person@example.com')
     await user.type(screen.getByPlaceholderText('Password'), 'Secret1!')
-    await user.type(screen.getByPlaceholderText('Confirm Password'), 'Secret1!')
+    await user.type(screen.getByPlaceholderText('Confirm password'), 'Secret1!')
     await user.click(screen.getByRole('button', { name: 'Create account' }))
 
     expect(await screen.findByRole('heading', { name: 'Check your email', level: 1 })).toBeInTheDocument()
-    expect(screen.getByRole('status')).toHaveTextContent("Your account was created, but we couldn't send the confirmation email.")
+    expect(screen.getByRole('status')).toHaveTextContent("Your account was created, but we couldn’t send the confirmation email.")
     await user.click(screen.getByRole('button', { name: 'Resend confirmation email' }))
-    expect(await screen.findByRole('alert')).toHaveTextContent('Too many requests. Please wait before trying again.')
+    expect(await screen.findByRole('alert')).toHaveTextContent('Too many requests. Wait a moment, then try again.')
   })
 
   it('renders an email with special characters intact in the check-email view', async () => {
@@ -147,7 +147,7 @@ describe('existing authentication flows', () => {
     authApi.confirmEmail.mockResolvedValue({ data: { message: 'ok' } })
     renderAt(<ConfirmEmailPage />, '/confirm-email?userId=user-123&token=a%2Bb_c')
 
-    expect(screen.getByRole('heading', { name: 'Confirming email', level: 1 })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Confirming your email', level: 1 })).toBeInTheDocument()
     await waitFor(() => expect(authApi.confirmEmail).toHaveBeenCalledWith({
       userId: 'user-123',
       token: 'a+b_c',
@@ -158,8 +158,8 @@ describe('existing authentication flows', () => {
 
   it('does not call confirmation without both required query parameters', async () => {
     renderAt(<ConfirmEmailPage />, '/confirm-email?userId=user-123')
-    expect(await screen.findByRole('heading', { name: 'Unable to confirm email', level: 1 })).toBeInTheDocument()
-    expect(screen.getByRole('alert')).toHaveTextContent('invalid, expired, or already used')
+    expect(await screen.findByRole('heading', { name: 'We couldn’t confirm your email', level: 1 })).toBeInTheDocument()
+    expect(screen.getByRole('alert')).toHaveTextContent('isn’t valid, has expired, or was already used')
     expect(authApi.confirmEmail).not.toHaveBeenCalled()
   })
 
@@ -172,7 +172,7 @@ describe('existing authentication flows', () => {
     expect(screen.getByText('New password', { selector: 'label' })).toBeVisible()
     expect(screen.getByLabelText('New password')).toBe(screen.getByPlaceholderText('New password'))
     await user.type(screen.getByPlaceholderText('New password'), 'NewSecret1!')
-    await user.click(screen.getByRole('button', { name: 'Reset Password' }))
+    await user.click(screen.getByRole('button', { name: 'Reset password' }))
 
     await waitFor(() => expect(authApi.resetPassword).toHaveBeenCalledWith({
       email: 'person@example.com',
@@ -184,17 +184,17 @@ describe('existing authentication flows', () => {
   it('presents the forgot-password endpoint neutral response', async () => {
     const user = userEvent.setup()
     authApi.forgotPassword.mockResolvedValue({
-      data: { message: 'If the email exists, a reset link was sent.' },
+      data: { message: 'If that email has an account, we sent a reset link.' },
     })
     renderAt(<ForgotPasswordPage />, '/forgot-password')
 
-    expect(screen.getByRole('heading', { name: 'Forgot password', level: 1 })).toHaveFocus()
+    expect(screen.getByRole('heading', { name: 'Forgot your password?', level: 1 })).toHaveFocus()
     expect(screen.getByText('Email', { selector: 'label' })).toBeVisible()
     expect(screen.getByLabelText('Email')).toBe(screen.getByPlaceholderText('Email'))
     await user.type(screen.getByPlaceholderText('Email'), 'unknown@example.com')
-    await user.click(screen.getByRole('button', { name: 'Send Reset Link' }))
+    await user.click(screen.getByRole('button', { name: 'Send reset link' }))
 
-    expect(await screen.findByRole('status')).toHaveTextContent('If the email exists, a reset link was sent.')
+    expect(await screen.findByRole('status')).toHaveTextContent('If that email has an account, we sent a reset link.')
   })
 
   it('exposes password visibility as a pressed toggle without changing the password', async () => {
@@ -223,7 +223,7 @@ describe('existing authentication flows', () => {
     expect(screen.getByText('Password must include:')).toBeVisible()
     expect(screen.getByText('At least 6 characters')).toBeVisible()
     expect(password).toHaveAccessibleDescription(/At least 6 characters/)
-    expect(screen.getByRole('button', { name: 'Show confirm password' })).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByRole('button', { name: 'Show password confirmation' })).toHaveAttribute('aria-pressed', 'false')
   })
 
   it('reports a password mismatch inline and does not submit registration', async () => {
@@ -336,7 +336,7 @@ describe('existing authentication flows', () => {
   it('keeps a confirmation resend result visible after its recovery disclosure closes', async () => {
     const user = userEvent.setup()
     authApi.resendConfirmation.mockResolvedValue({
-      data: { message: 'If an unconfirmed account exists for that email, a confirmation link has been sent.' },
+      data: { message: 'If an unconfirmed account exists for that email, we sent a confirmation link.' },
     })
     renderAt(<ForgotPasswordPage />, '/forgot-password')
 
@@ -349,7 +349,7 @@ describe('existing authentication flows', () => {
       email: 'unknown@example.com',
     }))
     const result = await screen.findByRole('status')
-    expect(result).toHaveTextContent('If an unconfirmed account exists for that email, a confirmation link has been sent.')
+    expect(result).toHaveTextContent('If an unconfirmed account exists for that email, we sent a confirmation link.')
     await user.click(recovery)
     expect(result).toBeVisible()
   })
@@ -360,9 +360,9 @@ describe('existing authentication flows', () => {
     renderAt(<ResetPasswordPage />, '/reset-password?email=person%40example.com&token=reset%2Btoken')
 
     await user.type(screen.getByLabelText('New password'), 'NewSecret1!')
-    await user.click(screen.getByRole('button', { name: 'Reset Password' }))
+    await user.click(screen.getByRole('button', { name: 'Reset password' }))
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Error resetting password.')
+    expect(await screen.findByRole('alert')).toHaveTextContent('We couldn’t reset your password. Try again, or ask for a new reset link.')
     expect(screen.getByRole('button', { name: 'Back to sign in' })).toBeVisible()
   })
 })
@@ -416,12 +416,12 @@ describe('authentication pages in Spanish', () => {
     await fillLogin(user)
     await user.click(screen.getByRole('button', { name: 'Iniciar sesión' }))
     const error = await screen.findByRole('alert')
-    expect(error).toHaveTextContent('Correo electrónico o contraseña no válidos')
+    expect(error).toHaveTextContent('Correo o contraseña incorrectos')
     expect(error).not.toHaveTextContent('Invalid')
 
     authApi.login.mockRejectedValueOnce({ response: { status: 401, data: 'Please confirm your email before logging in.' } })
     await user.click(screen.getByRole('button', { name: 'Iniciar sesión' }))
-    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Confirma tu correo electrónico antes de iniciar sesión.'))
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Confirma tu correo antes de iniciar sesión.'))
   })
 
   it('maps Identity registration errors to Spanish and falls back for unknown codes', async () => {
@@ -439,9 +439,9 @@ describe('authentication pages in Spanish', () => {
     await user.type(screen.getByLabelText('Confirmar contraseña'), 'Secret1!')
     await user.click(screen.getByRole('button', { name: 'Crear cuenta' }))
     const error = await screen.findByRole('alert')
-    expect(error).toHaveTextContent("Las contraseñas deben tener al menos un dígito ('0'-'9').")
-    expect(error).toHaveTextContent("El correo electrónico 'person@example.com' ya está en uso.")
-    expect(error).toHaveTextContent('No se puede crear tu cuenta.')
+    expect(error).toHaveTextContent("Tu contraseña necesita al menos 1 número (0-9).")
+    expect(error).toHaveTextContent("El correo 'person@example.com' ya está en uso.")
+    expect(error).toHaveTextContent('No pudimos crear tu cuenta.')
     expect(error).not.toHaveTextContent('Some new English text')
   })
 
@@ -465,7 +465,7 @@ describe('authentication pages in Spanish', () => {
     await fillLogin(user)
     await user.type(screen.getByLabelText('Confirmar contraseña'), 'Secret1!')
     await user.click(screen.getByRole('button', { name: 'Crear cuenta' }))
-    expect(await screen.findByRole('heading', { name: 'Revisa tu correo electrónico', level: 1 })).toBeVisible()
+    expect(await screen.findByRole('heading', { name: 'Revisa tu correo', level: 1 })).toBeVisible()
     expect(screen.getByRole('status')).toHaveTextContent('Tu cuenta se creó, pero no pudimos enviar el correo de confirmación.')
     expect(screen.getByText('person@example.com', { selector: 'strong' })).toBeVisible()
     await user.click(screen.getByRole('button', { name: 'Reenviar correo de confirmación' }))
@@ -476,17 +476,17 @@ describe('authentication pages in Spanish', () => {
     const user = userEvent.setup()
     authApi.confirmEmail.mockResolvedValue({ data: { message: 'English' } })
     const confirm = renderAt(<ConfirmEmailPage />, '/confirm-email?userId=u&token=t')
-    expect(await screen.findByRole('heading', { name: 'Correo electrónico confirmado', level: 1 })).toHaveFocus()
+    expect(await screen.findByRole('heading', { name: 'Correo confirmado', level: 1 })).toHaveFocus()
     expect(screen.getByRole('status')).toHaveTextContent('Ya puedes iniciar sesión.')
     confirm.unmount()
 
-    authApi.forgotPassword.mockResolvedValue({ data: { message: 'If the email exists, a reset link was sent.' } })
+    authApi.forgotPassword.mockResolvedValue({ data: { message: 'If that email has an account, we sent a reset link.' } })
     authApi.resendConfirmation.mockResolvedValue({ data: { message: 'English' } })
     const forgot = renderAt(<ForgotPasswordPage />, '/forgot-password')
     expect(screen.getByRole('heading', { name: '¿Olvidaste tu contraseña?', level: 1 })).toBeVisible()
     await user.type(screen.getByLabelText('Correo electrónico'), 'x@example.com')
     await user.click(screen.getByRole('button', { name: 'Enviar enlace de restablecimiento' }))
-    expect(await screen.findByRole('status')).toHaveTextContent('Si el correo electrónico existe, se envió un enlace de restablecimiento.')
+    expect(await screen.findByRole('status')).toHaveTextContent('Si ese correo tiene una cuenta, enviamos un enlace de restablecimiento.')
     expect(screen.getByRole('region', { name: 'Ayuda para confirmar la cuenta' })).toBeVisible()
     forgot.unmount()
 
@@ -495,7 +495,7 @@ describe('authentication pages in Spanish', () => {
     expect(screen.getByRole('button', { name: 'Mostrar nueva contraseña' })).toBeVisible()
     await user.type(screen.getByLabelText('Nueva contraseña'), 'NewSecret1!')
     await user.click(screen.getByRole('button', { name: 'Restablecer contraseña' }))
-    expect(await screen.findByRole('alert')).toHaveTextContent('Error al restablecer la contraseña.')
+    expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos restablecer tu contraseña. Inténtalo de nuevo o solicita un nuevo enlace.')
   })
 
   it('offers a language selector that keeps focus and re-renders an on-screen error', async () => {
@@ -512,7 +512,7 @@ describe('authentication pages in Spanish', () => {
     await user.selectOptions(select, 'en')
     expect(select).toHaveFocus()
     expect(screen.getByRole('heading', { name: 'Sign in', level: 1 })).not.toHaveFocus()
-    expect(screen.getByRole('alert')).toHaveTextContent('Invalid email or password')
+    expect(screen.getByRole('alert')).toHaveTextContent('Incorrect email or password')
     expect(screen.getByRole('alert')).not.toHaveFocus()
     expect(document.documentElement.lang).toBe('en')
   })

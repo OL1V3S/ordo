@@ -232,7 +232,7 @@
     "stopped_other": "Se detuvo después de {{done}} de {{count}} filas. Las filas ya actualizadas se mantienen como se muestran. Inténtalo de nuevo."
   },
   "bar": {
-    "label": "Importar seleccionados",
+    "label": "Filas por importar",
     "expensesToSave": "Gastos por guardar: {{count}} · {{total}}",
     "depositsToSave": "Depósitos por guardar: {{count}} · {{total}}",
     "totalUnavailable": "Total no disponible"

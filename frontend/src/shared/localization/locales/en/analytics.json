@@ -41,15 +41,15 @@
     "title": "Reports",
     "description": "See your deposits and spending, month by month.",
     "month": "Month",
-    "refresh": "Refresh cash flow",
-    "earlierMonth": "Earlier month",
-    "laterMonth": "Later month",
+    "refresh": "Refresh deposits and spending",
+    "earlierMonth": "Earlier month with data",
+    "laterMonth": "Later month with data",
     "currentMonth": "This month"
   },
   "cashFlow": {
     "regionLabel": "Deposits and spending",
-    "loading": "Loading deposits and spending...",
-    "retry": "Retry cash flow",
+    "loading": "Loading deposits and spending…",
+    "retry": "Try loading deposits and spending again",
     "errors": {
       "signIn": "Sign in to view deposits and spending.",
       "loadFailed": "We couldn’t load deposits and spending. Try again."
@@ -72,9 +72,9 @@
       "summary": "About these figures",
       "coverage": "These figures come from the transactions you saved and may not include all account activity. Deposits minus spending describes this period; it isn’t an account balance, savings, or money available to spend.",
       "composition": "Confirmed paychecks are deposits linked to one of your pay schedules, including active, paused, and ended ones. Other deposits are all the rest and can include unlinked paychecks, refunds, transfers, and reimbursements. Both count toward Deposits; a deposit isn’t counted as income.",
-      "spending": "Spent includes all recorded outflows, including purchases, transfers, debt payments, and investment funding. Refunds count as deposits without reducing their original spending category. Budgets, expected paychecks, expected recurring expenses, and unsaved import previews do not add to these figures.",
-      "history": "Amounts and dates reflect the current saved transactions. Editing or deleting a transaction can change these historical figures. Confirming a paycheck changes the deposits breakdown, without changing total deposits or net flow.",
-      "rounding": "Edited linked deposits retain their assignment and use their current deposit date and amount. Percentages round to the nearest tenth, with halfway values rounded upward; rounded shares may not sum to 100.0%."
+      "spending": "Spent includes all the money you recorded going out, such as purchases, transfers, debt payments, and money put into investments. Refunds count as deposits and don’t reduce the spending in their original category. Budgets, expected paychecks, expected recurring expenses, and unsaved import previews aren’t included.",
+      "history": "Amounts and dates reflect the transactions you have saved now. Editing or deleting a transaction can change past figures. Confirming a possible paycheck changes the deposits breakdown, but not total deposits or deposits minus spending.",
+      "rounding": "Linked deposits you edit stay linked and use their current date and amount. Percentages are rounded to the nearest tenth, with halves rounded up, so rounded shares may not add up to 100.0%."
     },
     "facts": {
       "cashInSpent": "Spent as a share of deposits",
@@ -100,8 +100,8 @@
     "kickerFromFloor_other": "{{count}} calendar months from {{start}}",
     "heading": "Deposits and spending over time",
     "legendLabel": "Chart legend",
-    "monthToDateTick": "MTD",
-    "monthToDateNote": "MTD: month to date",
+    "monthToDateTick": "So far",
+    "monthToDateNote": "So far: this month up to today",
     "tooltipValue": "{{label}}: {{amount}}",
     "tooltipCashIn": "Deposits: {{amount}}",
     "datasets": {
@@ -111,7 +111,7 @@
     },
     "table": {
       "summary": "View chart data",
-      "caption": "Monthly recorded cash flow in US dollars",
+      "caption": "Monthly deposits and spending in US dollars",
       "month": "Month",
       "cashIn": "Deposits",
       "paychecks": "Confirmed paychecks",
@@ -128,19 +128,19 @@
   },
   "spending": {
     "heading": "More spending detail",
-    "loading": "Loading spending report...",
+    "loading": "Loading spending report…",
     "loadError": "We couldn’t load recorded expenses.",
     "retry": "Try again",
-    "inexact": "Some Expense amounts could not be verified exactly. Affected spending comparisons are unavailable."
+    "inexact": "Exact amounts for some expenses are unavailable, so some comparisons can’t be shown."
   },
   "budget": {
     "status": "Budget status",
-    "open": "Open Budgets"
+    "open": "Open budgets"
   },
   "comparison": {
-    "heading": "Month-over-month change",
+    "heading": "Change from the previous month",
     "kicker": "Compared with {{month}}",
-    "unavailable": "Exact month-over-month comparison is unavailable.",
+    "unavailable": "Exact comparison with the previous month is unavailable.",
     "neither": "Neither month has recorded spending.",
     "percentageUnavailable": "Percentage comparison is unavailable because the previous month had {{amount}} recorded spending.",
     "percentFrom": "{{percent}} from {{amount}}",
@@ -153,8 +153,8 @@
   "largest": {
     "heading": "Largest expenses",
     "kicker": "Top five",
-    "review": "Review transactions",
-    "unavailable": "Exact largest-expense ranking is unavailable because an amount could not be verified.",
-    "empty": "No expenses to rank for this month."
+    "review": "View transactions",
+    "unavailable": "The exact ranking of your largest expenses is unavailable because we couldn’t verify an amount.",
+    "empty": "No expenses to show for this month."
   }
 }

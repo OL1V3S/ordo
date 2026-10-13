@@ -130,7 +130,7 @@ keeps its zero margin and padding. `/plan` renders the Budgets page (with
 `key="plan"` so `/plan` and `/budgets` each mount it fresh) with no redirect; the
 page bar still says "Plan" while the h1 says "Budgets".
 
-`PlanSwitcher` is a `nav` landmark ("Planning tools") of links, not ARIA tabs,
+`PlanSwitcher` is a `nav` landmark ("Budgets, recurring expenses, and paychecks") of links, not ARIA tabs,
 because each item is a route to its own address. The current link gets
 `aria-current="page"` (Budgets on `/plan`) and a bordered raised segment, so state
 is not colour alone. Targets are 44px, styles are tokens only

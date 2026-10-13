@@ -8,7 +8,7 @@
     "activity": { "label": "Movimientos" },
     "budgets": {
       "label": "Presupuestos",
-      "description": "Establece y revisa los límites mensuales por categoría."
+      "description": "Pon un límite de gasto mensual para cada categoría."
     },
     "insights": { "label": "Reportes" },
     "commitments": {
@@ -21,11 +21,11 @@
     },
     "investing": {
       "label": "Inversiones",
-      "description": "Planeado para una versión futura."
+      "description": "Aún no disponible."
     },
     "settings": {
       "label": "Configuración",
-      "description": "Elige el tema y revisa el correo electrónico de tu sesión."
+      "description": "Tema, idioma y tu cuenta."
     },
     "plan": { "label": "Plan" },
     "more": { "label": "Más" }
@@ -36,8 +36,8 @@
     },
     "more": {
       "title": "Más",
-      "description": "Configuración y otras herramientas secundarias.",
-      "ariaLabel": "Más destinos",
+      "description": "Configuración y otras opciones.",
+      "ariaLabel": "Más páginas",
       "unavailable": "No disponible"
     }
   }

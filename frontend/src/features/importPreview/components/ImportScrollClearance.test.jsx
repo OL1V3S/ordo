@@ -83,7 +83,7 @@ describe('import results scroll clearance', () => {
 
   it('does not apply to the confirm bar controls themselves', () => {
     renderPanel()
-    const bar = screen.getByRole('group', { name: 'Import selected' })
+    const bar = screen.getByRole('group', { name: 'Rows to import' })
     const buttons = within(bar).getAllByRole('button')
     expect(buttons.length).toBeGreaterThan(0)
     buttons.forEach((button) => expect(hasClearance(button)).toBe(false))

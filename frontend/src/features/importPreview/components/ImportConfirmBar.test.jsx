@@ -31,7 +31,7 @@ class FakeResizeObserver {
 
 function renderBar() {
   const view = render(<div data-testid="host"><ImportConfirmBar {...props} /></div>)
-  return { ...view, host: screen.getByTestId('host'), bar: screen.getByRole('group', { name: 'Import selected' }) }
+  return { ...view, host: screen.getByTestId('host'), bar: screen.getByRole('group', { name: 'Rows to import' }) }
 }
 
 const resizeTo = (height) => {

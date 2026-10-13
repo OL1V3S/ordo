@@ -16,6 +16,6 @@
   },
   "account": {
     "title": "Account",
-    "signedInEmail": "Signed-in email"
+    "signedInEmail": "Email you sign in with"
   }
 }

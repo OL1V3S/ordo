@@ -67,7 +67,7 @@
     "source": "Origen",
     "sourceManual": "Ingresado por ti",
     "sourceConfirmed": "Confirmado a partir de depósitos",
-    "expectedWindow": "Fechas esperadas",
+    "expectedWindow": "Días antes y después",
     "linkedDeposits": "Depósitos de nómina vinculados",
     "linkedCount": "Depósitos vinculados: {{total}}",
     "profilesEvaluated": "Calendarios de nómina verificados el",
@@ -215,7 +215,7 @@
     "unknownDate": "Fecha no disponible",
     "amountNeedsReview": "Monto exacto no disponible",
     "amountUnavailable": "Monto no disponible",
-    "scheduleUnavailable": "Calendario no disponible",
+    "scheduleUnavailable": "Fechas no disponibles",
     "monthEnd": "fin de mes",
     "dayOfMonth": "día {{day}}",
     "scheduleReference": "{{cadence}}, a partir del {{date}}",
@@ -238,8 +238,8 @@
     "loadFailed": "No pudimos cargar tu nómina. Actualiza para intentarlo de nuevo. Lo que ves puede estar desactualizado.",
     "uncertainCreate": "No pudimos confirmar si se guardó el calendario de nómina. Actualiza y revisa tus calendarios de nómina antes de intentarlo de nuevo.",
     "uncertainWrite": "No pudimos confirmar si funcionó. Actualiza y revisa lo guardado antes de intentarlo de nuevo.",
-    "uncertainCreateLoaded": "Nómina actualizada. Revisa tus calendarios de nómina antes de agregar otro.",
-    "uncertainReceiptLoaded": "Nómina actualizada. Revisa los depósitos vinculados antes de vincular otro.",
+    "uncertainCreateLoaded": "Se volvió a cargar Nómina. Revisa tus calendarios de nómina antes de agregar otro.",
+    "uncertainReceiptLoaded": "Se volvió a cargar Nómina. Revisa los depósitos vinculados antes de vincular otro.",
     "notices": {
       "confirmed": "Calendario de nómina guardado.",
       "dismissed": "Posible pago de nómina descartado. Puedes volver a revisarlo más abajo.",
@@ -275,7 +275,7 @@
       "receipt_link_protected": "Los vínculos del historial de confirmación no se pueden quitar aquí.",
       "receipt_date_invalid": "La fecha de ese depósito está demasiado lejos de la fecha del pago de nómina seleccionado.",
       "request_invalid": "Revisa los campos del formulario e inténtalo de nuevo.",
-      "request_failed": "No se pudo completar la solicitud. Inténtalo de nuevo."
+      "request_failed": "No pudimos completar la solicitud. Inténtalo de nuevo."
     }
   }
 }
