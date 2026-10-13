@@ -29,7 +29,8 @@ const es = flatCatalog("es");
 
 // The Spanish "not saved" claim that an uncertain-save message must never make, anywhere in a
 // sentence (including at its end: "no se guardó.").
-const ES_NOT_SAVED = /no se guardó nada|no se guardó\b/i;
+// (A plain \b does not work after "ó" in a non-Unicode regex, so a Unicode letter lookahead is used.)
+const ES_NOT_SAVED = /no se guardó nada|no se guardó(?![\p{L}\p{N}_])/iu;
 
 // Placeholders and markup are not wording.
 const visible = (text) => text.replace(/\{\{[^}]*\}\}/g, " ").replace(/<\/?\w+>/g, " ");
