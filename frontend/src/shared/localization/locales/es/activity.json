@@ -99,7 +99,7 @@
     "title": "Agregar gasto",
     "legend": "Nuevo gasto",
     "fieldsRequired": "Completa los campos obligatorios del gasto.",
-    "amountInvalid": "Ingresa un monto positivo con hasta dos decimales, hasta 9999999999999999.99.",
+    "amountInvalid": "Ingresa un monto mayor que cero, con hasta dos decimales (máximo 9999999999999999.99).",
     "description": "Descripción",
     "descriptionPlaceholder": "Descripción",
     "amount": "Monto",
@@ -175,7 +175,7 @@
     },
     "fieldErrors": {
       "description": "Ingresa una descripción de 1 a 500 caracteres.",
-      "amount": "Ingresa un monto positivo con hasta dos decimales, hasta 9999999999999999.99.",
+      "amount": "Ingresa un monto mayor que cero, con hasta dos decimales (máximo 9999999999999999.99).",
       "date": "Ingresa una fecha de calendario válida."
     },
     "form": {

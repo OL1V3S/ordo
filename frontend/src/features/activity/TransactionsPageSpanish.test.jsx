@@ -151,7 +151,7 @@ describe("Activity spending in Spanish", () => {
     await fillExpense(user, task, "1.001");
     await user.click(within(task).getByRole("button", { name: "Guardar gasto" }));
     expect(within(task).getByRole("alert"))
-      .toHaveTextContent("Ingresa un monto positivo con hasta dos decimales, hasta 9999999999999999.99.");
+      .toHaveTextContent("Ingresa un monto mayor que cero, con hasta dos decimales (máximo 9999999999999999.99).");
     expect(expenses.addExpense).not.toHaveBeenCalled();
 
     await user.clear(within(task).getByLabelText("Monto"));
@@ -279,7 +279,7 @@ describe("Activity cash in in Spanish", () => {
     expect(within(form).getByRole("alert")).toHaveTextContent("Revisa los campos marcados.");
     expect(within(form).getByLabelText("Descripción")).toHaveAccessibleDescription("Ingresa una descripción de 1 a 500 caracteres.");
     expect(within(form).getByLabelText("Monto")).toHaveAccessibleDescription(
-      "Ingresa un monto positivo con hasta dos decimales, hasta 9999999999999999.99.");
+      "Ingresa un monto mayor que cero, con hasta dos decimales (máximo 9999999999999999.99).");
     expect(cash.createInflow).not.toHaveBeenCalled();
 
     await user.type(within(form).getByLabelText("Descripción"), "Reembolso");

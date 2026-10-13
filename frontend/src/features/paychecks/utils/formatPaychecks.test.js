@@ -18,7 +18,7 @@ describe("paycheck display formatting", () => {
   });
   it("distinguishes all schedules and month end", () => {
     expect(cadenceLabel("biweekly")).toBe("Every two weeks");
-    expect(formatSchedule({ cadence: "weekly", referenceAnchorDate: "2026-01-02" })).toBe("Weekly, reference date Jan 2, 2026");
+    expect(formatSchedule({ cadence: "weekly", referenceAnchorDate: "2026-01-02" })).toBe("Weekly, starting Jan 2, 2026");
     expect(formatSchedule({ cadence: "biweekly", referenceAnchorDate: "2026-01-02" })).toContain("Every two weeks");
     expect(formatSchedule({ cadence: "monthly", firstMonthAnchor: { kind: "month_end", day: null } })).toBe("Monthly, month end");
     expect(formatSchedule({ cadence: "semimonthly", firstMonthAnchor: { kind: "day_of_month", day: 15 }, secondMonthAnchor: { kind: "month_end", day: null } }))

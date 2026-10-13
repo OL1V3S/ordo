@@ -15,7 +15,7 @@ describe("PaycheckForm", () => {
     expect(screen.queryByLabelText("How often")).not.toBeInTheDocument();
     expect(screen.getByText("Monthly, day 10")).toBeInTheDocument();
     expect(onSubmit).not.toHaveBeenCalled();
-    await user.click(screen.getByRole("button", { name: "Confirm paycheck" }));
+    await user.click(screen.getByRole("button", { name: "Save pay schedule" }));
     expect(onSubmit).toHaveBeenCalledWith({ displayName: "acme payroll", algorithmVersion: model.algorithmVersion,
       fingerprint: model.fingerprint, schedule: model.schedule, windowBeforeDays: 1, windowAfterDays: 1,
       amount: { mode: "fixed", fixedAmount: "2500", minimumAmount: null, maximumAmount: null } });
@@ -28,7 +28,7 @@ describe("PaycheckForm", () => {
     expect(screen.getByLabelText("Minimum amount")).toHaveValue("");
     expect(screen.getByLabelText("Maximum amount")).toHaveValue("");
     expect(screen.queryByRole("option", { name: "Fixed amount" })).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Confirm paycheck" }));
+    await user.click(screen.getByRole("button", { name: "Save pay schedule" }));
     expect(onSubmit).not.toHaveBeenCalled();
     const minimum = screen.getByLabelText("Minimum amount");
     expect(minimum).toHaveFocus();
@@ -36,7 +36,7 @@ describe("PaycheckForm", () => {
     expect(minimum).toHaveAccessibleDescription(/positive amount/);
     await user.type(minimum, "2100.01");
     await user.type(screen.getByLabelText("Maximum amount"), "2900.99");
-    await user.click(screen.getByRole("button", { name: "Confirm paycheck" }));
+    await user.click(screen.getByRole("button", { name: "Save pay schedule" }));
     expect(onSubmit.mock.calls[0][0].amount).toEqual({ mode: "range", fixedAmount: null, minimumAmount: "2100.01", maximumAmount: "2900.99" });
   });
 
@@ -45,11 +45,11 @@ describe("PaycheckForm", () => {
     const onSubmit = vi.fn();
     render(<PaycheckForm mode="manual" onSubmit={onSubmit} />);
     await user.type(screen.getByLabelText("Display name"), "  New payroll  ");
-    await user.type(screen.getByLabelText("Monthly anchor day"), "10");
+    await user.type(screen.getByLabelText("Day of the month you’re paid"), "10");
     await user.type(screen.getByLabelText("Fixed amount"), "100");
     await user.selectOptions(screen.getByLabelText("How often"), "biweekly");
-    fireEvent.change(screen.getByLabelText("Reference anchor date"), { target: { value: "2026-03-08" } });
-    await user.selectOptions(screen.getByLabelText("Amount model"), "range");
+    fireEvent.change(screen.getByLabelText("Starting pay date"), { target: { value: "2026-03-08" } });
+    await user.selectOptions(screen.getByLabelText("Amount type"), "range");
     expect(screen.getByLabelText("Minimum amount")).toHaveValue("");
     await user.type(screen.getByLabelText("Minimum amount"), "100.01");
     await user.type(screen.getByLabelText("Maximum amount"), "100.02");
@@ -65,13 +65,13 @@ describe("PaycheckForm", () => {
     render(<PaycheckForm mode="manual" onSubmit={onSubmit} />);
     await user.type(screen.getByLabelText("Display name"), "Payroll");
     await user.selectOptions(screen.getByLabelText("How often"), "semimonthly");
-    await user.type(screen.getByLabelText("First anchor day"), "1");
-    await user.selectOptions(screen.getByLabelText("Second anchor"), "month_end");
+    await user.type(screen.getByLabelText("First pay day: day of the month"), "1");
+    await user.selectOptions(screen.getByLabelText("Second pay day"), "month_end");
     await user.type(screen.getByLabelText("Fixed amount"), "100.001");
     await user.click(screen.getByRole("button", { name: "Create pay schedule" }));
     expect(onSubmit).not.toHaveBeenCalled();
-    expect(screen.getByLabelText("Second anchor")).toHaveFocus();
-    expect(screen.getByLabelText("Second anchor")).toHaveAccessibleDescription(/February/);
+    expect(screen.getByLabelText("Second pay day")).toHaveFocus();
+    expect(screen.getByLabelText("Second pay day")).toHaveAccessibleDescription(/February/);
     expect(screen.getByLabelText("Fixed amount")).toHaveValue("100.001");
   });
 

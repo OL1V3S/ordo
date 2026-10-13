@@ -224,7 +224,7 @@ describe("paycheck state", () => {
     expect(result.current.uncertainCreate).toBe(false);
     expect(result.current.actionError).toContain("positive fixed amount");
     expect(paychecksApi.getPaychecks).toHaveBeenCalledTimes(1);
-    expect(getPaycheckErrorMessage(serverError(400, "__proto__"))).toBe("The request could not be completed. Try again.");
+    expect(getPaycheckErrorMessage(serverError(400, "__proto__"))).toBe("We couldn’t complete that request. Try again.");
   });
 
   it.each([new Error("network timeout"), serverError(502, "private")])("blocks immediate manual retry after an uncertain response until a successful refresh", async (error) => {
