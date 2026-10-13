@@ -136,7 +136,7 @@ describe('existing expense workflows', () => {
     await user.click(within(addEntry).getByRole('button', { name: 'Save expense' }))
 
     expect(addExpense).not.toHaveBeenCalled()
-    expect(screen.getByRole('alert')).toHaveTextContent('positive amount with at most two decimals')
+    expect(screen.getByRole('alert')).toHaveTextContent('amount above zero with up to two decimals')
   })
 
   it('uses the other sentinel to send a normalized custom category', async () => {

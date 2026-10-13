@@ -16,7 +16,7 @@ preview is localized through the `importPreview` namespace: the import panel, it
 rows, and the safe upload, confirmation, and row-warning messages that the hook
 maps from stable backend codes, so the import preview no longer stays English on
 the Spanish Transactions page. The Paychecks page is localized through the `paychecks` namespace: the page, the
-paycheck form and its validation messages, the linked-deposit evidence, the
+paycheck form and its validation messages, the linked deposits, the
 link-a-deposit panel, and the safe error and notice messages that the hook maps
 from stable backend codes. The shared deposit form that adds a deposit for a paycheck
 follows the selected language there, including its validation messages. The Budgets
@@ -135,9 +135,9 @@ import/export them, but the runtime must not depend on a translation service.
   expected paycheck as recibido or registrado. Never use a bare `pago esperado`.
 - Paychecks keeps `Mon D, YYYY` dates (English month abbreviations) and `$` amounts
   in both languages until formatters adopt the direction below. Day counts
-  (`formatWindow`) are count-aware messages; English `linked deposit(s)` and
-  `day(s) before/after` wording is kept as written, with matching Spanish `(s)`
-  forms.
+  (`formatWindow`) are count-aware messages. Where the code passes no count, the label
+  carries the number instead of a `(s)` form: `Linked deposits: N`, `Days before: N`
+  (Spanish `Depósitos vinculados: N`, `Días antes: N`).
 - Budgets messages are keyed by outcome (`feedback.*`, `card.status.*`, `states.*`)
   and never by raw server text; the Budgets page shows no backend-provided message.
   The panel keeps a feedback catalog key in its state and resolves it when rendering,
@@ -297,6 +297,7 @@ In English, a paycheck is always `paycheck`, and a recurring outflow is always
 | How often | How often | Frecuencia | Stored cadence values unchanged |
 | Expected dates | Expected between {start} and {end} | Se espera entre el {start} y el {end} | Expected, not guaranteed |
 | Semimonthly | Twice a month | Quincenal | Ordo's semimonthly is any two ordered days at least 7 days apart, not only the 15th and the last day; never used for biweekly (`Cada dos semanas`) |
+| Pay date fields | Pay dates; Starting pay date; First / Second pay day; Day of the month you're paid | Fechas en que te pagan; Fecha inicial en que te pagan; Primer / Segundo día en que te pagan; Día del mes en que te pagan | Replace anchor and schedule wording; Spanish never uses a bare `pago` here |
 | Why we suggested this | Why we suggested this | Por qué lo sugerimos | Replaces "Detection details" |
 | Review again | Review again | Volver a revisar | Replaces "Reconsider" |
 | Not seen / possibly ended | Not seen lately / May have ended | No ha aparecido últimamente / Puede que haya terminado | Not an automatic status change |
@@ -310,12 +311,12 @@ In English, a paycheck is always `paycheck`, and a recurring outflow is always
 | Investing | Investing | Inversiones | Unavailable placeholder destination |
 | Voice | you | tú | Never usted |
 
-Terms that change in later area PRs of the same series (long tail of Transactions and
-import, Recurring expenses, Paychecks, then Home, navigation, Budgets, and Reports) are
-tracked on #229: `Import selected`, `Matching expenses`, `Use the new details` /
-`Keep saved details`, `Mark as ended`, `Starting pay date`, `So far` / `A la fecha`,
-`Monthly limit`, and the removal of `candidate`, `proposal`, `anchor`, `evidence`,
-`eligible`, `(s)`, and `...`.
+Terms still pending in the last area PR of the same series (Home, navigation, Budgets,
+Reports, and the other remaining namespaces) are tracked on #229: `So far` / `A la
+fecha` (replacing `MTD` / `Acum.`), `Monthly limit` / `Límite mensual`, and the removal of
+the remaining area terms (`Retry`, `(s)`, `...`, and the other words listed under Voice)
+from those namespaces. Transactions and import, Recurring expenses, and Paychecks already
+follow the glossary above.
 
 ## Wording style guide
 

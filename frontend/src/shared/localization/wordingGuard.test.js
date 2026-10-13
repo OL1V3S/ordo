@@ -82,8 +82,9 @@ const CORE_BANNED_ES = [
 ];
 
 // Area terms: enabled per namespace as the area PRs of the #229 series land. PR 2 covers
-// activity and importPreview, PR 3 adds commitments; the other namespaces join in PRs 4 and 5.
-const AREA_NAMESPACES = ["activity", "importPreview", "commitments"];
+// activity and importPreview, PR 3 adds commitments, PR 4 adds paychecks; the remaining
+// namespaces join in PR 5.
+const AREA_NAMESPACES = ["activity", "importPreview", "commitments", "paychecks"];
 
 const AREA_BANNED_EN = [
   ["candidate", term("candidates?")],
@@ -148,11 +149,11 @@ describe("wording guard: core terms", () => {
     expect(violations(es, "es", CORE_BANNED_ES)).toEqual([]);
   });
 
-  it("keeps the area banned terms out of the activity, importPreview and commitments namespaces (en)", () => {
+  it("keeps the area banned terms out of the activity, importPreview, commitments and paychecks namespaces (en)", () => {
     expect(violations(inAreaNamespaces(en), "en", AREA_BANNED_EN)).toEqual([]);
   });
 
-  it("keeps the area banned terms out of the activity, importPreview and commitments namespaces (es)", () => {
+  it("keeps the area banned terms out of the activity, importPreview, commitments and paychecks namespaces (es)", () => {
     expect(violations(inAreaNamespaces(es), "es", AREA_BANNED_ES)).toEqual([]);
   });
 
@@ -197,7 +198,7 @@ describe("wording guard: no Spanish left in English", () => {
 
 describe("wording guard: Quincenal", () => {
   it("names every Spanish semimonthly cadence Quincenal", () => {
-    const keys = Object.keys(es).filter((key) => /\.semimonthly$/.test(key));
+    const keys = Object.keys(es).filter((key) => /[.:]cadences?\.semimonthly$/.test(key));
     expect(keys.length).toBeGreaterThanOrEqual(2);
     for (const key of keys) expect(es[key]).toBe("Quincenal");
   });
@@ -219,6 +220,7 @@ describe("wording guard: semantic anchors", () => {
     { key: "commitments:page.subtitle", en: [/expected only/i, /not included in your totals/i], es: [/solo esperados?/i, /no se suman a tus totales/i] },
     { key: "paychecks:page.intro", en: [/expected only/i, /not included in your totals/i], es: [/solo esperado/i, /no se suma a tus totales/i] },
     { key: "paychecks:receipt.intro", en: [/expected amount and dates/i, /don[’']t change/i], es: [/esperados no cambian/i, /monto y las fechas/i] },
+    { key: "paychecks:form.hints.semimonthly", en: [/two pay days a month/i, /at least 7 days apart/i], es: [/dos días al mes en que te pagan/i, /al menos 7 días/i] },
     { key: "paychecks:manual.intro", en: [/confirmed by your employer/i], es: [/lo confirma tu empleador/i] },
     { key: "importPreview:row.possibleDuplicate", en: [/before selecting/i], es: [/antes de seleccionar/i] },
   ];
@@ -285,6 +287,12 @@ describe("wording guard: label in name", () => {
     ["paychecks:actions.dismiss", "paychecks:actions.dismissLabel"],
     ["paychecks:actions.recordReceived", "paychecks:actions.recordReceivedLabel"],
     ["paychecks:actions.reviewConfirm", "paychecks:actions.reviewConfirmLabel"],
+    ["paychecks:actions.pause", "paychecks:actions.pauseLabel"],
+    ["paychecks:actions.end", "paychecks:actions.endLabel"],
+    ["paychecks:actions.edit", "paychecks:actions.editLabel"],
+    ["paychecks:actions.reactivate", "paychecks:actions.reactivateLabel"],
+    ["paychecks:card.details", "paychecks:card.detailsLabel"],
+    ["paychecks:evidence.removeTrigger", "paychecks:evidence.removeLabel"],
     ["importPreview:row.depositLabel", "importPreview:row.depositAria"],
     ["activity:timeline.actions.edit", "activity:timeline.actions.editExpense"],
     ["activity:timeline.actions.edit", "activity:timeline.actions.editCashIn"],

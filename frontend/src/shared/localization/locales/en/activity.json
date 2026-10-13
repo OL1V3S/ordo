@@ -99,7 +99,7 @@
     "title": "Add expense",
     "legend": "New expense",
     "fieldsRequired": "Complete the required expense fields.",
-    "amountInvalid": "Enter a positive amount with at most two decimals, up to 9999999999999999.99.",
+    "amountInvalid": "Enter an amount above zero with up to two decimals (maximum 9999999999999999.99).",
     "description": "Description",
     "descriptionPlaceholder": "Description",
     "amount": "Amount",
@@ -175,7 +175,7 @@
     },
     "fieldErrors": {
       "description": "Enter a description of 1 to 500 characters.",
-      "amount": "Enter a positive amount with at most two decimals, up to 9999999999999999.99.",
+      "amount": "Enter an amount above zero with up to two decimals (maximum 9999999999999999.99).",
       "date": "Enter a valid calendar date."
     },
     "form": {

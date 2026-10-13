@@ -1,11 +1,13 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import PaycheckForm from "./PaycheckForm";
-import "../../../shared/localization/i18n";
+import i18n from "../../../shared/localization/i18n";
 import { makeCandidate, makePaycheck } from "../test/paycheckFixtures";
 
 describe("PaycheckForm", () => {
+  afterEach(async () => { await i18n.changeLanguage("en"); });
+
   it("focuses the name, displays immutable candidate schedule and requires explicit submission", async () => {
     const user = userEvent.setup();
     const onSubmit = vi.fn();
@@ -15,7 +17,7 @@ describe("PaycheckForm", () => {
     expect(screen.queryByLabelText("How often")).not.toBeInTheDocument();
     expect(screen.getByText("Monthly, day 10")).toBeInTheDocument();
     expect(onSubmit).not.toHaveBeenCalled();
-    await user.click(screen.getByRole("button", { name: "Confirm paycheck" }));
+    await user.click(screen.getByRole("button", { name: "Save pay schedule" }));
     expect(onSubmit).toHaveBeenCalledWith({ displayName: "acme payroll", algorithmVersion: model.algorithmVersion,
       fingerprint: model.fingerprint, schedule: model.schedule, windowBeforeDays: 1, windowAfterDays: 1,
       amount: { mode: "fixed", fixedAmount: "2500", minimumAmount: null, maximumAmount: null } });
@@ -28,15 +30,15 @@ describe("PaycheckForm", () => {
     expect(screen.getByLabelText("Minimum amount")).toHaveValue("");
     expect(screen.getByLabelText("Maximum amount")).toHaveValue("");
     expect(screen.queryByRole("option", { name: "Fixed amount" })).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Confirm paycheck" }));
+    await user.click(screen.getByRole("button", { name: "Save pay schedule" }));
     expect(onSubmit).not.toHaveBeenCalled();
     const minimum = screen.getByLabelText("Minimum amount");
     expect(minimum).toHaveFocus();
     expect(minimum).toHaveAttribute("aria-invalid", "true");
-    expect(minimum).toHaveAccessibleDescription(/positive amount/);
+    expect(minimum).toHaveAccessibleDescription(/amount above zero/);
     await user.type(minimum, "2100.01");
     await user.type(screen.getByLabelText("Maximum amount"), "2900.99");
-    await user.click(screen.getByRole("button", { name: "Confirm paycheck" }));
+    await user.click(screen.getByRole("button", { name: "Save pay schedule" }));
     expect(onSubmit.mock.calls[0][0].amount).toEqual({ mode: "range", fixedAmount: null, minimumAmount: "2100.01", maximumAmount: "2900.99" });
   });
 
@@ -45,11 +47,11 @@ describe("PaycheckForm", () => {
     const onSubmit = vi.fn();
     render(<PaycheckForm mode="manual" onSubmit={onSubmit} />);
     await user.type(screen.getByLabelText("Display name"), "  New payroll  ");
-    await user.type(screen.getByLabelText("Monthly anchor day"), "10");
+    await user.type(screen.getByLabelText("Day of the month you’re paid"), "10");
     await user.type(screen.getByLabelText("Fixed amount"), "100");
     await user.selectOptions(screen.getByLabelText("How often"), "biweekly");
-    fireEvent.change(screen.getByLabelText("Reference anchor date"), { target: { value: "2026-03-08" } });
-    await user.selectOptions(screen.getByLabelText("Amount model"), "range");
+    fireEvent.change(screen.getByLabelText("Starting pay date"), { target: { value: "2026-03-08" } });
+    await user.selectOptions(screen.getByLabelText("Amount type"), "range");
     expect(screen.getByLabelText("Minimum amount")).toHaveValue("");
     await user.type(screen.getByLabelText("Minimum amount"), "100.01");
     await user.type(screen.getByLabelText("Maximum amount"), "100.02");
@@ -65,13 +67,13 @@ describe("PaycheckForm", () => {
     render(<PaycheckForm mode="manual" onSubmit={onSubmit} />);
     await user.type(screen.getByLabelText("Display name"), "Payroll");
     await user.selectOptions(screen.getByLabelText("How often"), "semimonthly");
-    await user.type(screen.getByLabelText("First anchor day"), "1");
-    await user.selectOptions(screen.getByLabelText("Second anchor"), "month_end");
+    await user.type(screen.getByLabelText("First pay day: day of the month"), "1");
+    await user.selectOptions(screen.getByLabelText("Second pay day"), "month_end");
     await user.type(screen.getByLabelText("Fixed amount"), "100.001");
     await user.click(screen.getByRole("button", { name: "Create pay schedule" }));
     expect(onSubmit).not.toHaveBeenCalled();
-    expect(screen.getByLabelText("Second anchor")).toHaveFocus();
-    expect(screen.getByLabelText("Second anchor")).toHaveAccessibleDescription(/February/);
+    expect(screen.getByLabelText("Second pay day")).toHaveFocus();
+    expect(screen.getByLabelText("Second pay day")).toHaveAccessibleDescription(/February/);
     expect(screen.getByLabelText("Fixed amount")).toHaveValue("100.001");
   });
 
@@ -90,7 +92,7 @@ describe("PaycheckForm", () => {
     expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
     expect(screen.getByLabelText("Fixed amount")).toBeDisabled();
     reject(new Error("private response must not be shown"));
-    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("The action could not be completed"));
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("We couldn’t finish that action"));
     expect(screen.getByLabelText("Display name")).toHaveValue("Revised payroll");
     expect(screen.queryByText(/private response/)).not.toBeInTheDocument();
   });
@@ -110,7 +112,7 @@ describe("PaycheckForm", () => {
   it("explains unsafe numeric amounts persistently instead of accepting rounded values", () => {
     render(<PaycheckForm mode="edit" model={makePaycheck({ amount: { mode: "fixed", fixedAmount: 1e16 } })} onSubmit={vi.fn()} />);
     expect(screen.getByLabelText("Fixed amount")).toHaveValue("");
-    expect(screen.getByText(/could not be loaded with reliable cent precision/)).toBeInTheDocument();
+    expect(screen.getByText(/couldn’t load the exact amount/)).toBeInTheDocument();
   });
 
   it("blocks uncertain resubmission while keeping cancel and draft inputs available", async () => {
@@ -124,5 +126,37 @@ describe("PaycheckForm", () => {
     expect(onSubmit).not.toHaveBeenCalled();
     await user.click(screen.getByRole("button", { name: "Cancel" }));
     expect(onCancel).toHaveBeenCalledOnce();
+  });
+
+  it("explains the semimonthly spacing only while the semimonthly option is chosen", async () => {
+    const user = userEvent.setup();
+    const hint = "Two pay days a month, at least 7 days apart.";
+    render(<PaycheckForm mode="manual" onSubmit={vi.fn()} />);
+    const cadence = screen.getByLabelText("How often");
+    expect(screen.queryByText(hint)).not.toBeInTheDocument();
+    for (const other of ["weekly", "biweekly", "monthly"]) {
+      await user.selectOptions(cadence, other);
+      expect(screen.queryByText(hint)).not.toBeInTheDocument();
+      expect(cadence).not.toHaveAccessibleDescription(hint);
+    }
+    await user.selectOptions(cadence, "semimonthly");
+    expect(screen.getByText(hint)).toBeInTheDocument();
+    expect(cadence).toHaveAccessibleDescription(hint);
+    await user.selectOptions(cadence, "monthly");
+    expect(screen.queryByText(hint)).not.toBeInTheDocument();
+  });
+
+  it("explains the semimonthly spacing in Spanish without a bare pago", async () => {
+    await i18n.changeLanguage("es");
+    const user = userEvent.setup();
+    const hint = "Dos días al mes en que te pagan, con al menos 7 días entre ellos.";
+    render(<PaycheckForm mode="manual" onSubmit={vi.fn()} />);
+    const cadence = screen.getByLabelText("Frecuencia");
+    expect(screen.queryByText(hint)).not.toBeInTheDocument();
+    await user.selectOptions(cadence, "biweekly");
+    expect(screen.queryByText(hint)).not.toBeInTheDocument();
+    await user.selectOptions(cadence, "semimonthly");
+    expect(screen.getByText(hint)).toBeInTheDocument();
+    expect(cadence).toHaveAccessibleDescription(hint);
   });
 });

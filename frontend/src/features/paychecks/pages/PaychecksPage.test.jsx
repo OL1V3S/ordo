@@ -31,13 +31,13 @@ function loadState({ candidates = [makeCandidate()], dismissedCandidates = [], p
 }
 async function renderPage() {
   render(<PaychecksPage />);
-  await screen.findByRole("heading", { name: "Your paychecks" });
+  await screen.findByRole("heading", { name: "Your pay schedules" });
 }
 async function fillManual(user, name = "Manual salary") {
   await user.click(screen.getByRole("button", { name: "Add pay schedule manually" }));
   const form = screen.getByRole("form", { name: "Create pay schedule" });
   await user.type(within(form).getByLabelText("Display name"), name);
-  await user.type(within(form).getByLabelText("Monthly anchor day"), "10");
+  await user.type(within(form).getByLabelText("Day of the month you’re paid"), "10");
   await user.type(within(form).getByLabelText("Fixed amount"), "2500.00");
   return form;
 }
@@ -71,18 +71,18 @@ describe("Paychecks page", () => {
     loadState({ paychecks: [active, paused, ended], dismissedCandidates: [dismissed] });
     paychecksApi.getCandidates.mockResolvedValue(response(makeCandidateResponse({ evaluatedOn: "2026-07-13", dismissedCandidates: [dismissed] })));
     await renderPage();
-    expect(screen.getByRole("group", { name: "Active paychecks" })).toBeInTheDocument();
-    expect(historyButton("Paused paychecks")).toHaveAttribute("aria-expanded", "false");
-    expect(historyButton("Ended paychecks")).toHaveAttribute("aria-expanded", "false");
-    await user.click(historyButton("Paused paychecks"));
-    await user.click(historyButton("Ended paychecks"));
+    expect(screen.getByRole("group", { name: "Active pay schedules" })).toBeInTheDocument();
+    expect(historyButton("Paused pay schedules")).toHaveAttribute("aria-expanded", "false");
+    expect(historyButton("Ended pay schedules")).toHaveAttribute("aria-expanded", "false");
+    await user.click(historyButton("Paused pay schedules"));
+    await user.click(historyButton("Ended pay schedules"));
     expect(historyButton("Dismissed possible paychecks")).toHaveAttribute("aria-expanded", "false");
     await user.click(historyButton("Dismissed possible paychecks"));
-    expect(screen.getByRole("group", { name: "Paused paychecks" })).toBeInTheDocument();
-    expect(screen.getByRole("group", { name: "Ended paychecks" })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "Paused pay schedules" })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "Ended pay schedules" })).toBeInTheDocument();
     expect(screen.getAllByText("Expected, not guaranteed.")).toHaveLength(1);
-    expect(screen.getByText("Paused pay schedules have no active expected window.")).toBeInTheDocument();
-    expect(screen.getByText("Ended pay schedules have no active expected window.")).toBeInTheDocument();
+    expect(screen.getByText("Paused pay schedules have no expected dates.")).toBeInTheDocument();
+    expect(screen.getByText("Ended pay schedules have no expected dates.")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "old payroll" })).toBeInTheDocument();
     const profile = within(card("Acme Payroll"));
     expect(profile.getByText("Active")).toBeVisible();
@@ -97,8 +97,8 @@ describe("Paychecks page", () => {
     expect(disclosure("Details for Acme Payroll")).not.toHaveAttribute("open");
     expect(profile.getByLabelText("Details for Acme Payroll")).toHaveProperty("tabIndex", 0);
     await user.click(profile.getByLabelText("Details for Acme Payroll"));
-    expect(profile.getByText("Schedule").closest("div")).toHaveTextContent("Monthly, day 10");
-    expect(profile.getByText("Pay schedules evaluated").closest("div")).toHaveTextContent("Jul 12, 2026");
+    expect(profile.getByText("Pay dates").closest("div")).toHaveTextContent("Monthly, day 10");
+    expect(profile.getByText("Pay schedules checked on").closest("div")).toHaveTextContent("Jul 12, 2026");
     expect(profile.getByText("Why we suggested this").closest("div")).toHaveTextContent("paycheck-candidate-v1");
     expect(profile.getByText("Expected paycheck details").closest("div")).toHaveTextContent("paycheck-projector-v1");
     expect(profile.getByText("Linked paycheck deposits (3)")).toBeVisible();
@@ -109,13 +109,13 @@ describe("Paychecks page", () => {
     expect(candidate.getByText("Observed deposits")).toBeVisible();
     expect(candidate.getByText("Monthly")).toBeVisible();
     expect(candidate.getByText("Based on 3 deposits")).toBeVisible();
-    expect(candidate.getByRole("button", { name: "Review and confirm acme payroll" })).toBeVisible();
-    expect(candidate.getByRole("button", { name: "Dismiss acme payroll", hidden: true })).not.toBeVisible();
+    expect(candidate.getByRole("button", { name: "Review and confirm: acme payroll" })).toBeVisible();
+    expect(candidate.getByRole("button", { name: "Dismiss: acme payroll", hidden: true })).not.toBeVisible();
     expect(candidate.getByText("Why we suggested this")).not.toBeVisible();
     expect(disclosure("Details for acme payroll")).not.toHaveAttribute("open");
     expect(candidate.getByLabelText("Details for acme payroll")).toHaveProperty("tabIndex", 0);
     await user.click(candidate.getByLabelText("Details for acme payroll"));
-    expect(candidate.getByText("Evaluated").closest("div")).toHaveTextContent("Jul 13, 2026");
+    expect(candidate.getByText("Checked on").closest("div")).toHaveTextContent("Jul 13, 2026");
     expect(candidate.getByText("Deposits to review (3)")).toBeVisible();
     expect(screen.queryByRole("button", { name: /delete/i })).not.toBeInTheDocument();
   });
@@ -130,30 +130,30 @@ describe("Paychecks page", () => {
     await renderPage();
 
     const headings = [
-      screen.getByRole("heading", { level: 2, name: "Your paychecks" }),
+      screen.getByRole("heading", { level: 2, name: "Your pay schedules" }),
       screen.getByRole("heading", { level: 2, name: "Possible paychecks" }),
-      historyHeading("Paused paychecks"),
-      historyHeading("Ended paychecks"),
+      historyHeading("Paused pay schedules"),
+      historyHeading("Ended pay schedules"),
       historyHeading("Dismissed possible paychecks"),
     ];
     for (let index = 0; index < headings.length - 1; index += 1) {
       expect(headings[index].compareDocumentPosition(headings[index + 1]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     }
-    for (const name of ["Paused paychecks", "Ended paychecks", "Dismissed possible paychecks"]) {
+    for (const name of ["Paused pay schedules", "Ended pay schedules", "Dismissed possible paychecks"]) {
       expect(historyButton(name)).toHaveAttribute("aria-expanded", "false");
       expect(historyHeading(name)).toHaveAccessibleName(`${name} (1)`);
       expect(historyButton(name)).toHaveProperty("tabIndex", 0);
     }
     const profile = within(card("Acme Payroll"));
-    expect(profile.getByText("No expected window is available. Expected, not guaranteed.")).toBeVisible();
+    expect(profile.getByText("No expected dates available. Expected, not guaranteed.")).toBeVisible();
   });
 
   it("keeps review drafts outside read-only details across disclosure, theme, and rerender changes", async () => {
     const user = userEvent.setup();
     const { rerender } = render(<PaychecksPage />);
-    await screen.findByRole("heading", { name: "Your paychecks" });
-    await user.click(screen.getByRole("button", { name: "Review and confirm acme payroll" }));
-    const form = screen.getByRole("form", { name: "Confirm paycheck" });
+    await screen.findByRole("heading", { name: "Your pay schedules" });
+    await user.click(screen.getByRole("button", { name: "Review and confirm: acme payroll" }));
+    const form = screen.getByRole("form", { name: "Save pay schedule" });
     const name = within(form).getByLabelText("Display name");
     await user.clear(name);
     await user.type(name, "Draft payroll");
@@ -167,7 +167,7 @@ describe("Paychecks page", () => {
     document.documentElement.dataset.theme = "dark";
     rerender(<PaychecksPage />);
 
-    expect(screen.getByRole("form", { name: "Confirm paycheck" })).toBeInTheDocument();
+    expect(screen.getByRole("form", { name: "Save pay schedule" })).toBeInTheDocument();
     expect(screen.getByLabelText("Display name")).toHaveValue("Draft payroll");
     expect(disclosure("Details for acme payroll")).not.toHaveAttribute("open");
     document.documentElement.removeAttribute("data-theme");
@@ -178,10 +178,10 @@ describe("Paychecks page", () => {
     const paused = makePaycheck({ displayName: "Paused pay", lifecycle: "paused", nextProjection: null });
     loadState({ paychecks: [paused] });
     const { rerender } = render(<PaychecksPage />);
-    await screen.findByRole("heading", { name: "Your paychecks" });
+    await screen.findByRole("heading", { name: "Your pay schedules" });
 
-    const pausedHistory = history("Paused paychecks");
-    const pausedSummary = historyButton("Paused paychecks");
+    const pausedHistory = history("Paused pay schedules");
+    const pausedSummary = historyButton("Paused pay schedules");
     await user.click(pausedSummary);
     await menuAction(user, "Paused pay", "Edit Paused pay");
     const form = screen.getByRole("form", { name: "Save changes" });
@@ -199,7 +199,7 @@ describe("Paychecks page", () => {
     rerender(<PaychecksPage />);
     expect(screen.getByRole("form", { name: "Save changes" })).toBeInTheDocument();
     expect(screen.getByLabelText("Display name")).toHaveValue("Paused draft");
-    expect(historyButton("Paused paychecks")).toHaveAttribute("aria-expanded", "true");
+    expect(historyButton("Paused pay schedules")).toHaveAttribute("aria-expanded", "true");
     document.documentElement.removeAttribute("data-theme");
   });
 
@@ -209,7 +209,7 @@ describe("Paychecks page", () => {
     render(<PaychecksPage />);
     expect(screen.getByRole("status")).toHaveTextContent("Loading paychecks");
     await act(async () => pending.reject(new Error("offline")));
-    expect(await screen.findByRole("alert")).toHaveTextContent("Paychecks could not be loaded");
+    expect(await screen.findByRole("alert")).toHaveTextContent("We couldn’t load your paychecks");
     loadState({ candidates: [], dismissedCandidates: [], paychecks: [] });
     await userEvent.setup().click(screen.getByRole("button", { name: "Refresh paychecks" }));
     expect(await screen.findByText("No pay schedules yet")).toBeInTheDocument();
@@ -227,8 +227,8 @@ describe("Paychecks page", () => {
   it("requires explicit fixed confirmation and sends the exact candidate schedule and accepted decimal", async () => {
     const user = userEvent.setup();
     await renderPage();
-    await user.click(within(card("acme payroll")).getByRole("button", { name: "Review and confirm acme payroll" }));
-    const form = within(screen.getByRole("form", { name: "Confirm paycheck" }));
+    await user.click(within(card("acme payroll")).getByRole("button", { name: "Review and confirm: acme payroll" }));
+    const form = within(screen.getByRole("form", { name: "Save pay schedule" }));
     expect(form.queryByLabelText("How often")).not.toBeInTheDocument();
     expect(form.getByText("Monthly, day 10")).toBeInTheDocument();
     await user.clear(form.getByLabelText("Display name"));
@@ -236,14 +236,14 @@ describe("Paychecks page", () => {
     await user.clear(form.getByLabelText("Fixed amount"));
     await user.type(form.getByLabelText("Fixed amount"), "2500.10");
     loadState({ candidates: [], paychecks: [makePaycheck({ displayName: "Acme salary" })] });
-    await user.click(form.getByRole("button", { name: "Confirm paycheck" }));
+    await user.click(form.getByRole("button", { name: "Save pay schedule" }));
     expect(paychecksApi.confirmCandidate).toHaveBeenCalledExactlyOnceWith({
       algorithmVersion: "paycheck-candidate-v1", fingerprint: makeCandidate().fingerprint,
       displayName: "Acme salary", schedule: makeCandidate().schedule, windowBeforeDays: 1, windowAfterDays: 1,
       amount: { mode: "fixed", fixedAmount: "2500.10", minimumAmount: null, maximumAmount: null },
     });
     expect(await screen.findByRole("heading", { name: "Acme salary" })).toBeInTheDocument();
-    await waitFor(() => expect(screen.getByRole("heading", { name: "Your paychecks" })).toHaveFocus());
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Your pay schedules" })).toHaveFocus());
   });
 
   it("requires typed bounds for variable candidates and refreshes exact dismissal/reconsideration decisions", async () => {
@@ -253,22 +253,22 @@ describe("Paychecks page", () => {
     loadState({ candidates: [variable, other], paychecks: [] });
     await renderPage();
     const variableCard = within(card("acme payroll"));
-    expect(variableCard.getByText(/Observed history, not an expected range/)).toBeVisible();
-    await user.click(variableCard.getByRole("button", { name: "Review and confirm acme payroll" }));
-    const form = within(screen.getByRole("form", { name: "Confirm paycheck" }));
+    expect(variableCard.getByText(/Past amounts, not an expected range/)).toBeVisible();
+    await user.click(variableCard.getByRole("button", { name: "Review and confirm: acme payroll" }));
+    const form = within(screen.getByRole("form", { name: "Save pay schedule" }));
     expect(form.getByLabelText("Minimum amount")).toHaveValue("");
     expect(form.getByLabelText("Maximum amount")).toHaveValue("");
-    await user.click(form.getByRole("button", { name: "Confirm paycheck" }));
+    await user.click(form.getByRole("button", { name: "Save pay schedule" }));
     expect(paychecksApi.confirmCandidate).not.toHaveBeenCalled();
     expect(form.getByRole("alert")).toHaveTextContent("Check the highlighted fields");
     await user.type(form.getByLabelText("Minimum amount"), "1800.00");
     await user.type(form.getByLabelText("Maximum amount"), "2600.25");
     loadState({ candidates: [other] });
-    await user.click(form.getByRole("button", { name: "Confirm paycheck" }));
+    await user.click(form.getByRole("button", { name: "Save pay schedule" }));
     expect(paychecksApi.confirmCandidate).toHaveBeenCalledWith(expect.objectContaining({ amount: { mode: "range", fixedAmount: null, minimumAmount: "1800.00", maximumAmount: "2600.25" } }));
-    await waitFor(() => expect(screen.getByRole("button", { name: "Dismiss other payroll", hidden: true })).toBeEnabled());
+    await waitFor(() => expect(screen.getByRole("button", { name: "Dismiss: other payroll", hidden: true })).toBeEnabled());
     loadState({ candidates: [], dismissedCandidates: [other] });
-    await menuAction(user, "other payroll", "Dismiss other payroll");
+    await menuAction(user, "other payroll", "Dismiss: other payroll");
     await screen.findByRole("button", { name: "Review again: other payroll" });
     expect(historyButton("Dismissed possible paychecks")).toHaveAttribute("aria-expanded", "true");
     await waitFor(() => expect(historyButton("Dismissed possible paychecks")).toHaveFocus());
@@ -290,7 +290,7 @@ describe("Paychecks page", () => {
       displayName: "Manual salary", schedule: makeCandidate().schedule, windowBeforeDays: 0, windowAfterDays: 0,
       amount: { mode: "fixed", fixedAmount: "2500.00", minimumAmount: null, maximumAmount: null },
     });
-    expect(await screen.findByRole("alert")).toHaveTextContent("Paychecks could not be loaded");
+    expect(await screen.findByRole("alert")).toHaveTextContent("We couldn’t load your paychecks");
     expect(screen.getByRole("status")).toHaveTextContent("Pay schedule created");
     expect(screen.queryByRole("form", { name: "Create pay schedule" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Add pay schedule manually" })).toBeDisabled();
@@ -305,18 +305,18 @@ describe("Paychecks page", () => {
     await user.click(within(form).getByRole("button", { name: "Create pay schedule" }));
     expect(screen.getByText("Saving your decision…").closest("details")).toBeNull();
     expect(form.closest("details")).toBeNull();
-    expect(screen.getByRole("button", { name: "Dismiss acme payroll", hidden: true })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Dismiss: acme payroll", hidden: true })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Edit Acme Payroll", hidden: true })).toBeDisabled();
     await act(async () => pending.reject(new Error("network lost")));
     const uncertain = await screen.findByRole("alert");
-    expect(uncertain).toHaveTextContent("could not confirm whether the pay schedule was created");
+    expect(uncertain).toHaveTextContent("couldn’t confirm whether the pay schedule was saved");
     expect(uncertain.closest("details")).toBeNull();
     expect(within(form).getByRole("button", { name: "Create pay schedule" })).toBeDisabled();
     expect(within(form).getByRole("button", { name: "Cancel" })).toBeEnabled();
     expect(paychecksApi.createPaycheck).toHaveBeenCalledTimes(1);
     await user.click(screen.getByRole("button", { name: "Refresh paychecks" }));
     await waitFor(() => expect(within(form).getByRole("button", { name: "Create pay schedule" })).toBeEnabled());
-    expect(screen.getByRole("status")).toHaveTextContent("Check the saved pay schedules");
+    expect(screen.getByRole("status")).toHaveTextContent("Check your pay schedules");
     expect(paychecksApi.createPaycheck).toHaveBeenCalledTimes(1);
   });
 
@@ -334,8 +334,8 @@ describe("Paychecks page", () => {
     await user.type(within(form).getByLabelText("Amount"), "2600.25");
     await user.clear(within(form).getByLabelText("Date"));
     await user.type(within(form).getByLabelText("Date"), "2026-08-15");
-    expect(within(panel).getByText(/Amount differs from the fixed expected amount/)).toBeVisible();
-    expect(within(panel).getByText(/Date is outside this paycheck’s expected dates/)).toBeVisible();
+    expect(within(panel).getByText(/This amount differs from the expected amount/)).toBeVisible();
+    expect(within(panel).getByText(/This date is outside the expected dates/)).toBeVisible();
     loadState({ paychecks: [makePaycheck({ receiptSlots: [] })] });
     await user.click(within(form).getByRole("button", { name: "Add deposit" }));
     expect(paychecksApi.recordReceipt).toHaveBeenCalledExactlyOnceWith(profile.id, {
@@ -357,7 +357,7 @@ describe("Paychecks page", () => {
     await user.clear(within(form).getByLabelText("Date"));
     await user.type(within(form).getByLabelText("Date"), "2026-08-10");
     await user.click(within(form).getByRole("button", { name: "Add deposit" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("could not confirm the outcome");
+    expect(await screen.findByRole("alert")).toHaveTextContent("couldn’t confirm whether that worked");
     expect(within(form).getByRole("button", { name: "Add deposit" })).toBeDisabled();
 
     loadState({ paychecks: [makePaycheck({ receiptSlots: [] })] });
@@ -393,7 +393,7 @@ describe("Paychecks page", () => {
     const choices = screen.getAllByRole("radio", { name: /available/ });
     expect(choices.map((choice) => choice.value)).toEqual(["201", "202"]);
     await user.click(choices[0]);
-    expect(screen.getByText(/Amount differs from the fixed expected amount/)).toBeVisible();
+    expect(screen.getByText(/This amount differs from the expected amount/)).toBeVisible();
     loadState({ paychecks: [makePaycheck({ receiptSlots: [] })] });
     await user.click(screen.getByRole("button", { name: "Link this deposit" }));
     expect(paychecksApi.recordReceipt).toHaveBeenCalledExactlyOnceWith(profile.id, {
@@ -411,26 +411,26 @@ describe("Paychecks page", () => {
     await renderPage();
     await user.click(screen.getByLabelText("Details for Acme Payroll"));
     expect(screen.getByText("Confirmation history")).toBeVisible();
-    expect(screen.getByText("Linked deposit")).toBeVisible();
-    await user.click(screen.getByRole("button", { name: "Remove paycheck link" }));
+    expect(screen.getByText("Linked by you")).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Remove deposit link" }));
     expect(paychecksApi.removeReceipt).not.toHaveBeenCalled();
-    expect(screen.getByText(/deposit will remain in Transactions/)).toBeVisible();
-    expect(screen.getByRole("button", { name: "Confirm removal" })).toHaveFocus();
+    expect(screen.getByText(/deposit stays in Transactions/)).toBeVisible();
+    expect(screen.getByRole("button", { name: "Yes, remove link" })).toHaveFocus();
     loadState({ paychecks: [makePaycheck({ evidence: [evidence[1]] })] });
-    await user.click(screen.getByRole("button", { name: "Confirm removal" }));
+    await user.click(screen.getByRole("button", { name: "Yes, remove link" }));
     expect(paychecksApi.removeReceipt).toHaveBeenCalledExactlyOnceWith(profile.id, 301);
   });
 
   it("closes a stale review with a visible conflict and requires explicit review of replacement evidence", async () => {
     const user = userEvent.setup();
     await renderPage();
-    await user.click(screen.getByRole("button", { name: "Review and confirm acme payroll" }));
+    await user.click(screen.getByRole("button", { name: "Review and confirm: acme payroll" }));
     paychecksApi.confirmCandidate.mockRejectedValue({ response: { status: 409, data: { code: "candidate_changed" } } });
     loadState({ candidates: [makeCandidate({ fingerprint: "e".repeat(64) })] });
-    await user.click(screen.getByRole("button", { name: "Confirm paycheck" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("Review the latest evidence");
-    await waitFor(() => expect(screen.queryByRole("form", { name: "Confirm paycheck" })).not.toBeInTheDocument());
-    expect(screen.getByRole("button", { name: "Review and confirm acme payroll" })).toBeEnabled();
+    await user.click(screen.getByRole("button", { name: "Save pay schedule" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Check the latest deposits");
+    await waitFor(() => expect(screen.queryByRole("form", { name: "Save pay schedule" })).not.toBeInTheDocument());
+    expect(screen.getByRole("button", { name: "Review and confirm: acme payroll" })).toBeEnabled();
     expect(paychecksApi.confirmCandidate).toHaveBeenCalledTimes(1);
   });
 
@@ -440,9 +440,9 @@ describe("Paychecks page", () => {
     loadState({ paychecks: [ended] });
     await renderPage();
 
-    expect(historyHeading("Ended paychecks")).toHaveAccessibleName("Ended paychecks (1)");
-    expect(historyButton("Ended paychecks")).toHaveAttribute("aria-expanded", "false");
-    await user.click(historyButton("Ended paychecks"));
+    expect(historyHeading("Ended pay schedules")).toHaveAccessibleName("Ended pay schedules (1)");
+    expect(historyButton("Ended pay schedules")).toHaveAttribute("aria-expanded", "false");
+    await user.click(historyButton("Ended pay schedules"));
     await user.click(screen.getByLabelText("Details for Ended pay"));
     const endedCard = within(card("Ended pay"));
     expect(endedCard.getByText("Why we suggested this").closest("div")).toHaveTextContent("paycheck-candidate-v1");
@@ -451,14 +451,14 @@ describe("Paychecks page", () => {
     await menuAction(user, "Ended pay", "Pause Ended pay");
 
     expect(paychecksApi.updateLifecycle).toHaveBeenCalledExactlyOnceWith(ended.id, "paused");
-    expect(await screen.findByRole("group", { name: "Paused paychecks" })).toHaveTextContent("Ended pay");
-    expect(historyButton("Paused paychecks")).toHaveAttribute("aria-expanded", "true");
+    expect(await screen.findByRole("group", { name: "Paused pay schedules" })).toHaveTextContent("Ended pay");
+    expect(historyButton("Paused pay schedules")).toHaveAttribute("aria-expanded", "true");
   });
 
   it.each([
     ["no longer includes the profile", [], null],
-    ["shows the profile already ended", [makePaycheck({ lifecycle: "ended", nextProjection: null })], "Ended paychecks (1)"],
-    ["shows the profile now paused", [makePaycheck({ lifecycle: "paused", nextProjection: null })], "Paused paychecks (1)"],
+    ["shows the profile already ended", [makePaycheck({ lifecycle: "ended", nextProjection: null })], "Ended pay schedules (1)"],
+    ["shows the profile now paused", [makePaycheck({ lifecycle: "paused", nextProjection: null })], "Paused pay schedules (1)"],
   ])("clears an orphaned end confirmation when the refresh %s", async (_state, refreshedPaychecks, destinationHeading) => {
     const user = userEvent.setup();
     const active = makePaycheck();
@@ -466,23 +466,23 @@ describe("Paychecks page", () => {
     await renderPage();
     await user.click(screen.getByLabelText("Details for Acme Payroll"));
     await menuAction(user, "Acme Payroll", "End Acme Payroll");
-    expect(screen.getByRole("button", { name: "Confirm end" })).toHaveFocus();
+    expect(screen.getByRole("button", { name: "Yes, end it" })).toHaveFocus();
 
     paychecksApi.updateLifecycle.mockRejectedValueOnce({ response: { status: 404, data: { code: "paycheck_not_found" } } });
     loadState({ paychecks: refreshedPaychecks });
-    await user.click(screen.getByRole("button", { name: "Confirm end" }));
+    await user.click(screen.getByRole("button", { name: "Yes, end it" }));
 
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent("That pay schedule is no longer available. Review the current pay schedules.");
     expect(alert.closest("details")).toBeNull();
     await waitFor(() => expect(screen.queryByRole("group", { name: "End Acme Payroll" })).not.toBeInTheDocument());
     expect(paychecksApi.updateLifecycle).toHaveBeenCalledExactlyOnceWith(active.id, "ended");
-    expect(screen.getByRole("button", { name: "Review and confirm acme payroll" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Review and confirm: acme payroll" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Add pay schedule manually" })).toBeEnabled();
     if (destinationHeading) expect(screen.getByRole("heading", { level: 2, name: destinationHeading })).toBeInTheDocument();
     else {
-      expect(screen.queryByRole("heading", { level: 2, name: "Ended paychecks (1)" })).not.toBeInTheDocument();
-      expect(screen.queryByRole("heading", { level: 2, name: "Paused paychecks (1)" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("heading", { level: 2, name: "Ended pay schedules (1)" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("heading", { level: 2, name: "Paused pay schedules (1)" })).not.toBeInTheDocument();
     }
   });
 
@@ -496,12 +496,12 @@ describe("Paychecks page", () => {
 
     paychecksApi.updateLifecycle.mockRejectedValueOnce({ response: { status: 404, data: { code: "paycheck_not_found" } } });
     loadState({ paychecks: [active] });
-    await user.click(screen.getByRole("button", { name: "Confirm end" }));
+    await user.click(screen.getByRole("button", { name: "Yes, end it" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("That pay schedule is no longer available. Review the current pay schedules.");
     expect(screen.getByRole("group", { name: "End Acme Payroll" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Cancel ending" })).toBeEnabled();
-    expect(screen.getByRole("button", { name: "Review and confirm acme payroll" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Review and confirm: acme payroll" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Add pay schedule manually" })).toBeDisabled();
   });
 
@@ -516,25 +516,25 @@ describe("Paychecks page", () => {
     paychecksApi.updateLifecycle.mockRejectedValueOnce({ response: { status: 404, data: { code: "paycheck_not_found" } } });
     paychecksApi.getCandidates.mockRejectedValueOnce(new Error("refresh failed"));
     paychecksApi.getPaychecks.mockRejectedValueOnce(new Error("refresh failed"));
-    await user.click(screen.getByRole("button", { name: "Confirm end" }));
+    await user.click(screen.getByRole("button", { name: "Yes, end it" }));
 
     const errors = await screen.findAllByRole("alert");
     expect(errors.map((alert) => alert.textContent).join(" ")).toContain("That pay schedule is no longer available. Review the current pay schedules.");
-    expect(errors.map((alert) => alert.textContent).join(" ")).toContain("Paychecks could not be loaded");
+    expect(errors.map((alert) => alert.textContent).join(" ")).toContain("We couldn’t load your paychecks");
     errors.forEach((alert) => expect(alert.closest("details")).toBeNull());
     expect(screen.getByRole("group", { name: "End Acme Payroll" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Cancel ending" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Refresh paychecks" })).toBeEnabled();
-    expect(screen.getByRole("button", { name: "Review and confirm acme payroll" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Review and confirm: acme payroll" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Add pay schedule manually" })).toBeDisabled();
 
     loadState({ paychecks: [active] });
     await user.click(screen.getByRole("button", { name: "Refresh paychecks" }));
     expect(screen.getByRole("group", { name: "End Acme Payroll" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Review and confirm acme payroll" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Review and confirm: acme payroll" })).toBeDisabled();
     await user.click(screen.getByRole("button", { name: "Cancel ending" }));
     await waitFor(() => expect(screen.getByRole("button", { name: "Actions for Acme Payroll" })).toHaveFocus());
-    expect(screen.getByRole("button", { name: "Review and confirm acme payroll" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Review and confirm: acme payroll" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Add pay schedule manually" })).toBeEnabled();
   });
 
@@ -558,16 +558,16 @@ describe("Paychecks page", () => {
     await screen.findByRole("button", { name: "Actions for Renamed payroll" });
     loadState({ paychecks: [{ ...profile, lifecycle: "paused", nextProjection: null }] });
     await menuAction(user, "Renamed payroll", "Pause Renamed payroll");
-    const pausedGroup = await screen.findByRole("group", { name: "Paused paychecks" });
+    const pausedGroup = await screen.findByRole("group", { name: "Paused pay schedules" });
     expect(pausedGroup).toHaveTextContent("Renamed payroll");
-    const pausedHistory = history("Paused paychecks");
-    const pausedSummary = historyButton("Paused paychecks");
+    const pausedHistory = history("Paused pay schedules");
+    const pausedSummary = historyButton("Paused pay schedules");
     expect(pausedSummary).toHaveAttribute("aria-expanded", "true");
     expect(paychecksApi.updateLifecycle).toHaveBeenLastCalledWith(profile.id, "paused");
     await user.click(screen.getByLabelText("Details for Renamed payroll"));
     const profileDetails = disclosure("Details for Renamed payroll");
     await menuAction(user, "Renamed payroll", "End Renamed payroll");
-    const confirmEnd = screen.getByRole("button", { name: "Confirm end" });
+    const confirmEnd = screen.getByRole("button", { name: "Yes, end it" });
     expect(confirmEnd).toHaveFocus();
     expect(profileDetails).not.toContainElement(confirmEnd);
     expect(pausedHistory).toContainElement(confirmEnd);
@@ -578,12 +578,12 @@ describe("Paychecks page", () => {
     await waitFor(() => expect(screen.getByRole("button", { name: "Actions for Renamed payroll" })).toHaveFocus());
     await menuAction(user, "Renamed payroll", "End Renamed payroll");
     loadState({ paychecks: [{ ...profile, lifecycle: "ended", nextProjection: null }] });
-    await user.click(screen.getByRole("button", { name: "Confirm end" }));
-    expect(await screen.findByRole("group", { name: "Ended paychecks" })).toHaveTextContent("Renamed payroll");
+    await user.click(screen.getByRole("button", { name: "Yes, end it" }));
+    expect(await screen.findByRole("group", { name: "Ended pay schedules" })).toHaveTextContent("Renamed payroll");
     expect(paychecksApi.updateLifecycle).toHaveBeenLastCalledWith(profile.id, "ended");
     loadState({ paychecks: [profile] });
     await user.click(screen.getByRole("button", { name: "Reactivate Renamed payroll" }));
-    expect(await screen.findByRole("group", { name: "Active paychecks" })).toHaveTextContent("Renamed payroll");
+    expect(await screen.findByRole("group", { name: "Active pay schedules" })).toHaveTextContent("Renamed payroll");
     expect(paychecksApi.updateLifecycle).toHaveBeenLastCalledWith(profile.id, "active");
   });
 
@@ -600,10 +600,10 @@ describe("Paychecks page", () => {
       await renderPage();
       loadState({ paychecks: [{ ...profile, lifecycle: "paused", nextProjection: null }] });
       await menuAction(user, "Acme Payroll", "Pause Acme Payroll");
-      await screen.findByRole("group", { name: "Paused paychecks" });
+      await screen.findByRole("group", { name: "Paused pay schedules" });
       await user.click(screen.getByLabelText("Details for Acme Payroll"));
       await menuAction(user, "Acme Payroll", "End Acme Payroll");
-      const confirmation = screen.getByRole("button", { name: "Confirm end" });
+      const confirmation = screen.getByRole("button", { name: "Yes, end it" });
       expect(confirmation).toHaveFocus();
 
       act(() => {
@@ -660,7 +660,7 @@ describe("Paychecks page", () => {
     const user = userEvent.setup();
     loadState({ paychecks: [makePaycheck({ id: "33333333-3333-3333-3333-333333333333", displayName: "Ended pay", lifecycle: "ended", nextProjection: null })] });
     await renderPage();
-    await user.click(historyButton("Ended paychecks"));
+    await user.click(historyButton("Ended pay schedules"));
     expect(screen.getByRole("button", { name: "Reactivate Ended pay" })).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Actions for Ended pay" }));
     expect(screen.getByRole("button", { name: "Edit Ended pay" })).toBeVisible();
@@ -671,8 +671,8 @@ describe("Paychecks page", () => {
     const user = userEvent.setup();
     loadState({ paychecks: [] });
     await renderPage();
-    expect(screen.getByRole("button", { name: "Review and confirm acme payroll" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Review and confirm: acme payroll" })).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Actions for acme payroll" }));
-    expect(screen.getByRole("button", { name: "Dismiss acme payroll" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Dismiss: acme payroll" })).toBeVisible();
   });
 });
