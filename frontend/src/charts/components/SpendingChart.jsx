@@ -1,6 +1,7 @@
 // src/components/charts/SpendingChart.jsx
 import { useEffect, useId, useState } from "react";
 import { Bar } from "react-chartjs-2";
+import { useTranslation } from "react-i18next";
 import {
   Chart as ChartJS,
   BarElement,
@@ -13,6 +14,7 @@ import { formatMoneyDecimal } from "../../shared/localization/format";
 import { useLocale } from "../../shared/localization/useLocale";
 import { AMOUNT_NEEDS_REVIEW } from "../../features/expenses/utils/exactMoney";
 import { displayText } from "../../utils/text";
+import { categoryLabel } from "../../shared/localization/categoryLabel";
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend);
 
@@ -98,6 +100,7 @@ function useChartColors(enabled) {
 
 export default function SpendingChart({ totalsByCategory, budgetLimitsByCategory }) {
   const summaryHeadingId = useId();
+  const { t } = useTranslation();
   const { locale } = useLocale();
   const totals = totalsByCategory ?? {};
   const limits = budgetLimitsByCategory ?? {};
@@ -115,7 +118,7 @@ export default function SpendingChart({ totalsByCategory, budgetLimitsByCategory
   );
 
   const data = {
-    labels: categories.map((cat) => displayText(cat)),
+    labels: categories.map((cat) => categoryLabel(t, cat, displayText)),
     datasets: [
       {
         label: "Spent",

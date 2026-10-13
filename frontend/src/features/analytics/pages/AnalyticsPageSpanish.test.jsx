@@ -75,7 +75,8 @@ describe("Analytics page in Spanish", () => {
     expect(summary).toHaveTextContent("Hasta el 14 de agosto de 2026");
     expect(summary).toHaveTextContent("USD 100.00");
     const rows = within(screen.getByRole("heading", { name: "Dónde se gastó" }).closest("section")).getAllByRole("listitem");
-    expect(rows[0]).toHaveTextContent("Food");
+    expect(rows[0]).toHaveTextContent("Comida");
+    expect(rows[0]).not.toHaveTextContent("Food");
     expect(rows[0]).toHaveTextContent("USD 90.00 · 90.0%");
     expect(screen.getByTestId("cash-flow-chart")).toBeInTheDocument();
     expect(screen.queryByText("Reports")).not.toBeInTheDocument();
@@ -104,11 +105,38 @@ describe("Analytics page in Spanish", () => {
     expect(comparison).toHaveTextContent("Mayores aumentos");
     expect(comparison).toHaveTextContent("Mayores disminuciones");
     expect(comparison).toHaveTextContent("+33.3% desde USD 75.00");
+    expect(comparison).toHaveTextContent("Comida");
+    expect(comparison).toHaveTextContent("Transporte");
+    expect(comparison).toHaveTextContent("Servicios");
+    expect(comparison).not.toHaveTextContent(/Food|Transport\b|Bills/);
 
     const largest = openDetail("Gastos más grandes");
     expect(largest).toHaveTextContent("Los cinco principales");
     expect(largest).toHaveTextContent("Groceries");
+    expect(largest).toHaveTextContent("Comida");
+    expect(largest).not.toHaveTextContent("Food");
     expect(within(largest).getByRole("link", { name: "Ver movimientos" })).toHaveAttribute("href", "/transactions");
+  });
+
+  it("localizes known and uncategorized keys in comparison and largest expenses while a custom category shows as before", () => {
+    useExpenses.mockReturnValue({
+      expenses: [
+        { id: 1, description: "Fix roof", category: "home repair", amount: 300, date: "2026-08-02" },
+        { id: 2, description: "Misc", category: "uncategorized", amount: 200, date: "2026-08-03" },
+        { id: 3, description: "Show", category: "entertainment", amount: 100, date: "2026-08-04" },
+      ],
+      loading: false, error: null, refresh: refreshExpenses,
+    });
+    renderPage();
+    const comparison = openDetail("Cambio respecto al mes anterior");
+    expect(comparison).toHaveTextContent("Home Repair");
+    expect(comparison).toHaveTextContent("Sin categoría");
+    expect(comparison).toHaveTextContent("Entretenimiento");
+    const largest = openDetail("Gastos más grandes");
+    expect(largest).toHaveTextContent("Home Repair");
+    expect(largest).toHaveTextContent("Sin categoría");
+    expect(largest).toHaveTextContent("Entretenimiento");
+    expect(largest).not.toHaveTextContent(/Uncategorized|Entertainment/);
   });
 
   it("labels the comparison month as the Spanish name of the previous month across a year boundary", () => {

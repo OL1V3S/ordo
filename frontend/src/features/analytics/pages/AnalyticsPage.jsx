@@ -13,6 +13,7 @@ import CashFlowCategories from "../components/CashFlowCategories";
 import CashFlowTrendChart from "../components/CashFlowTrendChart";
 import { cashMonthLabel, localThroughDate } from "../utils/cashFlowPresentation";
 import { displayText } from "../../../utils/text";
+import { categoryLabel } from "../../../shared/localization/categoryLabel";
 import { DisclosureButton, DisclosurePanel } from "../../../shared/ui/Disclosure";
 import PeriodPicker from "../../../shared/ui/PeriodPicker";
 import StatusMessage from "../../../shared/ui/StatusMessage";
@@ -155,13 +156,13 @@ export default function AnalyticsPage() {
                       <div>
                         <h4>{t("comparison.increases")}</h4>
                         {insights.increases.length === 0 ? <p className="muted">{t("comparison.noIncreases")}</p> : (
-                          <ul>{insights.increases.map((change) => <li key={change.category}>{displayText(change.category)} <strong>+{formatSignedMoney(change.difference, locale, t("format.amountUnavailable"))}</strong></li>)}</ul>
+                          <ul>{insights.increases.map((change) => <li key={change.category}>{categoryLabel(t, change.category, displayText)} <strong>+{formatSignedMoney(change.difference, locale, t("format.amountUnavailable"))}</strong></li>)}</ul>
                         )}
                       </div>
                       <div>
                         <h4>{t("comparison.decreases")}</h4>
                         {insights.decreases.length === 0 ? <p className="muted">{t("comparison.noDecreases")}</p> : (
-                          <ul>{insights.decreases.map((change) => <li key={change.category}>{displayText(change.category)} <strong>{formatSignedMoney(change.difference, locale, t("format.amountUnavailable"))}</strong></li>)}</ul>
+                          <ul>{insights.decreases.map((change) => <li key={change.category}>{categoryLabel(t, change.category, displayText)} <strong>{formatSignedMoney(change.difference, locale, t("format.amountUnavailable"))}</strong></li>)}</ul>
                         )}
                       </div>
                     </div>
@@ -184,7 +185,7 @@ export default function AnalyticsPage() {
                     <ol className="analytics-list">
                       {insights.largestExpenses.map((expense) => (
                         <li key={expense.id} className="analytics-list__item analytics-row">
-                          <span><strong>{expense.description}</strong><small>{displayText(expense.category)} · {formatExpenseDate(expense.date, locale)}</small></span>
+                          <span><strong>{expense.description}</strong><small>{categoryLabel(t, expense.category, displayText)} · {formatExpenseDate(expense.date, locale)}</small></span>
                           <strong>{formatExactMoney(expense.amount, { unavailableLabel: t("format.amountUnavailable") }, locale)}</strong>
                         </li>
                       ))}

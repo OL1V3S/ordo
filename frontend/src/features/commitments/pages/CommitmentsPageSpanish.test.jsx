@@ -94,6 +94,19 @@ afterEach(async () => {
 });
 
 describe("Commitments page in Spanish", () => {
+  it("localizes known category keys on candidate and saved rows and keeps a custom category as before", () => {
+    const custom = { ...commitment, id: "commitment-2", name: "Roof fund", category: "home repair" };
+    useCommitments.mockReturnValue(state({
+      candidates: [{ ...candidate, category: "bills" }], dismissedCandidates: [],
+      commitments: [{ ...commitment, category: "food" }, custom], commitmentChanges: [],
+    }));
+    renderPage();
+    expect(within(card("Gym membership")).getByText(/^Servicios · /)).toBeInTheDocument();
+    expect(within(card("Rent")).getByText(/^Comida · /)).toBeInTheDocument();
+    expect(within(card("Roof fund")).getByText(/^Home Repair · /)).toBeInTheDocument();
+    expect(screen.queryByText(/^(Bills|Food) · /)).not.toBeInTheDocument();
+  });
+
   it("renders the page, review links, and sections in Spanish with count-aware text and stable ids", () => {
     const paused = { ...commitment, id: "commitment-2", name: "Paused rent", lifecycle: "paused" };
     useCommitments.mockReturnValue(state({ commitments: [commitment, paused] }));

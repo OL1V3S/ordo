@@ -59,6 +59,15 @@ beforeEach(() => i18n.changeLanguage("es"));
 afterEach(() => i18n.changeLanguage("en"));
 
 describe("commitment change review in Spanish", () => {
+  it("localizes a known category key on the change card and keeps a custom category as before", () => {
+    const { unmount } = render(<CommitmentChangeReview state={reviewState([missingChange({}, { category: "entertainment" })])} />);
+    expect(screen.getByText(/^Entretenimiento · /)).toBeInTheDocument();
+    expect(screen.queryByText(/^Entertainment · /)).not.toBeInTheDocument();
+    unmount();
+    render(<CommitmentChangeReview state={reviewState([missingChange({}, { category: "home repair" })])} />);
+    expect(screen.getByText(/^Home Repair · /)).toBeInTheDocument();
+  });
+
   it("renders complete count-aware phrases per cadence and change dimension", () => {
     const cases = [
       [missingChange({}, { cadence: "monthly" }), "Han pasado 3 fechas mensuales esperadas sin un gasto que coincida."],

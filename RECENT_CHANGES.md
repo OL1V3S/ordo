@@ -24,6 +24,14 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-13 — Category names and import dates in the user's language
+
+[PR #240](https://github.com/OL1V3S/ordo/pull/240) ·
+[Issue #237](https://github.com/OL1V3S/ordo/issues/237)
+
+- The remaining places that showed stored category names in English in Spanish mode now read "Servicios", "Comida", "Transporte" and so on: the Budgets list, edit headings and delete confirmations, the Reports category list and comparisons, and Recurring expenses. Categories you typed yourself show exactly as before, and the app's own "uncategorized" now reads "Uncategorized" / "Sin categoría" everywhere.
+- Statement import review rows show the statement date the same way as the saved list ("Oct 11, 2026" / "11 oct 2026") instead of the raw "2026-10-11". Display only; stored values, payloads and sorting are unchanged, and there is no API, schema or financial-semantics change.
+
 ### 2026-10-13 — Category names in the user's language, and a roomier import confirm bar
 
 [PR #238](https://github.com/OL1V3S/ordo/pull/238) ·
@@ -175,14 +183,3 @@ the permanent, complete archive.
 
 - One Primary navigation with Home, Activity, Plan (Budgets, Commitments, Paychecks) and Insights: bottom bar on phones, labelled rail on tablets, sidebar on desktop. Settings, Investing, theme, language and sign out moved into a new Account menu; `/more` still works by URL but is no longer linked.
 - Fixed page-bar and bottom-bar scroll padding so focused controls stay visible.
-
-### 2026-10-09 — Shared UI component kit
-
-[PR #202](https://github.com/OL1V3S/ordo/pull/202) ·
-[Issue #201](https://github.com/OL1V3S/ordo/issues/201)
-
-- Added presentational components in `frontend/src/shared/ui` (Disclosure,
-  FilterBar, StatusStrip, SectionHeader, ListRow, EmptyState, TaskArea) with unit
-  tests, token-only `ui-kit.css`, and `docs/ui-kit.md`.
-- Moved the Activity timeline and Records toggles onto the kit with no behavior,
-  copy, request, or accessible-name change.

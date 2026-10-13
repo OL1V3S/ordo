@@ -4,6 +4,7 @@ import { formatCalendarDate, formatMonthYear, formatPercentWhole } from "../../.
 import { useLocale } from "../../../shared/localization/useLocale";
 import { DEFAULT_CATEGORIES } from "../../../shared/constants/categories";
 import { displayText, normalizeText } from "../../../utils/text";
+import { categoryLabel } from "../../../shared/localization/categoryLabel";
 import FormField from "../../../shared/ui/FormField";
 import ListRow from "../../../shared/ui/ListRow";
 import PeriodPicker from "../../../shared/ui/PeriodPicker";
@@ -135,7 +136,7 @@ export default function BudgetLimitsPanel({
   }
   function removeLimit(limit, category) {
     if (task || mutationDisabled) return;
-    if (!window.confirm(t("confirmDelete", { category: displayText(category) }))) return;
+    if (!window.confirm(t("confirmDelete", { category: categoryLabel(t, category, displayText) }))) return;
     return mutate(() => deleteLimit(limit.id), "deleted");
   }
   async function retryLimits() {
@@ -181,7 +182,7 @@ export default function BudgetLimitsPanel({
       </div>
       <div id="budget-task" hidden={!task}>
         {task && <form className="budget-form" noValidate onSubmit={(event) => { event.preventDefault(); saveTask(); }}>
-          <h2>{task.type === "edit" ? t("form.editHeading", { category: displayText(task.category) }) : t("form.addHeading")}</h2>
+          <h2>{task.type === "edit" ? t("form.editHeading", { category: categoryLabel(t, task.category, displayText) }) : t("form.addHeading")}</h2>
           <p className="muted">{t("form.forMonth", { month: task.month })}</p>
           {validation && <div id="budget-validation"><StatusMessage tone="danger">{t("form.validation")}</StatusMessage></div>}
           <fieldset disabled={pending}>
@@ -197,7 +198,7 @@ export default function BudgetLimitsPanel({
               {task.type === "add" && task.category === "other" && <FormField label={t("form.customCategory")}>{(id) => <input id={id}
                 placeholder={t("form.customCategoryPlaceholder")} value={task.customCategory}
                 onChange={(event) => setTask((current) => ({ ...current, customCategory: event.target.value }))} />}</FormField>}
-              <FormField label={task.type === "edit" ? t("form.editLimitAmount", { category: displayText(task.category) }) : t("form.limitAmount")}>{(id) => <input id={id}
+              <FormField label={task.type === "edit" ? t("form.editLimitAmount", { category: categoryLabel(t, task.category, displayText) }) : t("form.limitAmount")}>{(id) => <input id={id}
                 ref={(element) => { amountField.current = element; if (task.type === "edit") taskField.current = element; }}
                 aria-invalid={validation === "amount" && !task.amount} aria-describedby={validation ? "budget-validation" : undefined}
                 type="text" inputMode="decimal" placeholder={t("form.limitAmountPlaceholder")} value={task.amount}
@@ -217,7 +218,7 @@ export default function BudgetLimitsPanel({
         ? <p className="empty-state">{t("states.empty")}</p>
         : <ul className="budget-list" aria-labelledby="category-budgets-heading">
           {Object.entries(budgetLimitsByCategory).map(([category, limit]) => {
-            const name = displayText(category);
+            const name = categoryLabel(t, category, displayText);
             const totalValue = totalsByCategory[category] === undefined ? "0.00" : totalsByCategory[category];
             const used = parseExactMoney(totalValue, { allowZero: true });
             const limitAmount = parseBudgetLimit(limit.limitAmount);

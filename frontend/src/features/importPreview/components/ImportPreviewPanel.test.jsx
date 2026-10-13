@@ -207,12 +207,31 @@ describe('ImportPreviewPanel confirmation safety', () => {
       selectedCount: 2,
     })} />)
 
-    expect(screen.getByRole('checkbox', { name: 'Select for import: SYNTHETIC CAFE on 2026-08-12, statement row 1' })).toBeInTheDocument()
-    expect(screen.getByRole('checkbox', { name: 'Select for import: SYNTHETIC CAFE on 2026-08-12, statement row 2' })).toBeInTheDocument()
-    expect(screen.getByRole('textbox', { name: 'Expense description for SYNTHETIC CAFE on 2026-08-12, statement row 1' })).toBeInTheDocument()
-    expect(screen.getByRole('combobox', { name: 'Category for SYNTHETIC CAFE on 2026-08-12, statement row 2' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Save row for SYNTHETIC CAFE on 2026-08-12, statement row 1' })).toBeInTheDocument()
-    expect(screen.getByLabelText('Statement details for SYNTHETIC CAFE on 2026-08-12, statement row 2')).toBeInTheDocument()
+    expect(screen.getByRole('checkbox', { name: 'Select for import: SYNTHETIC CAFE on Aug 12, 2026, statement row 1' })).toBeInTheDocument()
+    expect(screen.getByRole('checkbox', { name: 'Select for import: SYNTHETIC CAFE on Aug 12, 2026, statement row 2' })).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: 'Expense description for SYNTHETIC CAFE on Aug 12, 2026, statement row 1' })).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: 'Category for SYNTHETIC CAFE on Aug 12, 2026, statement row 2' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Save row for SYNTHETIC CAFE on Aug 12, 2026, statement row 1' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Statement details for SYNTHETIC CAFE on Aug 12, 2026, statement row 2')).toBeInTheDocument()
+  })
+
+  it('formats the review row date like the saved list, with unavailable fallbacks for a missing or invalid date', () => {
+    const rows = [
+      row,
+      { ...row, rowId: 'row-2', sourceRowOrdinal: 2, postedDate: null },
+      { ...row, rowId: 'row-3', sourceRowOrdinal: 3, postedDate: 'not-a-date' },
+    ]
+    render(<ImportPreviewPanel importState={importState({ preview: { ...preview, rows }, selectedCount: 3 })} />)
+    const table = tableRegion()
+
+    expect(within(table).getByText('Aug 12, 2026')).toBeVisible()
+    expect(within(table).queryByText('2026-08-12')).not.toBeInTheDocument()
+    expect(within(table).getByRole('checkbox', { name: 'Select for import: SYNTHETIC CAFE on Aug 12, 2026, statement row 1' })).toBeInTheDocument()
+    expect(within(table).getByRole('checkbox', { name: 'Select for import: SYNTHETIC CAFE on date unavailable, statement row 2' })).toBeInTheDocument()
+    expect(within(table).getByRole('checkbox', { name: 'Select for import: SYNTHETIC CAFE on date unavailable, statement row 3' })).toBeInTheDocument()
+    expect(within(table).queryByText('not-a-date')).not.toBeInTheDocument()
+    const dateFacts = [...table.querySelectorAll('.import-row-transaction__facts > div:first-child')].map((node) => node.textContent)
+    expect(dateFacts).toEqual(['DateAug 12, 2026', 'DateUnavailable', 'DateUnavailable'])
   })
 
   it('keeps decision facts visible and puts only source mechanics in named details', async () => {
@@ -227,7 +246,7 @@ describe('ImportPreviewPanel confirmation safety', () => {
     const sourceDetails = within(table).getByRole('group')
 
     expect(within(table).getByText('SYNTHETIC CAFE')).toBeVisible()
-    expect(within(table).getByText('2026-08-12')).toBeVisible()
+    expect(within(table).getByText('Aug 12, 2026')).toBeVisible()
     expect(within(table).getByText('$8.50')).toBeVisible()
     expect(within(table).getByText('Money out')).toBeVisible()
     expect(within(table).getByText('Possible duplicate: this looks like one you already saved. Check before selecting it.')).toBeVisible()
@@ -235,7 +254,7 @@ describe('ImportPreviewPanel confirmation safety', () => {
     expect(sourceDetails).not.toHaveAttribute('open')
 
     const sourceSummary = within(table).getByText('Statement details', { selector: 'summary' })
-    expect(sourceSummary).toHaveAttribute('aria-label', 'Statement details for SYNTHETIC CAFE on 2026-08-12, statement row 1')
+    expect(sourceSummary).toHaveAttribute('aria-label', 'Statement details for SYNTHETIC CAFE on Aug 12, 2026, statement row 1')
     await user.click(sourceSummary)
 
     expect(sourceDetails).toHaveAttribute('open')
