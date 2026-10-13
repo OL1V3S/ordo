@@ -126,7 +126,7 @@ describe('import preview in Spanish', () => {
     for (const header of ['Fila', 'Estado', 'Selección', 'Detalles del gasto']) {
       expect(within(table).getByRole('columnheader', { name: header })).toBeInTheDocument()
     }
-    const context = 'SYNTHETIC CAFE, 2026-08-12, fila 1 del estado de cuenta'
+    const context = 'SYNTHETIC CAFE, 12 ago 2026, fila 1 del estado de cuenta'
     expect(within(table).getByRole('checkbox', { name: `Seleccionar para importar: ${context}` })).toBeChecked()
     expect(within(table).getByLabelText(`Descripción del gasto: ${context}`)).toHaveValue('Coffee')
     expect(within(table).getByLabelText(`Categoría: ${context}`)).toHaveValue('food')
@@ -139,13 +139,33 @@ describe('import preview in Spanish', () => {
     expect(within(table).getByText('Transacciones electrónicas')).toBeInTheDocument()
     expect(within(table).getAllByText('Detalles del estado de cuenta').length).toBeGreaterThan(0)
 
-    const deposit = 'SYNTHETIC DEPOSIT, 2026-08-12, fila 2 del estado de cuenta'
+    const deposit = 'SYNTHETIC DEPOSIT, 12 ago 2026, fila 2 del estado de cuenta'
     expect(within(table).getByRole('checkbox', { name: `Guardar depósito: ${deposit}` })).not.toBeChecked()
     expect(within(table).getByText('Depósito')).toBeInTheDocument()
     expect(within(table).getByText('Abono')).toBeInTheDocument()
     expect(within(table).getByText('Depósitos')).toBeInTheDocument()
     expect(within(table).getByText('No editable')).toBeInTheDocument()
     expect(within(table).getByText(/No se cuenta como ingreso ni como pago de nómina\./)).toBeInTheDocument()
+  })
+
+  it('formats the review row date like the saved list in Spanish, with unavailable fallbacks for a missing or invalid date', () => {
+    const rows = [
+      expenseRow,
+      { ...expenseRow, rowId: 'row-x2', sourceRowOrdinal: 5, postedDate: null },
+      { ...expenseRow, rowId: 'row-x3', sourceRowOrdinal: 6, postedDate: 'not-a-date' },
+    ]
+    render(<ImportPreviewPanel importState={importState({ preview: previewWith(rows), selectedCount: 3 })} />)
+    const table = screen.getByRole('region', { name: 'Vista previa del estado de cuenta' })
+
+    expect(within(table).getByText('12 ago 2026')).toBeVisible()
+    expect(within(table).queryByText('2026-08-12')).not.toBeInTheDocument()
+    expect(within(table).queryByText('not-a-date')).not.toBeInTheDocument()
+    expect(within(table).getByRole('checkbox', { name: 'Seleccionar para importar: SYNTHETIC CAFE, 12 ago 2026, fila 1 del estado de cuenta' })).toBeInTheDocument()
+    expect(within(table).getByRole('checkbox', { name: 'Seleccionar para importar: SYNTHETIC CAFE, fecha no disponible, fila 5 del estado de cuenta' })).toBeInTheDocument()
+    expect(within(table).getByRole('checkbox', { name: 'Seleccionar para importar: SYNTHETIC CAFE, fecha no disponible, fila 6 del estado de cuenta' })).toBeInTheDocument()
+    const dateFacts = [...table.querySelectorAll('.import-row-transaction__facts > div:first-child')].map((node) => node.textContent)
+    expect(dateFacts.slice(0, 1)).toEqual(['Fecha12 ago 2026'])
+    expect(dateFacts.slice(-2)).toEqual(['FechaNo disponible', 'FechaNo disponible'])
   })
 
   it('keeps the exact meaning of the duplicate warnings in Spanish', () => {
@@ -315,7 +335,7 @@ describe('import preview in Spanish', () => {
     const user = userEvent.setup()
     render(<ImportPreviewPanel importState={importState({ updateRow: vi.fn().mockResolvedValue(null) })} />)
     const table = screen.getByRole('region', { name: 'Vista previa del estado de cuenta' })
-    const context = 'SYNTHETIC CAFE, 2026-08-12, fila 1 del estado de cuenta'
+    const context = 'SYNTHETIC CAFE, 12 ago 2026, fila 1 del estado de cuenta'
 
     await user.click(within(table).getByRole('checkbox', { name: `Seleccionar para importar: ${context}` }))
     expect(await within(table).findByRole('alert')).toHaveTextContent('No pudimos actualizar esta fila. Inténtalo de nuevo.')

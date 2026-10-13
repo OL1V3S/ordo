@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { formatMoneyDecimal } from "../../../shared/localization/format";
+import { formatCalendarDate, formatMoneyDecimal } from "../../../shared/localization/format";
 import { useLocale } from "../../../shared/localization/useLocale";
 import { DEFAULT_CATEGORIES } from "../../../shared/constants/categories";
 import { displayText } from "../../../utils/text";
@@ -132,7 +132,7 @@ export default function ImportPreviewRow({
   const sourceDescription = row.sourceDescription || t("row.unavailable");
   const rowContext = t("row.context", {
     description: sourceDescription,
-    date: row.postedDate ?? t("row.unknownDate"),
+    date: formatCalendarDate(row.postedDate, locale) ?? t("row.unknownDate"),
     ordinal: row.sourceRowOrdinal,
   });
   const sourceDetailsLabel = t("row.sourceDetails.aria", { row: rowContext });
@@ -154,7 +154,7 @@ export default function ImportPreviewRow({
     <div className="import-row-transaction">
       <strong className="import-row-transaction__description">{sourceDescription}</strong>
       <div className="import-row-transaction__facts">
-        <div><span className="import-field-label">{t("row.facts.date")}</span>{row.postedDate ?? t("row.unavailable")}</div>
+        <div><span className="import-field-label">{t("row.facts.date")}</span>{formatCalendarDate(row.postedDate, locale) ?? t("row.unavailable")}</div>
         <div><span className="import-field-label">{t("row.facts.amount")}</span>{row.amount == null ? t("row.unavailable") : (formatMoneyDecimal(row.amount, locale) ?? t("row.unavailable"))}</div>
         <div><span className="import-field-label">{t("row.facts.direction")}</span>{row.direction ? t(`row.directions.${row.direction}`, { defaultValue: displayText(row.direction) }) : ""}</div>
       </div>
