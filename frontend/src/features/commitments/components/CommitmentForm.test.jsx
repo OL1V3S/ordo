@@ -39,7 +39,7 @@ describe("commitment expectation form", () => {
 
     await user.selectOptions(screen.getByLabelText("How often"), "weekly");
     await user.selectOptions(screen.getByLabelText("Expected weekday"), "tuesday");
-    await user.selectOptions(screen.getByLabelText("Amount model"), "range");
+    await user.selectOptions(screen.getByLabelText("Amount type"), "range");
     await user.click(screen.getByRole("button", { name: "Confirm recurring expense" }));
 
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
@@ -59,7 +59,7 @@ describe("commitment expectation form", () => {
     const user = userEvent.setup();
     const onSubmit = renderForm();
 
-    await user.selectOptions(screen.getByLabelText("Monthly timing"), "monthend");
+    await user.selectOptions(screen.getByLabelText("Monthly date"), "monthend");
     await user.click(screen.getByRole("button", { name: "Confirm recurring expense" }));
 
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
@@ -102,7 +102,7 @@ describe("commitment expectation form", () => {
       />
     );
 
-    expect(screen.getByText(/could not be loaded with reliable cent precision/)).toBeVisible();
+    expect(screen.getByText(/couldn't load the exact amount/)).toBeVisible();
     expect(screen.getByRole("button", { name: "Confirm recurring expense" })).toBeDisabled();
   });
 });

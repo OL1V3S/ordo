@@ -200,19 +200,19 @@ import/export them, but the runtime must not depend on a translation service.
   map to catalog labels while the stored value stays the canonical value in payloads; a
   value without a label shows a readable fallback derived from the code.
 - Commitments count-dependent text uses complete count-aware messages instead of
-  concatenated fragments: `N change(s) to review` and `N possible commitment(s)` on the
-  page, `N linked expense(s)`, supporting-expense phrases per change dimension (amount,
-  timing), and missed-date phrases per cadence (weekly, monthly, yearly, with a generic
-  fallback). Timing sentences take complete before/after day-count messages. English
-  output is unchanged, including its existing wording for a count of one (for example
-  `N linked expense(s)`, `1 days before`, `Based on 1 expenses`); Spanish uses correct
-  singular and plural forms.
+  concatenated fragments: `N changes to review` and `N possible recurring expenses` on
+  the page, `N linked expenses`, matching-expense phrases per change dimension (amount,
+  dates), and missed-date phrases per cadence (weekly, monthly, yearly, with a generic
+  fallback). Timing sentences take complete before/after day-count messages (for
+  example `up to 1 day early or 2 days late`). Both languages use correct singular and
+  plural forms (`1 linked expense`, `1 day before`, `Based on 1 expense`).
 - Spanish keeps an expected recurring expense distinct from expenses actually recorded.
-  Expected copy uses `esperado`/`lo guardado`; evidence copy uses `gastos registrados`
-  and `gastos vinculados`. Decision wording names its effect: `Descartar` and
-  `Volver a revisar` act on a possible recurring expense, `Aceptar cambio` updates the saved
-  details, `Mantener lo guardado`/`Mantener activo` leave it unchanged, and
-  `Marcar como finalizado` changes the recurring expense status after a confirmation.
+  Expected copy uses `esperado`/`lo guardado`; copy about the expenses behind a
+  suggestion uses `gastos que coinciden` and `gastos vinculados`. Decision wording names
+  its effect: `Descartar` and `Volver a revisar` act on a possible recurring expense,
+  `Usar los datos nuevos` updates the saved details, `Mantener lo guardado`/`Mantener
+  activo` leave it unchanged, and `Marcar como finalizado` changes the recurring expense
+  status after a confirmation (`Sí, marcar como finalizado`).
 - Commitments keeps `$` amounts and the browser-language date display (`formatDate`
   uses `toLocaleDateString(undefined, ...)`, so dates follow the browser language, not
   the app language) in both languages until formatters adopt the direction below. Only

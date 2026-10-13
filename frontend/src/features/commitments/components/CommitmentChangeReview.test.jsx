@@ -120,15 +120,15 @@ describe("commitment change review", () => {
     expect(within(observedProposal).getByText("$25.00")).toBeVisible();
     expect(within(pendingGym).getByText("2 recent expenses support this amount change.")).toBeVisible();
     expect(within(pendingGym).getByText("Pending")).toBeVisible();
-    const amountDetails = within(pendingGym).getByLabelText("Details for amount change for Gym plan").closest("details");
+    const amountDetails = within(pendingGym).getByLabelText("Details: amount change for Gym plan").closest("details");
     expect(amountDetails).not.toHaveAttribute("open");
     expect(within(pendingGym).getByText(/Aug 17, 2026/)).not.toBeVisible();
-    await user.click(within(pendingGym).getByLabelText("Details for amount change for Gym plan"));
+    await user.click(within(pendingGym).getByLabelText("Details: amount change for Gym plan"));
     expect(amountDetails).toHaveAttribute("open");
     expect(within(pendingGym).getByText(/Aug 17, 2026/)).toBeVisible();
     expect(within(pendingGym).getByText(/Sep 17, 2026/)).toBeVisible();
     expect(within(pendingGym).queryByText(/Oct 17, 2026/)).not.toBeInTheDocument();
-    expect(within(amountDetails).getByText("Evaluated").closest("div")).toHaveTextContent("Oct 29, 2026");
+    expect(within(amountDetails).getByText("Checked on").closest("div")).toHaveTextContent("Oct 29, 2026");
     expect(within(amountDetails).getByText("Why we suggested this").closest("div")).toHaveTextContent("commitment-change-v1");
 
     expect(reviewedHeading()).toHaveAccessibleName("Reviewed changes (1)");
@@ -137,9 +137,9 @@ describe("commitment change review", () => {
     const keptGym = within(reviewedHistory()).getByRole("heading", { name: "Gym plan", level: 3 }).closest("li");
     expect(within(keptGym).getByText("Reviewed change")).toBeVisible();
     expect(within(keptGym).getByText("Health · Monthly")).toBeVisible();
-    const timingDetails = within(keptGym).getByLabelText("Details for timing change for Gym plan").closest("details");
+    const timingDetails = within(keptGym).getByLabelText("Details: date change for Gym plan").closest("details");
     expect(timingDetails).not.toHaveAttribute("open");
-    await user.click(within(keptGym).getByLabelText("Details for timing change for Gym plan"));
+    await user.click(within(keptGym).getByLabelText("Details: date change for Gym plan"));
     expect(within(keptGym).queryByText(/Aug 17, 2026/)).not.toBeInTheDocument();
     expect(within(keptGym).getByText(/Sep 17, 2026/)).toBeVisible();
     expect(within(keptGym).getByText(/Oct 17, 2026/)).toBeVisible();
@@ -156,21 +156,21 @@ describe("commitment change review", () => {
     const state = reviewState();
     render(<CommitmentChangeReview state={state} />);
 
-    await user.click(screen.getByRole("button", { name: "Accept amount change for Gym plan" }));
+    await user.click(screen.getByRole("button", { name: "Use the new details: amount for Gym plan" }));
     expect(state.acceptAmountChange).toHaveBeenCalledWith("commitment-1", "amount-fingerprint");
     expect(state.acceptTimingChange).not.toHaveBeenCalled();
     await waitFor(() => expect(screen.getByRole("heading", { name: "Changes to review" })).toHaveFocus());
 
-    await user.click(screen.getByRole("button", { name: "Keep current amount for Gym plan" }));
+    await user.click(screen.getByRole("button", { name: "Keep saved details: amount for Gym plan" }));
     expect(state.keepChange).toHaveBeenCalledWith("commitment-1", "amount", "amount-fingerprint");
     expect(reviewedButton()).toHaveAttribute("aria-expanded", "true");
     await waitFor(() => expect(reviewedButton()).toHaveFocus());
 
-    await user.click(screen.getByRole("button", { name: "Review again: timing change for Gym plan" }));
+    await user.click(screen.getByRole("button", { name: "Review again: date change for Gym plan" }));
     expect(state.reconsiderChange).toHaveBeenCalledWith("commitment-1", "timing", "timing-fingerprint");
     await waitFor(() => expect(screen.getByRole("heading", { name: "Changes to review" })).toHaveFocus());
 
-    await user.click(screen.getByRole("button", { name: "Keep active for Insurance" }));
+    await user.click(screen.getByRole("button", { name: "Keep active: Insurance" }));
     expect(state.keepChange).toHaveBeenCalledWith("commitment-2", "missing", "missing-fingerprint");
     await waitFor(() => expect(reviewedButton()).toHaveFocus());
   });
@@ -191,15 +191,15 @@ describe("commitment change review", () => {
       document.body.append(feedback);
       render(<CommitmentChangeReview state={reviewState()} />);
 
-      await user.click(screen.getByRole("button", { name: "Accept amount change for Gym plan" }));
-      await user.click(screen.getByRole("button", { name: "Mark Insurance ended" }));
-      const confirmation = screen.getByRole("button", { name: "Confirm mark Insurance ended" });
+      await user.click(screen.getByRole("button", { name: "Use the new details: amount for Gym plan" }));
+      await user.click(screen.getByRole("button", { name: "Mark as ended: Insurance" }));
+      const confirmation = screen.getByRole("button", { name: "Yes, mark as ended: Insurance" });
       expect(confirmation).toHaveFocus();
       act(() => frames.splice(0).forEach((callback) => callback(performance.now())));
       expect(confirmation).toHaveFocus();
 
-      await user.click(screen.getByRole("button", { name: "Cancel marking Insurance ended" }));
-      await user.click(screen.getByRole("button", { name: "Accept amount change for Gym plan" }));
+      await user.click(screen.getByRole("button", { name: "Cancel: Insurance" }));
+      await user.click(screen.getByRole("button", { name: "Use the new details: amount for Gym plan" }));
       act(() => frames.splice(0).forEach((callback) => callback(performance.now())));
       expect(feedback).toHaveFocus();
       feedback.remove();
@@ -219,7 +219,7 @@ describe("commitment change review", () => {
     const state = reviewState({ commitmentChanges: [timingPending] });
     render(<CommitmentChangeReview state={state} />);
 
-    await user.click(screen.getByRole("button", { name: "Accept timing change for Gym plan" }));
+    await user.click(screen.getByRole("button", { name: "Use the new details: dates for Gym plan" }));
 
     expect(state.acceptTimingChange).toHaveBeenCalledWith("commitment-1", "timing-fingerprint");
     expect(state.acceptAmountChange).not.toHaveBeenCalled();
@@ -234,16 +234,16 @@ describe("commitment change review", () => {
     };
     const { rerender } = render(<CommitmentChangeReview state={reviewState({ commitmentChanges: [exactChange] })} />);
     expect(screen.getAllByText("$9,999,999,999,999,999.99").length).toBeGreaterThan(0);
-    expect(screen.getByRole("button", { name: "Accept amount change for Gym plan" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Use the new details: amount for Gym plan" })).toBeEnabled();
 
     const ambiguous = {
       ...exactChange,
       observations: [{ ...observations[0], amount: Number("9999999999999999") }],
     };
     rerender(<CommitmentChangeReview state={reviewState({ commitmentChanges: [ambiguous] })} />);
-    expect(screen.getByText(/Exact amount review is unavailable/)).toBeVisible();
-    expect(screen.getByRole("button", { name: "Accept amount change for Gym plan" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Keep current amount for Gym plan" })).toBeDisabled();
+    expect(screen.getByText(/Exact amount unavailable\. Refresh the page/)).toBeVisible();
+    expect(screen.getByRole("button", { name: "Use the new details: amount for Gym plan" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Keep saved details: amount for Gym plan" })).toBeDisabled();
   });
 
   it("requires an inline accessible confirmation before marking a commitment ended", async () => {
@@ -259,34 +259,34 @@ describe("commitment change review", () => {
     );
     const { rerender } = render(renderReview(state));
 
-    await user.click(screen.getByRole("button", { name: "Mark Insurance ended" }));
-    const confirmation = screen.getByRole("group", { name: /Mark Insurance ended/ });
-    const confirmButton = within(confirmation).getByRole("button", { name: "Confirm mark Insurance ended" });
-    const missingDetails = screen.getByLabelText("Details for missing change for Insurance").closest("details");
-    expect(confirmation).toHaveTextContent("you can change it again");
+    await user.click(screen.getByRole("button", { name: "Mark as ended: Insurance" }));
+    const confirmation = screen.getByRole("group", { name: /Mark Insurance as ended/ });
+    const confirmButton = within(confirmation).getByRole("button", { name: "Yes, mark as ended: Insurance" });
+    const missingDetails = screen.getByLabelText("Details: missing expense for Insurance").closest("details");
+    expect(confirmation).toHaveTextContent("You can change it again");
     expect(confirmButton).toHaveFocus();
     expect(missingDetails).not.toContainElement(confirmation);
     expect(state.markEndedFromChange).not.toHaveBeenCalled();
 
     const loadErrorState = reviewState({ loadError: "Commitments could not be loaded." });
     rerender(renderReview(loadErrorState));
-    expect(screen.getByRole("button", { name: "Confirm mark Insurance ended" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Cancel marking Insurance ended" })).toBeEnabled();
-    await user.click(screen.getByRole("button", { name: "Cancel marking Insurance ended" }));
+    expect(screen.getByRole("button", { name: "Yes, mark as ended: Insurance" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Cancel: Insurance" })).toBeEnabled();
+    await user.click(screen.getByRole("button", { name: "Cancel: Insurance" }));
     expect(document.getElementById("commitments-feedback")).toHaveFocus();
 
     rerender(renderReview(state));
-    await user.click(screen.getByRole("button", { name: "Mark Insurance ended" }));
-    await user.click(screen.getByRole("button", { name: "Cancel marking Insurance ended" }));
-    const markEndedButton = screen.getByRole("button", { name: "Mark Insurance ended" });
+    await user.click(screen.getByRole("button", { name: "Mark as ended: Insurance" }));
+    await user.click(screen.getByRole("button", { name: "Cancel: Insurance" }));
+    const markEndedButton = screen.getByRole("button", { name: "Mark as ended: Insurance" });
     expect(markEndedButton).toHaveFocus();
 
     await user.click(markEndedButton);
-    await user.click(screen.getByRole("button", { name: "Confirm mark Insurance ended" }));
+    await user.click(screen.getByRole("button", { name: "Yes, mark as ended: Insurance" }));
 
     expect(state.markEndedFromChange).toHaveBeenCalledWith("commitment-2", "missing-fingerprint");
     await waitFor(() => expect(screen.getByRole("heading", { name: "Changes to review" })).toHaveFocus());
-    expect(screen.getByRole("group", { name: /Mark Insurance ended/ })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: /Mark Insurance as ended/ })).toBeInTheDocument();
   });
 
   it("supports split pending and reviewed views and reports reviewed disclosure changes", async () => {
@@ -299,7 +299,7 @@ describe("commitment change review", () => {
     );
     expect(screen.getByRole("heading", { name: "Changes to review" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: /Reviewed changes/ })).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Keep current amount for Gym plan" }));
+    await user.click(screen.getByRole("button", { name: "Keep saved details: amount for Gym plan" }));
     expect(onReviewedOpenChange).toHaveBeenCalledWith(true);
 
     rerender(
@@ -317,7 +317,7 @@ describe("commitment change review", () => {
     const summary = reviewedButton();
     expect(reviewedButton()).toHaveAttribute("aria-expanded", "true");
     expect(summary).toHaveAttribute("aria-disabled", "true");
-    expect(screen.getByRole("button", { name: "Review again: timing change for Gym plan" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Review again: date change for Gym plan" })).toBeDisabled();
     await user.click(summary);
     expect(reviewedButton()).toHaveAttribute("aria-expanded", "true");
   });
@@ -328,12 +328,12 @@ describe("commitment change review", () => {
     const { rerender } = render(
       <CommitmentChangeReview state={reviewState()} view="pending" activeTask={endTask} onTaskChange={onTaskChange} />
     );
-    expect(screen.getByRole("group", { name: /Mark Insurance ended/ })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: /Mark Insurance as ended/ })).toBeInTheDocument();
 
     rerender(<CommitmentChangeReview state={reviewState({ loadError: "Refresh failed." })} view="pending" activeTask={endTask} onTaskChange={onTaskChange} />);
-    expect(screen.getByRole("group", { name: /Mark Insurance ended/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Confirm mark Insurance ended" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Cancel marking Insurance ended" })).toBeEnabled();
+    expect(screen.getByRole("group", { name: /Mark Insurance as ended/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Yes, mark as ended: Insurance" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Cancel: Insurance" })).toBeEnabled();
     expect(onTaskChange).not.toHaveBeenCalled();
 
     rerender(<CommitmentChangeReview state={reviewState({ commitmentChanges: [changedCommitment] })} view="pending" activeTask={endTask} onTaskChange={onTaskChange} />);
@@ -345,9 +345,9 @@ describe("commitment change review", () => {
 
     const editTask = { mode: "edit", key: "commitment-2" };
     rerender(<CommitmentChangeReview state={reviewState()} view="pending" activeTask={editTask} onTaskChange={onTaskChange} />);
-    expect(screen.getByRole("button", { name: "Accept amount change for Gym plan" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Keep active for Insurance" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Mark Insurance ended" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Use the new details: amount for Gym plan" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Keep active: Insurance" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Mark as ended: Insurance" })).toBeDisabled();
     expect(onTaskChange).not.toHaveBeenCalled();
   });
 

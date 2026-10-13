@@ -74,7 +74,7 @@ describe("commitment state", () => {
 
     await act(() => result.current.dismissCandidate("candidate-1"));
 
-    expect(result.current.actionError).toContain("proposal changed");
+    expect(result.current.actionError).toContain("possible recurring expense changed");
     expect(result.current.actionError).not.toContain("sensitive");
     expect(commitmentsApi.getCandidates).toHaveBeenCalledTimes(2);
     expect(commitmentsApi.getCommitments).toHaveBeenCalledTimes(2);
@@ -95,7 +95,7 @@ describe("commitment state", () => {
     expect(commitmentsApi.getCandidates).toHaveBeenCalledTimes(2);
     expect(commitmentsApi.getCommitments).toHaveBeenCalledTimes(2);
     expect(commitmentsApi.getChanges).toHaveBeenCalledTimes(2);
-    expect(result.current.actionError).toContain("latest evidence");
+    expect(result.current.actionError).toContain("latest details");
     expect(result.current.actionError).not.toContain("private financial state");
   });
 

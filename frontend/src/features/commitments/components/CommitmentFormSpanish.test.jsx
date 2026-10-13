@@ -60,7 +60,7 @@ describe("commitment form in Spanish", () => {
   it("shows the Spanish saving state and observed-amount warning", () => {
     renderForm({ busy: true, model: { ...model, observedMedianAmount: null } });
 
-    expect(screen.getByRole("button", { name: "Guardando..." })).toBeDisabled();
-    expect(screen.getByText("El monto observado no se pudo cargar con precisión confiable de centavos. Actualiza antes de confirmar.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Guardando…" })).toBeDisabled();
+    expect(screen.getByText("No pudimos cargar el monto exacto. Actualiza antes de confirmar.")).toBeInTheDocument();
   });
 });
