@@ -2,6 +2,7 @@ import { act, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ThemeProvider } from '../../shared/theme/ThemeProvider'
 import { THEME_STORAGE_KEY } from '../../shared/theme/theme'
+import i18n from '../../shared/localization/i18n'
 import SpendingChart from './SpendingChart'
 
 vi.mock('react-chartjs-2', () => ({
@@ -79,7 +80,8 @@ describe('spending chart data', () => {
     }))
   })
 
-  afterEach(() => {
+  afterEach(async () => {
+    await act(async () => { await i18n.changeLanguage('en') })
     document.documentElement.removeAttribute('data-theme')
     localStorage.removeItem(THEME_STORAGE_KEY)
     vi.unstubAllGlobals()
@@ -114,6 +116,18 @@ describe('spending chart data', () => {
     const billsRow = screen.getByText('Bills').closest('li')
     expect(billsRow).toHaveTextContent('Spent: $0.00')
     expect(billsRow).toHaveTextContent('Budget limit: $80.00')
+  })
+
+  it('localizes known and uncategorized keys in labels and the data summary and keeps a custom category as before', async () => {
+    const totals = { food: 25, bills: 10, uncategorized: 5, 'home repair': 3 }
+    const { rerender } = render(<SpendingChart totalsByCategory={totals} budgetLimitsByCategory={{}} />)
+    expect(chartData().labels).toEqual(['Food', 'Bills', 'Uncategorized', 'Home Repair'])
+
+    await act(async () => { await i18n.changeLanguage('es') })
+    rerender(<SpendingChart totalsByCategory={totals} budgetLimitsByCategory={{}} />)
+    expect(chartData().labels).toEqual(['Comida', 'Servicios', 'Sin categoría', 'Home Repair'])
+    const rows = screen.getAllByRole('listitem')
+    expect(rows.map((row) => row.querySelector('strong').textContent)).toEqual(['Comida', 'Servicios', 'Sin categoría', 'Home Repair'])
   })
 
   it('shows the existing empty state when neither input contains categories', () => {

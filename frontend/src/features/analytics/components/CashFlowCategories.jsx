@@ -2,6 +2,7 @@ import { useId, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocale } from "../../../shared/localization/useLocale";
 import { displayText } from "../../../utils/text";
+import { categoryLabel } from "../../../shared/localization/categoryLabel";
 import StatusMessage from "../../../shared/ui/StatusMessage";
 import { barWidth, cashPercentage, formatCash, minorUnits } from "../utils/cashFlowPresentation";
 
@@ -29,7 +30,7 @@ export default function CashFlowCategories({ data }) {
           {categories.map((category) => (
             <li key={category.category} className="analytics-list__item">
               <div className="analytics-row">
-                <strong>{displayText(category.category)}</strong>
+                <strong>{categoryLabel(t, category.category, displayText)}</strong>
                 <span>{formatCash(category.amountMinor, { locale })} · {cashPercentage(category.amountMinor, data.selected.spentMinor, locale) ?? t("categories.notApplicable")}</span>
               </div>
               <div className="analytics-bar" aria-hidden="true">

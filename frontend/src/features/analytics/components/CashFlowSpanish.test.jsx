@@ -66,16 +66,29 @@ describe("cash-flow components in Spanish", () => {
     expect(screen.queryByText(/not available|no disponible/i)).not.toBeInTheDocument();
   });
 
-  it("renders the category ranking and its empty state in Spanish with stored category names as stored", () => {
+  it("renders the category ranking and its empty state in Spanish with known category keys localized", () => {
     const data = cashFlowFixture("2026-08", { spentMinor: "0" });
     data.categories = [{ category: "food", amountMinor: "1" }];
     const { unmount } = render(<CashFlowCategories data={data} />);
     const region = screen.getByRole("region", { name: "Dónde se gastó" });
     expect(region).toHaveTextContent("Ordenado por monto");
-    expect(within(region).getByRole("listitem")).toHaveTextContent("FoodUSD 0.01 · No aplica");
+    expect(within(region).getByRole("listitem")).toHaveTextContent("ComidaUSD 0.01 · No aplica");
     unmount();
     render(<CashFlowCategories data={{ ...data, categories: [] }} />);
     expect(screen.getByText("No hay gastos registrados")).toBeInTheDocument();
+  });
+
+  it("localizes known and uncategorized keys and shows a custom category as it displayed before, in the same order", () => {
+    const data = cashFlowFixture("2026-08", { spentMinor: "0" });
+    data.categories = [
+      { category: "bills", amountMinor: "500" },
+      { category: "uncategorized", amountMinor: "400" },
+      { category: "home repair", amountMinor: "300" },
+      { category: "other", amountMinor: "200" },
+    ];
+    render(<CashFlowCategories data={data} />);
+    const rows = within(screen.getByRole("region", { name: "Dónde se gastó" })).getAllByRole("listitem");
+    expect(rows.map((row) => row.querySelector("strong").textContent)).toEqual(["Servicios", "Sin categoría", "Home Repair", "Otra"]);
   });
 
   it("gives the chart Spanish dataset labels, month ticks, tooltips, and axis, with the currency code unchanged", () => {

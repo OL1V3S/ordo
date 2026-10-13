@@ -13,6 +13,7 @@ import { useCommitments } from "../hooks/useCommitments";
 import { cadenceLabel, evidenceRuleLabel, formatDate, formatDerivedMoney, formatMoney, lifecycleLabel, weekdayLabel } from "../utils/formatCommitments";
 import groupCommitmentChanges from "../utils/groupCommitmentChanges";
 import { displayText } from "../../../utils/text";
+import { categoryLabel } from "../../../shared/localization/categoryLabel";
 import { useLocation } from "react-router-dom";
 import "../../../styles/commitments.css";
 
@@ -55,7 +56,7 @@ function CandidateRow({ candidate, dismissed, state, task, disabled, onOpen, onC
   return (
     <ListRow className={`commitment-row${dismissed ? " commitment-row--dismissed" : ""}`} titleAs="h3" label={dismissed ? t("candidates.dismissedStatus") : null} title={name}
       meta={<>
-        <span>{displayText(candidate.category)} · {cadenceLabel(candidate.cadence, t)}</span>
+        <span>{categoryLabel(t, candidate.category, displayText)} · {cadenceLabel(candidate.cadence, t)}</span>
         <span>{t(candidate.observedAmountMode === "fixed" ? "candidates.basedOnFixed" : "candidates.basedOnRange", { count: candidate.occurrenceCount })}</span>
       </>}
       amount={<><span className="commitment-row__caption">{candidate.observedAmountMode === "fixed" ? t("candidates.observedAmount") : t("candidates.observedAmountRange")}</span><strong className="commitment-row__amount">{amountSummary(candidate, locale, t)}</strong></>}
@@ -99,7 +100,7 @@ function ConfirmedCommitmentRow({ commitment, state, task, disabled, onOpen, onC
   return (
     <ListRow className={`commitment-row commitment-row--${commitment.lifecycle}`} titleAs="h3" label={lifecycleLabel(commitment.lifecycle, t)} title={name}
       meta={<>
-        <span>{displayText(commitment.category)} · {cadenceLabel(commitment.cadence, t)}</span>
+        <span>{categoryLabel(t, commitment.category, displayText)} · {cadenceLabel(commitment.cadence, t)}</span>
         <span>{timingSummary(commitment, t)}</span>
       </>}
       amount={<><span className="commitment-row__caption">{t("saved.expectedAmount")}</span><strong className="commitment-row__amount">{amountSummary(commitment, locale, t)}</strong></>}

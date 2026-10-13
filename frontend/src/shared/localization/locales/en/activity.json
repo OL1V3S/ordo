@@ -73,7 +73,8 @@
     "transport": "Transport",
     "bills": "Bills",
     "entertainment": "Entertainment",
-    "other": "Other"
+    "other": "Other",
+    "uncategorized": "Uncategorized"
   },
   "spending": {
     "heading": "Spending",

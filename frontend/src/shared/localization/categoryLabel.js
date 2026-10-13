@@ -1,7 +1,8 @@
 import { DEFAULT_CATEGORIES } from "../constants/categories";
 
 // The stored category keys the catalogs carry a label for (activity:categories.*).
-const CATALOG_KEYS = new Set([...DEFAULT_CATEGORIES.map((category) => category.toLowerCase()), "other"]);
+// "uncategorized" is the value the app itself stores when no category is given.
+const CATALOG_KEYS = new Set([...DEFAULT_CATEGORIES.map((category) => category.toLowerCase()), "other", "uncategorized"]);
 
 const unchanged = (value) => value;
 

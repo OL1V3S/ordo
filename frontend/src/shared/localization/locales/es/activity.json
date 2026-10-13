@@ -73,7 +73,8 @@
     "transport": "Transporte",
     "bills": "Servicios",
     "entertainment": "Entretenimiento",
-    "other": "Otra"
+    "other": "Otra",
+    "uncategorized": "Sin categoría"
   },
   "spending": {
     "heading": "Gastos",

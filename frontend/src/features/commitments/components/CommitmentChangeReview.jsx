@@ -8,6 +8,7 @@ import CommitmentEvidence from "./CommitmentEvidence";
 import { cadenceLabel, formatDate, formatDerivedMoney, formatMoney, weekdayLabel } from "../utils/formatCommitments";
 import groupCommitmentChanges from "../utils/groupCommitmentChanges";
 import { displayText } from "../../../utils/text";
+import { categoryLabel } from "../../../shared/localization/categoryLabel";
 import { parseExpenseAmount } from "../../expenses/utils/exactMoney";
 
 function timingSummary(model, t) {
@@ -263,7 +264,7 @@ function ChangeCard({ change, state, kept, activeTask, onTaskChange, onReviewedO
   return (
     <ListRow className={`commitment-row commitment-change-row${kept ? " commitment-change-row--kept" : ""}`} titleAs="h3"
       label={kept ? t("changes.eyebrowReviewed") : t("changes.eyebrowPending")} title={change.commitment.name}
-      meta={<span>{displayText(change.commitment.category)} · {cadenceLabel(change.commitment.cadence, t)}</span>}>
+      meta={<span>{categoryLabel(t, change.commitment.category, displayText)} · {cadenceLabel(change.commitment.cadence, t)}</span>}>
       <div className="commitment-change__panels">
         {change.assessments.map(({ dimension, assessment }) => {
           const evidence = evidenceFor(change, assessment);

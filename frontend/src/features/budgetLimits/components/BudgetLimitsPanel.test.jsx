@@ -1,8 +1,8 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import BudgetLimitsPanel from './BudgetLimitsPanel'
-import '../../../shared/localization/i18n'
+import i18n from '../../../shared/localization/i18n'
 import { chooseRowAction, openRowActions } from '../../../test/rowActions'
 
 const baseProps = {
@@ -351,4 +351,73 @@ describe('budgets declutter (slice 7)', () => {
     expect(screen.getByText('1,234% used')).toBeVisible()
     expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuetext', '$1,234.00 used of $100.00, 1,234%')
   })
+})
+
+describe('category display labels (display only)', () => {
+  const stored = [
+    { id: 1, category: 'food', limitAmount: 100 },
+    { id: 2, category: 'bills', limitAmount: 100 },
+    { id: 3, category: 'uncategorized', limitAmount: 100 },
+    { id: 4, category: 'home repair', limitAmount: 100 },
+  ]
+  const copy = {
+    en: {
+      food: 'Food', bills: 'Bills', uncategorized: 'Uncategorized', custom: 'Home Repair',
+      card: (name) => `${name} budget`, edit: (name) => `Edit ${name} budget`, remove: (name) => `Delete ${name} budget`,
+      limit: (name) => `Monthly limit for ${name}`, confirm: (name) => `Delete budget limit for category "${name}"?`,
+    },
+    es: {
+      food: 'Comida', bills: 'Servicios', uncategorized: 'Sin categoría', custom: 'Home Repair',
+      card: (name) => `Presupuesto de ${name}`, edit: (name) => `Editar presupuesto de ${name}`, remove: (name) => `Eliminar presupuesto de ${name}`,
+      limit: (name) => `Límite mensual de ${name}`, confirm: (name) => `¿Eliminar el límite de presupuesto de la categoría "${name}"?`,
+    },
+  }
+
+  afterEach(async () => { await act(async () => { await i18n.changeLanguage('en') }) })
+
+  for (const language of ['en', 'es']) {
+    it(`shows localized names for known keys and exact display text for custom categories in ${language}`, async () => {
+      await act(async () => { await i18n.changeLanguage(language) })
+      const c = copy[language]
+      render(<BudgetLimitsPanel {...baseProps} budgetLimits={stored} />)
+
+      expect(screen.getAllByRole('listitem').map((row) => row.getAttribute('aria-label'))).toEqual([
+        c.card(c.food), c.card(c.bills), c.card(c.uncategorized), c.card(c.custom),
+      ])
+      const rows = screen.getAllByRole('listitem')
+      expect(within(rows[0]).getByText(c.food)).toBeVisible()
+      expect(within(rows[2]).getByText(c.uncategorized)).toBeVisible()
+      expect(within(rows[3]).getByText(c.custom)).toBeVisible()
+      expect(screen.queryByText(/^(food|bills|uncategorized|home repair)$/)).not.toBeInTheDocument()
+    })
+
+    it(`localizes the edit heading, limit label and delete confirmation in ${language} while the payloads keep the stored key`, async () => {
+      await act(async () => { await i18n.changeLanguage(language) })
+      const c = copy[language]
+      const user = userEvent.setup()
+      const upsertLimit = vi.fn().mockResolvedValue({ refreshFailed: false })
+      const deleteLimit = vi.fn().mockResolvedValue({ refreshFailed: false })
+      const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
+      render(<BudgetLimitsPanel {...baseProps} budgetLimits={stored} upsertLimit={upsertLimit} deleteLimit={deleteLimit} />)
+
+      await chooseRowAction(user, c.edit(c.bills))
+      expect(screen.getByRole('heading', { level: 2, name: c.edit(c.bills) })).toBeVisible()
+      await user.clear(screen.getByLabelText(c.limit(c.bills)))
+      await user.type(screen.getByLabelText(c.limit(c.bills)), '55')
+      await user.click(screen.getByRole('button', { name: language === 'en' ? 'Save limit' : 'Guardar límite' }))
+      expect(upsertLimit).toHaveBeenCalledWith(expect.objectContaining({ category: 'bills', limitAmount: 55 }))
+
+      await chooseRowAction(user, c.edit(c.uncategorized))
+      expect(screen.getByRole('heading', { level: 2, name: c.edit(c.uncategorized) })).toBeVisible()
+      expect(screen.getByLabelText(c.limit(c.uncategorized))).toBeVisible()
+      await user.click(screen.getByRole('button', { name: language === 'en' ? 'Cancel' : 'Cancelar' }))
+
+      await chooseRowAction(user, c.remove(c.uncategorized))
+      expect(confirm).toHaveBeenLastCalledWith(c.confirm(c.uncategorized))
+      expect(deleteLimit).toHaveBeenLastCalledWith(3)
+      await chooseRowAction(user, c.remove(c.custom))
+      expect(confirm).toHaveBeenLastCalledWith(c.confirm(c.custom))
+      expect(deleteLimit).toHaveBeenLastCalledWith(4)
+    })
+  }
 })
