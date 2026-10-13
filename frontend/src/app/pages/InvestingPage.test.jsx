@@ -21,7 +21,7 @@ describe('Investing unavailable surface', () => {
     expect(within(capabilities).getByRole('heading', { name: 'Signals' })).toBeInTheDocument()
     expect(within(capabilities).getByRole('heading', { name: 'Activity and performance' })).toBeInTheDocument()
     expect(within(capabilities).getAllByText('Not available')).toHaveLength(4)
-    expect(screen.getByText(/source-specific adapter and a normalized application contract/)).toBeInTheDocument()
+    expect(screen.getByText(/Connecting investment accounts isn’t available yet/)).toBeInTheDocument()
     expect(screen.getByText(/No provider is supported today/)).toBeInTheDocument()
     expect(screen.queryByRole('button')).not.toBeInTheDocument()
     expect(fetchSpy).not.toHaveBeenCalled()

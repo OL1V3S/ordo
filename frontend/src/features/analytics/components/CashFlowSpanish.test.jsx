@@ -46,7 +46,7 @@ describe("cash-flow components in Spanish", () => {
     expect(disclosure).toHaveTextContent("Gastos registrados2");
     expect(disclosure).toHaveTextContent("Calendarios de nómina con depósitos vinculados1");
     expect(disclosure).toHaveTextContent("Depósitos vinculados editados después de vincularlos1");
-    expect(disclosure).toHaveTextContent("los porcentajes redondeados no sumen 100.0%");
+    expect(disclosure).toHaveTextContent("los porcentajes redondeados pueden no sumar 100.0%");
   });
 
   it("omits the through-date note for a past month and shows it as a Spanish month label", () => {

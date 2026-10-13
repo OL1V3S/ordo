@@ -11,7 +11,7 @@
     "status": "No disponible",
     "connections": {
       "title": "Conexiones",
-      "body": "Todavía no se pueden conectar cuentas de inversión."
+      "body": "Todavía no se pueden conectar cuentas de inversión. Hoy no se admite ningún proveedor."
     },
     "portfolio": {
       "title": "Portafolio e inversiones",

@@ -11,7 +11,7 @@
     "status": "Not available",
     "connections": {
       "title": "Connections",
-      "body": "Connecting investment accounts isn’t available yet."
+      "body": "Connecting investment accounts isn’t available yet. No provider is supported today."
     },
     "portfolio": {
       "title": "Portfolio and holdings",
