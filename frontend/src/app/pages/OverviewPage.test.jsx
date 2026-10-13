@@ -134,6 +134,51 @@ describe("capture-first Home", () => {
     expect(within(list).getByText("Pasaste el límite: gastaste USD 110.00 de USD 100.00.")).toBeInTheDocument();
   });
 
+  it("shows localized labels for stored category keys in budget alerts and recent activity", async () => {
+    const attention = availableAttention([], [
+      { kind: "budget_attention", category: "bills", state: "over_limit", spentAmount: "110.00", limitAmount: "100.00" },
+      { kind: "budget_attention", category: "home repair", state: "at_limit", spentAmount: "50.00", limitAmount: "50.00" },
+    ]);
+    homeApi.getHome.mockResolvedValue(response(home([
+      { kind: "expense", recordId: 1, date: "2026-08-30", amount: "9.00", description: "Power", category: "bills", paycheck: null },
+      { kind: "expense", recordId: 2, date: "2026-08-29", amount: "8.00", description: "Roof", category: "home repair", paycheck: null },
+    ], availableUpcoming(), attention)));
+
+    renderPage();
+
+    const list = await screen.findByRole("list", { name: "Items needing attention" });
+    expect(within(list).getByText("Bills")).toBeInTheDocument();
+    expect(within(list).getByText("home repair")).toBeInTheDocument();
+    expect(within(list).getByRole("link", { name: "Open Bills budget" })).toHaveAttribute("href", "/budgets");
+    expect(within(list).getByRole("link", { name: "Open home repair budget" })).toHaveAttribute("href", "/budgets");
+    expect(screen.getByText("Power").closest("li")).toHaveTextContent("· Bills");
+    expect(screen.getByText("Roof").closest("li")).toHaveTextContent("· home repair");
+  });
+
+  it("shows the Spanish label for stored category keys and leaves custom categories as stored", async () => {
+    await i18n.changeLanguage("es");
+    const attention = availableAttention([], [
+      { kind: "budget_attention", category: "bills", state: "over_limit", spentAmount: "110.00", limitAmount: "100.00" },
+      { kind: "budget_attention", category: "home repair", state: "at_limit", spentAmount: "50.00", limitAmount: "50.00" },
+    ]);
+    homeApi.getHome.mockResolvedValue(response(home([
+      { kind: "expense", recordId: 1, date: "2026-08-30", amount: "9.00", description: "Power", category: "entertainment", paycheck: null },
+      { kind: "expense", recordId: 2, date: "2026-08-29", amount: "8.00", description: "Roof", category: "home repair", paycheck: null },
+    ], availableUpcoming(), attention)));
+
+    renderPage();
+
+    const list = await screen.findByRole("list", { name: "Elementos que requieren atención" });
+    expect(within(list).getByText("Servicios")).toBeInTheDocument();
+    expect(within(list).queryByText("bills")).not.toBeInTheDocument();
+    expect(within(list).getByText("home repair")).toBeInTheDocument();
+    expect(within(list).getByRole("link", { name: "Abrir el presupuesto de Servicios" })).toHaveAttribute("href", "/budgets");
+    expect(within(list).getByRole("link", { name: "Abrir el presupuesto de home repair" })).toHaveAttribute("href", "/budgets");
+    expect(screen.getByText("Power").closest("li")).toHaveTextContent("· Entretenimiento");
+    expect(screen.getByText("Roof").closest("li")).toHaveTextContent("· home repair");
+    expect(screen.queryByText(/entertainment/)).not.toBeInTheDocument();
+  });
+
   it("orders budget alerts with commitment reviews and applies the shared two-row cap", async () => {
     const attention = availableAttention(
       ["a", "b", "c"].map((id, index) => ({

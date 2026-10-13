@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { categoryLabel } from "../../../shared/localization/categoryLabel";
 import { useLocale } from "../../../shared/localization/useLocale";
 import RowActionsMenu from "../../activity/components/RowActionsMenu";
 import { displayText } from "../../../utils/text";
@@ -21,7 +22,7 @@ export default function ExpenseItem({ expense, rowActions = null }) {
         {amountIsExact ? formatExactMoney(expense.amount, { currency: false }, locale) : t("expenseItem.amountReview")}
       </td>
       <td className="expense-cell expense-cell--date" data-label={t("expenseList.columns.date")}>{date}</td>
-      <td className="expense-cell expense-cell--category" data-label={t("expenseList.columns.category")}>{displayText(expense.category)}</td>
+      <td className="expense-cell expense-cell--category" data-label={t("expenseList.columns.category")}>{categoryLabel(t, expense.category, displayText)}</td>
       {rowActions && <td className="expense-cell expense-cell--actions" data-label={t("expenseList.columns.actions")}>
         <RowActionsMenu kind="expense" labelValues={{ description: displayText(expense.description), date, id: expense.id }}
           state={rowActions.getState(item)} onEdit={(opener) => rowActions.onEdit(item, opener)} onDelete={(opener) => rowActions.onDelete(item, opener)} />

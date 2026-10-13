@@ -73,6 +73,13 @@
   .import-confirm-bar { bottom: calc(var(--mobile-nav-clearance) + env(safe-area-inset-bottom, 0px)); flex-direction: column; align-items: stretch; gap: var(--space-2); padding: var(--space-2) var(--space-3); }
   .import-confirm-bar > button { width: 100%; }
 }
+/* Tablet portrait (#237): the side-by-side row squeezed the summary to about 100-140px beside the
+   non-shrinking button (long Spanish labels), so the bar grew very tall. Stack it, as on phones,
+   up to the row layout's 760px breakpoint. The bar keeps bottom: 0 here (no mobile navigation). */
+@media (min-width: 600px) and (max-width: 760px) {
+  .import-confirm-bar { flex-direction: column; align-items: stretch; gap: var(--space-2); padding: var(--space-2) var(--space-3); }
+  .import-confirm-bar > button { width: 100%; }
+}
 
 @media (max-width: 760px) {
   .import-preview__header, .import-processing, .import-results__summary { align-items: stretch; flex-direction: column; }

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import { categoryLabel } from "../../../shared/localization/categoryLabel";
 import { useLocale } from "../../../shared/localization/useLocale";
 import ActivityTimelineFilters from "./ActivityTimelineFilters";
 import RowActionsMenu from "./RowActionsMenu";
@@ -77,7 +78,7 @@ export default function ActivityTimeline({ timeline, filters = null, uncertain =
               title={item.description}
               meta={<>
                 {date ? <time dateTime={item.date}>{date}</time> : t("home:activity.dateUnknown")}
-                {item.kind === "expense" && item.category && <> · {item.category}</>}
+                {item.kind === "expense" && item.category && <> · {categoryLabel(t, item.category)}</>}
                 {item.paycheck && <> · {t("home:activity.paycheckLinked")}</>}
               </>}
               amount={amount ? <strong>{amount}</strong> : <>

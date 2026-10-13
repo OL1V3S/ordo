@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { categoryLabel } from "../../shared/localization/categoryLabel";
 import { useLocale } from "../../shared/localization/useLocale";
 import { expensesApi } from "../../features/expenses/api/expensesApi";
 import { inflowsApi } from "../../features/inflows/api/inflowsApi";
@@ -177,9 +178,10 @@ export default function OverviewPage() {
           if (type === "budget") {
             const spent = formatHomeProjectionAmount(item.spentAmount, locale);
             const limit = formatHomeProjectionAmount(item.limitAmount, locale);
-            return <ListRow key={`budget-${item.category}`} title={item.category}
-              meta={t(`attention.budgetStates.${item.state}`, { category: item.category, spent, limit })}
-              actions={<Link to="/budgets" aria-label={t("attention.openBudgetForCategory", { category: item.category })}>
+            const category = categoryLabel(t, item.category);
+            return <ListRow key={`budget-${item.category}`} title={category}
+              meta={t(`attention.budgetStates.${item.state}`, { category, spent, limit })}
+              actions={<Link to="/budgets" aria-label={t("attention.openBudgetForCategory", { category })}>
                 {t("attention.openBudgets")}
               </Link>} />;
           }
@@ -208,7 +210,7 @@ export default function OverviewPage() {
       {!data.loading && !data.error && data.data?.recentActivity.availability.state === "available" && (rows.length ?
         <ul className="home-recent__list">{rows.map((row) => <ListRow key={`${row.kind}-${row.recordId}`}
           label={t(row.kind === "expense" ? "activity.expense" : "activity.cashIn")} title={row.description}
-          meta={<>{formatHomeDate(row.date, locale)}{row.category ? ` · ${row.category}` : ""}
+          meta={<>{formatHomeDate(row.date, locale)}{row.category ? ` · ${categoryLabel(t, row.category)}` : ""}
             {row.paycheck && <> · {t("activity.paycheckLinked")}</>}</>}
           amount={<strong>{formatHomeAmount(row.amount, row.kind, locale) ?? t("activity.amountReview")}</strong>} />)}</ul> : <StatusMessage>{t("activity.empty")}</StatusMessage>)}
     </section>

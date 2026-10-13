@@ -24,6 +24,14 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-13 — Category names in the user's language, and a roomier import confirm bar
+
+[PR #238](https://github.com/OL1V3S/ordo/pull/238) ·
+[Issue #237](https://github.com/OL1V3S/ordo/issues/237)
+
+- Found in a real-browser check: Home ("Needs your attention" budget items and recent transactions) and the Transactions list showed stored category names such as "bills" and "food" in both languages. They now read "Bills" / "Servicios", "Food" / "Comida" and so on; categories you typed yourself still show exactly as before.
+- On tablet-portrait widths (about 600 to 760px) the statement import confirm bar is now stacked with a full-width button, as on phones, so a long Spanish button label no longer squeezes its summary into a narrow column or makes the bar so tall that it stops sticking. Frontend only; no API, schema or financial-semantics change.
+
 ### 2026-10-12 — Wording cleanup: leftovers from the wording series
 
 [PR #236](https://github.com/OL1V3S/ordo/pull/236) ·
@@ -178,11 +186,3 @@ the permanent, complete archive.
   tests, token-only `ui-kit.css`, and `docs/ui-kit.md`.
 - Moved the Activity timeline and Records toggles onto the kit with no behavior,
   copy, request, or accessible-name change.
-
-### 2026-10-09 — Design token foundation
-
-[PR #200](https://github.com/OL1V3S/ordo/pull/200) ·
-[Issue #199](https://github.com/OL1V3S/ordo/issues/199)
-
-- Colors, radii, type, weights and spacing now come from tiered design tokens; each theme color is written once and a CSS-only mode switch serves light, dark and system dark (see [docs/design-tokens.md](docs/design-tokens.md)).
-- Visual: flat opaque cards, no button hover lift or body gradient, no page bar/bottom nav shadows, 6/8/12px radii, smaller headings, 700 max font weight (except statement import), system font. A lint test blocks new raw literals.

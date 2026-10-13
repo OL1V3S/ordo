@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { categoryLabel } from "../../../shared/localization/categoryLabel";
 import { formatCalendarDate, formatMoneyDecimal } from "../../../shared/localization/format";
 import { useLocale } from "../../../shared/localization/useLocale";
 import { displayText } from "../../../utils/text";
@@ -10,7 +11,7 @@ function SavedRow({ kind, row, locale }) {
   const date = formatCalendarDate(row.postedDate, locale) ?? t("row.unavailable");
   const amount = row.amount == null ? null : formatMoneyDecimal(row.amount, locale);
   const category = kind === "expense" && row.category
-    ? ta(`categories.${row.category.toLowerCase()}`, { defaultValue: displayText(row.category) })
+    ? categoryLabel(ta, row.category, displayText)
     : null;
   return (
     <li className="import-saved-row">

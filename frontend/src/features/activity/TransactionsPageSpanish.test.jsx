@@ -120,7 +120,10 @@ describe("Activity spending in Spanish", () => {
     }
     expect(within(table).getByRole("cell", { name: "5.00" })).toBeInTheDocument();
     expect(within(table).getByText("01/09/2026")).toBeInTheDocument();
-    expect(within(table).getByText("Food")).toBeInTheDocument();
+    expect(within(table).getByText("Comida")).toBeInTheDocument();
+    expect(within(table).getByText("Servicios")).toBeInTheDocument();
+    expect(within(table).queryByText("Food")).not.toBeInTheDocument();
+    expect(within(table).queryByText("Bills")).not.toBeInTheDocument();
     expect(within(table).getByText("Monto exacto no disponible")).toBeInTheDocument();
     await user.click(within(table).getByRole("button", { name: /^Acciones del gasto Lunch, 01\/09\/2026 \(número 42\)$/ }));
     expect(within(table).getByRole("button", { name: "Editar gasto Lunch, 01/09/2026 (número 42)" })).toBeEnabled();
