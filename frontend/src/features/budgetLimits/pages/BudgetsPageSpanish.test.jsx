@@ -63,9 +63,9 @@ describe('Budgets page in Spanish', () => {
     expect(screen.getByRole('button', { name: 'Agregar presupuesto por categoría' })).toBeEnabled()
     expect(screen.getByRole('heading', { level: 2, name: 'Presupuestos por categoría' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Actualizar límites' })).toBeEnabled()
-    expect(screen.getByText('No hay límites de presupuesto definidos para este mes.')).toBeInTheDocument()
+    expect(screen.getByText('Aún no hay límites de presupuesto para este mes. Agrega un presupuesto por categoría para definir uno.')).toBeInTheDocument()
     expect(screen.getByText('Acerca de los límites mensuales').closest('details')).not.toHaveAttribute('open')
-    expect(screen.getByText(`Próximo reinicio: 1 sep 2026. Cada límite se aplica a su mes calendario seleccionado.`)).toBeInTheDocument()
+    expect(screen.getByText(`Los límites empiezan de nuevo el 1 sep 2026. Cada límite cubre un mes calendario.`)).toBeInTheDocument()
     expect(screen.getByText('Un límite en cero es un presupuesto intencional sin gastos. Es diferente a no tener un presupuesto para una categoría.')).toBeInTheDocument()
   })
 
@@ -106,7 +106,7 @@ describe('Budgets page in Spanish', () => {
     expect(screen.getByText('Detalles del presupuesto')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Guardar límite' }))
-    expect(screen.getByRole('alert')).toHaveTextContent('Elige una categoría e ingresa un monto límite.')
+    expect(screen.getByRole('alert')).toHaveTextContent('Elige una categoría e ingresa un límite mensual.')
     expect(screen.getByLabelText('Categoría')).toHaveFocus()
     expect(upsertLimit).not.toHaveBeenCalled()
 
@@ -118,7 +118,7 @@ describe('Budgets page in Spanish', () => {
     await user.selectOptions(screen.getByLabelText('Categoría'), 'other')
     await user.type(screen.getByLabelText('Categoría personalizada'), 'Home Repair')
     expect(screen.getByPlaceholderText('Categoría personalizada')).toBeInTheDocument()
-    await user.type(screen.getByPlaceholderText('Monto límite'), '75.25')
+    await user.type(screen.getByPlaceholderText('Límite mensual'), '75.25')
     await user.click(screen.getByRole('button', { name: 'Guardar límite' }))
 
     expect(upsertLimit).toHaveBeenCalledWith({
@@ -137,7 +137,7 @@ describe('Budgets page in Spanish', () => {
 
     await chooseRowAction(user, 'Editar presupuesto de Food')
     expect(screen.getByRole('heading', { level: 2, name: 'Editar presupuesto de Food' })).toBeInTheDocument()
-    expect(screen.getByLabelText('Monto límite de Food')).toHaveValue('100.00')
+    expect(screen.getByLabelText('Límite mensual de Food')).toHaveValue('100.00')
     await user.click(screen.getByRole('button', { name: 'Cancelar' }))
 
     await chooseRowAction(user, 'Eliminar presupuesto de Food')
@@ -154,7 +154,7 @@ describe('Budgets page in Spanish', () => {
 
     await chooseRowAction(user, 'Editar presupuesto de Food')
     await user.click(screen.getByRole('button', { name: 'Guardar límite' }))
-    expect(screen.getByRole('status')).toHaveTextContent('Límite de presupuesto guardado. No se pudieron actualizar los límites de presupuesto. Actualiza los límites antes de hacer otro cambio.')
+    expect(screen.getByRole('status')).toHaveTextContent('Límite de presupuesto guardado. No pudimos actualizar los límites. Actualiza los límites antes de hacer otro cambio.')
 
     await user.click(screen.getByRole('button', { name: 'Actualizar límites' }))
     expect(screen.getByRole('status')).toHaveTextContent('Límites de presupuesto actualizados. Revisa los límites guardados antes de volver a intentar tu cambio.')
@@ -175,7 +175,7 @@ describe('Budgets page in Spanish', () => {
 
     await chooseRowAction(user, 'Eliminar presupuesto de Food')
     expect(deleteLimit).toHaveBeenCalledWith(1)
-    expect(screen.getByRole('status')).toHaveTextContent('Límite de presupuesto eliminado. No se pudieron actualizar los límites de presupuesto. Actualiza los límites antes de hacer otro cambio.')
+    expect(screen.getByRole('status')).toHaveTextContent('Límite de presupuesto eliminado. No pudimos actualizar los límites. Actualiza los límites antes de hacer otro cambio.')
   })
 
   it('names the remaining budget statuses and the unavailable comparison note in Spanish', () => {
@@ -222,7 +222,7 @@ describe('Budgets page in Spanish', () => {
     setSpending({ error: new Error('offline') })
     const { rerender } = render(<BudgetsPage />)
     expect(screen.getByText('No pudimos cargar los gastos registrados. Los montos usados y el progreso no están disponibles.')).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Reintentar gastos' }))
+    await user.click(screen.getByRole('button', { name: 'Intentar cargar los gastos de nuevo' }))
     expect(refreshSpending).toHaveBeenCalledOnce()
     for (const card of within(screen.getByRole('list', { name: 'Presupuestos por categoría' })).getAllByRole('listitem')) {
       expect(within(card).getAllByText('No disponible').length).toBeGreaterThan(0)
@@ -232,12 +232,12 @@ describe('Budgets page in Spanish', () => {
 
     setSpending({ loading: true })
     rerender(<BudgetsPage />)
-    expect(screen.getByText('Cargando gastos registrados...')).toBeInTheDocument()
+    expect(screen.getByText('Cargando gastos registrados…')).toBeInTheDocument()
 
     setSpending()
     setLimits({ loading: true })
     rerender(<BudgetsPage />)
-    expect(screen.getByText('Cargando límites de presupuesto...')).toBeInTheDocument()
+    expect(screen.getByText('Cargando límites de presupuesto…')).toBeInTheDocument()
 
     setLimits({ error: new Error('offline') })
     rerender(<BudgetsPage />)
@@ -249,7 +249,7 @@ describe('Budgets page in Spanish', () => {
     render(<BudgetsPage />)
     await user.click(screen.getByRole('button', { name: 'Agregar presupuesto por categoría' }))
     await user.selectOptions(screen.getByLabelText('Categoría'), 'food')
-    await user.type(screen.getByLabelText('Monto límite'), '10')
+    await user.type(screen.getByLabelText('Límite mensual'), '10')
     await user.click(screen.getByRole('button', { name: 'Guardar límite' }))
     expect(screen.getByRole('status')).toHaveTextContent('Límite de presupuesto guardado.')
 

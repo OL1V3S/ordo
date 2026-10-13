@@ -14,7 +14,7 @@ describe("cash-flow monthly grouped stacks", () => {
   it("has six explicit monthly groups with the two cash-in datasets sharing a stack and no animations", () => {
     render(<CashFlowTrendChart data={cashFlowFixture()} />);
     expect(renderedChart.data.labels).toEqual([
-      ["Mar", "2026"], ["Apr", "2026"], ["May", "2026"], ["Jun", "2026"], ["Jul", "2026"], ["Aug", "2026", "MTD"],
+      ["Mar", "2026"], ["Apr", "2026"], ["May", "2026"], ["Jun", "2026"], ["Jul", "2026"], ["Aug", "2026", "So far"],
     ]);
     expect(renderedChart.data.datasets).toMatchObject([
       { label: "Confirmed paychecks", stack: "cash-in", data: [0, 0, 0, 0, 0, 120], borderWidth: 1 },

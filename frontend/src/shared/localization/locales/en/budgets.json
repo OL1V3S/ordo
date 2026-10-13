@@ -16,15 +16,15 @@
     "addHeading": "Add category budget",
     "editHeading": "Edit {{category}} budget",
     "forMonth": "For {{month}}",
-    "validation": "Choose a category and enter a limit amount.",
+    "validation": "Choose a category and enter a monthly limit.",
     "details": "Budget details",
     "category": "Category",
     "categoryPlaceholder": "Category",
     "customCategory": "Custom category",
-    "customCategoryPlaceholder": "Custom Category",
-    "limitAmount": "Limit amount",
-    "editLimitAmount": "Limit amount for {{category}}",
-    "limitAmountPlaceholder": "Limit Amount",
+    "customCategoryPlaceholder": "Custom category",
+    "limitAmount": "Monthly limit",
+    "editLimitAmount": "Monthly limit for {{category}}",
+    "limitAmountPlaceholder": "Monthly limit",
     "save": "Save limit",
     "saving": "Saving…",
     "cancel": "Cancel"
@@ -42,20 +42,20 @@
   },
   "states": {
     "chooseMonth": "Choose a month to view its category budgets.",
-    "loadingLimits": "Loading budget limits...",
+    "loadingLimits": "Loading budget limits…",
     "limitsError": "We couldn’t load budget limits for {{month}}. Refresh limits to try again.",
-    "loadingSpending": "Loading recorded spending...",
+    "loadingSpending": "Loading recorded spending…",
     "spendingError": "We couldn’t load recorded spending. Used amounts and progress are unavailable.",
-    "retrySpending": "Retry spending",
-    "empty": "No budget limits set for this month."
+    "retrySpending": "Try loading spending again",
+    "empty": "No budget limits for this month yet. Add a category budget to set one."
   },
   "feedback": {
     "saved": "Budget limit saved.",
-    "savedRefreshFailed": "Budget limit saved. Budget limits could not be refreshed. Refresh limits before making another change.",
+    "savedRefreshFailed": "Budget limit saved. We couldn’t refresh the limits. Refresh limits before making another change.",
     "deleted": "Budget limit deleted.",
-    "deletedRefreshFailed": "Budget limit deleted. Budget limits could not be refreshed. Refresh limits before making another change.",
+    "deletedRefreshFailed": "Budget limit deleted. We couldn’t refresh the limits. Refresh limits before making another change.",
     "unconfirmed": "We couldn’t confirm the change. Refresh limits and check the saved budgets before trying again.",
-    "refreshed": "Budget limits refreshed. Check the saved limits before retrying your change."
+    "refreshed": "Budget limits refreshed. Check the saved limits before trying your change again."
   },
   "confirmDelete": "Delete budget limit for category \"{{category}}\"?",
   "card": {
@@ -66,7 +66,7 @@
     "progressValue": "{{used}} used of {{limit}}, {{percent}}",
     "percentUsed": "{{percent}} used",
     "zeroLimitNote": "No percentage for a zero limit.",
-    "comparisonUnavailable": "Exact comparison is unavailable. Review the amount before relying on this budget status.",
+    "comparisonUnavailable": "Exact comparison is unavailable. Check the amount before relying on this budget status.",
     "edit": "Edit",
     "editLabel": "Edit {{name}} budget",
     "delete": "Delete",
@@ -85,7 +85,7 @@
   },
   "explanation": {
     "summary": "About monthly limits",
-    "reset": "Next reset: {{date}}. Each limit applies to its selected calendar month.",
+    "reset": "Limits start over on {{date}}. Each limit covers one calendar month.",
     "zeroLimit": "A zero limit is an intentional no-spend budget. It is different from having no budget for a category."
   }
 }

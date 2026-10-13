@@ -408,7 +408,7 @@ describe("Commitments workspace", () => {
     let current = state({ candidates: [], dismissedCandidates: [], commitments: [], commitmentChanges: [] });
     useCommitments.mockImplementation(() => current);
     const { rerender } = renderCommitmentsPage();
-    expect(screen.getByText("No recurring expenses yet.")).toBeInTheDocument();
+    expect(screen.getByText("No recurring expenses yet. Confirm a possible one to add it.")).toBeInTheDocument();
     expect(screen.getByText("No recurring expense changes to review.")).toBeInTheDocument();
     expect(screen.getByText("No possible recurring expenses to review.")).toBeInTheDocument();
     expect(screen.getByText("No reviewed changes.")).not.toBeVisible();
@@ -437,7 +437,7 @@ describe("Commitments workspace", () => {
     useCommitments.mockReturnValue(state({ loading: false, loadError: "Something went wrong. Try again.", candidates: [], dismissedCandidates: [], commitments: [], refresh }));
     rerender(<CommitmentsPage />);
     expect(screen.getByRole("alert")).toHaveTextContent("Something went wrong");
-    expect(screen.queryByText("No recurring expenses yet.")).not.toBeInTheDocument();
+    expect(screen.queryByText("No recurring expenses yet. Confirm a possible one to add it.")).not.toBeInTheDocument();
     await userEvent.setup().click(screen.getByRole("button", { name: "Try again" }));
     expect(refresh).toHaveBeenCalledTimes(1);
   });

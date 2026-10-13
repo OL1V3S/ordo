@@ -12,12 +12,12 @@ describe('Investing unavailable surface', () => {
     vi.stubGlobal('fetch', fetchSpy)
     render(<InvestingPage />)
 
-    expect(screen.getByRole('heading', { name: 'No investment source connected' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'No investment account connected' })).toBeInTheDocument()
     expect(screen.getByText(/No investment data is being fetched, imported, inferred, or evaluated/)).toBeInTheDocument()
 
-    const capabilities = screen.getByRole('heading', { name: 'Planned capability areas' }).closest('section')
+    const capabilities = screen.getByRole('heading', { name: 'What may come later' }).closest('section')
     expect(within(capabilities).getByRole('heading', { name: 'Connections' })).toBeInTheDocument()
-    expect(within(capabilities).getByRole('heading', { name: 'Portfolio and positions' })).toBeInTheDocument()
+    expect(within(capabilities).getByRole('heading', { name: 'Portfolio and holdings' })).toBeInTheDocument()
     expect(within(capabilities).getByRole('heading', { name: 'Signals' })).toBeInTheDocument()
     expect(within(capabilities).getByRole('heading', { name: 'Activity and performance' })).toBeInTheDocument()
     expect(within(capabilities).getAllByText('Not available')).toHaveLength(4)
@@ -30,8 +30,8 @@ describe('Investing unavailable surface', () => {
   it('exposes named regions and a four-item capability list', () => {
     render(<InvestingPage />)
 
-    expect(screen.getByRole('region', { name: 'No investment source connected' })).toBeInTheDocument()
-    const capabilities = screen.getByRole('region', { name: 'Planned capability areas' })
+    expect(screen.getByRole('region', { name: 'No investment account connected' })).toBeInTheDocument()
+    const capabilities = screen.getByRole('region', { name: 'What may come later' })
     expect(within(capabilities).getAllByRole('listitem')).toHaveLength(4)
   })
 
@@ -42,7 +42,7 @@ describe('Investing unavailable surface', () => {
     render(<InvestingPage />)
 
     expect(screen.getByRole('heading', { name: 'Inversiones', level: 1 })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'No hay ninguna fuente de inversiones conectada' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'No hay ninguna cuenta de inversión conectada' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Conexiones', level: 3 })).toBeInTheDocument()
     expect(screen.getAllByText('No disponible')).toHaveLength(4)
     expect(screen.queryByRole('button')).not.toBeInTheDocument()

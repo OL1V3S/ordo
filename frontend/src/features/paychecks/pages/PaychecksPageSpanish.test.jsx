@@ -67,7 +67,7 @@ describe("Paychecks page in Spanish", () => {
     expect(profile.getByText("9 ago 2026–11 ago 2026")).toBeInTheDocument();
     expect(profile.getByText("Confirmado a partir de depósitos")).toBeInTheDocument();
     expect(profile.getByText("Fechas en que te pagan").closest("div")).toHaveTextContent("Mensual, día 10");
-    expect(profile.getByText("Fechas esperadas").closest("div")).toHaveTextContent("1 día antes · 1 día después");
+    expect(profile.getByText("Días antes y después").closest("div")).toHaveTextContent("1 día antes · 1 día después");
     expect(profile.getByText("Depósitos de nómina vinculados").closest("div")).toHaveTextContent("Depósitos vinculados: 3");
     expect(profile.getByText("Depósitos de nómina vinculados (3)")).toBeInTheDocument();
     expect(profile.getByText("Calendarios de nómina verificados el").closest("div")).toHaveTextContent("12 jul 2026");
@@ -251,7 +251,7 @@ describe("Paychecks page in Spanish", () => {
     await renderPage();
     await user.click(screen.getByRole("button", { name: "Revisar y confirmar: acme payroll" }));
     await user.click(screen.getByRole("button", { name: "Guardar calendario de nómina" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("No se pudo completar la solicitud. Inténtalo de nuevo.");
+    expect(await screen.findByRole("alert")).toHaveTextContent("No pudimos completar la solicitud. Inténtalo de nuevo.");
   });
 
   it("shows a Spanish load failure and refresh action", async () => {

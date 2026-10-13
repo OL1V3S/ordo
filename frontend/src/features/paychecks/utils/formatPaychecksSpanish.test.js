@@ -18,7 +18,7 @@ describe("paycheck display helpers in Spanish", () => {
     expect(formatSchedule({ cadence: "monthly", firstMonthAnchor: { kind: "month_end", day: null } }, es)).toBe("Mensual, fin de mes");
     expect(formatSchedule({ cadence: "semimonthly", firstMonthAnchor: { kind: "day_of_month", day: 15 }, secondMonthAnchor: { kind: "month_end", day: null } }, es))
       .toBe("Quincenal, día 15 y fin de mes");
-    expect(formatSchedule(null, es)).toBe("Calendario no disponible");
+    expect(formatSchedule(null, es)).toBe("Fechas no disponibles");
     expect(formatWindow(1, 3, es)).toBe("1 día antes · 3 días después");
     expect(formatWindow(0, 1, es)).toBe("0 días antes · 1 día después");
     expect(formatDate("2026-03-08", es, "es")).toBe("8 mar 2026");

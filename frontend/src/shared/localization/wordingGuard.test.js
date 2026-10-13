@@ -81,10 +81,8 @@ const CORE_BANNED_ES = [
   ["pagos recurrentes", term("pagos? recurrentes?")],
 ];
 
-// Area terms: enabled per namespace as the area PRs of the #229 series land. PR 2 covers
-// activity and importPreview, PR 3 adds commitments, PR 4 adds paychecks; the remaining
-// namespaces join in PR 5.
-const AREA_NAMESPACES = ["activity", "importPreview", "commitments", "paychecks"];
+// Area terms: enforced in every namespace (full coverage as of the last PR of the #229 series).
+const AREA_NAMESPACES = Object.keys(resources.en);
 
 const AREA_BANNED_EN = [
   ["candidate", term("candidates?")],
@@ -149,11 +147,18 @@ describe("wording guard: core terms", () => {
     expect(violations(es, "es", CORE_BANNED_ES)).toEqual([]);
   });
 
-  it("keeps the area banned terms out of the activity, importPreview, commitments and paychecks namespaces (en)", () => {
+  it("covers all 12 namespaces with the area terms", () => {
+    expect([...AREA_NAMESPACES].sort()).toEqual([
+      "activity", "analytics", "auth", "budgets", "commitments", "common",
+      "home", "importPreview", "investing", "navigation", "paychecks", "settings",
+    ]);
+  });
+
+  it("keeps the area banned terms out of every namespace (en)", () => {
     expect(violations(inAreaNamespaces(en), "en", AREA_BANNED_EN)).toEqual([]);
   });
 
-  it("keeps the area banned terms out of the activity, importPreview, commitments and paychecks namespaces (es)", () => {
+  it("keeps the area banned terms out of every namespace (es)", () => {
     expect(violations(inAreaNamespaces(es), "es", AREA_BANNED_ES)).toEqual([]);
   });
 
@@ -221,6 +226,7 @@ describe("wording guard: semantic anchors", () => {
     { key: "paychecks:page.intro", en: [/expected only/i, /not included in your totals/i], es: [/solo esperado/i, /no se suma a tus totales/i] },
     { key: "paychecks:receipt.intro", en: [/expected amount and dates/i, /don[’']t change/i], es: [/esperados no cambian/i, /monto y las fechas/i] },
     { key: "paychecks:form.hints.semimonthly", en: [/two pay days a month/i, /at least 7 days apart/i], es: [/dos días al mes en que te pagan/i, /al menos 7 días/i] },
+    { key: "investing:status.body", en: [/isn[’']t available yet/i, /isn[’']t connected to any investment account/i], es: [/aún no está disponible/i, /no está conectado a ninguna cuenta de inversión/i] },
     { key: "paychecks:manual.intro", en: [/confirmed by your employer/i], es: [/lo confirma tu empleador/i] },
     { key: "importPreview:row.possibleDuplicate", en: [/before selecting/i], es: [/antes de seleccionar/i] },
   ];
@@ -240,6 +246,24 @@ describe("wording guard: semantic anchors", () => {
     expect(es[key]).toMatch(/no pudimos confirmar/i);
     expect(es[key]).toMatch(/no se muestra nada como importado/i);
     expect(es[key]).not.toMatch(/no se (?:import|guard)ó nada/i);
+  });
+
+  it("never opens an uncertain-save paychecks notice as if the change took effect", () => {
+    for (const key of ["paychecks:feedback.uncertainCreateLoaded", "paychecks:feedback.uncertainReceiptLoaded"]) {
+      expect(en[key]).not.toMatch(/^\s*(?:paychecks\s+)?updated/i);
+      expect(es[key]).not.toMatch(/^\s*(?:n[óo]mina\s+)?actualizad[oa]/i);
+      expect(en[key]).toMatch(/^Paychecks reloaded\./);
+      expect(es[key]).toMatch(/^Se volvió a cargar Nómina\./);
+    }
+  });
+
+  it("keeps the uncertain-save and unconfirmed messages from claiming that nothing was saved", () => {
+    const keys = Object.keys(en).filter((key) => /uncertain|unknown|unconfirmed|acknowledged/i.test(key));
+    expect(keys.length).toBeGreaterThan(3);
+    for (const key of keys) {
+      expect(en[key], key).not.toMatch(/nothing was saved|wasn[’']t saved|was not saved/i);
+      expect(es[key], key).not.toMatch(/no se guardó nada|no se guardó\b(?!\.)/i);
+    }
   });
 
   it("keeps unavailable data distinct from a zero limit in Budgets", () => {
@@ -293,6 +317,8 @@ describe("wording guard: label in name", () => {
     ["paychecks:actions.reactivate", "paychecks:actions.reactivateLabel"],
     ["paychecks:card.details", "paychecks:card.detailsLabel"],
     ["paychecks:evidence.removeTrigger", "paychecks:evidence.removeLabel"],
+    ["budgets:card.edit", "budgets:card.editLabel"],
+    ["budgets:card.delete", "budgets:card.deleteLabel"],
     ["importPreview:row.depositLabel", "importPreview:row.depositAria"],
     ["activity:timeline.actions.edit", "activity:timeline.actions.editExpense"],
     ["activity:timeline.actions.edit", "activity:timeline.actions.editCashIn"],

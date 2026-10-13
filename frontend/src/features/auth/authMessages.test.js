@@ -8,16 +8,16 @@ const registerErr = (data, status = 400) => ({ response: { status, data } });
 
 describe("mapSubmitError", () => {
   it.each([
-    ["PasswordTooShort", "Passwords must be at least 6 characters."],
-    ["PasswordRequiresNonAlphanumeric", "Passwords must have at least one non alphanumeric character."],
-    ["PasswordRequiresDigit", "Passwords must have at least one digit ('0'-'9')."],
-    ["PasswordRequiresLower", "Passwords must have at least one lowercase ('a'-'z')."],
-    ["PasswordRequiresUpper", "Passwords must have at least one uppercase ('A'-'Z')."],
-    ["PasswordRequiresUniqueChars", "Passwords must use at least 1 different characters."],
+    ["PasswordTooShort", "Your password needs at least 6 characters."],
+    ["PasswordRequiresNonAlphanumeric", "Your password needs at least 1 special character."],
+    ["PasswordRequiresDigit", "Your password needs at least 1 number (0-9)."],
+    ["PasswordRequiresLower", "Your password needs at least 1 lowercase letter (a-z)."],
+    ["PasswordRequiresUpper", "Your password needs at least 1 uppercase letter (A-Z)."],
+    ["PasswordRequiresUniqueChars", "Your password needs at least 1 different character."],
     ["DuplicateUserName", "Username 'person@example.com' is already taken."],
     ["DuplicateEmail", "Email 'person@example.com' is already taken."],
     ["InvalidEmail", "Email 'person@example.com' is invalid."],
-    ["InvalidUserName", "Username 'person@example.com' is invalid, can only contain letters or digits."],
+    ["InvalidUserName", "The username 'person@example.com' isn’t valid. It can only have letters or numbers."],
   ])("maps Identity code %s", (code, expected) => {
     const mapped = mapSubmitError(registerErr([{ code, description: "server text" }]), { mode: "register", email });
     expect(mapped.kind).toBe("error");
@@ -43,7 +43,7 @@ describe("mapSubmitError", () => {
   });
 
   it("maps the two exact login 401 literals", () => {
-    const bad = mapSubmitError(registerErr("Invalid email or password", 401), { mode: "login", email });
+    const bad = mapSubmitError(registerErr("Incorrect email or password", 401), { mode: "login", email });
     const unconfirmed = mapSubmitError(registerErr("Please confirm your email before logging in.", 401), { mode: "login", email });
     expect(bad.messages).toEqual([{ key: "errors.login.invalidCredentials" }]);
     expect(unconfirmed.messages).toEqual([{ key: "errors.login.emailNotConfirmed" }]);
@@ -58,8 +58,8 @@ describe("mapSubmitError", () => {
   );
 
   it("does not apply login literals outside login or outside 401", () => {
-    expect(mapSubmitError(registerErr("Invalid email or password", 400), { mode: "login", email }).messages).toEqual([{ key: "errors.generic" }]);
-    expect(mapSubmitError(registerErr("Invalid email or password", 401), { mode: "register", email }).messages).toEqual([{ key: "errors.generic" }]);
+    expect(mapSubmitError(registerErr("Incorrect email or password", 400), { mode: "login", email }).messages).toEqual([{ key: "errors.generic" }]);
+    expect(mapSubmitError(registerErr("Incorrect email or password", 401), { mode: "register", email }).messages).toEqual([{ key: "errors.generic" }]);
   });
 
   it.each([
@@ -75,7 +75,7 @@ describe("mapSubmitError", () => {
 
   it("returns only catalog keys and never echoes server text", () => {
     const cases = [
-      registerErr("Invalid email or password", 401),
+      registerErr("Incorrect email or password", 401),
       registerErr([{ code: "Nope", description: "LEAK" }]),
       registerErr({ message: "LEAK" }),
       new Error("LEAK"),

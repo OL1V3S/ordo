@@ -183,7 +183,7 @@
       "editTitle": "Edit deposit",
       "save": "Add deposit",
       "saveChanges": "Save changes",
-      "editWarning": "Changes also update your reports. If this deposit is linked to a pay schedule, the link stays and the pay schedule doesn’t change.",
+      "editWarning": "Changes also update your reports. If this deposit is linked to a pay schedule, the link stays, its details update, and the pay schedule doesn’t change.",
       "amountReviewTitle": "Exact amount unavailable.",
       "amountReviewBody": "Enter the exact amount again before saving.",
       "checkFields": "Check the highlighted fields.",

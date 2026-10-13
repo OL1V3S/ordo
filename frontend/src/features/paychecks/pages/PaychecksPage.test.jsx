@@ -473,7 +473,7 @@ describe("Paychecks page", () => {
     await user.click(screen.getByRole("button", { name: "Yes, end it" }));
 
     const alert = await screen.findByRole("alert");
-    expect(alert).toHaveTextContent("That pay schedule is no longer available. Review the current pay schedules.");
+    expect(alert).toHaveTextContent("That pay schedule is no longer available. Check the current pay schedules.");
     expect(alert.closest("details")).toBeNull();
     await waitFor(() => expect(screen.queryByRole("group", { name: "End Acme Payroll" })).not.toBeInTheDocument());
     expect(paychecksApi.updateLifecycle).toHaveBeenCalledExactlyOnceWith(active.id, "ended");
@@ -498,7 +498,7 @@ describe("Paychecks page", () => {
     loadState({ paychecks: [active] });
     await user.click(screen.getByRole("button", { name: "Yes, end it" }));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("That pay schedule is no longer available. Review the current pay schedules.");
+    expect(await screen.findByRole("alert")).toHaveTextContent("That pay schedule is no longer available. Check the current pay schedules.");
     expect(screen.getByRole("group", { name: "End Acme Payroll" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Cancel ending" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Review and confirm: acme payroll" })).toBeDisabled();
@@ -519,7 +519,7 @@ describe("Paychecks page", () => {
     await user.click(screen.getByRole("button", { name: "Yes, end it" }));
 
     const errors = await screen.findAllByRole("alert");
-    expect(errors.map((alert) => alert.textContent).join(" ")).toContain("That pay schedule is no longer available. Review the current pay schedules.");
+    expect(errors.map((alert) => alert.textContent).join(" ")).toContain("That pay schedule is no longer available. Check the current pay schedules.");
     expect(errors.map((alert) => alert.textContent).join(" ")).toContain("We couldn’t load your paychecks");
     errors.forEach((alert) => expect(alert.closest("details")).toBeNull());
     expect(screen.getByRole("group", { name: "End Acme Payroll" })).toBeInTheDocument();

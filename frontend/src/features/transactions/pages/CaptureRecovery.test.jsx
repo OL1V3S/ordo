@@ -42,7 +42,7 @@ describe("uncertain Home write recovery in Activity", () => {
   it("shows every expense and clears the marker only after explicit acknowledgment", async () => {
     markCaptureRecovery("expense");
     renderPage();
-    expect(screen.getByText("An expense save could not be confirmed. Review the complete expense list below. Do not retry until you have checked it.")).toBeInTheDocument();
+    expect(screen.getByText("We couldn’t confirm whether your expense was saved. Check the full list of expenses below before trying again.")).toBeInTheDocument();
     expect(screen.getByText("Expense 12")).toBeVisible();
     expect(screen.getByText("Expense 1")).toBeVisible();
     const region = screen.getByRole("region", { name: "Check the complete list of transactions" });
@@ -71,7 +71,7 @@ describe("uncertain Home write recovery in Activity", () => {
     useInflows.mockReturnValue({ inflows: [], loading: false, error: new Error("unavailable"), refresh, createInflow: vi.fn(), updateInflow: vi.fn(), deleteInflow: vi.fn() });
     view.rerender(<I18nextProvider i18n={i18n}><TransactionsPage /></I18nextProvider>);
     expect(screen.getByRole("button", { name: "I checked the complete list" })).toBeDisabled();
-    fireEvent.click(screen.getByRole("button", { name: "Retry full list" }));
+    fireEvent.click(screen.getByRole("button", { name: "Try loading the full list again" }));
     expect(refresh).toHaveBeenCalledOnce();
     expect(sessionStorage.getItem("ordo-home-uncertain-write:owner%40example.test")).toBe("account_inflow");
 
@@ -98,7 +98,7 @@ describe("uncertain Home write recovery in Activity", () => {
     renderPage();
     expect(screen.getByRole("button", { name: "I checked the complete list" })).toBeDisabled();
     expect(sessionStorage.length).toBe(1);
-    fireEvent.click(screen.getByRole("button", { name: "Retry full list" }));
+    fireEvent.click(screen.getByRole("button", { name: "Try loading the full list again" }));
     expect(expenseRefresh).toHaveBeenCalled();
     expect(sessionStorage.length).toBe(1);
   });

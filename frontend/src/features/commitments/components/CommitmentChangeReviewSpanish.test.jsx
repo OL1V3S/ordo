@@ -83,7 +83,7 @@ describe("commitment change review in Spanish", () => {
     expect(screen.getByRole("heading", { level: 2, name: "Cambios por revisar" })).toHaveAttribute("id", "changes-review-heading");
     expect(screen.getByText("Notamos estos cambios en tus gastos recientes. Nada cambia hasta que elijas, y tu elección aplica solo a este cambio.")).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: /^Cambios revisados \(1\)$/ })).toHaveAttribute("id", "kept-changes-heading");
-    expect(screen.getByText("Mantuviste lo guardado en estos cambios. Usa Volver a revisar si quieres verlo de nuevo.")).toBeInTheDocument();
+    expect(screen.getByText("Mantuviste lo guardado en estos cambios exactos. Usa Volver a revisar si quieres verlo de nuevo.")).toBeInTheDocument();
     expect(screen.getByText("Cambio de monto")).toBeInTheDocument();
     expect(screen.getByText("Gasto faltante")).toBeInTheDocument();
     expect(screen.getByText("Puede que haya terminado")).toBeInTheDocument();

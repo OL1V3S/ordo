@@ -232,7 +232,7 @@
     "stopped_other": "Stopped after {{done}} of {{count}} rows. Rows already updated stay as shown. Try again."
   },
   "bar": {
-    "label": "Import selected",
+    "label": "Rows to import",
     "expensesToSave": "Expenses to save: {{count}} · {{total}}",
     "depositsToSave": "Deposits to save: {{count}} · {{total}}",
     "totalUnavailable": "Total unavailable"

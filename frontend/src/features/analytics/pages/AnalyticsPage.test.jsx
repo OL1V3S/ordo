@@ -70,7 +70,7 @@ describe("monthly spending insights page", () => {
     expect(screen.getAllByLabelText("Month")).toHaveLength(1);
     expect(useBudgetLimits).not.toHaveBeenCalled();
     const cashFlowSummary = screen.getByRole("heading", { name: "Deposits and spending you recorded" }).closest("section");
-    const refresh = screen.getByRole("button", { name: "Refresh cash flow" });
+    const refresh = screen.getByRole("button", { name: "Refresh deposits and spending" });
     expect(cashFlowSummary).toHaveTextContent("$100.00");
     expect(refresh.compareDocumentPosition(cashFlowSummary) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 
@@ -81,19 +81,19 @@ describe("monthly spending insights page", () => {
     expect(rows[1]).toHaveTextContent("Transport");
 
     expect(screen.getByText("Budget status")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Open Budgets" })).toHaveAttribute("href", "/budgets");
+    expect(screen.getByRole("link", { name: "Open budgets" })).toHaveAttribute("href", "/budgets");
     expect(screen.queryByText("Near Limit")).not.toBeInTheDocument();
 
-    expect(openDetail("Month-over-month change")).toHaveTextContent("+$25.00");
+    expect(openDetail("Change from the previous month")).toHaveTextContent("+$25.00");
     expect(openDetail("Largest expenses")).toHaveTextContent("Groceries");
-    expect(screen.getByRole("link", { name: "Review transactions" })).toHaveAttribute("href", "/transactions");
+    expect(screen.getByRole("link", { name: "View transactions" })).toHaveAttribute("href", "/transactions");
   });
 
   it("keeps spending detail closed by default, keyboard reachable, and open across page state updates", () => {
     const { rerender, container } = renderPage();
 
     expect(screen.getByRole("heading", { level: 2, name: "More spending detail" })).toBeInTheDocument();
-    const disclosures = [detailNamed("Month-over-month change"), detailNamed("Largest expenses")];
+    const disclosures = [detailNamed("Change from the previous month"), detailNamed("Largest expenses")];
     disclosures.forEach(({ button, panel }) => {
       expect(button).toHaveAttribute("aria-expanded", "false");
       expect(panel).toHaveAttribute("hidden");
@@ -115,7 +115,7 @@ describe("monthly spending insights page", () => {
 
     fireEvent.change(screen.getByLabelText("Month"), { target: { value: "2026-07" } });
     rerender(<MemoryRouter><AnalyticsPage /></MemoryRouter>);
-    expect(detailNamed("Month-over-month change").button).toHaveAttribute("aria-expanded", "true");
+    expect(detailNamed("Change from the previous month").button).toHaveAttribute("aria-expanded", "true");
   });
 
   it("offers current and represented historical months and requests the selected month", () => {
@@ -132,7 +132,7 @@ describe("monthly spending insights page", () => {
   it("renders expense loading and blocking error states without transient insights", () => {
     useExpenses.mockReturnValue({ expenses: [], loading: true, error: null, refresh: refreshExpenses });
     const { rerender } = renderPage();
-    expect(screen.getByText("Loading spending report...").closest(".analytics-status")).not.toBeNull();
+    expect(screen.getByText("Loading spending report…").closest(".analytics-status")).not.toBeNull();
     expect(screen.queryByRole("heading", { level: 3, name: "Largest expenses" })).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Deposits and spending you recorded" })).toBeInTheDocument();
 
@@ -152,7 +152,7 @@ describe("monthly spending insights page", () => {
   it("shows Budget status as a link only, with no budget read, counts, or budget messages", () => {
     renderPage();
     expect(useBudgetLimits).not.toHaveBeenCalled();
-    const link = screen.getByRole("link", { name: "Open Budgets" });
+    const link = screen.getByRole("link", { name: "Open budgets" });
     expect(link).toHaveAttribute("href", "/budgets");
     expect(link.closest("[hidden]")).toBeNull();
     expect(screen.queryByText(/budget limits/i)).not.toBeInTheDocument();
@@ -167,12 +167,12 @@ describe("monthly spending insights page", () => {
     useExpenses.mockReturnValue({ expenses: [], loading: false, error: null, refresh: refreshExpenses });
     renderPage();
 
-    expect(openDetail("Month-over-month change")).toHaveTextContent("$0.00");
+    expect(openDetail("Change from the previous month")).toHaveTextContent("$0.00");
     openDetail("Largest expenses");
     expect(screen.getAllByText("No spending recorded").length).toBeGreaterThan(0);
     expect(screen.getByText("No deposits recorded")).toBeInTheDocument();
     expect(screen.getByText("No category changes to show between these months.")).toBeInTheDocument();
-    expect(screen.getByText("No expenses to rank for this month.")).toBeInTheDocument();
+    expect(screen.getByText("No expenses to show for this month.")).toBeInTheDocument();
     expect(screen.getByText("Neither month has recorded spending.")).toBeInTheDocument();
   });
   it("shows the largest-expense ranking as unavailable when an in-scope amount is ambiguous", () => {
@@ -203,14 +203,14 @@ describe("monthly spending insights page", () => {
   it("steps between available months with the picker and never requests a month outside the list", () => {
     useCashFlow.mockReturnValue(loadedCashFlow("2026-08", { availableMonths: ["2026-08", "2026-07", "2026-02"] }));
     renderPage();
-    expect(screen.getByRole("button", { name: "Later month" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Later month with data" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "This month" })).toBeDisabled();
-    fireEvent.click(screen.getByRole("button", { name: "Earlier month" }));
+    fireEvent.click(screen.getByRole("button", { name: "Earlier month with data" }));
     expect(useCashFlow).toHaveBeenLastCalledWith("2026-07");
-    fireEvent.click(screen.getByRole("button", { name: "Earlier month" }));
+    fireEvent.click(screen.getByRole("button", { name: "Earlier month with data" }));
     expect(useCashFlow).toHaveBeenLastCalledWith("2026-02");
-    expect(screen.getByRole("button", { name: "Earlier month" })).toBeDisabled();
-    fireEvent.click(screen.getByRole("button", { name: "Later month" }));
+    expect(screen.getByRole("button", { name: "Earlier month with data" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Later month with data" }));
     expect(useCashFlow).toHaveBeenLastCalledWith("2026-07");
     fireEvent.click(screen.getByRole("button", { name: "This month" }));
     expect(useCashFlow).toHaveBeenLastCalledWith("2026-08");
@@ -221,7 +221,7 @@ describe("monthly spending insights page", () => {
     useCashFlow.mockReturnValue(loadedCashFlow("2026-08", { data: null, loading: true }));
     const { rerender } = renderPage();
     expect(screen.getByRole("region", { name: "Deposits and spending" })).toHaveAttribute("aria-busy", "true");
-    expect(screen.getByText("Loading deposits and spending...")).toHaveAttribute("role", "status");
+    expect(screen.getByText("Loading deposits and spending…")).toHaveAttribute("role", "status");
     expect(screen.queryByRole("heading", { name: "Deposits and spending you recorded" })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Where it went" })).not.toBeInTheDocument();
     expect(screen.queryByTestId("cash-flow-chart")).not.toBeInTheDocument();
@@ -230,7 +230,7 @@ describe("monthly spending insights page", () => {
     rerender(<MemoryRouter><AnalyticsPage /></MemoryRouter>);
     expect(screen.getByRole("region", { name: "Deposits and spending" })).toHaveAttribute("aria-busy", "false");
     expect(screen.getByRole("alert")).toHaveTextContent("couldn’t load deposits and spending");
-    fireEvent.click(screen.getByRole("button", { name: "Retry cash flow" }));
+    fireEvent.click(screen.getByRole("button", { name: "Try loading deposits and spending again" }));
     expect(refreshCashFlow).toHaveBeenCalledOnce();
   });
 

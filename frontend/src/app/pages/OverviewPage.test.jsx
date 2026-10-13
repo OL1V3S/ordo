@@ -100,7 +100,7 @@ describe("capture-first Home", () => {
     expect(within(list).getByText("Commitment 2")).toBeInTheDocument();
     expect(within(list).queryByText("Commitment 3")).not.toBeInTheDocument();
     expect(within(list).getByText("Amount change to review")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "See all 3 reviews" })).toHaveAttribute("href", "/commitments#changes-review-heading");
+    expect(screen.getByRole("link", { name: "See the 3 items to item to review" })).toHaveAttribute("href", "/commitments#changes-review-heading");
     expect(homeApi.getHome).toHaveBeenCalledTimes(1);
     expect(paychecksApi.getPaychecks).not.toHaveBeenCalled();
   });
@@ -131,7 +131,7 @@ describe("capture-first Home", () => {
 
     const list = await screen.findByRole("list", { name: "Elementos que requieren atención" });
     expect(within(list).getByText("Groceries")).toBeInTheDocument();
-    expect(within(list).getByText("Por encima del límite: se gastaron USD 110.00 de USD 100.00.")).toBeInTheDocument();
+    expect(within(list).getByText("Pasaste el límite: gastaste USD 110.00 de USD 100.00.")).toBeInTheDocument();
   });
 
   it("orders budget alerts with commitment reviews and applies the shared two-row cap", async () => {
@@ -153,12 +153,12 @@ describe("capture-first Home", () => {
     const list = await screen.findByRole("list", { name: "Items needing attention" });
     expect(within(list).getAllByRole("listitem")).toHaveLength(2);
     expect(within(list).getByText("Groceries")).toBeInTheDocument();
-    expect(within(list).getByText("Over limit: $110.00 spent against $100.00.")).toBeInTheDocument();
+    expect(within(list).getByText("Over limit: $110.00 spent of $100.00.")).toBeInTheDocument();
     expect(within(list).getByText("Commitment 1")).toBeInTheDocument();
     expect(within(list).queryByText("Commitment 2")).not.toBeInTheDocument();
     expect(within(list).queryByText("Food")).not.toBeInTheDocument();
     expect(within(list).getByRole("link", { name: "Open Groceries budget" })).toHaveAttribute("href", "/budgets");
-    expect(screen.getByRole("link", { name: "See all 3 reviews" }))
+    expect(screen.getByRole("link", { name: "See the 3 items to item to review" }))
       .toHaveAttribute("href", "/commitments#changes-review-heading");
   });
 
@@ -181,7 +181,7 @@ describe("capture-first Home", () => {
     renderPage();
 
     expect(await screen.findByText("Gym plan")).toBeInTheDocument();
-    expect(screen.getByText("Some attention items could not be checked. Available items are shown.")).toBeInTheDocument();
+    expect(screen.getByText("We couldn’t check some items. The rest are shown.")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /budget/i })).not.toBeInTheDocument();
   });
 
@@ -207,7 +207,7 @@ describe("capture-first Home", () => {
     const list = await screen.findByRole("list", { name: "Elementos que requieren atención" });
     expect(within(list).getByText("Gastaste USD 1.25 con un límite en cero.")).toBeInTheDocument();
     expect(within(list).getByRole("link", { name: "Abrir el presupuesto de Salud" })).toHaveAttribute("href", "/budgets");
-    expect(screen.getByText("No se pudieron revisar algunos elementos. Se muestran los que están disponibles.")).toBeInTheDocument();
+    expect(screen.getByText("No pudimos revisar algunos elementos. Se muestran los demás.")).toBeInTheDocument();
   });
 
   it("renders at most two server-ordered overlapping expectations with exact amounts and dates", async () => {
@@ -258,7 +258,7 @@ describe("capture-first Home", () => {
     view.unmount();
     homeApi.getHome.mockResolvedValue(response(home([], availableUpcoming([oneDay, oneDay, oneDay]))));
     renderPage();
-    expect(await screen.findByText("We couldn’t verify the expected paychecks, so they’re hidden.")).toBeInTheDocument();
+    expect(await screen.findByText("We couldn’t check the expected paychecks, so they’re hidden.")).toBeInTheDocument();
     expect(screen.queryByRole("list", { name: "Expected paychecks" })).not.toBeInTheDocument();
   });
 
@@ -276,7 +276,7 @@ describe("capture-first Home", () => {
     ], availableUpcoming([projection({ amount: { mode: "fixed", fixedAmount: "1.0", minimumAmount: null, maximumAmount: null } })]))));
     renderPage();
     expect(await screen.findByText("Still visible when malformed")).toBeInTheDocument();
-    expect(screen.getByText("We couldn’t verify the expected paychecks, so they’re hidden.")).toBeInTheDocument();
+    expect(screen.getByText("We couldn’t check the expected paychecks, so they’re hidden.")).toBeInTheDocument();
   });
 
   it("keeps valid Home sections available when the attention envelope is from an older backend", async () => {
@@ -291,7 +291,7 @@ describe("capture-first Home", () => {
     renderPage();
 
     expect(await screen.findByText("Activity survives version skew")).toBeInTheDocument();
-    expect(screen.getByText("Attention items could not be verified, so they are hidden.")).toBeInTheDocument();
+    expect(screen.getByText("We couldn’t check these items, so they’re hidden.")).toBeInTheDocument();
     expect(screen.getByRole("list", { name: "Expected paychecks" })).toBeInTheDocument();
     expect(screen.getByText("Primary paycheck")).toBeInTheDocument();
   });
@@ -323,7 +323,7 @@ describe("capture-first Home", () => {
     homeApi.getHome.mockRejectedValue(new Error("offline"));
     renderPage();
     expect(await screen.findByText("Upcoming paychecks aren’t available because Home couldn’t load.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Retry Home" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument();
     expect(screen.queryByRole("list", { name: "Expected paychecks" })).not.toBeInTheDocument();
   });
 
@@ -400,7 +400,7 @@ describe("capture-first Home", () => {
     await waitFor(() => expect(handoff).toHaveFocus());
     expect(inflowsApi.create).toHaveBeenCalledOnce();
     expect(sessionStorage.getItem("ordo-home-uncertain-write:owner%40example.test")).toBe("account_inflow");
-    await user.click(screen.getByRole("button", { name: "Retry Home" }));
+    await user.click(screen.getByRole("button", { name: "Try again" }));
     await waitFor(() => expect(homeApi.getHome).toHaveBeenCalledTimes(2));
     expect(screen.getByRole("link", { name: "Open Transactions to check" })).toBeInTheDocument();
     expect(sessionStorage.getItem("ordo-home-uncertain-write:owner%40example.test")).toBe("account_inflow");

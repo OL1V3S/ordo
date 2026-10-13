@@ -41,15 +41,15 @@
     "title": "Reportes",
     "description": "Mira tus depósitos y gastos, mes por mes.",
     "month": "Mes",
-    "refresh": "Actualizar flujo de efectivo",
+    "refresh": "Actualizar depósitos y gastos",
     "earlierMonth": "Mes anterior con datos",
     "laterMonth": "Mes siguiente con datos",
     "currentMonth": "Este mes"
   },
   "cashFlow": {
     "regionLabel": "Depósitos y gastos",
-    "loading": "Cargando depósitos y gastos...",
-    "retry": "Reintentar flujo de efectivo",
+    "loading": "Cargando depósitos y gastos…",
+    "retry": "Intentar cargar los depósitos y gastos de nuevo",
     "errors": {
       "signIn": "Inicia sesión para ver los depósitos y gastos.",
       "loadFailed": "No pudimos cargar los depósitos y gastos. Inténtalo de nuevo."
@@ -58,7 +58,7 @@
   "summary": {
     "heading": "Depósitos y gastos que registraste",
     "through": "Hasta el {{date}}",
-    "basis": "Basado en tus transacciones registradas.",
+    "basis": "Basado en tus movimientos registrados.",
     "cashIn": "Depósitos",
     "spent": "Gastado",
     "noCashIn": "No hay depósitos registrados",
@@ -72,9 +72,9 @@
       "summary": "Acerca de estas cifras",
       "coverage": "Estas cifras vienen de los movimientos que guardaste y pueden no incluir toda la actividad de la cuenta. Depósitos menos gastos describe este periodo; no es un saldo de la cuenta, ahorros ni dinero disponible para gastar.",
       "composition": "Los pagos de nómina confirmados son depósitos vinculados a uno de tus calendarios de nómina, incluidos los activos, en pausa y finalizados. Otros depósitos son todos los demás y pueden incluir pagos de nómina sin vincular, devoluciones, transferencias y reembolsos. Ambos cuentan en Depósitos; un depósito no se cuenta como ingreso.",
-      "spending": "Gastado incluye todas las salidas de dinero registradas, como compras, transferencias, pagos de deudas y aportes a inversiones. Las devoluciones cuentan como depósitos sin reducir su categoría de gasto original. Los presupuestos, los pagos de nómina esperados, los gastos recurrentes esperados y las vistas previas de importación sin guardar no se suman a estas cifras.",
-      "history": "Los montos y las fechas reflejan los movimientos guardados actuales. Editar o eliminar un movimiento puede cambiar estas cifras históricas. Confirmar un pago de nómina cambia el desglose de los depósitos, sin cambiar el total de depósitos ni el flujo neto.",
-      "rounding": "Los depósitos vinculados editados conservan su asignación y usan su fecha del depósito y su monto actuales. Los porcentajes se redondean a la décima más cercana, con los valores intermedios redondeados hacia arriba; es posible que los porcentajes redondeados no sumen 100.0%."
+      "spending": "Gastado incluye todo el dinero que registraste como salida, como compras, transferencias, pagos de deudas y dinero que pasaste a inversiones. Las devoluciones cuentan como depósitos y no reducen el gasto de su categoría original. No se incluyen los presupuestos, los pagos de nómina esperados, los gastos recurrentes esperados ni las vistas previas de importación sin guardar.",
+      "history": "Los montos y las fechas reflejan los movimientos que tienes guardados ahora. Editar o eliminar un movimiento puede cambiar cifras anteriores. Confirmar un posible pago de nómina cambia el desglose de los depósitos, pero no el total de depósitos ni depósitos menos gastos.",
+      "rounding": "Los depósitos vinculados que edites siguen vinculados y usan su fecha y monto actuales. Los porcentajes se redondean a la décima más cercana (las mitades hacia arriba), así que los porcentajes redondeados pueden no sumar 100.0%."
     },
     "facts": {
       "cashInSpent": "Gastado como porcentaje de los depósitos",
@@ -100,8 +100,8 @@
     "kickerFromFloor_other": "{{count}} meses calendario desde {{start}}",
     "heading": "Depósitos y gastos a lo largo del tiempo",
     "legendLabel": "Leyenda del gráfico",
-    "monthToDateTick": "Acum.",
-    "monthToDateNote": "Acum.: acumulado del mes hasta la fecha",
+    "monthToDateTick": "A la fecha",
+    "monthToDateNote": "A la fecha: este mes hasta hoy",
     "tooltipValue": "{{label}}: {{amount}}",
     "tooltipCashIn": "Depósitos: {{amount}}",
     "datasets": {
@@ -111,14 +111,14 @@
     },
     "table": {
       "summary": "Ver datos del gráfico",
-      "caption": "Flujo de efectivo mensual registrado en dólares estadounidenses",
+      "caption": "Depósitos y gastos por mes, en dólares estadounidenses",
       "month": "Mes",
       "cashIn": "Depósitos",
       "paychecks": "Pagos de nómina confirmados",
       "other": "Otros depósitos",
       "spent": "Gastado",
       "net": "Depósitos menos gastos",
-      "note": "Nota del período"
+      "note": "Nota del periodo"
     }
   },
   "periodNotes": {
@@ -128,19 +128,19 @@
   },
   "spending": {
     "heading": "Más detalle de gastos",
-    "loading": "Cargando el reporte de gastos...",
+    "loading": "Cargando el reporte de gastos…",
     "loadError": "No pudimos cargar los gastos registrados.",
     "retry": "Intentar de nuevo",
-    "inexact": "No se pudieron verificar con exactitud algunos montos de gastos. Las comparaciones de gastos afectadas no están disponibles."
+    "inexact": "Los montos exactos de algunos gastos no están disponibles, así que no se pueden mostrar algunas comparaciones."
   },
   "budget": {
     "status": "Estado de los presupuestos",
     "open": "Abrir presupuestos"
   },
   "comparison": {
-    "heading": "Cambio de un mes a otro",
+    "heading": "Cambio respecto al mes anterior",
     "kicker": "Comparado con {{month}}",
-    "unavailable": "La comparación exacta de un mes a otro no está disponible.",
+    "unavailable": "La comparación exacta con el mes anterior no está disponible.",
     "neither": "Ninguno de los dos meses tiene gastos registrados.",
     "percentageUnavailable": "La comparación porcentual no está disponible porque el mes anterior tuvo {{amount}} en gastos registrados.",
     "percentFrom": "{{percent}} desde {{amount}}",
@@ -153,8 +153,8 @@
   "largest": {
     "heading": "Gastos más grandes",
     "kicker": "Los cinco principales",
-    "review": "Revisar movimientos",
-    "unavailable": "La clasificación exacta de los gastos más grandes no está disponible porque no se pudo verificar un monto.",
-    "empty": "No hay gastos para clasificar este mes."
+    "review": "Ver movimientos",
+    "unavailable": "El orden exacto de tus gastos más grandes no está disponible porque no pudimos verificar un monto.",
+    "empty": "No hay gastos para mostrar este mes."
   }
 }
