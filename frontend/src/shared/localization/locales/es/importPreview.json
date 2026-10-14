@@ -230,13 +230,10 @@
     "clearing_other": "Borrando la selección de {{count}} filas…",
     "failed": "No se cambió nada. Inténtalo de nuevo.",
     "uncertainFailed": "No pudimos confirmar si la selección cambió. Actualiza la página para ver lo que está guardado antes de importar.",
-    "progress": "Actualizando fila {{done}} de {{total}}…",
     "selectedDone_one": "Se seleccionó {{count}} gasto.",
     "selectedDone_other": "Se seleccionaron {{count}} gastos.",
     "clearedDone_one": "Se borró la selección de {{count}} fila.",
-    "clearedDone_other": "Se borró la selección de {{count}} filas.",
-    "stopped_one": "Se detuvo después de {{done}} de {{count}} fila. Las filas ya actualizadas se mantienen como se muestran. Inténtalo de nuevo.",
-    "stopped_other": "Se detuvo después de {{done}} de {{count}} filas. Las filas ya actualizadas se mantienen como se muestran. Inténtalo de nuevo."
+    "clearedDone_other": "Se borró la selección de {{count}} filas."
   },
   "bar": {
     "label": "Filas por importar",

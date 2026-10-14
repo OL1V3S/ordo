@@ -230,13 +230,10 @@
     "clearing_other": "Clearing the selection of {{count}} rows…",
     "failed": "Nothing was changed. Try again.",
     "uncertainFailed": "We couldn’t confirm whether the selection changed. Refresh the page to see what’s saved before importing.",
-    "progress": "Updating row {{done}} of {{total}}…",
     "selectedDone_one": "Selected {{count}} expense.",
     "selectedDone_other": "Selected {{count}} expenses.",
     "clearedDone_one": "Cleared the selection of {{count}} row.",
-    "clearedDone_other": "Cleared the selection of {{count}} rows.",
-    "stopped_one": "Stopped after {{done}} of {{count}} row. Rows already updated stay as shown. Try again.",
-    "stopped_other": "Stopped after {{done}} of {{count}} rows. Rows already updated stay as shown. Try again."
+    "clearedDone_other": "Cleared the selection of {{count}} rows."
   },
   "bar": {
     "label": "Rows to import",
