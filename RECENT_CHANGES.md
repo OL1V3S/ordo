@@ -24,6 +24,13 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-14 — Account emails follow the selected language
+
+[Issue #245](https://github.com/OL1V3S/ordo/issues/245)
+
+- The confirmation and password-reset emails are now sent in English or Spanish, following the language selected in the app when you register, resend a confirmation, or request a reset. The wording says "Ordo" in both languages.
+- A missing or unrecognized language falls back to English, and the English emails are unchanged. The account does not store a language, and responses and limits are unchanged. Adds an optional `language` field to those three requests; no schema or dependency change.
+
 ### 2026-10-14 — Paycheck matching suggestions on the Paychecks page
 
 [PR #244](https://github.com/OL1V3S/ordo/pull/244) · [Issue #243](https://github.com/OL1V3S/ordo/issues/243)
@@ -174,11 +181,3 @@ the permanent, complete archive.
 
 - Home drops its intro line and "Capture" heading, uses the shared section headers and rows, and shows each Coming Up item as a compact two-line row.
 - On phones a single "Add" button reveals Add expense and Add cash in; wider screens still show both buttons. Data, ordering, capture and recovery behavior are unchanged.
-
-### 2026-10-09 — Activity single task area and row menu
-
-[PR #207](https://github.com/OL1V3S/ordo/pull/207) ·
-[Issue #194](https://github.com/OL1V3S/ordo/issues/194)
-
-- Activity is now one list plus one "Current task" area and a status area; the Spending and Cash in sections, Records toggles, expense filters and cash search are gone, and Edit/Delete moved into a "..." menu on each timeline row.
-- Full read-only expense and cash-in tables appear only for Home recovery, unconfirmed saves and a failed timeline; write payloads, recovery and import are unchanged.

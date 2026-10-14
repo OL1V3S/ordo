@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Trans, useTranslation } from "react-i18next";
 import { authApi } from "../../../shared/api/authApi";
 import { establishSession } from "../../../shared/auth/session";
+import { useLocale } from "../../../shared/localization/useLocale";
 import StatusMessage from "../../../shared/ui/StatusMessage";
 import AuthShell from "./AuthShell";
 import PasswordField from "./PasswordField";
@@ -10,6 +11,7 @@ import { mapResendFailure, mapSubmitError, translateDescriptors } from "../authM
 
 export default function AuthPage({ onLogin }) {
   const { t } = useTranslation("auth");
+  const { locale } = useLocale();
   const [mode, setMode] = useState("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -43,7 +45,7 @@ export default function AuthPage({ onLogin }) {
 
     try {
       if (mode === "register") {
-        await authApi.register({ email, password });
+        await authApi.register({ email, password, language: locale });
         setMode("check-email");
         setConfirmationMessage({ key: "checkEmail.sent", values: { email } });
         setResendMessage(null);
@@ -82,7 +84,7 @@ export default function AuthPage({ onLogin }) {
     setResendMessage(null);
 
     try {
-      await authApi.resendConfirmation({ email });
+      await authApi.resendConfirmation({ email, language: locale });
       setResendTone("success");
       setResendMessage({ key: "resend.sent" });
     } catch (err) {

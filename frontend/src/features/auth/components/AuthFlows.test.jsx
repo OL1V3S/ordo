@@ -324,6 +324,7 @@ describe('existing authentication flows', () => {
     await waitFor(() => expect(authApi.register).toHaveBeenCalledWith({
       email: 'person@example.com',
       password: 'Secret1!',
+      language: 'en',
     }))
     expect(await screen.findByRole('heading', { name: 'Check your email', level: 1 })).toHaveFocus()
     expect(screen.getByRole('status')).toHaveTextContent('A confirmation link was sent to person@example.com.')
@@ -347,6 +348,7 @@ describe('existing authentication flows', () => {
 
     await waitFor(() => expect(authApi.resendConfirmation).toHaveBeenCalledWith({
       email: 'unknown@example.com',
+      language: 'en',
     }))
     const result = await screen.findByRole('status')
     expect(result).toHaveTextContent('If an unconfirmed account exists for that email, we sent a confirmation link.')
@@ -496,6 +498,44 @@ describe('authentication pages in Spanish', () => {
     await user.type(screen.getByLabelText('Nueva contraseña'), 'NewSecret1!')
     await user.click(screen.getByRole('button', { name: 'Restablecer contraseña' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos restablecer tu contraseña. Inténtalo de nuevo o solicita un nuevo enlace.')
+  })
+
+  it('sends the selected Spanish language with register and both resend calls', async () => {
+    const user = userEvent.setup()
+    authApi.register.mockResolvedValue({ data: {} })
+    authApi.resendConfirmation.mockResolvedValue({ data: { message: 'English' } })
+    authApi.forgotPassword.mockResolvedValue({ data: { message: 'English' } })
+    const auth = renderAt(<AuthPage onLogin={vi.fn()} />)
+    await user.click(screen.getByRole('button', { name: '¿Necesitas una cuenta? Crea una' }))
+    await fillLogin(user)
+    await user.type(screen.getByLabelText('Confirmar contraseña'), 'Secret1!')
+    await user.click(screen.getByRole('button', { name: 'Crear cuenta' }))
+    await waitFor(() => expect(authApi.register).toHaveBeenCalledWith({
+      email: 'person@example.com',
+      password: 'Secret1!',
+      language: 'es',
+    }))
+    await user.click(await screen.findByRole('button', { name: 'Reenviar correo de confirmación' }))
+    await waitFor(() => expect(authApi.resendConfirmation).toHaveBeenCalledWith({
+      email: 'person@example.com',
+      language: 'es',
+    }))
+    auth.unmount()
+
+    renderAt(<ForgotPasswordPage />, '/forgot-password')
+    await user.type(screen.getByLabelText('Correo electrónico'), 'x@example.com')
+    await user.click(screen.getByRole('button', { name: 'Enviar enlace de restablecimiento' }))
+    await waitFor(() => expect(authApi.forgotPassword).toHaveBeenCalledWith({
+      email: 'x@example.com',
+      language: 'es',
+    }))
+    authApi.resendConfirmation.mockClear()
+    await user.click(screen.getByText('¿Necesitas un nuevo correo de confirmación?', { selector: 'summary' }))
+    await user.click(screen.getByRole('button', { name: 'Reenviar correo de confirmación' }))
+    await waitFor(() => expect(authApi.resendConfirmation).toHaveBeenCalledWith({
+      email: 'x@example.com',
+      language: 'es',
+    }))
   })
 
   it('offers a language selector that keeps focus and re-renders an on-screen error', async () => {

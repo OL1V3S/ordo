@@ -41,6 +41,18 @@ the components translate them at render, so an on-screen message follows a langu
 change. The shared language selector (`LanguageControl`) appears on these pages so a
 language can be chosen before sign-in.
 
+Server-sent account emails (the confirmation email and the password-reset email)
+follow the language selected at request time. The frontend sends the optional
+`language` field (`en` or `es`) with register, resend-confirmation, and
+forgot-password requests. The backend accepts only exactly `en` or `es`
+(case-insensitive, trimmed); a missing, null, non-string, or unrecognized value
+(including regional tags such as `es-MX`) falls back to English and never fails the
+request. The copy is a fixed closed set in `AccountEmailTemplates`; request input
+only selects the language, never a template. The account stores no language, so a
+resend or reset uses the language of the request that triggered it. API response
+messages (including the 503, 202, and 200 bodies) stay English and are mapped by the
+frontend from status and code. Both emails say "Ordo" in both languages.
+
 ## Runtime boundary
 
 `frontend/src/shared/localization/` owns the bundled i18next resources, language
