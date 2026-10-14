@@ -1,4 +1,4 @@
-import { act, render, screen, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import ImportPreviewPanel from './ImportPreviewPanel'
@@ -328,6 +328,37 @@ describe('import review bulk selection', () => {
     expect(within(tableRegion()).getByLabelText(/^Save deposit for /)).toBeDisabled()
     expect(region()).toBeEmptyDOMElement()
     expect(document.body.textContent).not.toMatch(/Nothing was changed|stopped/i)
+  })
+
+  it('moves keyboard focus to the alert heading when the outcome stays uncertain', async () => {
+    const user = userEvent.setup()
+    const issue = { code: 'selection_uncertain', message: 'Refresh the page to see what’s saved before importing.', rows: [], requiresPreviewRefresh: true }
+    const rows = [e1, e2]
+    const { rerender } = render(<ImportPreviewPanel importState={importState({ preview: previewWith(rows) })} />)
+    const bulkSelection = vi.fn(async () => {
+      rerender(<ImportPreviewPanel importState={importState({ preview: previewWith(rows), confirmationIssue: issue, bulkSelection })} />)
+      return { status: 'uncertain' }
+    })
+    rerender(<ImportPreviewPanel importState={importState({ preview: previewWith(rows), bulkSelection })} />)
+    await user.click(selectAll())
+    // The focused button is now natively disabled; focus must not fall back to the page body.
+    expect(selectAll()).toBeDisabled()
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Import not confirmed' })).toHaveFocus())
+  })
+
+  it('moves keyboard focus to the alert heading when the preview becomes unavailable', async () => {
+    const user = userEvent.setup()
+    const issue = { code: 'preview_unavailable', message: 'This preview isn’t available. Choose your bank and upload the statement again.', rows: [] }
+    const { rerender } = render(<ImportPreviewPanel importState={importState()} />)
+    const bulkSelection = vi.fn(async () => {
+      // The review section unmounts: the hook clears the preview and sets the issue.
+      rerender(<ImportPreviewPanel importState={importState({ preview: null, confirmationIssue: issue, bulkSelection })} />)
+      return { status: 'unavailable' }
+    })
+    rerender(<ImportPreviewPanel importState={importState({ bulkSelection })} />)
+    await user.click(selectAll())
+    expect(screen.queryByRole('button', { name: /^Select all expenses/ })).not.toBeInTheDocument()
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Preview unavailable' })).toHaveFocus())
   })
 
   it('shows no outcome when the preview becomes unavailable', async () => {

@@ -24,12 +24,12 @@ the permanent, complete archive.
 
 ## History
 
-### 2026-10-14 — Faster Select all and Clear selection in statement import review
+### 2026-10-14 — Select all and Clear selection send one request in statement import review
 
 [PR #242](https://github.com/OL1V3S/ordo/pull/242) ·
 [Issue #239](https://github.com/OL1V3S/ordo/issues/239)
 
-- Select all and Clear selection in the statement import review now send one request instead of one per row, so they no longer take about 29 seconds on a 34-row statement. The change is all-or-nothing: there is no longer a "Stopped after X of Y rows" state, and progress shows a count instead of "row n of N".
+- Select all and Clear selection in the statement import review now send one request for the whole action instead of one per row. Before this change each took about 29 seconds on a 34-row statement (the owner's measurement); the new speed has not been measured yet. The change is all-or-nothing: there is no longer a "Stopped after X of Y rows" state, and progress shows a count instead of "row n of N".
 - If the connection drops mid-action, the app retries the same request once; if it still can't confirm the result, importing stays locked and you're asked to refresh the page. Uses the endpoint added in [PR #241](https://github.com/OL1V3S/ordo/pull/241); confirm, duplicate checks and single-row edits are unchanged, and there is no schema change.
 
 ### 2026-10-13 — Category names and import dates in the user's language

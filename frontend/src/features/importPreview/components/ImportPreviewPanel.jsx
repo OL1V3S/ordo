@@ -336,6 +336,11 @@ export default function ImportPreviewPanel({ importState, onImportConfirmed = as
     if (!hiddenByFilter) pinRows(rowIds);
     try {
       const result = await start.bulkSelection(select ? "select_expenses" : "clear", rowIds);
+      // These two outcomes disable the focused Select all / Clear button (confirm locked for a
+      // refresh) or unmount the review section, which would drop keyboard focus to the page body.
+      // Move it to the alert heading, as a failed confirm does. This runs before the batch guard
+      // below because an unavailable preview has no current batch left to compare.
+      if (result?.status === "uncertain" || result?.status === "unavailable") focusAfterRender(issueHeading);
       // A late response for a preview that was cancelled, replaced, or unmounted is ignored.
       if (!mountedRef.current || latest.current?.preview?.batchId !== batchId) return;
       if (result?.status === "done") {
