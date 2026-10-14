@@ -53,3 +53,12 @@ public sealed record UpdateImportPreviewRowRequest(
     string? Category,
     bool SelectedForImport,
     bool SelectedForInflow);
+
+// Action is "select_expenses" or "clear". RowIds are the rows the caller saw and acted on.
+public sealed record UpdateImportPreviewSelectionRequest(
+    string? Action,
+    IReadOnlyList<Guid>? RowIds);
+
+public sealed record ImportPreviewSelectionResponse(
+    ImportPreviewResponse Preview,
+    IReadOnlyList<Guid> ChangedRowIds);

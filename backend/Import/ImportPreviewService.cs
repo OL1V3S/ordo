@@ -25,6 +25,13 @@ public sealed record ImportConfirmationOperation(
     public bool IsSuccess => Confirmation is not null;
 }
 
+public sealed record ImportPreviewSelectionOperation(
+    ImportPreviewSelectionResponse? Selection,
+    ImportPreviewError? Error)
+{
+    public bool IsSuccess => Selection is not null;
+}
+
 public interface IImportPreviewService
 {
     Task<ImportPreviewOperation> CreateAsync(string userId, string? sourceType, Stream file, long? declaredLength, CancellationToken cancellationToken);
@@ -32,6 +39,7 @@ public interface IImportPreviewService
     Task<ImportPreviewResponse?> GetAsync(string userId, Guid batchId, CancellationToken cancellationToken);
     Task<ImportConfirmationOperation> ConfirmAsync(string userId, Guid batchId, CancellationToken cancellationToken);
     Task<ImportPreviewOperation> UpdateRowAsync(string userId, Guid batchId, Guid rowId, UpdateImportPreviewRowRequest request, CancellationToken cancellationToken);
+    Task<ImportPreviewSelectionOperation> UpdateSelectionAsync(string userId, Guid batchId, UpdateImportPreviewSelectionRequest request, CancellationToken cancellationToken);
 }
 
 public sealed class ImportPreviewProcessingOptions
@@ -47,6 +55,9 @@ public sealed class ImportPreviewService(
     ImportPreviewProcessingOptions processingOptions) : IImportPreviewService
 {
     public const int MaximumUploadBytes = 10 * 1024 * 1024;
+    public const int MaximumSelectionRows = 1_000;
+    public const string SelectExpensesAction = "select_expenses";
+    public const string ClearSelectionAction = "clear";
     private static readonly TimeSpan PreviewLifetime = TimeSpan.FromHours(24);
     private const string OpenDigestIndexName =
         "IX_ImportPreviewBatches_OwnerId_SourceType_DocumentDigest";
@@ -581,6 +592,116 @@ public sealed class ImportPreviewService(
         }
     }
 
+    // Sets or clears the selection of several rows in one all-or-nothing transaction under the
+    // same batch lock as UpdateRowAsync and ConfirmAsync. It writes only SelectedForImport and
+    // never touches descriptions or categories. A request states the desired state rather than
+    // toggling, so replaying it is safe and reports no further changes.
+    public async Task<ImportPreviewSelectionOperation> UpdateSelectionAsync(
+        string userId,
+        Guid batchId,
+        UpdateImportPreviewSelectionRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!IsValidSelectionRequest(request, out var rowIds))
+        {
+            return SelectionFailed(
+                "selection_request_invalid",
+                "The selection request is invalid.");
+        }
+
+        IDbContextTransaction? transaction = null;
+        try
+        {
+            transaction = await BeginMutationTransactionAsync(cancellationToken);
+            await LockOwnedBatchAsync(userId, batchId, cancellationToken);
+
+            var batch = await context.ImportPreviewBatches.Include(value => value.Rows)
+                .SingleOrDefaultAsync(
+                    value => value.OwnerId == userId && value.Id == batchId,
+                    cancellationToken);
+            if (batch is null)
+                return SelectionFailed("preview_not_found", "The preview is unavailable.");
+
+            if (batch.Lifecycle == ImportPreviewLifecycle.Open
+                && batch.ExpiresAt <= clock.GetUtcNow().UtcDateTime)
+            {
+                batch.Lifecycle = ImportPreviewLifecycle.Expired;
+                await context.SaveChangesAsync(cancellationToken);
+                await CommitAsync(transaction, cancellationToken);
+                return SelectionFailed("preview_not_found", "The preview is unavailable.");
+            }
+
+            if (batch.Lifecycle != ImportPreviewLifecycle.Open
+                || batch.SourceType != SunflowerStatementParser.SourceType
+                || batch.ParserRuleVersion != SunflowerStatementParser.RuleVersion)
+            {
+                return SelectionFailed("preview_not_found", "The preview is unavailable.");
+            }
+
+            // Every listed row must belong to this batch before anything is changed.
+            var rowsById = batch.Rows.ToDictionary(value => value.Id);
+            var targets = new List<ImportPreviewRow>(rowIds.Count);
+            foreach (var rowId in rowIds)
+            {
+                if (!rowsById.TryGetValue(rowId, out var target))
+                    return SelectionFailed("preview_not_found", "The preview is unavailable.");
+                targets.Add(target);
+            }
+
+            var selecting = request.Action == SelectExpensesAction;
+            var changed = new List<ImportPreviewRow>();
+            foreach (var row in targets.OrderBy(value => value.SourceRowOrdinal))
+            {
+                if (selecting)
+                {
+                    if (row.SelectedForImport || !IsBulkSelectableExpense(row)) continue;
+                    row.SelectedForImport = true;
+                }
+                else
+                {
+                    if (!row.SelectedForImport) continue;
+                    row.SelectedForImport = false;
+                }
+                changed.Add(row);
+            }
+
+            if (changed.Count > 0) await context.SaveChangesAsync(cancellationToken);
+            await CommitAsync(transaction, cancellationToken);
+            return new(
+                new ImportPreviewSelectionResponse(
+                    ToResponse(batch),
+                    changed.Select(value => value.Id).ToList()),
+                null);
+        }
+        finally
+        {
+            if (transaction is not null) await transaction.DisposeAsync();
+        }
+    }
+
+    private static bool IsValidSelectionRequest(
+        UpdateImportPreviewSelectionRequest request,
+        out IReadOnlyList<Guid> rowIds)
+    {
+        rowIds = request.RowIds ?? [];
+        return (request.Action == SelectExpensesAction || request.Action == ClearSelectionAction)
+            && rowIds.Count is > 0 and <= MaximumSelectionRows
+            && rowIds.Distinct().Count() == rowIds.Count;
+    }
+
+    // Server-side mirror of the rule the review UI applies when it lists rows to bulk-select:
+    // an eligible expense with no duplicate signal whose stored values still pass validation.
+    // Duplicate flags change only at confirmation, so a flagged row is never selected here.
+    private static bool IsBulkSelectableExpense(ImportPreviewRow row) =>
+        IsExpenseEligible(row)
+        && !row.IsPossibleDuplicate
+        && (JsonSerializer.Deserialize<int[]>(row.DuplicateExpenseIds) ?? []).Length == 0
+        && ExpenseInputRules.Validate(
+            row.Amount,
+            row.PostedDate,
+            row.EditableExpenseDescription,
+            row.Category).Count == 0;
+
     private IQueryable<ImportPreviewBatch> OwnedOpenQuery(string userId) => context.ImportPreviewBatches
         .AsNoTracking().Include(value => value.Rows)
         .Where(value => value.OwnerId == userId && value.Lifecycle == ImportPreviewLifecycle.Open);
@@ -890,6 +1011,9 @@ public sealed class ImportPreviewService(
     };
 
     private static ImportPreviewOperation Failed(string code, string message) => new(null, new(code, message));
+
+    private static ImportPreviewSelectionOperation SelectionFailed(string code, string message) =>
+        new(null, new(code, message));
 
     private static ImportConfirmationOperation ConfirmationSucceeded(
         ImportPreviewBatch batch,

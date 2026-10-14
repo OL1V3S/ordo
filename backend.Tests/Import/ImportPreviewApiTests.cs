@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using BudgetPlanner.Data;
 using BudgetPlanner.Tests.Financial;
@@ -922,6 +923,394 @@ public sealed class ImportPreviewApiTests
     }
 
     [Fact]
+    public async Task Selection_endpoint_requires_authentication()
+    {
+        await using var app = new SyntheticExtractionFinancialApiTestApplication();
+        using var client = app.CreateTestClient();
+
+        using var response = await PostSelectionAsync(
+            client,
+            Guid.NewGuid(),
+            "clear",
+            [Guid.NewGuid()]);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Selection_rejects_invalid_requests_without_changing_the_preview()
+    {
+        await using var app = new SyntheticExtractionFinancialApiTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("preview-bulk-invalid@example.com");
+        var preview = await UploadPreviewAsync(owner, SunflowerFixtureCorpus.CreateRepresentativePdf());
+        var batchId = preview.GetProperty("batchId").GetGuid();
+        var selectedBefore = SelectedRowIds(preview);
+        var first = RowIdOf(RowsOf(preview).First(row => row.GetProperty("isEligible").GetBoolean()));
+        var url = $"/api/import-previews/{batchId}/selection";
+        var cases = new (string Name, object Body)[]
+        {
+            ("unknown action", new { action = "toggle", rowIds = new[] { first } }),
+            ("action with the wrong case", new { action = "Clear", rowIds = new[] { first } }),
+            ("missing action", new { rowIds = new[] { first } }),
+            ("empty row list", new { action = "clear", rowIds = Array.Empty<Guid>() }),
+            ("missing row list", new { action = "clear" }),
+            ("null row list", new { action = "clear", rowIds = (Guid[]?)null }),
+            ("duplicate row ids", new { action = "clear", rowIds = new[] { first, first } }),
+            ("more than 1000 row ids", new
+            {
+                action = "clear",
+                rowIds = Enumerable.Range(0, 1001).Select(_ => Guid.NewGuid()).ToArray()
+            })
+        };
+
+        foreach (var (name, body) in cases)
+        {
+            using var response = await owner.Client.PostAsJsonAsync(url, body);
+            var error = await response.Content.ReadFromJsonAsync<JsonElement>();
+            Assert.True(HttpStatusCode.BadRequest == response.StatusCode, name);
+            Assert.True("selection_request_invalid" == error.GetProperty("code").GetString(), name);
+        }
+
+        using var malformedId = new StringContent(
+            """{"action":"clear","rowIds":["not-a-guid"]}""",
+            Encoding.UTF8,
+            "application/json");
+        using var emptyBody = new StringContent("", Encoding.UTF8, "application/json");
+        using var malformedResponse = await owner.Client.PostAsync(url, malformedId);
+        using var emptyResponse = await owner.Client.PostAsync(url, emptyBody);
+
+        Assert.Equal(HttpStatusCode.BadRequest, malformedResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, emptyResponse.StatusCode);
+        Assert.Equal(selectedBefore, SelectedRowIds(await ReadPreviewAsync(owner, batchId)));
+    }
+
+    [Fact]
+    public async Task Selection_uses_the_row_update_not_found_shape_and_changes_nothing_when_the_target_is_unavailable()
+    {
+        await using var app = new SyntheticExtractionFinancialApiTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("preview-bulk-not-found@example.com");
+        using var other = await app.CreateAuthenticatedUserAsync("preview-bulk-foreign@example.com");
+        var ownPreview = await UploadPreviewAsync(owner, SunflowerFixtureCorpus.CreateRepresentativePdf());
+        var foreignPreview = await UploadPreviewAsync(other, SunflowerFixtureCorpus.CreateRepresentativePdf());
+        var stale = await app.SeedImportPreviewBatchAsync(
+            owner.Id,
+            SunflowerFixtureCorpus.CreateRepresentativePdf().Concat(new byte[] { 0 }).ToArray(),
+            "sunflower-v1");
+        var ownBatchId = ownPreview.GetProperty("batchId").GetGuid();
+        var foreignBatchId = foreignPreview.GetProperty("batchId").GetGuid();
+        var ownSelectedRow = RowIdOf(RowsOf(ownPreview).First(row => row.GetProperty("selectedForImport").GetBoolean()));
+        var foreignSelectedRow = RowIdOf(RowsOf(foreignPreview).First(row => row.GetProperty("selectedForImport").GetBoolean()));
+        var ownSelectedBefore = SelectedRowIds(ownPreview);
+        var foreignSelectedBefore = SelectedRowIds(foreignPreview);
+
+        using var rowUpdate = await owner.Client.PatchAsJsonAsync(
+            $"/api/import-previews/{Guid.NewGuid()}/rows/{Guid.NewGuid()}",
+            new { editableExpenseDescription = "x", category = "food", selectedForImport = true });
+        Assert.Equal(HttpStatusCode.NotFound, rowUpdate.StatusCode);
+        var expectedShape = await ProblemShapeAsync(rowUpdate);
+
+        var cases = new (string Name, Guid BatchId, Guid[] RowIds)[]
+        {
+            ("missing batch", Guid.NewGuid(), [ownSelectedRow]),
+            ("another owner's batch", foreignBatchId, [foreignSelectedRow]),
+            ("incompatible rule version", stale.Id, [stale.Rows.Single().Id]),
+            ("unknown row", ownBatchId, [ownSelectedRow, Guid.NewGuid()]),
+            ("row of another owner's batch", ownBatchId, [ownSelectedRow, foreignSelectedRow]),
+            ("1000 unknown rows", ownBatchId, Enumerable.Range(0, 1000).Select(_ => Guid.NewGuid()).ToArray())
+        };
+        foreach (var (name, batchId, rowIds) in cases)
+        {
+            using var response = await PostSelectionAsync(owner.Client, batchId, "clear", rowIds);
+            Assert.True(HttpStatusCode.NotFound == response.StatusCode, name);
+            Assert.True(expectedShape == await ProblemShapeAsync(response), name);
+        }
+
+        Assert.Equal(ownSelectedBefore, SelectedRowIds(await ReadPreviewAsync(owner, ownBatchId)));
+        Assert.Equal(foreignSelectedBefore, SelectedRowIds(await ReadPreviewAsync(other, foreignBatchId)));
+        Assert.False(Assert.Single(await app.FindImportPreviewBatchesAsync(owner.Id),
+            batch => batch.Id == stale.Id).Rows.Single().SelectedForImport);
+    }
+
+    [Fact]
+    public async Task Select_expenses_changes_only_listed_bulk_selectable_rows_and_never_writes_values()
+    {
+        await using var app = new SyntheticExtractionFinancialApiTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("preview-bulk-select@example.com");
+        await app.SeedExpenseAsync(owner.Id, "NORTH STAR MARKET", 42.16m, new DateOnly(2026, 2, 5));
+        var preview = await UploadPreviewAsync(owner, SunflowerFixtureCorpus.CreateRepresentativePdf());
+        var batchId = preview.GetProperty("batchId").GetGuid();
+        var rows = RowsOf(preview);
+        var duplicate = RowNamed(rows, "NORTH STAR MARKET");
+        var needsReview = rows.Single(row => row.GetProperty("classification").GetString() == "needs_review");
+        var defaultSelected = SelectedRowIds(preview);
+        Assert.True(duplicate.GetProperty("isPossibleDuplicate").GetBoolean());
+        Assert.Equal(9, defaultSelected.Count);
+        var storedBefore = await StoredValuesAsync(app, owner.Id);
+
+        var cleared = new[] { "STREAMCO SUBSCRIPTION", "HOME RENT PAYMENT", "CARDCO PAYMENT" }
+            .Select(name => RowIdOf(RowNamed(rows, name)))
+            .ToHashSet();
+        var expectedChanged = rows.Select(RowIdOf).Where(cleared.Contains).ToList();
+        using var clear = await PostSelectionAsync(owner.Client, batchId, "clear", cleared);
+        var clearBody = await clear.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, clear.StatusCode);
+        Assert.Equal(expectedChanged, ChangedRowIds(clearBody));
+
+        using var select = await PostSelectionAsync(
+            owner.Client,
+            batchId,
+            "select_expenses",
+            rows.Select(RowIdOf));
+        var selectBody = await select.Content.ReadFromJsonAsync<JsonElement>();
+        var selectedPreview = selectBody.GetProperty("preview");
+        var selectedRows = RowsOf(selectedPreview);
+
+        Assert.Equal(HttpStatusCode.OK, select.StatusCode);
+        Assert.Equal(expectedChanged, ChangedRowIds(selectBody));
+        Assert.Equal(defaultSelected.Order(), SelectedRowIds(selectedPreview).Order());
+        var selectedDuplicate = RowNamed(selectedRows, "NORTH STAR MARKET");
+        Assert.True(selectedDuplicate.GetProperty("isPossibleDuplicate").GetBoolean());
+        Assert.False(selectedDuplicate.GetProperty("selectedForImport").GetBoolean());
+        var selectedCredit = RowNamed(selectedRows, "DEMO PAYROLL CREDIT");
+        Assert.False(selectedCredit.GetProperty("selectedForImport").GetBoolean());
+        Assert.False(selectedCredit.GetProperty("selectedForInflow").GetBoolean());
+        var selectedNeedsReview = selectedRows.Single(row => RowIdOf(row) == RowIdOf(needsReview));
+        Assert.False(selectedNeedsReview.GetProperty("selectedForImport").GetBoolean());
+        Assert.False(selectedNeedsReview.GetProperty("selectedForInflow").GetBoolean());
+        Assert.Equal(storedBefore, await StoredValuesAsync(app, owner.Id));
+        Assert.Equal(1, await app.CountExpensesAsync());
+    }
+
+    [Fact]
+    public async Task Select_expenses_skips_rows_classified_as_invalid()
+    {
+        await using var app = new SyntheticExtractionFinancialApiTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("preview-bulk-invalid-row@example.com");
+        var invalid = await app.SeedImportPreviewBatchAsync(
+            owner.Id,
+            SunflowerFixtureCorpus.CreateRepresentativePdf().Concat(new byte[] { 0 }).ToArray(),
+            SunflowerStatementParser.RuleVersion);
+        var invalidRowId = invalid.Rows.Single().Id;
+
+        using var response = await PostSelectionAsync(
+            owner.Client,
+            invalid.Id,
+            "select_expenses",
+            [invalidRowId]);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Empty(ChangedRowIds(body));
+        var row = Assert.Single(RowsOf(body.GetProperty("preview")));
+        Assert.Equal("invalid", row.GetProperty("classification").GetString());
+        Assert.False(row.GetProperty("selectedForImport").GetBoolean());
+        Assert.False(row.GetProperty("selectedForInflow").GetBoolean());
+        Assert.False(Assert.Single(await app.FindImportPreviewBatchesAsync(owner.Id))
+            .Rows.Single().SelectedForImport);
+    }
+
+    [Fact]
+    public async Task Select_skips_rows_whose_stored_values_fail_validation_and_clear_does_not_validate()
+    {
+        await using var app = new SyntheticExtractionFinancialApiTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("preview-bulk-stored-values@example.com");
+        var preview = await UploadPreviewAsync(owner, SunflowerFixtureCorpus.CreateRepresentativePdf());
+        var batchId = preview.GetProperty("batchId").GetGuid();
+        var rows = RowsOf(preview);
+        var blankDescription = RowNamed(rows, "STREAMCO SUBSCRIPTION");
+        var reservedCategory = RowNamed(rows, "HOME RENT PAYMENT");
+        var valid = RowNamed(rows, "CARDCO PAYMENT");
+        var targets = new[] { blankDescription, reservedCategory, valid }.Select(RowIdOf).ToArray();
+        using var clear = await PostSelectionAsync(owner.Client, batchId, "clear", targets);
+        Assert.Equal(HttpStatusCode.OK, clear.StatusCode);
+
+        // As if the expense input rules had tightened after the preview was created.
+        using (var scope = app.Services.CreateScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<BudgetContext>();
+            var blank = await context.ImportPreviewRows.SingleAsync(value => value.Id == RowIdOf(blankDescription));
+            blank.EditableExpenseDescription = "   ";
+            var reserved = await context.ImportPreviewRows.SingleAsync(value => value.Id == RowIdOf(reservedCategory));
+            reserved.Category = "other";
+            await context.SaveChangesAsync();
+        }
+        var storedBefore = await StoredValuesAsync(app, owner.Id);
+
+        using var rowUpdate = await owner.Client.PatchAsJsonAsync(
+            $"/api/import-previews/{batchId}/rows/{RowIdOf(blankDescription)}",
+            new { editableExpenseDescription = "   ", category = "food", selectedForImport = true });
+        using var select = await PostSelectionAsync(owner.Client, batchId, "select_expenses", targets);
+        var selectBody = await select.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.Equal(HttpStatusCode.BadRequest, rowUpdate.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, select.StatusCode);
+        Assert.Equal([RowIdOf(valid)], ChangedRowIds(selectBody));
+        var selectedAfter = SelectedRowIds(selectBody.GetProperty("preview"));
+        Assert.Contains(RowIdOf(valid), selectedAfter);
+        Assert.DoesNotContain(RowIdOf(blankDescription), selectedAfter);
+        Assert.DoesNotContain(RowIdOf(reservedCategory), selectedAfter);
+        Assert.Equal(storedBefore, await StoredValuesAsync(app, owner.Id));
+
+        using (var scope = app.Services.CreateScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<BudgetContext>();
+            var blank = await context.ImportPreviewRows.SingleAsync(value => value.Id == RowIdOf(blankDescription));
+            blank.SelectedForImport = true;
+            await context.SaveChangesAsync();
+        }
+
+        using var clearInvalid = await PostSelectionAsync(
+            owner.Client,
+            batchId,
+            "clear",
+            [RowIdOf(blankDescription)]);
+        var clearBody = await clearInvalid.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.Equal(HttpStatusCode.OK, clearInvalid.StatusCode);
+        Assert.Equal([RowIdOf(blankDescription)], ChangedRowIds(clearBody));
+        Assert.DoesNotContain(RowIdOf(blankDescription), SelectedRowIds(clearBody.GetProperty("preview")));
+        Assert.Equal(storedBefore, await StoredValuesAsync(app, owner.Id));
+    }
+
+    [Fact]
+    public async Task Clear_deselects_listed_expenses_and_deposits_and_a_replay_changes_nothing()
+    {
+        await using var app = new SyntheticExtractionFinancialApiTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("preview-bulk-clear@example.com");
+        var preview = await UploadPreviewAsync(owner, SunflowerFixtureCorpus.CreateRepresentativePdf());
+        var batchId = preview.GetProperty("batchId").GetGuid();
+        var rows = RowsOf(preview);
+        await SelectInflowAsync(owner, batchId, RowNamed(rows, "DEMO PAYROLL CREDIT"), selected: true);
+        var selectedBefore = SelectedRowIds(await ReadPreviewAsync(owner, batchId));
+        var untouched = RowIdOf(RowNamed(rows, "STREAMCO SUBSCRIPTION"));
+        var listed = rows.Select(RowIdOf).Where(id => id != untouched).ToList();
+        Assert.Equal(11, selectedBefore.Count);
+        var storedBefore = await StoredValuesAsync(app, owner.Id);
+
+        using var first = await PostSelectionAsync(owner.Client, batchId, "clear", listed);
+        var firstBody = await first.Content.ReadFromJsonAsync<JsonElement>();
+        using var replay = await PostSelectionAsync(owner.Client, batchId, "clear", listed);
+        var replayBody = await replay.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.Equal(HttpStatusCode.OK, first.StatusCode);
+        Assert.Equal(
+            rows.Select(RowIdOf).Where(id => selectedBefore.Contains(id) && id != untouched).ToList(),
+            ChangedRowIds(firstBody));
+        Assert.Equal([untouched], SelectedRowIds(firstBody.GetProperty("preview")));
+        Assert.False(RowNamed(RowsOf(firstBody.GetProperty("preview")), "DEMO PAYROLL CREDIT")
+            .GetProperty("selectedForInflow").GetBoolean());
+        Assert.Equal(HttpStatusCode.OK, replay.StatusCode);
+        Assert.Empty(ChangedRowIds(replayBody));
+        Assert.Equal(
+            firstBody.GetProperty("preview").GetRawText(),
+            replayBody.GetProperty("preview").GetRawText());
+        Assert.Equal(storedBefore, await StoredValuesAsync(app, owner.Id));
+    }
+
+    [Fact]
+    public async Task Select_expenses_replay_changes_nothing_and_returns_the_same_preview()
+    {
+        await using var app = new SyntheticExtractionFinancialApiTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("preview-bulk-replay@example.com");
+        var preview = await UploadPreviewAsync(owner, SunflowerFixtureCorpus.CreateRepresentativePdf());
+        var batchId = preview.GetProperty("batchId").GetGuid();
+        var rows = RowsOf(preview);
+        var expenseIds = rows.Where(row => row.GetProperty("isEligible").GetBoolean()).Select(RowIdOf).ToList();
+        using var clear = await PostSelectionAsync(owner.Client, batchId, "clear", expenseIds);
+        Assert.Equal(HttpStatusCode.OK, clear.StatusCode);
+
+        using var first = await PostSelectionAsync(owner.Client, batchId, "select_expenses", expenseIds);
+        var firstBody = await first.Content.ReadFromJsonAsync<JsonElement>();
+        using var replay = await PostSelectionAsync(owner.Client, batchId, "select_expenses", expenseIds);
+        var replayBody = await replay.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.Equal(HttpStatusCode.OK, first.StatusCode);
+        Assert.Equal(expenseIds, ChangedRowIds(firstBody));
+        Assert.Equal(HttpStatusCode.OK, replay.StatusCode);
+        Assert.Empty(ChangedRowIds(replayBody));
+        Assert.Equal(
+            firstBody.GetProperty("preview").GetRawText(),
+            replayBody.GetProperty("preview").GetRawText());
+    }
+
+    [Fact]
+    public async Task Selection_response_matches_a_read_and_a_later_confirm_imports_exactly_the_selection()
+    {
+        await using var app = new SyntheticExtractionFinancialApiTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("preview-bulk-confirm@example.com");
+        var preview = await UploadPreviewAsync(owner, SunflowerFixtureCorpus.CreateRepresentativePdf());
+        var batchId = preview.GetProperty("batchId").GetGuid();
+        var rows = RowsOf(preview);
+        using var clear = await PostSelectionAsync(owner.Client, batchId, "clear", rows.Select(RowIdOf));
+        Assert.Equal(HttpStatusCode.OK, clear.StatusCode);
+        var chosenNames = new[] { "STREAMCO SUBSCRIPTION", "HOME RENT PAYMENT", "CARDCO PAYMENT" };
+
+        using var select = await PostSelectionAsync(
+            owner.Client,
+            batchId,
+            "select_expenses",
+            chosenNames.Select(name => RowIdOf(RowNamed(rows, name))));
+        var selectBody = await select.Content.ReadFromJsonAsync<JsonElement>();
+        var read = await ReadPreviewAsync(owner, batchId);
+
+        Assert.Equal(HttpStatusCode.OK, select.StatusCode);
+        Assert.Equal(3, ChangedRowIds(selectBody).Count);
+        Assert.Equal(read.GetRawText(), selectBody.GetProperty("preview").GetRawText());
+
+        using var confirm = await owner.Client.PostAsync($"/api/import-previews/{batchId}/confirm", null);
+        var confirmBody = await confirm.Content.ReadFromJsonAsync<JsonElement>();
+        var expenses = await owner.Client.GetFromJsonAsync<JsonElement>("/api/expenses");
+
+        Assert.Equal(HttpStatusCode.OK, confirm.StatusCode);
+        Assert.Equal(3, confirmBody.GetProperty("importedExpenseCount").GetInt32());
+        Assert.Equal(0, confirmBody.GetProperty("importedInflowCount").GetInt32());
+        Assert.Equal(
+            chosenNames.Order(),
+            expenses.EnumerateArray().Select(value => value.GetProperty("description").GetString()!).Order());
+        Assert.Equal(3, await app.CountExpensesAsync());
+    }
+
+    [Fact]
+    public async Task Selection_on_an_expired_batch_returns_not_found_and_marks_it_expired()
+    {
+        var clock = new MutableTimeProvider(new DateTimeOffset(2026, 8, 20, 12, 0, 0, TimeSpan.Zero));
+        await using var app = new ClockedFinancialApiTestApplication(clock);
+        using var owner = await app.CreateAuthenticatedUserAsync("preview-bulk-expired@example.com");
+        var preview = await UploadPreviewAsync(owner, SunflowerFixtureCorpus.CreateRepresentativePdf());
+        var batchId = preview.GetProperty("batchId").GetGuid();
+        var selected = SelectedRowIds(preview);
+        clock.Advance(TimeSpan.FromHours(24));
+
+        using var response = await PostSelectionAsync(owner.Client, batchId, "clear", selected);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        var batch = Assert.Single(await app.FindImportPreviewBatchesAsync(owner.Id));
+        Assert.Equal(ImportPreviewLifecycle.Expired, batch.Lifecycle);
+        Assert.Equal(13, batch.Rows.Count);
+        Assert.Equal(selected.Order(), batch.Rows.Where(row => row.SelectedForImport).Select(row => row.Id).Order());
+    }
+
+    [Fact]
+    public async Task Selection_on_a_confirmed_batch_returns_not_found_and_writes_nothing()
+    {
+        await using var app = new SyntheticExtractionFinancialApiTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("preview-bulk-confirmed@example.com");
+        var preview = await UploadPreviewAsync(owner, SunflowerFixtureCorpus.CreateRepresentativePdf());
+        var batchId = preview.GetProperty("batchId").GetGuid();
+        var selected = SelectedRowIds(preview);
+        using var confirm = await owner.Client.PostAsync($"/api/import-previews/{batchId}/confirm", null);
+        Assert.Equal(HttpStatusCode.OK, confirm.StatusCode);
+
+        using var response = await PostSelectionAsync(owner.Client, batchId, "select_expenses", selected);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        var batch = Assert.Single(await app.FindImportPreviewBatchesAsync(owner.Id));
+        Assert.Equal(ImportPreviewLifecycle.Confirmed, batch.Lifecycle);
+        Assert.Empty(batch.Rows);
+        Assert.Equal(10, await app.CountExpensesAsync());
+    }
+
+    [Fact]
     public void Per_user_admission_is_non_waiting_and_releases_its_permit()
     {
         var admission = new ImportPreviewAdmission();
@@ -1198,6 +1587,58 @@ public sealed class ImportPreviewApiTests
                 selectedForInflow = selected
             });
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    private static Task<HttpResponseMessage> PostSelectionAsync(
+        HttpClient client,
+        Guid batchId,
+        string action,
+        IEnumerable<Guid> rowIds) =>
+        client.PostAsJsonAsync(
+            $"/api/import-previews/{batchId}/selection",
+            new { action, rowIds = rowIds.ToArray() });
+
+    private static Guid RowIdOf(JsonElement row) => row.GetProperty("rowId").GetGuid();
+
+    private static JsonElement RowNamed(IEnumerable<JsonElement> rows, string sourceDescription) =>
+        rows.Single(row => row.GetProperty("sourceDescription").GetString() == sourceDescription);
+
+    private static List<Guid> ChangedRowIds(JsonElement body) =>
+        body.GetProperty("changedRowIds").EnumerateArray().Select(value => value.GetGuid()).ToList();
+
+    private static List<JsonElement> RowsOf(JsonElement preview) =>
+        preview.GetProperty("rows").EnumerateArray().ToList();
+
+    private static List<Guid> SelectedRowIds(JsonElement preview) => RowsOf(preview)
+        .Where(row => row.GetProperty("selectedForImport").GetBoolean()
+            || row.GetProperty("selectedForInflow").GetBoolean())
+        .Select(RowIdOf)
+        .ToList();
+
+    private static async Task<Dictionary<Guid, (string? Description, string? Category)>> StoredValuesAsync(
+        FinancialApiTestApplicationBase app,
+        string ownerId)
+    {
+        var batch = Assert.Single(await app.FindImportPreviewBatchesAsync(ownerId));
+        return batch.Rows.ToDictionary(row => row.Id, row => (row.EditableExpenseDescription, row.Category));
+    }
+
+    private static async Task<JsonElement> ReadPreviewAsync(TestUser owner, Guid batchId)
+    {
+        using var response = await owner.Client.GetAsync($"/api/import-previews/{batchId}");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        return await response.Content.ReadFromJsonAsync<JsonElement>();
+    }
+
+    private static async Task<(string ContentType, int Status, string? Title, string? Type)> ProblemShapeAsync(
+        HttpResponseMessage response)
+    {
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        return (
+            response.Content.Headers.ContentType?.MediaType ?? "",
+            body.GetProperty("status").GetInt32(),
+            body.GetProperty("title").GetString(),
+            body.GetProperty("type").GetString());
     }
 
     private static void AssertSafeRowError(JsonElement error, Guid rowId, string code)
