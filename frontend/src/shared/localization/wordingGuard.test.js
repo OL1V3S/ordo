@@ -285,6 +285,27 @@ describe("wording guard: semantic anchors", () => {
     }
   });
 
+  it("lets only a definite bulk failure say nothing changed and keeps the uncertain bulk wording honest", () => {
+    expect(en["importPreview:bulk.failed"]).toMatch(/^Nothing was changed\. Try again\.$/);
+    expect(es["importPreview:bulk.failed"]).toMatch(/^No se cambió nada\. Inténtalo de nuevo\.$/);
+    for (const key of ["importPreview:bulk.uncertainFailed", "importPreview:results.guidance.selectionUncertain"]) {
+      expect(en[key], key).toMatch(/Refresh the page to see what[’']s saved before importing\./);
+      expect(es[key], key).toMatch(/Actualiza la página para ver lo que está guardado antes de importar\./);
+      expect(en[key], key).not.toMatch(/nothing (?:was )?(?:changed|saved)|wasn[’']t (?:changed|saved)/i);
+      expect(es[key], key).not.toMatch(/no se cambió|no se guardó/i);
+    }
+    expect(en["importPreview:bulk.uncertainFailed"]).toMatch(/couldn[’']t confirm whether the selection changed/i);
+    expect(es["importPreview:bulk.uncertainFailed"]).toMatch(/no pudimos confirmar si la selección cambió/i);
+  });
+
+  it("has no per-row progress or partial-stop wording left for bulk selection", () => {
+    for (const key of Object.keys({ ...en, ...es }).filter((name) => name.startsWith("importPreview:bulk."))) {
+      expect(key, key).not.toMatch(/^importPreview:bulk\.(?:progress|stopped)/);
+    }
+    expect(en["importPreview:bulk.selecting_other"]).toBe("Selecting {{count}} expenses…");
+    expect(es["importPreview:bulk.clearing_one"]).toBe("Borrando la selección de {{count}} fila…");
+  });
+
   it("catches an injected 'no se guardó' claim, including at the end of a sentence", () => {
     expect("Revisa tu lista. Tu cambio no se guardó.").toMatch(ES_NOT_SAVED);
     expect("Tu cambio no se guardó. Inténtalo de nuevo.").toMatch(ES_NOT_SAVED);

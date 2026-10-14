@@ -93,6 +93,7 @@ export default function ImportPreviewPanel({ importState, onImportConfirmed = as
     upload,
     cancel,
     updateRow,
+    bulkSelection,
     confirm,
     clearForReupload,
     dismissConfirmation,
@@ -286,75 +287,87 @@ export default function ImportPreviewPanel({ importState, onImportConfirmed = as
     });
   }
 
-  // The bulk loop reads everything through this ref so each iteration sees the latest preview,
-  // batch, lock and confirm state, and uses handlers bound to that render.
+  // The bulk action reads everything through this ref so it sees the latest preview, batch,
+  // lock and confirm state, and uses the handler bound to that render.
   useLayoutEffect(() => {
     latest.current = {
       preview,
       confirming,
       confirmationNeedsRefresh,
       externallyBlocked,
-      updateSelection,
+      bulkSelection,
     };
   });
 
+  // The server marks the changed rows; mirror the single-row "Saved" marker for them unless the
+  // user has an unsaved edit on the row.
+  function markRowsSaved(batchId, rowIds) {
+    if (rowIds.length === 0) return;
+    setRowDrafts((current) => {
+      if (current.batchId !== batchId) return current;
+      const rows = { ...current.rows };
+      for (const rowId of rowIds) {
+        const existing = rows[rowId];
+        if (existing && !existing.dirty && !existing.pending) rows[rowId] = { ...existing, outcome: "saved" };
+      }
+      return { ...current, rows };
+    });
+  }
+
+  // One request for the whole action. The server applies it atomically, so there is no partial
+  // "stopped" state: the outcome is a count, a definite failure, or a locked-for-refresh issue.
   async function runBulk(kind) {
     const start = latest.current;
     if (bulkRunningRef.current || !start?.preview) return;
     if (start.externallyBlocked() || start.confirming || start.confirmationNeedsRefresh) return;
+    // Bulk actions are inert while a single-row update is in flight.
+    if (rowUpdatesInFlight.current.size > 0) return;
     const batchId = start.preview.batchId;
     const select = kind === "select";
     const targets = select ? bulkSelectableExpenses(start.preview.rows) : bulkClearTargets(start.preview.rows);
     if (targets.length === 0) return;
+    const rowIds = targets.map((row) => row.rowId);
+    const hiddenByFilter = kind === "clear" && filter === "selected";
 
     bulkRunningRef.current = true;
     setBulkRunning(true);
     setBulkOutcome(null);
-    if (!(kind === "clear" && filter === "selected")) pinRows(targets.map((row) => row.rowId));
-    const total = targets.length;
-    let done = 0;
-    let stopped = false;
-    let abandoned = false;
+    setBulkProgress({ kind, count: rowIds.length });
+    if (!hiddenByFilter) pinRows(rowIds);
     try {
-      for (const target of targets) {
-        const before = latest.current;
-        if (!mountedRef.current || before.preview?.batchId !== batchId) { abandoned = true; break; }
-        if (before.externallyBlocked() || before.confirming || before.confirmationNeedsRefresh) { stopped = true; break; }
-        const row = before.preview.rows.find((candidate) => candidate.rowId === target.rowId);
-        if (!row) { stopped = true; break; }
-        // The preview can refresh mid-run: re-check the freshly read row so a row that became a
-        // possible duplicate (or was already selected) is never selected by "Select all".
-        if (select && bulkSelectableExpenses([row]).length !== 1) continue;
-        setBulkProgress({ done: done + 1, total });
-        const updated = await before.updateSelection(row, select);
-        const after = latest.current;
-        // A late response for a preview that was cancelled, replaced, or unmounted is ignored.
-        if (!mountedRef.current || after.preview?.batchId !== batchId) { abandoned = true; break; }
-        if (!updated) { stopped = true; break; }
-        done += 1;
+      const result = await start.bulkSelection(select ? "select_expenses" : "clear", rowIds);
+      // These two outcomes disable the focused Select all / Clear button (confirm locked for a
+      // refresh) or unmount the review section, which would drop keyboard focus to the page body.
+      // Move it to the alert heading, as a failed confirm does. This runs before the batch guard
+      // below because an unavailable preview has no current batch left to compare.
+      if (result?.status === "uncertain" || result?.status === "unavailable") focusAfterRender(issueHeading);
+      // A late response for a preview that was cancelled, replaced, or unmounted is ignored.
+      if (!mountedRef.current || latest.current?.preview?.batchId !== batchId) return;
+      if (result?.status === "done") {
+        markRowsSaved(batchId, result.changedRowIds ?? []);
+        setBulkOutcome({
+          batchId,
+          kind: select ? "selectedDone" : "clearedDone",
+          count: result.count,
+          hiddenByFilter,
+        });
+      } else if (result?.status === "failed") {
+        setBulkOutcome({ batchId, kind: "failed" });
       }
+      // "uncertain" and "unavailable" surface through the confirmation issue the hook sets.
     } finally {
       bulkRunningRef.current = false;
       if (mountedRef.current) {
         setBulkRunning(false);
         setBulkProgress(null);
-        if (!abandoned) {
-          setBulkOutcome({
-            batchId,
-            kind: stopped ? "stopped" : select ? "selectedDone" : "clearedDone",
-            done,
-            total,
-            hiddenByFilter: !stopped && kind === "clear" && filter === "selected",
-          });
-        }
       }
     }
   }
 
   function bulkMessage() {
     if (!bulkOutcome || bulkOutcome.batchId !== currentBatchId) return "";
-    if (bulkOutcome.kind === "stopped") return t("bulk.stopped", { done: bulkOutcome.done, count: bulkOutcome.total });
-    const text = t(`bulk.${bulkOutcome.kind}`, { count: bulkOutcome.done });
+    if (bulkOutcome.kind === "failed") return t("bulk.failed");
+    const text = t(`bulk.${bulkOutcome.kind}`, { count: bulkOutcome.count });
     return bulkOutcome.hiddenByFilter ? `${text} ${t("filters.clearedHidden")}` : text;
   }
 
@@ -387,7 +400,11 @@ export default function ImportPreviewPanel({ importState, onImportConfirmed = as
 
   function confirmationGuidance() {
     if (externalLocked) return t("results.guidance.externalLocked");
-    if (confirmationNeedsRefresh) return t("results.guidance.needsRefresh");
+    if (confirmationNeedsRefresh) {
+      return t(confirmationIssue?.code === "selection_uncertain"
+        ? "results.guidance.selectionUncertain"
+        : "results.guidance.needsRefresh");
+    }
     if (bulkRunning) return t("results.guidance.bulk");
     if (hasPendingRows) return t("results.guidance.pending");
     if (hasDirtyRows) return t("results.guidance.dirty");
@@ -540,6 +557,7 @@ export default function ImportPreviewPanel({ importState, onImportConfirmed = as
             total={rows.length}
             hardLocked={externalLocked || confirming || confirmationNeedsRefresh}
             bulkRunning={bulkRunning}
+            rowSavePending={hasPendingRows}
             bulkProgress={bulkProgress}
             bulkMessage={bulkMessage()}
             selectableCount={bulkSelectableExpenses(rows).length}

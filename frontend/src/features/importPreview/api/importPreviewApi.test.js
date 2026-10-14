@@ -36,6 +36,19 @@ describe('importPreviewApi', () => {
     })
   })
 
+  it('sends one bulk selection request with the action and the listed row ids', () => {
+    importPreviewApi.updateSelection('batch-id', 'select_expenses', ['r1', 'r2'])
+    importPreviewApi.updateSelection('batch-id', 'clear', ['r3'])
+
+    expect(client.post).toHaveBeenNthCalledWith(1, '/api/import-previews/batch-id/selection', {
+      action: 'select_expenses', rowIds: ['r1', 'r2'],
+    })
+    expect(client.post).toHaveBeenNthCalledWith(2, '/api/import-previews/batch-id/selection', {
+      action: 'clear', rowIds: ['r3'],
+    })
+    expect(client.patch).not.toHaveBeenCalled()
+  })
+
   it('confirms the server-owned batch without a request body', () => {
     importPreviewApi.confirm('batch-id')
 

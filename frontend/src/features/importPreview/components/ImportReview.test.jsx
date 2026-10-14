@@ -1,4 +1,4 @@
-import { act, render, screen, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import ImportPreviewPanel from './ImportPreviewPanel'
@@ -63,6 +63,8 @@ function importState(overrides = {}) {
     upload: vi.fn(),
     cancel: vi.fn(),
     updateRow: vi.fn(async (rowId, payload) => ({ ...[e1, e2, dup, dep, review].find((row) => row.rowId === rowId), ...payload })),
+    // One request per bulk action; the real hook replaces the preview from the server response.
+    bulkSelection: vi.fn(async (action, rowIds) => ({ status: 'done', count: rowIds.length, changedRowIds: rowIds })),
     confirm: vi.fn(),
     clearForReupload: vi.fn(),
     dismissConfirmation: vi.fn(),
@@ -186,7 +188,9 @@ describe('import review summary, filters and bar', () => {
 })
 
 describe('import review bulk selection', () => {
-  it('selects only eligible expenses, one PATCH each, from the whole batch', async () => {
+  const region = () => document.querySelector('.import-review-bulk__status')
+
+  it('selects the eligible expenses from the whole batch with one request', async () => {
     const user = userEvent.setup()
     const state = importState()
     render(<ImportPreviewPanel importState={state} />)
@@ -195,17 +199,17 @@ describe('import review bulk selection', () => {
     await user.click(screen.getByRole('radio', { name: 'Possible duplicates (1)' }))
     await user.click(selectAll())
 
-    expect(state.updateRow.mock.calls).toEqual([
-      ['e1', { editableExpenseDescription: 'Coffee', category: 'food', selectedForImport: true, selectedForInflow: false }],
-      ['e2', { editableExpenseDescription: 'Coffee', category: 'food', selectedForImport: true, selectedForInflow: false }],
-    ])
+    expect(state.bulkSelection).toHaveBeenCalledTimes(1)
+    expect(state.bulkSelection).toHaveBeenCalledWith('select_expenses', ['e1', 'e2'])
+    expect(state.updateRow).not.toHaveBeenCalled()
     expect(await screen.findByText('Selected 2 expenses.')).toBeInTheDocument()
     expect(selectAll()).toHaveFocus()
     // Updated rows stay visible under the filter the user chose.
     expect(within(tableRegion()).getByText('CAFE ONE')).toBeInTheDocument()
+    expect(within(tableRegion()).getAllByText('Saved')).toHaveLength(2)
   })
 
-  it('clears every selected row including explicit duplicate and deposit picks', async () => {
+  it('clears every selected row, including explicit duplicate and deposit picks, with one request', async () => {
     const user = userEvent.setup()
     const rows = [{ ...e1, selectedForImport: true }, { ...dup, selectedForImport: true }, { ...dep, selectedForInflow: true }, e2]
     const state = importState({ preview: previewWith(rows) })
@@ -213,10 +217,19 @@ describe('import review bulk selection', () => {
 
     await user.click(clearSelection())
 
-    expect(state.updateRow.mock.calls.map(([rowId]) => rowId)).toEqual(['e1', 'dup', 'dep'])
-    expect(state.updateRow.mock.calls.every(([, payload]) => !payload.selectedForImport && !payload.selectedForInflow)).toBe(true)
+    expect(state.bulkSelection).toHaveBeenCalledTimes(1)
+    expect(state.bulkSelection).toHaveBeenCalledWith('clear', ['e1', 'dup', 'dep'])
+    expect(state.updateRow).not.toHaveBeenCalled()
     expect(await screen.findByText('Cleared the selection of 3 rows.')).toBeInTheDocument()
     expect(clearSelection()).toHaveFocus()
+  })
+
+  it('reports the count the server confirms, not the number of rows listed', async () => {
+    const user = userEvent.setup()
+    const bulkSelection = vi.fn(async () => ({ status: 'done', count: 1, changedRowIds: ['e1'] }))
+    render(<ImportPreviewPanel importState={importState({ bulkSelection })} />)
+    await user.click(selectAll())
+    expect(await screen.findByText('Selected 1 expense.')).toBeInTheDocument()
   })
 
   it('says so when clearing under the Selected filter empties the view', async () => {
@@ -228,40 +241,134 @@ describe('import review bulk selection', () => {
     expect(clearSelection()).toHaveFocus()
   })
 
-  it('stops on the first failure and reports how far it got', async () => {
+  it('keeps the cleared rows pinned unless the Selected filter is active', async () => {
     const user = userEvent.setup()
-    const updateRow = vi.fn().mockResolvedValueOnce({ ...e1, selectedForImport: true }).mockResolvedValueOnce(null)
-    render(<ImportPreviewPanel importState={importState({ updateRow })} />)
-    await user.click(selectAll())
-    expect(await screen.findByText(/Stopped after 1 of 2 rows/)).toBeInTheDocument()
-    expect(updateRow).toHaveBeenCalledTimes(2)
-  })
-
-  it('never selects a row that became a possible duplicate mid-run', async () => {
-    const user = userEvent.setup()
-    const first = deferred()
-    const updateRow = vi.fn().mockReturnValueOnce(first.promise)
-    const state = importState({ updateRow })
+    const selectedRows = [{ ...e1, selectedForImport: true }, e2]
+    const state = importState({ preview: previewWith(selectedRows) })
     const { rerender } = render(<ImportPreviewPanel importState={state} />)
+    await user.click(screen.getByRole('radio', { name: 'Selected (1)' }))
+    expect(within(tableRegion()).queryByText('CAFE TWO')).not.toBeInTheDocument()
+    // Selecting under the Selected filter pins the targets so the changed rows stay visible.
+    const bulkSelection = vi.fn(async () => {
+      rerender(<ImportPreviewPanel importState={importState({ preview: previewWith([{ ...e1, selectedForImport: true }, { ...e2, selectedForImport: true }]), bulkSelection })} />)
+      return { status: 'done', count: 1, changedRowIds: ['e2'] }
+    })
+    rerender(<ImportPreviewPanel importState={importState({ preview: previewWith(selectedRows), bulkSelection })} />)
     await user.click(selectAll())
-    expect(screen.getByText('Updating row 1 of 2…')).toBeInTheDocument()
-
-    const refreshed = previewWith([{ ...e1, selectedForImport: true }, { ...e2, isPossibleDuplicate: true, warnings: ['possible_duplicate'] }, dup, dep, review])
-    rerender(<ImportPreviewPanel importState={{ ...state, preview: refreshed }} />)
-    await act(async () => { first.resolve({ ...e1, selectedForImport: true }) })
-
-    expect(updateRow).toHaveBeenCalledTimes(1)
-    expect(updateRow.mock.calls[0][0]).toBe('e1')
     expect(await screen.findByText('Selected 1 expense.')).toBeInTheDocument()
+    expect(within(tableRegion()).getByText('CAFE TWO')).toBeInTheDocument()
   })
 
-  it('uses singular wording for one row in the shown count and the stopped message', async () => {
+  it('announces one count at the start and one outcome at the end, with no n of N', async () => {
     const user = userEvent.setup()
-    const updateRow = vi.fn().mockResolvedValue(null)
-    render(<ImportPreviewPanel importState={importState({ updateRow, preview: previewWith([e1]) })} />)
-    expect(screen.getByText('Showing 1 of 1 row')).toBeInTheDocument()
+    const run = deferred()
+    const seen = []
+    const observer = new MutationObserver(() => seen.push(region().textContent))
+    const bulkSelection = vi.fn().mockReturnValueOnce(run.promise)
+    render(<ImportPreviewPanel importState={importState({ bulkSelection })} />)
+    observer.observe(region(), { childList: true, characterData: true, subtree: true })
+
     await user.click(selectAll())
-    expect(await screen.findByText('Stopped after 0 of 1 row. Rows already updated stay as shown. Try again.')).toBeInTheDocument()
+    expect(region()).toHaveTextContent(/^Selecting 2 expenses…$/)
+    expect(region().textContent).not.toMatch(/\bof\b|Updating row/)
+    await act(async () => { run.resolve({ status: 'done', count: 2, changedRowIds: ['e1', 'e2'] }) })
+    expect(region()).toHaveTextContent(/^Selected 2 expenses\.$/)
+    observer.disconnect()
+
+    expect(seen.filter(Boolean)).toEqual(['Selecting 2 expenses…', 'Selected 2 expenses.'])
+    expect(bulkSelection).toHaveBeenCalledTimes(1)
+  })
+
+  it('uses count-based wording while clearing, in the singular too', async () => {
+    const user = userEvent.setup()
+    const run = deferred()
+    const bulkSelection = vi.fn().mockReturnValueOnce(run.promise)
+    render(<ImportPreviewPanel importState={importState({ bulkSelection, preview: previewWith([{ ...e1, selectedForImport: true }, e2]) })} />)
+    await user.click(clearSelection())
+    expect(region()).toHaveTextContent(/^Clearing the selection of 1 row…$/)
+    await act(async () => { run.resolve({ status: 'done', count: 1, changedRowIds: ['e1'] }) })
+    expect(region()).toHaveTextContent(/^Cleared the selection of 1 row\.$/)
+  })
+
+  it('reports a definite failure as nothing changed, with no stopped state', async () => {
+    const user = userEvent.setup()
+    const bulkSelection = vi.fn(async () => ({ status: 'failed' }))
+    render(<ImportPreviewPanel importState={importState({ bulkSelection, preview: previewWith([{ ...dep, selectedForInflow: true }, e1, e2]), selectedCount: 1 })} />)
+    await user.click(selectAll())
+
+    expect(await screen.findByText('Nothing was changed. Try again.')).toBeInTheDocument()
+    expect(document.body.textContent).not.toMatch(/stopped|Stopped|Updating row/i)
+    expect(bulkSelection).toHaveBeenCalledTimes(1)
+    // A definite failure leaves the review usable.
+    expect(selectAll()).not.toHaveAttribute('aria-disabled')
+    expect(screen.getByRole('button', { name: /^Save 0 expenses and 1 deposit/ })).toBeEnabled()
+  })
+
+  it('keeps confirm locked with refresh guidance when the outcome stays uncertain', async () => {
+    const user = userEvent.setup()
+    const message = 'We couldn’t confirm whether the selection changed. Refresh the page to see what’s saved before importing.'
+    const issue = { code: 'selection_uncertain', message, rows: [], requiresPreviewRefresh: true }
+    const rows = [{ ...dep, selectedForInflow: true }, e1, e2]
+    const { rerender } = render(<ImportPreviewPanel importState={importState({ preview: previewWith(rows), selectedCount: 1 })} />)
+    const bulkSelection = vi.fn(async () => {
+      // The hook sets the issue before it resolves.
+      rerender(<ImportPreviewPanel importState={importState({ preview: previewWith(rows), selectedCount: 1, confirmationIssue: issue, bulkSelection })} />)
+      return { status: 'uncertain' }
+    })
+    rerender(<ImportPreviewPanel importState={importState({ preview: previewWith(rows), selectedCount: 1, bulkSelection })} />)
+    await user.click(selectAll())
+
+    expect(await screen.findByText(message)).toBeInTheDocument()
+    expect(bulkSelection).toHaveBeenCalledTimes(1)
+    expect(screen.getByRole('button', { name: /^Save 0 expenses and 1 deposit/ })).toBeDisabled()
+    expect(screen.getByText('Refresh the page to see what’s saved before importing.')).toBeInTheDocument()
+    expect(screen.queryByText('Refresh the page to get the latest duplicate check before importing.')).not.toBeInTheDocument()
+    expect(selectAll()).toBeDisabled()
+    expect(clearSelection()).toBeDisabled()
+    expect(within(tableRegion()).getByLabelText(/^Save deposit for /)).toBeDisabled()
+    expect(region()).toBeEmptyDOMElement()
+    expect(document.body.textContent).not.toMatch(/Nothing was changed|stopped/i)
+  })
+
+  it('moves keyboard focus to the alert heading when the outcome stays uncertain', async () => {
+    const user = userEvent.setup()
+    const issue = { code: 'selection_uncertain', message: 'Refresh the page to see what’s saved before importing.', rows: [], requiresPreviewRefresh: true }
+    const rows = [e1, e2]
+    const { rerender } = render(<ImportPreviewPanel importState={importState({ preview: previewWith(rows) })} />)
+    const bulkSelection = vi.fn(async () => {
+      rerender(<ImportPreviewPanel importState={importState({ preview: previewWith(rows), confirmationIssue: issue, bulkSelection })} />)
+      return { status: 'uncertain' }
+    })
+    rerender(<ImportPreviewPanel importState={importState({ preview: previewWith(rows), bulkSelection })} />)
+    await user.click(selectAll())
+    // The focused button is now natively disabled; focus must not fall back to the page body.
+    expect(selectAll()).toBeDisabled()
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Import not confirmed' })).toHaveFocus())
+  })
+
+  it('moves keyboard focus to the alert heading when the preview becomes unavailable', async () => {
+    const user = userEvent.setup()
+    const issue = { code: 'preview_unavailable', message: 'This preview isn’t available. Choose your bank and upload the statement again.', rows: [] }
+    const { rerender } = render(<ImportPreviewPanel importState={importState()} />)
+    const bulkSelection = vi.fn(async () => {
+      // The review section unmounts: the hook clears the preview and sets the issue.
+      rerender(<ImportPreviewPanel importState={importState({ preview: null, confirmationIssue: issue, bulkSelection })} />)
+      return { status: 'unavailable' }
+    })
+    rerender(<ImportPreviewPanel importState={importState({ bulkSelection })} />)
+    await user.click(selectAll())
+    expect(screen.queryByRole('button', { name: /^Select all expenses/ })).not.toBeInTheDocument()
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Preview unavailable' })).toHaveFocus())
+  })
+
+  it('shows no outcome when the preview becomes unavailable', async () => {
+    const user = userEvent.setup()
+    const bulkSelection = vi.fn(async () => ({ status: 'unavailable' }))
+    render(<ImportPreviewPanel importState={importState({ bulkSelection })} />)
+    await user.click(selectAll())
+    expect(bulkSelection).toHaveBeenCalledTimes(1)
+    expect(region()).toBeEmptyDOMElement()
+    expect(screen.queryByText(/Nothing was changed/)).not.toBeInTheDocument()
   })
 
   it('keeps the shown-count line static so only the bulk region announces during a run', () => {
@@ -270,59 +377,58 @@ describe('import review bulk selection', () => {
     expect(showing).not.toHaveAttribute('role')
     expect(showing).not.toHaveAttribute('aria-live')
     expect(showing.closest('[role="status"], [aria-live]')).toBeNull()
-    expect(document.querySelector('.import-review-bulk__status')).toHaveAttribute('role', 'status')
+    expect(region()).toHaveAttribute('role', 'status')
   })
 
-  it('stops the loop when the external lock engages mid-run', async () => {
+  it('does not send the request when the external lock is engaged at click time', async () => {
     const user = userEvent.setup()
-    let locked = false
-    const updateRow = vi.fn(async (rowId) => { locked = true; return { ...e1, rowId, selectedForImport: true } })
-    render(<ImportPreviewPanel importState={importState({ updateRow })} isExternallyLocked={() => locked} />)
+    const state = importState()
+    render(<ImportPreviewPanel importState={state} isExternallyLocked={() => true} />)
     await user.click(selectAll())
-    expect(updateRow).toHaveBeenCalledTimes(1)
-    expect(await screen.findByText(/Stopped after 1 of 2 rows/)).toBeInTheDocument()
+    expect(state.bulkSelection).not.toHaveBeenCalled()
+    expect(region()).toBeEmptyDOMElement()
   })
 
-  it('stops quietly when the batch changes mid-run and ignores the late response', async () => {
+  it('ignores the late response and stays quiet when the batch changes mid-run', async () => {
     const user = userEvent.setup()
-    const first = deferred()
-    const updateRow = vi.fn().mockReturnValueOnce(first.promise)
-    const state = importState({ updateRow })
+    const run = deferred()
+    const bulkSelection = vi.fn().mockReturnValueOnce(run.promise)
+    const state = importState({ bulkSelection })
     const { rerender } = render(<ImportPreviewPanel importState={state} />)
     await user.click(selectAll())
-    expect(screen.getByText('Updating row 1 of 2…')).toBeInTheDocument()
+    expect(screen.getByText('Selecting 2 expenses…')).toBeInTheDocument()
 
     rerender(<ImportPreviewPanel importState={{ ...state, preview: previewWith([e1, e2], '22222222-2222-2222-2222-222222222222') }} />)
-    await act(async () => { first.resolve({ ...e1, selectedForImport: true }) })
+    await act(async () => { run.resolve({ status: 'done', count: 2, changedRowIds: ['e1', 'e2'] }) })
 
-    expect(updateRow).toHaveBeenCalledTimes(1)
-    expect(screen.queryByText(/Stopped after/)).not.toBeInTheDocument()
-    expect(screen.queryByText(/^Selected \d+ expenses?\.$/)).not.toBeInTheDocument()
-    expect(screen.queryByText(/Updating row/)).not.toBeInTheDocument()
+    expect(bulkSelection).toHaveBeenCalledTimes(1)
+    expect(screen.queryByText(/^Selected \d+ expenses?\./)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Selecting/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Nothing was changed|Stopped/)).not.toBeInTheDocument()
   })
 
-  it('stops without error when the preview is cleared mid-run', async () => {
+  it('stays quiet when the preview is cleared mid-run', async () => {
     const user = userEvent.setup()
-    const first = deferred()
-    const updateRow = vi.fn().mockReturnValueOnce(first.promise)
-    const state = importState({ updateRow })
+    const run = deferred()
+    const bulkSelection = vi.fn().mockReturnValueOnce(run.promise)
+    const state = importState({ bulkSelection })
     const { rerender } = render(<ImportPreviewPanel importState={state} />)
     await user.click(selectAll())
     rerender(<ImportPreviewPanel importState={{ ...state, preview: null, selectedCount: 0 }} />)
-    await act(async () => { first.resolve({ ...e1, selectedForImport: true }) })
-    expect(updateRow).toHaveBeenCalledTimes(1)
-    expect(screen.queryByText(/Stopped after/)).not.toBeInTheDocument()
+    await act(async () => { run.resolve({ status: 'done', count: 2, changedRowIds: ['e1', 'e2'] }) })
+    expect(bulkSelection).toHaveBeenCalledTimes(1)
+    expect(screen.queryByText(/Stopped|Selected \d+ expense/)).not.toBeInTheDocument()
   })
 
-  it('locks row controls and confirmation while a bulk run is in progress', async () => {
+  it('locks row controls and confirmation while the request is in flight', async () => {
     const user = userEvent.setup()
-    const first = deferred()
-    const updateRow = vi.fn().mockReturnValueOnce(first.promise)
-    const state = importState({ updateRow, preview: previewWith([{ ...dep, selectedForInflow: true }, e1, e2]), selectedCount: 1 })
+    const run = deferred()
+    const bulkSelection = vi.fn().mockReturnValueOnce(run.promise)
+    const state = importState({ bulkSelection, preview: previewWith([{ ...dep, selectedForInflow: true }, e1, e2]), selectedCount: 1 })
     render(<ImportPreviewPanel importState={state} />)
     await user.click(selectAll())
 
-    expect(screen.getByText('Updating row 1 of 2…')).toBeInTheDocument()
+    expect(screen.getByText('Selecting 2 expenses…')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /^Save 0 expenses and 1 deposit/ })).toBeDisabled()
     expect(screen.getByText('Wait for the selection update to finish before importing.')).toBeInTheDocument()
     expect(selectAll()).toHaveAttribute('aria-disabled', 'true')
@@ -330,10 +436,29 @@ describe('import review bulk selection', () => {
     expect(screen.getByRole('button', { name: 'Choose another statement' })).toBeDisabled()
     expect(within(tableRegion()).getByLabelText(/^Save deposit for /)).toBeDisabled()
     await user.click(selectAll())
-    expect(updateRow).toHaveBeenCalledTimes(1)
+    await user.click(clearSelection())
+    expect(bulkSelection).toHaveBeenCalledTimes(1)
 
-    await act(async () => { first.resolve({ ...e1, selectedForImport: true }) })
-    await screen.findByText(/Selected 2 expenses|Stopped after/)
+    await act(async () => { run.resolve({ status: 'done', count: 2, changedRowIds: ['e1', 'e2'] }) })
+    await screen.findByText('Selected 2 expenses.')
+  })
+
+  it('is inert while a single-row update is in flight', async () => {
+    const user = userEvent.setup()
+    const rowUpdate = deferred()
+    const updateRow = vi.fn().mockReturnValueOnce(rowUpdate.promise)
+    const state = importState({ updateRow })
+    render(<ImportPreviewPanel importState={state} />)
+
+    await user.click(within(tableRegion()).getAllByRole('checkbox')[0])
+    expect(updateRow).toHaveBeenCalledTimes(1)
+    expect(selectAll()).toHaveAttribute('aria-disabled', 'true')
+    expect(clearSelection()).toHaveAttribute('aria-disabled', 'true')
+    await user.click(selectAll())
+    expect(state.bulkSelection).not.toHaveBeenCalled()
+
+    await act(async () => { rowUpdate.resolve({ ...e1, selectedForImport: true }) })
+    expect(selectAll()).not.toHaveAttribute('aria-disabled', 'true')
   })
 
   it('renders bulk actions locked during an external task', () => {
@@ -349,6 +474,7 @@ describe('import review bulk selection', () => {
     expect(selectAll()).toHaveAttribute('aria-disabled', 'true')
     await user.click(selectAll())
     await user.click(clearSelection())
+    expect(state.bulkSelection).not.toHaveBeenCalled()
     expect(state.updateRow).not.toHaveBeenCalled()
   })
 })
@@ -432,6 +558,35 @@ describe('import review in Spanish', () => {
     expect(await screen.findByText('Se seleccionó 1 gasto.')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Borrar selección' }))
     expect(await screen.findByText('Se borró la selección de 1 fila.')).toBeInTheDocument()
+  })
+
+  it('localizes the count progress, the definite failure and the uncertain guidance', async () => {
+    const user = userEvent.setup()
+    const run = deferred()
+    const bulkSelection = vi.fn().mockReturnValueOnce(run.promise).mockResolvedValueOnce({ status: 'failed' })
+    render(<ImportPreviewPanel importState={importState({ bulkSelection, preview: previewWith([{ ...e1, selectedForImport: true }, e2, dup, dep, review]) })} />)
+
+    await user.click(screen.getByRole('button', { name: /^Seleccionar todos los gastos/ }))
+    expect(screen.getByText('Seleccionando 1 gasto…')).toBeInTheDocument()
+    await act(async () => { run.resolve({ status: 'done', count: 1, changedRowIds: ['e2'] }) })
+    expect(await screen.findByText('Se seleccionó 1 gasto.')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Borrar selección' }))
+    expect(await screen.findByText('No se cambió nada. Inténtalo de nuevo.')).toBeInTheDocument()
+    expect(document.body.textContent).not.toMatch(/Se detuvo|Actualizando fila/)
+  })
+
+  it('localizes the uncertain-outcome lock', () => {
+    const issue = {
+      code: 'selection_uncertain',
+      message: 'No pudimos confirmar si la selección cambió. Actualiza la página para ver lo que está guardado antes de importar.',
+      rows: [],
+      requiresPreviewRefresh: true,
+    }
+    render(<ImportPreviewPanel importState={importState({ confirmationIssue: issue, preview: previewWith([{ ...e1, selectedForImport: true }, e2]) })} />)
+    expect(screen.getByText(issue.message)).toBeInTheDocument()
+    expect(screen.getByText('Actualiza la página para ver lo que está guardado antes de importar.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Borrar selección' })).toBeDisabled()
   })
 
   it('uses singular wording for one row and a non-repeating cleared message', async () => {

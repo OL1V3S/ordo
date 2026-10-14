@@ -2,8 +2,10 @@ import { useTranslation } from "react-i18next";
 import { REVIEW_FILTERS } from "../utils/importReview";
 
 // Row filters (radios: render-only, never change selection) and whole-batch bulk actions.
-// Bulk buttons use aria-disabled so a running or empty action never drops keyboard focus;
-// only a hard lock (external task, confirming, stale review) uses the disabled attribute.
+// Bulk buttons use aria-disabled so a running, empty or row-save-pending action never drops
+// keyboard focus; only a hard lock (external task, confirming, stale review) uses the disabled
+// attribute. A bulk action is one request, so the status region announces it once at the start
+// and once at the end.
 export default function ImportReviewFilters({
   filter,
   counts,
@@ -11,6 +13,7 @@ export default function ImportReviewFilters({
   total,
   hardLocked,
   bulkRunning,
+  rowSavePending = false,
   bulkProgress,
   bulkMessage,
   selectableCount,
@@ -21,7 +24,7 @@ export default function ImportReviewFilters({
 }) {
   const { t } = useTranslation("importPreview");
   const inert = (handler, unavailable) => (event) => {
-    if (bulkRunning || unavailable) {
+    if (bulkRunning || rowSavePending || unavailable) {
       event.preventDefault();
       return;
     }
@@ -59,7 +62,7 @@ export default function ImportReviewFilters({
             type="button"
             className="button-ghost"
             disabled={hardLocked}
-            aria-disabled={!hardLocked && (bulkRunning || selectAllUnavailable) ? "true" : undefined}
+            aria-disabled={!hardLocked && (bulkRunning || rowSavePending || selectAllUnavailable) ? "true" : undefined}
             aria-describedby="import-bulk-hint"
             onClick={inert(onSelectAll, selectAllUnavailable)}
           >
@@ -69,7 +72,7 @@ export default function ImportReviewFilters({
             type="button"
             className="button-ghost"
             disabled={hardLocked}
-            aria-disabled={!hardLocked && (bulkRunning || clearUnavailable) ? "true" : undefined}
+            aria-disabled={!hardLocked && (bulkRunning || rowSavePending || clearUnavailable) ? "true" : undefined}
             onClick={inert(onClear, clearUnavailable)}
           >
             {t("bulk.clear")}
@@ -78,7 +81,7 @@ export default function ImportReviewFilters({
         <p id="import-bulk-hint" className="muted import-review-bulk__hint">{t("bulk.hint")}</p>
         <p className="import-review-bulk__status" role="status" aria-live="polite">
           {bulkRunning && bulkProgress
-            ? t("bulk.progress", { done: bulkProgress.done, total: bulkProgress.total })
+            ? t(bulkProgress.kind === "select" ? "bulk.selecting" : "bulk.clearing", { count: bulkProgress.count })
             : bulkMessage}
         </p>
       </div>

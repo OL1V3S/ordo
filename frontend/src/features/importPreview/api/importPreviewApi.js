@@ -19,6 +19,11 @@ export const importPreviewApi = {
   updateRow(batchId, rowId, payload) {
     return client.patch(`/api/import-previews/${batchId}/rows/${rowId}`, payload);
   },
+  // One atomic request for a whole bulk action. `action` is "select_expenses" or "clear"; rowIds
+  // are the rows the user saw. A replay of the same request is safe: it sets state, never toggles.
+  updateSelection(batchId, action, rowIds) {
+    return client.post(`/api/import-previews/${batchId}/selection`, { action, rowIds });
+  },
   confirm(batchId) {
     return client.post(`/api/import-previews/${batchId}/confirm`);
   },

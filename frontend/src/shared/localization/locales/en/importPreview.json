@@ -98,7 +98,8 @@
       "dirty": "Save each row you edited before importing.",
       "noneSelected": "Select at least one row that can be imported.",
       "ready": "Review the selected rows, then save them together.",
-      "bulk": "Wait for the selection update to finish before importing."
+      "bulk": "Wait for the selection update to finish before importing.",
+      "selectionUncertain": "Refresh the page to see what’s saved before importing."
     }
   },
   "columns": {
@@ -223,13 +224,16 @@
     "selectAll": "Select all expenses that can be imported ({{count}})",
     "hint": "Skips possible duplicates and deposits. Select those yourself.",
     "clear": "Clear selection",
-    "progress": "Updating row {{done}} of {{total}}…",
+    "selecting_one": "Selecting {{count}} expense…",
+    "selecting_other": "Selecting {{count}} expenses…",
+    "clearing_one": "Clearing the selection of {{count}} row…",
+    "clearing_other": "Clearing the selection of {{count}} rows…",
+    "failed": "Nothing was changed. Try again.",
+    "uncertainFailed": "We couldn’t confirm whether the selection changed. Refresh the page to see what’s saved before importing.",
     "selectedDone_one": "Selected {{count}} expense.",
     "selectedDone_other": "Selected {{count}} expenses.",
     "clearedDone_one": "Cleared the selection of {{count}} row.",
-    "clearedDone_other": "Cleared the selection of {{count}} rows.",
-    "stopped_one": "Stopped after {{done}} of {{count}} row. Rows already updated stay as shown. Try again.",
-    "stopped_other": "Stopped after {{done}} of {{count}} rows. Rows already updated stay as shown. Try again."
+    "clearedDone_other": "Cleared the selection of {{count}} rows."
   },
   "bar": {
     "label": "Rows to import",
