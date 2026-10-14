@@ -26,7 +26,7 @@ the permanent, complete archive.
 
 ### 2026-10-14 — Paycheck matching suggestions on the Paychecks page
 
-[Issue #243](https://github.com/OL1V3S/ordo/issues/243)
+[PR #244](https://github.com/OL1V3S/ordo/pull/244) · [Issue #243](https://github.com/OL1V3S/ordo/issues/243)
 
 - The Paychecks page now lists deposits that may match an open slot of an active pay schedule, when the date is inside the expected window and the amount equals the fixed amount or falls in the range. Nothing is linked until you choose "Link to ..."; ambiguous matches are not shown.
 - "Dismiss match" hides a suggestion on this device only (stored in the browser, not synced); "Dismissed matches" lets you show it again. Frontend only: no schema, API, or automatic linking change.
