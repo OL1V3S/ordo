@@ -24,6 +24,14 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-14 — Faster Select all and Clear selection in statement import review
+
+[PR #242](https://github.com/OL1V3S/ordo/pull/242) ·
+[Issue #239](https://github.com/OL1V3S/ordo/issues/239)
+
+- Select all and Clear selection in the statement import review now send one request instead of one per row, so they no longer take about 29 seconds on a 34-row statement. The change is all-or-nothing: there is no longer a "Stopped after X of Y rows" state, and progress shows a count instead of "row n of N".
+- If the connection drops mid-action, the app retries the same request once; if it still can't confirm the result, importing stays locked and you're asked to refresh the page. Uses the endpoint added in [PR #241](https://github.com/OL1V3S/ordo/pull/241); confirm, duplicate checks and single-row edits are unchanged, and there is no schema change.
+
 ### 2026-10-13 — Category names and import dates in the user's language
 
 [PR #240](https://github.com/OL1V3S/ordo/pull/240) ·
@@ -175,11 +183,3 @@ the permanent, complete archive.
 
 - Plan now opens on Budgets, and a Budgets / Commitments / Paychecks switcher at the top of each planning page moves between them; each page keeps its own address.
 - Replaced the Plan link list and the compact back-to-Plan link; `/plan` now performs the Budgets page's existing reads.
-
-### 2026-10-09 — Navigation shell
-
-[PR #204](https://github.com/OL1V3S/ordo/pull/204) ·
-[Issue #203](https://github.com/OL1V3S/ordo/issues/203)
-
-- One Primary navigation with Home, Activity, Plan (Budgets, Commitments, Paychecks) and Insights: bottom bar on phones, labelled rail on tablets, sidebar on desktop. Settings, Investing, theme, language and sign out moved into a new Account menu; `/more` still works by URL but is no longer linked.
-- Fixed page-bar and bottom-bar scroll padding so focused controls stay visible.
