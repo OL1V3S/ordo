@@ -88,6 +88,15 @@ public sealed class ImportPreviewsController(
         return Ok(row);
     }
 
+    [HttpPost("{batchId:guid}/selection")]
+    public async Task<IActionResult> UpdateSelection(Guid batchId, UpdateImportPreviewSelectionRequest request, CancellationToken cancellationToken)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userId is null) return Unauthorized();
+        var result = await previews.UpdateSelectionAsync(userId, batchId, request, cancellationToken);
+        return result.IsSuccess ? Ok(result.Selection) : ErrorResult(result.Error!);
+    }
+
     private IActionResult ErrorResult(ImportPreviewError error) => error.Code switch
     {
         "upload_too_large" => StatusCode(StatusCodes.Status413PayloadTooLarge, error),
@@ -96,7 +105,8 @@ public sealed class ImportPreviewsController(
         "processing_timed_out" => StatusCode(StatusCodes.Status408RequestTimeout, error),
         "import_in_progress" or "already_imported" => Conflict(error),
         "row_not_selectable" or "row_validation_failed" or "file_required"
-            or "source_required" or "unsupported_statement_source" => BadRequest(error),
+            or "source_required" or "unsupported_statement_source"
+            or "selection_request_invalid" => BadRequest(error),
         _ => UnprocessableEntity(error)
     };
 
