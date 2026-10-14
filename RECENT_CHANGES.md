@@ -26,6 +26,7 @@ the permanent, complete archive.
 
 ### 2026-10-14 — Account emails follow the selected language
 
+[PR #246](https://github.com/OL1V3S/ordo/pull/246) ·
 [Issue #245](https://github.com/OL1V3S/ordo/issues/245)
 
 - The confirmation and password-reset emails are now sent in English or Spanish, following the language selected in the app when you register, resend a confirmation, or request a reset. The wording says "Ordo" in both languages.
