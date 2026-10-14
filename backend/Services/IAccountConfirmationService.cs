@@ -13,5 +13,6 @@ public interface IAccountConfirmationService
     Task SendConfirmationEmailAsync(
         ApplicationUser user,
         ConfirmationEmailReason reason,
+        EmailLanguage language,
         CancellationToken cancellationToken = default);
 }

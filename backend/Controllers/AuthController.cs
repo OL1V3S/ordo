@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.ComponentModel.DataAnnotations;
 using BudgetPlanner.Models;
 using BudgetPlanner.Services;
@@ -60,6 +61,7 @@ public class AuthController : ControllerBase
             await _accountConfirmationService.SendConfirmationEmailAsync(
                 user,
                 ConfirmationEmailReason.Registration,
+                EmailLanguageParser.Parse(request.Language),
                 cancellationToken);
         }
         catch (EmailDeliveryException)
@@ -97,6 +99,7 @@ public class AuthController : ControllerBase
                 await _accountConfirmationService.SendConfirmationEmailAsync(
                     user,
                     ConfirmationEmailReason.Resend,
+                    EmailLanguageParser.Parse(request.Language),
                     cancellationToken);
             }
             catch (EmailDeliveryException)
@@ -181,30 +184,14 @@ public class AuthController : ControllerBase
 
             try
             {
+                var content = AccountEmailTemplates.PasswordResetEmail(
+                    EmailLanguageParser.Parse(request.Language),
+                    resetLink);
+
                 await _emailService.SendEmailAsync(
                     request.Email!,
-                    "Reset your Ordo password",
-                    $"""
-                    <div style="background:#0f172a; padding:40px 20px; font-family:Arial, sans-serif;">
-                      <div style="max-width:500px; margin:auto; background:#020617; border-radius:14px; padding:24px; border:1px solid #1f2933;">
-
-                        <h2 style="color:#e5e7eb; margin:0 0 10px;">Ordo</h2>
-
-                        <p style="color:rgba(255,255,255,0.7); margin:0 0 20px;">
-                          Reset your password using the button below.
-                        </p>
-
-                        <a href="{resetLink}"
-                           style="display:inline-block; padding:12px 20px; background:#ef4444; color:white; text-decoration:none; border-radius:12px; font-weight:600;">
-                          Reset Password
-                        </a>
-
-                        <p style="color:rgba(255,255,255,0.5); margin-top:25px; font-size:13px;">
-                          If you didn’t request this, you can ignore this email.
-                        </p>
-                      </div>
-                    </div>
-                    """,
+                    content.Subject,
+                    content.HtmlBody,
                     cancellationToken);
             }
             catch (EmailDeliveryException)
@@ -287,11 +274,16 @@ public class AuthController : ControllerBase
     }
 }
 
-public record RegisterRequest(string Email, string Password);
+public record RegisterRequest(
+    string Email,
+    string Password,
+    [property: JsonConverter(typeof(LenientLanguageJsonConverter))] string? Language = null);
 public record LoginRequest(string Email, string Password);
 public record ResendConfirmationRequest(
-    [Required, StringLength(254), EmailAddress] string? Email);
+    [Required, StringLength(254), EmailAddress] string? Email,
+    [property: JsonConverter(typeof(LenientLanguageJsonConverter))] string? Language = null);
 public record ConfirmEmailRequest(string UserId, string Token);
 public record ForgotPasswordRequest(
-    [Required, StringLength(254), EmailAddress] string? Email);
+    [Required, StringLength(254), EmailAddress] string? Email,
+    [property: JsonConverter(typeof(LenientLanguageJsonConverter))] string? Language = null);
 public record ResetPasswordRequest(string Email, string Token, string NewPassword);

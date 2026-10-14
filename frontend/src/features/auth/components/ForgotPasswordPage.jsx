@@ -2,12 +2,14 @@ import { useId, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { authApi } from "../../../shared/api/authApi";
 import StatusMessage from "../../../shared/ui/StatusMessage";
+import { useLocale } from "../../../shared/localization/useLocale";
 import { mapResendFailure } from "../authMessages";
 import { useTranslation } from "react-i18next";
 import AuthShell from "./AuthShell";
 
 export default function ForgotPasswordPage() {
   const { t } = useTranslation("auth");
+  const { locale } = useLocale();
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState(null);
   const [messageTone, setMessageTone] = useState("info");
@@ -21,7 +23,7 @@ export default function ForgotPasswordPage() {
     e.preventDefault();
 
     try {
-      await authApi.forgotPassword({ email });
+      await authApi.forgotPassword({ email, language: locale });
       setMessageTone("info");
       setMessage({ key: "forgotPassword.sent" });
     } catch {
@@ -37,7 +39,7 @@ export default function ForgotPasswordPage() {
     setResendMessage(null);
 
     try {
-      await authApi.resendConfirmation({ email });
+      await authApi.resendConfirmation({ email, language: locale });
       setResendTone("success");
       setResendMessage({ key: "resend.sent" });
     } catch (err) {
