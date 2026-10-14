@@ -98,7 +98,8 @@
       "dirty": "Guarda cada fila que editaste antes de importar.",
       "noneSelected": "Selecciona al menos una fila que se pueda importar.",
       "ready": "Revisa las filas seleccionadas y luego guárdalas juntas.",
-      "bulk": "Espera a que termine la actualización de la selección antes de importar."
+      "bulk": "Espera a que termine la actualización de la selección antes de importar.",
+      "selectionUncertain": "Actualiza la página para ver lo que está guardado antes de importar."
     }
   },
   "columns": {
@@ -223,6 +224,12 @@
     "selectAll": "Seleccionar todos los gastos que se pueden importar ({{count}})",
     "hint": "Omite los posibles duplicados y los depósitos. Selecciónalos tú.",
     "clear": "Borrar selección",
+    "selecting_one": "Seleccionando {{count}} gasto…",
+    "selecting_other": "Seleccionando {{count}} gastos…",
+    "clearing_one": "Borrando la selección de {{count}} fila…",
+    "clearing_other": "Borrando la selección de {{count}} filas…",
+    "failed": "No se cambió nada. Inténtalo de nuevo.",
+    "uncertainFailed": "No pudimos confirmar si la selección cambió. Actualiza la página para ver lo que está guardado antes de importar.",
     "progress": "Actualizando fila {{done}} de {{total}}…",
     "selectedDone_one": "Se seleccionó {{count}} gasto.",
     "selectedDone_other": "Se seleccionaron {{count}} gastos.",

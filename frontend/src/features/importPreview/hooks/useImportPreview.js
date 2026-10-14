@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { useTranslation } from "react-i18next";
 import { importPreviewApi } from "../api/importPreviewApi";
-import { snapshotSavedRows } from "../utils/importReview";
+import { isExpenseSelected, isRowSelected, snapshotSavedRows } from "../utils/importReview";
 
 const SAFE_ERROR_CODES = new Set([
   "upload_too_large",
@@ -79,6 +79,31 @@ function safeConfirmationIssue(t, error) {
   };
 }
 
+const BULK_ACTIONS = new Set(["select_expenses", "clear"]);
+
+function isSelectionResponse(value, batchId) {
+  return Boolean(value)
+    && value.preview?.batchId === batchId
+    && Array.isArray(value.preview.rows)
+    && Array.isArray(value.changedRowIds);
+}
+
+// A bulk write may have committed unless the server definitively rejected it: no response at all
+// (network error, lost response), a gateway or server error, or a request timeout. Any other
+// rejection (400, 401, 404...) happened before anything was written.
+function isUncertainBulkFailure(error) {
+  const status = error?.response?.status;
+  return typeof status !== "number" || status >= 500 || status === 408;
+}
+
+// Listed rows that are now in the requested state (not `changedRowIds.length`, which is empty
+// when a replay finds the first, uncertain call already committed).
+function countInRequestedState(rows, rowIds, action) {
+  const listed = new Set(rowIds);
+  return rows.filter((row) => listed.has(row.rowId)
+    && (action === "clear" ? !isRowSelected(row) : isExpenseSelected(row))).length;
+}
+
 function isConfirmationResponse(value, batchId) {
   return value
     && value.batchId === batchId
@@ -123,6 +148,11 @@ export function useImportPreview() {
   const [confirmationIssue, setConfirmationIssue] = useState(null);
   const processingController = useRef(null);
   const confirmationInFlight = useRef(false);
+  const bulkInFlight = useRef(false);
+  const rowUpdatesInFlight = useRef(0);
+  const activeBatchId = useRef(null);
+
+  useEffect(() => { activeBatchId.current = preview?.batchId ?? null; }, [preview]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -223,6 +253,7 @@ export function useImportPreview() {
   const updateRow = useCallback(async (rowId, payload) => {
     if (!preview) return null;
     setError("");
+    rowUpdatesInFlight.current += 1;
     try {
       const response = await importPreviewApi.updateRow(preview.batchId, rowId, payload);
       // A late response must never write to a preview that has since been cleared.
@@ -244,8 +275,92 @@ export function useImportPreview() {
     } catch (requestError) {
       setError(safeError(translate.current, requestError, "update"));
       return null;
+    } finally {
+      rowUpdatesInFlight.current -= 1;
     }
   }, [preview]);
+
+  // One request for a whole bulk action (replaces a per-row loop). Resolves to a status:
+  //   done        -> the preview was replaced from the server; `count` rows are now in the requested
+  //                  state and `changedRowIds` are the rows this response changed
+  //   failed      -> a definite rejection: nothing was changed
+  //   unavailable -> 404: the preview is gone (handled like confirm's preview_unavailable)
+  //   uncertain   -> the outcome could not be established even after one replay: confirm is locked
+  //   ignored     -> not started (another write in flight, locked) or the batch changed meanwhile
+  const bulkSelection = useCallback(async (action, rowIds) => {
+    const batchId = preview?.batchId;
+    if (!batchId || !BULK_ACTIONS.has(action) || !Array.isArray(rowIds) || rowIds.length === 0) {
+      return { status: "ignored" };
+    }
+    // Bulk is inert while a single-row update, another bulk run or a confirm is in flight, or
+    // while the preview must be refreshed: a late row response could overwrite the bulk result.
+    if (bulkInFlight.current || rowUpdatesInFlight.current > 0 || confirmationInFlight.current
+      || confirmationIssue?.requiresPreviewRefresh) {
+      return { status: "ignored" };
+    }
+    bulkInFlight.current = true;
+    setError("");
+    const batchIsCurrent = () => activeBatchId.current === batchId;
+    async function attempt() {
+      try {
+        const response = await importPreviewApi.updateSelection(batchId, action, rowIds);
+        return isSelectionResponse(response?.data, batchId)
+          ? { ok: true, data: response.data }
+          : { ok: false, uncertain: true, error: null };
+      } catch (requestError) {
+        return { ok: false, uncertain: isUncertainBulkFailure(requestError), error: requestError };
+      }
+    }
+    try {
+      let outcome = await attempt();
+      // A plain GET is not authoritative here (it takes no batch lock and can show the pre-commit
+      // state), so an uncertain outcome is settled by replaying the identical request once. It
+      // sets state rather than toggling it, and queues behind the batch lock.
+      const replayed = !outcome.ok && outcome.uncertain;
+      if (replayed) {
+        if (!batchIsCurrent()) return { status: "ignored" };
+        outcome = await attempt();
+      }
+      // A late response for a preview that was replaced, cleared or unmounted is ignored.
+      if (!batchIsCurrent()) return { status: "ignored" };
+
+      if (outcome.ok) {
+        const { preview: next, changedRowIds } = outcome.data;
+        const listed = new Set(rowIds);
+        setPreview((current) => (current?.batchId === batchId ? next : current));
+        setConfirmationIssue((current) => {
+          if (!current || current.requiresPreviewRefresh) return current;
+          if (current.code === "no_rows_selected" && next.rows.some(isRowSelected)) return null;
+          if (!current.rows.some((row) => listed.has(row.rowId))) return current;
+          return { ...current, rows: current.rows.filter((row) => !listed.has(row.rowId)) };
+        });
+        return {
+          status: "done",
+          count: countInRequestedState(next.rows, rowIds, action),
+          changedRowIds,
+        };
+      }
+
+      if (outcome.error?.response?.status === 404) {
+        setPreview((current) => (current?.batchId === batchId ? null : current));
+        forgetBatch();
+        setConfirmationIssue(safeConfirmationIssue(translate.current, outcome.error));
+        return { status: "unavailable" };
+      }
+      if (replayed) {
+        setConfirmationIssue({
+          code: "selection_uncertain",
+          message: translate.current("bulk.uncertainFailed"),
+          rows: [],
+          requiresPreviewRefresh: true,
+        });
+        return { status: "uncertain" };
+      }
+      return { status: "failed" };
+    } finally {
+      bulkInFlight.current = false;
+    }
+  }, [preview, confirmationIssue]);
 
   const confirm = useCallback(async () => {
     if (!preview || confirmationInFlight.current) return null;
@@ -327,6 +442,7 @@ export function useImportPreview() {
     upload,
     cancel,
     updateRow,
+    bulkSelection,
     confirm,
     clearForReupload,
     dismissConfirmation,
