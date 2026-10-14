@@ -1798,6 +1798,401 @@ public sealed class PostgreSqlFinancialApiTests
     }
 
     [PostgreSqlFact]
+    public async Task Bulk_selection_database_failure_rolls_back_every_row_change()
+    {
+        await using var app = new PostgreSqlImportPreviewTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("postgres-bulk-rollback@example.com");
+        var preview = await CreatePreviewAsync(
+            owner.Client,
+            SunflowerFixtureCorpus.CreateRepresentativePdf());
+        var batchId = preview.GetProperty("batchId").GetGuid();
+        var selected = SelectedPreviewRowIds(preview);
+        Assert.Equal(10, selected.Count);
+        var storedBefore = await ReadStoredPreviewRowsAsync(app, batchId);
+
+        // Rejects the one update that would leave the batch with no selected row. A request that
+        // clears every selected row therefore fails on its last row update, whatever order the
+        // updates are sent in, after the earlier row updates were already applied.
+        using (var setupScope = app.Services.CreateScope())
+        {
+            var setupContext = setupScope.ServiceProvider.GetRequiredService<BudgetContext>();
+            await setupContext.Database.ExecuteSqlRawAsync(
+                """
+                CREATE FUNCTION reject_emptying_import_preview_selection() RETURNS trigger
+                LANGUAGE plpgsql AS $function$
+                BEGIN
+                    IF NOT NEW."SelectedForImport" AND NOT EXISTS (
+                        SELECT 1 FROM "ImportPreviewRows"
+                        WHERE "BatchId" = NEW."BatchId"
+                          AND "Id" <> NEW."Id"
+                          AND "SelectedForImport") THEN
+                        RAISE EXCEPTION 'intentional disposable-test selection rejection';
+                    END IF;
+                    RETURN NEW;
+                END;
+                $function$;
+
+                CREATE TRIGGER reject_emptying_import_preview_selection_update
+                BEFORE UPDATE ON "ImportPreviewRows"
+                FOR EACH ROW EXECUTE FUNCTION reject_emptying_import_preview_selection();
+                """);
+        }
+
+        await AssertSelectionRequestFailsOnTheServerAsync(
+            () => PostSelectionAsync(owner.Client, batchId, "clear", selected));
+
+        Assert.Equal(storedBefore, await ReadStoredPreviewRowsAsync(app, batchId));
+        using var scope = app.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<BudgetContext>();
+        var batch = await context.ImportPreviewBatches.AsNoTracking()
+            .SingleAsync(value => value.Id == batchId);
+        Assert.Equal(ImportPreviewLifecycle.Open, batch.Lifecycle);
+        Assert.False(await context.Expenses.AnyAsync());
+    }
+
+    [PostgreSqlFact]
+    public async Task Bulk_selection_queued_before_confirmation_is_exactly_what_confirmation_imports()
+    {
+        await using var app = new PostgreSqlImportPreviewTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("postgres-bulk-before-confirm@example.com");
+        var preview = await CreatePreviewAsync(
+            owner.Client,
+            SunflowerFixtureCorpus.CreateRepresentativePdf());
+        var batchId = preview.GetProperty("batchId").GetGuid();
+        var chosenNames = new[] { "STREAMCO SUBSCRIPTION", "HOME RENT PAYMENT", "CARDCO PAYMENT" };
+        var chosen = chosenNames.Select(name => PreviewRowId(PreviewRowNamed(preview, name))).ToList();
+        await SetStoredSelectionAsync(app, batchId, selected: false);
+
+        using var lockScope = app.Services.CreateScope();
+        var lockContext = lockScope.ServiceProvider.GetRequiredService<BudgetContext>();
+        await using var lockTransaction = await lockContext.Database.BeginTransactionAsync();
+        await lockContext.Database.ExecuteSqlInterpolatedAsync(
+            $"SELECT 1 FROM \"ImportPreviewBatches\" WHERE \"Id\" = {batchId} FOR UPDATE");
+
+        var bulkTask = PostSelectionAsync(owner.Client, batchId, "select_expenses", chosen);
+        var bulkWaitingForBatchLock = await app.WaitForBlockedBatchMutationsAsync(1);
+        var confirmationTask = owner.Client.PostAsync(
+            $"/api/import-previews/{batchId}/confirm",
+            content: null);
+        var bothWaitingForBatchLock = await app.WaitForBlockedBatchMutationsAsync(2);
+        await lockTransaction.CommitAsync();
+
+        using var bulk = await bulkTask;
+        using var confirmation = await confirmationTask;
+        var bulkBody = await bulk.Content.ReadFromJsonAsync<JsonElement>();
+        var confirmationBody = await confirmation.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.True(bulkWaitingForBatchLock,
+            "The bulk selection must reach the PostgreSQL batch mutation lock before confirmation is queued.");
+        Assert.True(bothWaitingForBatchLock,
+            "The bulk selection and confirmation must both wait on the same PostgreSQL batch mutation lock.");
+        Assert.Equal(HttpStatusCode.OK, bulk.StatusCode);
+        Assert.Equal(chosen.Order(), ChangedSelectionRowIds(bulkBody).Order());
+        Assert.Equal(HttpStatusCode.OK, confirmation.StatusCode);
+        Assert.Equal("confirmed", confirmationBody.GetProperty("status").GetString());
+        Assert.Equal(3, confirmationBody.GetProperty("importedExpenseCount").GetInt32());
+        Assert.Equal(0, confirmationBody.GetProperty("importedInflowCount").GetInt32());
+
+        using var assertScope = app.Services.CreateScope();
+        var assertContext = assertScope.ServiceProvider.GetRequiredService<BudgetContext>();
+        Assert.Equal(
+            chosenNames.Order(),
+            (await assertContext.Expenses.AsNoTracking()
+                .Where(value => value.UserId == owner.Id)
+                .Select(value => value.Description)
+                .ToListAsync()).Order());
+        Assert.Equal(3, await assertContext.ImportExpenseProvenances.CountAsync(
+            value => value.BatchId == batchId));
+    }
+
+    [PostgreSqlFact]
+    public async Task Confirmation_queued_before_bulk_selection_leaves_the_bulk_request_not_found_and_unwritten()
+    {
+        await using var app = new PostgreSqlImportPreviewTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("postgres-confirm-before-bulk@example.com");
+        var preview = await CreatePreviewAsync(
+            owner.Client,
+            SunflowerFixtureCorpus.CreateRepresentativePdf());
+        var batchId = preview.GetProperty("batchId").GetGuid();
+        var selected = SelectedPreviewRowIds(preview);
+        Assert.Equal(10, selected.Count);
+
+        using var lockScope = app.Services.CreateScope();
+        var lockContext = lockScope.ServiceProvider.GetRequiredService<BudgetContext>();
+        await using var lockTransaction = await lockContext.Database.BeginTransactionAsync();
+        await lockContext.Database.ExecuteSqlInterpolatedAsync(
+            $"SELECT 1 FROM \"ImportPreviewBatches\" WHERE \"Id\" = {batchId} FOR UPDATE");
+
+        var confirmationTask = owner.Client.PostAsync(
+            $"/api/import-previews/{batchId}/confirm",
+            content: null);
+        var confirmationWaitingForBatchLock = await app.WaitForBlockedBatchMutationsAsync(1);
+        var bulkTask = PostSelectionAsync(owner.Client, batchId, "clear", selected);
+        var bothWaitingForBatchLock = await app.WaitForBlockedBatchMutationsAsync(2);
+        await lockTransaction.CommitAsync();
+
+        using var confirmation = await confirmationTask;
+        using var bulk = await bulkTask;
+        var confirmationBody = await confirmation.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.True(confirmationWaitingForBatchLock,
+            "Confirmation must reach the PostgreSQL batch mutation lock before the bulk selection is queued.");
+        Assert.True(bothWaitingForBatchLock,
+            "Confirmation and the bulk selection must both wait on the same PostgreSQL batch mutation lock.");
+        Assert.Equal(HttpStatusCode.OK, confirmation.StatusCode);
+        Assert.Equal("confirmed", confirmationBody.GetProperty("status").GetString());
+        Assert.Equal(10, confirmationBody.GetProperty("importedExpenseCount").GetInt32());
+        Assert.Equal(HttpStatusCode.NotFound, bulk.StatusCode);
+
+        using var assertScope = app.Services.CreateScope();
+        var assertContext = assertScope.ServiceProvider.GetRequiredService<BudgetContext>();
+        var batch = await assertContext.ImportPreviewBatches.AsNoTracking()
+            .Include(value => value.Rows)
+            .SingleAsync(value => value.Id == batchId);
+        Assert.Equal(ImportPreviewLifecycle.Confirmed, batch.Lifecycle);
+        Assert.Empty(batch.Rows);
+        Assert.Equal(10, await assertContext.Expenses.CountAsync(value => value.UserId == owner.Id));
+        Assert.Equal(10, await assertContext.ImportExpenseProvenances.CountAsync(
+            value => value.BatchId == batchId));
+    }
+
+    [PostgreSqlFact]
+    public async Task Bulk_selection_after_confirmation_flagged_a_duplicate_does_not_select_that_row()
+    {
+        await using var app = new PostgreSqlImportPreviewTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("postgres-bulk-flagged-duplicate@example.com");
+        var preview = await CreatePreviewAsync(
+            owner.Client,
+            SunflowerFixtureCorpus.CreateRepresentativePdf());
+        var batchId = preview.GetProperty("batchId").GetGuid();
+        var target = PreviewRowNamed(preview, "NORTH STAR MARKET");
+        var targetRowId = PreviewRowId(target);
+        Assert.False(target.GetProperty("isPossibleDuplicate").GetBoolean());
+        Assert.True(target.GetProperty("selectedForImport").GetBoolean());
+        var existing = await app.SeedExpenseAsync(
+            owner.Id,
+            "NORTH STAR MARKET",
+            42.16m,
+            new DateOnly(2026, 2, 5));
+
+        using var flagging = await owner.Client.PostAsync(
+            $"/api/import-previews/{batchId}/confirm",
+            content: null);
+        var flaggingBody = await flagging.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.Conflict, flagging.StatusCode);
+        Assert.Equal("duplicate_review_required", flaggingBody.GetProperty("code").GetString());
+
+        var flagged = await owner.Client.GetFromJsonAsync<JsonElement>($"/api/import-previews/{batchId}");
+        var stillSelected = SelectedPreviewRowIds(flagged);
+        Assert.Equal(9, stillSelected.Count);
+        Assert.DoesNotContain(targetRowId, stillSelected);
+        using var clear = await PostSelectionAsync(owner.Client, batchId, "clear", stillSelected);
+        Assert.Equal(HttpStatusCode.OK, clear.StatusCode);
+
+        using var select = await PostSelectionAsync(
+            owner.Client,
+            batchId,
+            "select_expenses",
+            PreviewRows(flagged).Select(PreviewRowId));
+        var selectBody = await select.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.Equal(HttpStatusCode.OK, select.StatusCode);
+        Assert.Equal(stillSelected.Order(), ChangedSelectionRowIds(selectBody).Order());
+        var returnedTarget = PreviewRowNamed(selectBody.GetProperty("preview"), "NORTH STAR MARKET");
+        Assert.True(returnedTarget.GetProperty("isPossibleDuplicate").GetBoolean());
+        Assert.False(returnedTarget.GetProperty("selectedForImport").GetBoolean());
+
+        using (var scope = app.Services.CreateScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<BudgetContext>();
+            var stored = await context.ImportPreviewRows.AsNoTracking()
+                .SingleAsync(value => value.Id == targetRowId);
+            Assert.True(stored.IsPossibleDuplicate);
+            Assert.False(stored.SelectedForImport);
+            Assert.Equal(
+                [existing.Id],
+                JsonSerializer.Deserialize<int[]>(stored.DuplicateExpenseIds)!);
+        }
+
+        using var confirmation = await owner.Client.PostAsync(
+            $"/api/import-previews/{batchId}/confirm",
+            content: null);
+        var confirmationBody = await confirmation.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, confirmation.StatusCode);
+        Assert.Equal("confirmed", confirmationBody.GetProperty("status").GetString());
+        Assert.Equal(9, confirmationBody.GetProperty("importedExpenseCount").GetInt32());
+
+        using var assertScope = app.Services.CreateScope();
+        var assertContext = assertScope.ServiceProvider.GetRequiredService<BudgetContext>();
+        Assert.Equal(10, await assertContext.Expenses.CountAsync(value => value.UserId == owner.Id));
+        Assert.DoesNotContain(
+            await assertContext.ImportExpenseProvenances
+                .Where(value => value.BatchId == batchId)
+                .Select(value => value.ExpenseId)
+                .ToListAsync(),
+            value => value == existing.Id);
+    }
+
+    [PostgreSqlFact]
+    public async Task Bulk_selection_queued_before_a_row_update_from_another_tab_is_applied_first()
+    {
+        await using var app = new PostgreSqlImportPreviewTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("postgres-bulk-then-row-update@example.com");
+        var preview = await CreatePreviewAsync(
+            owner.Client,
+            SunflowerFixtureCorpus.CreateRepresentativePdf());
+        var batchId = preview.GetProperty("batchId").GetGuid();
+        var selected = SelectedPreviewRowIds(preview);
+        var target = PreviewRowNamed(preview, "STREAMCO SUBSCRIPTION");
+        var targetRowId = PreviewRowId(target);
+        Assert.Equal(10, selected.Count);
+        Assert.Contains(targetRowId, selected);
+
+        using var lockScope = app.Services.CreateScope();
+        var lockContext = lockScope.ServiceProvider.GetRequiredService<BudgetContext>();
+        await using var lockTransaction = await lockContext.Database.BeginTransactionAsync();
+        await lockContext.Database.ExecuteSqlInterpolatedAsync(
+            $"SELECT 1 FROM \"ImportPreviewBatches\" WHERE \"Id\" = {batchId} FOR UPDATE");
+
+        var bulkTask = PostSelectionAsync(owner.Client, batchId, "clear", selected);
+        var bulkWaitingForBatchLock = await app.WaitForBlockedBatchMutationsAsync(1);
+        var updateTask = owner.Client.PatchAsJsonAsync(
+            $"/api/import-previews/{batchId}/rows/{targetRowId}",
+            new
+            {
+                editableExpenseDescription = target.GetProperty("editableExpenseDescription").GetString(),
+                category = target.GetProperty("category").GetString(),
+                selectedForImport = true
+            });
+        var bothWaitingForBatchLock = await app.WaitForBlockedBatchMutationsAsync(2);
+        await lockTransaction.CommitAsync();
+
+        using var bulk = await bulkTask;
+        using var update = await updateTask;
+        var bulkBody = await bulk.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.True(bulkWaitingForBatchLock,
+            "The bulk selection must reach the PostgreSQL batch mutation lock before the row update is queued.");
+        Assert.True(bothWaitingForBatchLock,
+            "The bulk selection and row update must both wait on the same PostgreSQL batch mutation lock.");
+        Assert.Equal(HttpStatusCode.OK, bulk.StatusCode);
+        Assert.Equal(selected.Order(), ChangedSelectionRowIds(bulkBody).Order());
+        Assert.Equal(HttpStatusCode.OK, update.StatusCode);
+        var stored = await ReadStoredPreviewRowsAsync(app, batchId);
+        Assert.Equal([targetRowId], stored.Where(value => value.Value.Selected).Select(value => value.Key));
+    }
+
+    [PostgreSqlFact]
+    public async Task Row_update_queued_before_bulk_selection_is_seen_by_the_bulk_request()
+    {
+        await using var app = new PostgreSqlImportPreviewTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("postgres-row-update-then-bulk@example.com");
+        var preview = await CreatePreviewAsync(
+            owner.Client,
+            SunflowerFixtureCorpus.CreateRepresentativePdf());
+        var batchId = preview.GetProperty("batchId").GetGuid();
+        var selected = SelectedPreviewRowIds(preview);
+        var target = PreviewRowNamed(preview, "STREAMCO SUBSCRIPTION");
+        var targetRowId = PreviewRowId(target);
+        var other = PreviewRowId(PreviewRowNamed(preview, "HOME RENT PAYMENT"));
+        Assert.Equal(10, selected.Count);
+        Assert.Contains(targetRowId, selected);
+        Assert.Contains(other, selected);
+
+        using var lockScope = app.Services.CreateScope();
+        var lockContext = lockScope.ServiceProvider.GetRequiredService<BudgetContext>();
+        await using var lockTransaction = await lockContext.Database.BeginTransactionAsync();
+        await lockContext.Database.ExecuteSqlInterpolatedAsync(
+            $"SELECT 1 FROM \"ImportPreviewBatches\" WHERE \"Id\" = {batchId} FOR UPDATE");
+
+        var updateTask = owner.Client.PatchAsJsonAsync(
+            $"/api/import-previews/{batchId}/rows/{targetRowId}",
+            new
+            {
+                editableExpenseDescription = target.GetProperty("editableExpenseDescription").GetString(),
+                category = target.GetProperty("category").GetString(),
+                selectedForImport = false
+            });
+        var updateWaitingForBatchLock = await app.WaitForBlockedBatchMutationsAsync(1);
+        var bulkTask = PostSelectionAsync(
+            owner.Client,
+            batchId,
+            "select_expenses",
+            [targetRowId, other]);
+        var bothWaitingForBatchLock = await app.WaitForBlockedBatchMutationsAsync(2);
+        await lockTransaction.CommitAsync();
+
+        using var update = await updateTask;
+        using var bulk = await bulkTask;
+        var bulkBody = await bulk.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.True(updateWaitingForBatchLock,
+            "The row update must reach the PostgreSQL batch mutation lock before the bulk selection is queued.");
+        Assert.True(bothWaitingForBatchLock,
+            "The row update and bulk selection must both wait on the same PostgreSQL batch mutation lock.");
+        Assert.Equal(HttpStatusCode.OK, update.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, bulk.StatusCode);
+        // The bulk request ran second, so it saw the deselected row and selected it again.
+        Assert.Equal([targetRowId], ChangedSelectionRowIds(bulkBody));
+        var stored = await ReadStoredPreviewRowsAsync(app, batchId);
+        Assert.Equal(
+            selected.Order(),
+            stored.Where(value => value.Value.Selected).Select(value => value.Key).Order());
+    }
+
+    [PostgreSqlFact]
+    public async Task Replayed_bulk_selection_queued_behind_the_batch_lock_returns_the_committed_state()
+    {
+        await using var app = new PostgreSqlImportPreviewTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("postgres-bulk-replay-race@example.com");
+        var preview = await CreatePreviewAsync(
+            owner.Client,
+            SunflowerFixtureCorpus.CreateRepresentativePdf());
+        var batchId = preview.GetProperty("batchId").GetGuid();
+        var selected = SelectedPreviewRowIds(preview);
+        Assert.Equal(10, selected.Count);
+
+        using var lockScope = app.Services.CreateScope();
+        var lockContext = lockScope.ServiceProvider.GetRequiredService<BudgetContext>();
+        await using var lockTransaction = await lockContext.Database.BeginTransactionAsync();
+        await lockContext.Database.ExecuteSqlInterpolatedAsync(
+            $"SELECT 1 FROM \"ImportPreviewBatches\" WHERE \"Id\" = {batchId} FOR UPDATE");
+
+        // The first request is the one whose outcome the client could not learn.
+        var firstTask = PostSelectionAsync(owner.Client, batchId, "clear", selected);
+        var firstWaitingForBatchLock = await app.WaitForBlockedBatchMutationsAsync(1);
+
+        // A plain read takes no batch lock, so it still returns the state from before the write.
+        var duringLock = await owner.Client.GetFromJsonAsync<JsonElement>(
+            $"/api/import-previews/{batchId}");
+
+        var replayTask = PostSelectionAsync(owner.Client, batchId, "clear", selected);
+        var bothWaitingForBatchLock = await app.WaitForBlockedBatchMutationsAsync(2);
+        await lockTransaction.CommitAsync();
+
+        using var first = await firstTask;
+        using var replay = await replayTask;
+        var firstBody = await first.Content.ReadFromJsonAsync<JsonElement>();
+        var replayBody = await replay.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.True(firstWaitingForBatchLock,
+            "The first bulk request must reach the PostgreSQL batch mutation lock before the read.");
+        Assert.True(bothWaitingForBatchLock,
+            "The replay must wait on the same PostgreSQL batch mutation lock as the first request.");
+        Assert.Equal(selected.Order(), SelectedPreviewRowIds(duringLock).Order());
+        Assert.Equal(HttpStatusCode.OK, first.StatusCode);
+        Assert.Equal(selected.Order(), ChangedSelectionRowIds(firstBody).Order());
+        Assert.Equal(HttpStatusCode.OK, replay.StatusCode);
+        Assert.Empty(ChangedSelectionRowIds(replayBody));
+        Assert.Empty(SelectedPreviewRowIds(replayBody.GetProperty("preview")));
+        Assert.Empty(SelectedPreviewRowIds(
+            await owner.Client.GetFromJsonAsync<JsonElement>($"/api/import-previews/{batchId}")));
+        Assert.DoesNotContain(
+            (await ReadStoredPreviewRowsAsync(app, batchId)).Values,
+            value => value.Selected);
+    }
+
+    [PostgreSqlFact]
     public async Task Confirmed_exact_reupload_is_already_imported_without_extraction_or_new_writes()
     {
         await using var app = new PostgreSqlImportPreviewTestApplication();
@@ -2037,6 +2432,88 @@ public sealed class PostgreSqlFinancialApiTests
                 selectedForInflow = true
             });
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    private static Task<HttpResponseMessage> PostSelectionAsync(
+        HttpClient client,
+        Guid batchId,
+        string action,
+        IEnumerable<Guid> rowIds) => client.PostAsJsonAsync(
+            $"/api/import-previews/{batchId}/selection",
+            new { action, rowIds = rowIds.ToArray() });
+
+    private static List<JsonElement> PreviewRows(JsonElement preview) =>
+        preview.GetProperty("rows").EnumerateArray().ToList();
+
+    private static Guid PreviewRowId(JsonElement row) => row.GetProperty("rowId").GetGuid();
+
+    private static JsonElement PreviewRowNamed(JsonElement preview, string sourceDescription) =>
+        PreviewRows(preview).Single(value =>
+            value.GetProperty("sourceDescription").GetString() == sourceDescription);
+
+    private static List<Guid> SelectedPreviewRowIds(JsonElement preview) => PreviewRows(preview)
+        .Where(value => value.GetProperty("selectedForImport").GetBoolean()
+            || value.GetProperty("selectedForInflow").GetBoolean())
+        .Select(PreviewRowId)
+        .ToList();
+
+    private static List<Guid> ChangedSelectionRowIds(JsonElement selection) => selection
+        .GetProperty("changedRowIds").EnumerateArray()
+        .Select(value => value.GetGuid())
+        .ToList();
+
+    private static async Task<Dictionary<Guid, (bool Selected, string? Description, string? Category)>>
+        ReadStoredPreviewRowsAsync(PostgreSqlImportPreviewTestApplication app, Guid batchId)
+    {
+        using var scope = app.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<BudgetContext>();
+        var rows = await context.ImportPreviewRows.AsNoTracking()
+            .Where(value => value.BatchId == batchId)
+            .ToListAsync();
+        return rows.ToDictionary(
+            value => value.Id,
+            value => (value.SelectedForImport, value.EditableExpenseDescription, value.Category));
+    }
+
+    private static async Task SetStoredSelectionAsync(
+        PostgreSqlImportPreviewTestApplication app,
+        Guid batchId,
+        bool selected)
+    {
+        using var scope = app.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<BudgetContext>();
+        await context.ImportPreviewRows.Where(value => value.BatchId == batchId)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(
+                value => value.SelectedForImport,
+                selected));
+    }
+
+    // The application has no exception handler, so the test server either surfaces the database
+    // failure to the caller or answers 500. Either way the request must have failed on the
+    // intentional trigger rejection and not for another reason.
+    private static async Task AssertSelectionRequestFailsOnTheServerAsync(
+        Func<Task<HttpResponseMessage>> send)
+    {
+        HttpStatusCode? status = null;
+        Exception? thrown = null;
+        try
+        {
+            using var response = await send();
+            status = response.StatusCode;
+        }
+        catch (Exception exception)
+        {
+            thrown = exception;
+        }
+
+        if (thrown is null)
+        {
+            Assert.Equal(HttpStatusCode.InternalServerError, status);
+            return;
+        }
+
+        var postgres = Assert.IsType<PostgresException>(thrown.GetBaseException());
+        Assert.Contains("intentional disposable-test selection rejection", postgres.MessageText);
     }
 
     private static DateOnly[] RecentCommitmentDates()

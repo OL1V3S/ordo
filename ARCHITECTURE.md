@@ -244,7 +244,7 @@ Statement import is a shipped capability with one supported source,
 `sunflower_pdf` (text-extractable Sunflower Bank PDF statements). The
 authenticated, owner-scoped `/api/import-previews` endpoints upload a statement,
 return the open preview, read a preview, edit a row's selection and eligible
-fields, and confirm the preview. The Activity page's import review consumes
+fields (or several rows' selection at once), and confirm the preview. The Activity page's import review consumes
 these endpoints through the `importPreview` frontend feature. The private,
 contained PDF text extractor remains infrastructure behind that flow and is not
 exposed by any endpoint of its own. A parsed preview is stored as normalized
