@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import ImportPreviewPanel from './ImportPreviewPanel'
@@ -234,6 +234,28 @@ describe('import preview in Spanish', () => {
 
     rerender(<ImportPreviewPanel importState={importState()} externalLocked />)
     expect(screen.getByText('Termina el depósito que estás editando antes de cambiar el estado de cuenta.')).toBeInTheDocument()
+  })
+
+  it('announces one bulk request in Spanish and keeps the uncertain-outcome guidance distinct', async () => {
+    const user = userEvent.setup()
+    let finish
+    const bulkSelection = vi.fn(() => new Promise((resolve) => { finish = resolve }))
+    const preview = previewWith([expenseRow, { ...expenseRow, rowId: 'row-3', sourceRowOrdinal: 3, selectedForImport: false }])
+    const { rerender } = render(<ImportPreviewPanel importState={importState({ preview, bulkSelection })} />)
+
+    await user.click(screen.getByRole('button', { name: /^Borrar selección/ }))
+    expect(screen.getByText('Borrando la selección de 1 fila…')).toBeInTheDocument()
+    expect(bulkSelection).toHaveBeenCalledWith('clear', ['row-1'])
+    await act(async () => { finish({ status: 'done', count: 1, changedRowIds: ['row-1'] }) })
+    expect(screen.getByText('Se borró la selección de 1 fila.')).toBeInTheDocument()
+
+    rerender(<ImportPreviewPanel importState={importState({
+      preview,
+      bulkSelection,
+      confirmationIssue: { code: 'selection_uncertain', message: 'Mensaje.', rows: [], requiresPreviewRefresh: true },
+    })} />)
+    expect(screen.getByText('Actualiza la página para ver lo que está guardado antes de importar.')).toBeInTheDocument()
+    expect(screen.queryByText('Actualiza la página para ver la revisión de duplicados más reciente antes de importar.')).not.toBeInTheDocument()
   })
 
   it('renders the completion summary in Spanish, including already-imported statements', () => {
