@@ -49,6 +49,7 @@
 .paycheck-evidence__row span { color: var(--color-text-muted); font-size: var(--text-sm); }
 .paycheck-evidence__row > strong { min-width: 0; flex: 0 1 auto; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .paycheck-evidence__row .paycheck-evidence__edited { color: var(--color-text); font-weight: var(--weight-bold); }
+.paycheck-suggestion__reasons { display: grid; gap: var(--space-1); margin: 0; padding-inline-start: var(--space-4); font-size: var(--text-sm); }
 .paycheck-schedule-note { margin: 0; font-size: var(--text-sm); }
 .paycheck-receipt { display: grid; gap: var(--space-3); margin-top: var(--space-3); padding-top: var(--space-3); border-top: 1px solid var(--color-divider); }
 .paycheck-receipt fieldset { display: grid; gap: var(--space-2); margin: 0; padding: 0; border: 0; }

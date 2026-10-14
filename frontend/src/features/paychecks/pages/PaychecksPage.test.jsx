@@ -5,6 +5,8 @@ import PaychecksPage from "./PaychecksPage";
 import "../../../shared/localization/i18n";
 import { paychecksApi } from "../api/paychecksApi";
 import { inflowsApi } from "../../inflows/api/inflowsApi";
+import { clearSession, establishSession } from "../../../shared/auth/session";
+import { dismissSuggestion, readDismissals, resetDismissalsForTests } from "../utils/suggestionDismissals";
 import { makeCandidate, makeCandidateResponse, makePaycheck, makePaychecksResponse } from "../test/paycheckFixtures";
 
 vi.mock("../api/paychecksApi", () => ({ paychecksApi: {
@@ -400,7 +402,8 @@ describe("Paychecks page", () => {
     expect(paychecksApi.recordReceipt).toHaveBeenCalledExactlyOnceWith(profile.id, {
       slotAnchor: "2026-08-10", existingInflowId: 201,
     });
-    expect(inflowsApi.getAll).toHaveBeenCalledTimes(1);
+    // Page load, the lazy panel read, and the refresh after the recorded link.
+    expect(inflowsApi.getAll).toHaveBeenCalledTimes(3);
   });
 
   it("requires explicit confirmation before removing only a recorded-receipt link", async () => {
@@ -675,5 +678,160 @@ describe("Paychecks page", () => {
     expect(screen.getByRole("button", { name: "Review and confirm: acme payroll" })).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Actions for acme payroll" }));
     expect(screen.getByRole("button", { name: "Dismiss: acme payroll" })).toBeVisible();
+  });
+});
+
+describe("Paycheck match suggestions", () => {
+  const b64 = (value) => btoa(JSON.stringify(value)).replace(/=+$/, "");
+  const token = `${b64({ alg: "HS256" })}.${b64({ "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier": "user-suggest" })}.sig`;
+  const session = { token, email: "owner@example.com" };
+  const deposit = (id, overrides = {}) => ({ id, description: `Payroll deposit ${id}`, amount: 2500, date: "2026-08-10", ...overrides });
+  const paycheck = () => makePaycheck({ evidence: [] });
+  const suggestionRegion = () => screen.getByRole("region", { name: "Deposits that may match a pay schedule" });
+  const dismissedKey = (id) => `${paycheck().id}|2026-08-10|${id}`;
+
+  beforeEach(() => {
+    localStorage.clear();
+    clearSession();
+    resetDismissalsForTests();
+    establishSession(token, "owner@example.com");
+    loadState({ paychecks: [paycheck()], candidates: [] });
+  });
+  afterEach(() => { localStorage.clear(); clearSession(); resetDismissalsForTests(); });
+
+  it("renders a match and its reasons without sending any write", async () => {
+    inflowsApi.getAll.mockResolvedValue(response([deposit(1)]));
+    await renderPage();
+    const region = suggestionRegion();
+    expect(within(region).getByRole("heading", { name: "Payroll deposit 1" })).toBeInTheDocument();
+    expect(within(region).getByText("May match Acme Payroll")).toBeInTheDocument();
+    expect(within(region).getByText(/equals the expected amount/)).toBeInTheDocument();
+    expect(within(region).getByText(/is within the expected dates/)).toBeInTheDocument();
+    expect(within(region).getByText(/Nothing is linked until you choose Link/)).toBeInTheDocument();
+    for (const method of ["recordReceipt", "confirmCandidate", "dismissCandidate", "createPaycheck", "updatePaycheck", "updateLifecycle", "removeReceipt"])
+      expect(paychecksApi[method]).not.toHaveBeenCalled();
+  });
+
+  it("is hidden when nothing matches, a deposit is outside the window, or the amount differs", async () => {
+    inflowsApi.getAll.mockResolvedValue(response([deposit(1, { date: "2026-08-20" }), deposit(2, { amount: 2500.01 })]));
+    await renderPage();
+    expect(screen.queryByRole("region", { name: "Deposits that may match a pay schedule" })).not.toBeInTheDocument();
+  });
+
+  it("shows nothing when two deposits fit the same slot, even if one was dismissed earlier", async () => {
+    dismissSuggestion(session, dismissedKey(2));
+    inflowsApi.getAll.mockResolvedValue(response([deposit(1), deposit(2)]));
+    await renderPage();
+    expect(screen.queryByRole("region", { name: "Deposits that may match a pay schedule" })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Dismissed matches/)).not.toBeInTheDocument();
+    expect(readDismissals(session).has(dismissedKey(2))).toBe(true);
+  });
+
+  it("links with exactly one POST from an explicit click, then the row disappears after the refresh", async () => {
+    const user = userEvent.setup();
+    const profile = paycheck();
+    inflowsApi.getAll.mockResolvedValue(response([deposit(1)]));
+    await renderPage();
+    const linked = makePaycheck({ evidence: [{ ...makePaycheck().evidence[0], accountInflowId: 1, assignmentKind: "recorded_receipt" }],
+      receiptSlots: makePaycheck().receiptSlots.slice(1) });
+    paychecksApi.recordReceipt.mockImplementation(async () => {
+      loadState({ paychecks: [linked], candidates: [] });
+      return response({ paycheck: linked, alreadyRecorded: false });
+    });
+    await user.click(screen.getByRole("button", { name: "Link to Acme Payroll: Payroll deposit 1 · Aug 10, 2026" }));
+    expect(paychecksApi.recordReceipt).toHaveBeenCalledExactlyOnceWith(profile.id, { slotAnchor: "2026-08-10", existingInflowId: 1 });
+    await waitFor(() => expect(screen.queryByRole("button", { name: /^Link to Acme Payroll/ })).not.toBeInTheDocument());
+    expect(paychecksApi.recordReceipt).toHaveBeenCalledTimes(1);
+  });
+
+  it("dismisses without any API call, lists it under Dismissed matches, and shows it again", async () => {
+    const user = userEvent.setup();
+    inflowsApi.getAll.mockResolvedValue(response([deposit(1)]));
+    await renderPage();
+    await user.click(screen.getByRole("button", { name: "Actions for Payroll deposit 1" }));
+    await user.click(screen.getByRole("button", { name: "Dismiss match for Payroll deposit 1 · Aug 10, 2026" }));
+    expect(paychecksApi.recordReceipt).not.toHaveBeenCalled();
+    expect(readDismissals(session).has(dismissedKey(1))).toBe(true);
+    expect(JSON.stringify([...Object.entries(localStorage)])).not.toContain("Payroll");
+    await waitFor(() => expect(screen.getByRole("heading", { level: 2, name: "Deposits that may match a pay schedule" })).toHaveFocus());
+    expect(screen.queryByRole("button", { name: /^Link to Acme Payroll/ })).not.toBeInTheDocument();
+    const region = suggestionRegion();
+    expect(within(region).getByRole("heading", { level: 2, name: /^Dismissed matches \(1\)$/ })).toBeInTheDocument();
+    await user.click(within(region).getByRole("button", { name: "Show again: Payroll deposit 1 · Aug 10, 2026" }));
+    expect(readDismissals(session).size).toBe(0);
+    expect(await screen.findByRole("button", { name: /^Link to Acme Payroll/ })).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole("heading", { level: 2, name: "Deposits that may match a pay schedule" })).toHaveFocus());
+    expect(paychecksApi.recordReceipt).not.toHaveBeenCalled();
+  });
+
+  it("keeps a dismissed match hidden after a reload and prunes only dismissals that no longer apply", async () => {
+    dismissSuggestion(session, dismissedKey(1));
+    dismissSuggestion(session, dismissedKey(99));
+    dismissSuggestion(session, `missing-schedule|2026-08-10|1`);
+    dismissSuggestion(session, `${paycheck().id}|2026-01-10|1`);
+    inflowsApi.getAll.mockResolvedValue(response([deposit(1)]));
+    await renderPage();
+    expect(screen.queryByRole("button", { name: /^Link to Acme Payroll/ })).not.toBeInTheDocument();
+    await waitFor(() => expect([...readDismissals(session)]).toEqual([dismissedKey(1)]));
+  });
+
+  it("does not prune dismissals when the deposits read failed", async () => {
+    dismissSuggestion(session, dismissedKey(99));
+    inflowsApi.getAll.mockRejectedValue(new Error("network"));
+    await renderPage();
+    expect(readDismissals(session).has(dismissedKey(99))).toBe(true);
+  });
+
+  it("shows a quiet message when only the deposits read fails while the rest of the page works", async () => {
+    inflowsApi.getAll.mockRejectedValue(new Error("network"));
+    await renderPage();
+    expect(screen.getByText(/couldn’t check your deposits for matches/)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Acme Payroll" })).toBeInTheDocument();
+    expect(screen.queryByText(/couldn’t load your paychecks/)).not.toBeInTheDocument();
+  });
+
+  it("disables Link and Dismiss while a receipt panel is open", async () => {
+    const user = userEvent.setup();
+    inflowsApi.getAll.mockResolvedValue(response([deposit(1)]));
+    await renderPage();
+    expect(screen.getByRole("button", { name: /^Link to Acme Payroll/ })).toBeEnabled();
+    await user.click(screen.getByRole("button", { name: "Link a deposit to Acme Payroll" }));
+    expect(screen.getByRole("button", { name: /^Link to Acme Payroll/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Actions for Payroll deposit 1" })).toBeDisabled();
+  });
+
+  it("disables Link while a write is saving and after an uncertain link until a refresh", async () => {
+    const user = userEvent.setup();
+    inflowsApi.getAll.mockResolvedValue(response([deposit(1)]));
+    paychecksApi.recordReceipt.mockRejectedValue(new Error("network"));
+    await renderPage();
+    await user.click(screen.getByRole("button", { name: /^Link to Acme Payroll/ }));
+    expect(await screen.findByText(/couldn’t confirm/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Link to Acme Payroll/ })).toBeDisabled();
+    expect(paychecksApi.recordReceipt).toHaveBeenCalledTimes(1);
+  });
+
+  it("refreshes after a 409 conflict and drops a match whose slot is no longer open", async () => {
+    const user = userEvent.setup();
+    inflowsApi.getAll.mockResolvedValue(response([deposit(1)]));
+    paychecksApi.recordReceipt.mockRejectedValue({ response: { status: 409, data: { code: "receipt_conflict" } } });
+    await renderPage();
+    const taken = makePaycheck({ evidence: [], receiptSlots: makePaycheck().receiptSlots.slice(1) });
+    loadState({ paychecks: [taken], candidates: [] });
+    await user.click(screen.getByRole("button", { name: /^Link to Acme Payroll/ }));
+    await waitFor(() => expect(screen.queryByRole("button", { name: /^Link to Acme Payroll/ })).not.toBeInTheDocument());
+    expect(paychecksApi.getPaychecks.mock.calls.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("can suggest a deposit that is also evidence of a possible paycheck without touching the candidate", async () => {
+    const user = userEvent.setup();
+    loadState({ paychecks: [paycheck()], candidates: [makeCandidate()] });
+    inflowsApi.getAll.mockResolvedValue(response([deposit(103)]));
+    await renderPage();
+    expect(screen.getByRole("heading", { name: "Possible paychecks" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /^Link to Acme Payroll/ }));
+    expect(paychecksApi.recordReceipt).toHaveBeenCalledExactlyOnceWith(paycheck().id, { slotAnchor: "2026-08-10", existingInflowId: 103 });
+    expect(paychecksApi.confirmCandidate).not.toHaveBeenCalled();
+    expect(paychecksApi.dismissCandidate).not.toHaveBeenCalled();
   });
 });

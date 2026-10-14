@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, Plus, WalletCards } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useLocale } from "../../../shared/localization/useLocale";
@@ -15,6 +15,8 @@ import InflowForm from "../../inflows/components/InflowForm";
 import { inflowsApi } from "../../inflows/api/inflowsApi";
 import { initialInflowDraft, validateInflow } from "../../inflows/utils/inflowForm";
 import { isCalendarDate, isUnsafeNumericAmount, parseAmount } from "../utils/paycheckForm";
+import { computeSuggestions } from "../utils/paycheckSuggestions";
+import { parseDismissal, useSuggestionDismissals } from "../utils/suggestionDismissals";
 import "../../../styles/inflows.css";
 
 const LIFECYCLES = ["active", "paused", "ended"];
@@ -249,6 +251,38 @@ function ProfileRow({ profile, evaluatedOn, busy, actionsDisabled, receiptSubmit
   );
 }
 
+function SuggestionRow({ suggestion, dismissed, disabled, onLink, onDismiss, onRestore }) {
+  const { t } = useTranslation("paychecks");
+  const { locale } = useLocale();
+  const { inflow, profile, slot } = suggestion;
+  const deposit = `${inflow.description} · ${formatDate(inflow.date, t, locale)}`;
+  const amount = profile.amount;
+  const actions = dismissed ? (
+    <button type="button" disabled={disabled} onClick={() => onRestore(suggestion)} aria-label={t("suggestions.showAgainLabel", { deposit })}>{t("suggestions.showAgain")}</button>
+  ) : <>
+    <button type="button" disabled={disabled} onClick={() => onLink(suggestion)} aria-label={t("suggestions.linkLabel", { name: profile.displayName, deposit })}>{t("suggestions.link", { name: profile.displayName })}</button>
+    <RowActionsMenu triggerLabel={t("actions.menuLabel", { name: inflow.description })} items={[
+      { key: "dismiss", label: t("suggestions.dismissLabel", { deposit }), text: t("suggestions.dismiss"), className: "button-ghost", disabled, onSelect: () => onDismiss(suggestion) },
+    ]} />
+  </>;
+  return (
+    <ListRow className={`paycheck-row paycheck-row--suggestion${dismissed ? " paycheck-row--dismissed" : ""}`} titleAs="h3" title={inflow.description}
+      meta={<>
+        <span>{formatDate(inflow.date, t, locale)}</span>
+        <span>{t("suggestions.match", { name: profile.displayName })}</span>
+      </>}
+      amount={<strong className="paycheck-row__amount">{formatMoney(inflow.amount, t, locale)}</strong>}
+      actions={actions}>
+      <ul className="muted paycheck-suggestion__reasons">
+        <li>{t("suggestions.dateReason", { date: formatDate(inflow.date, t, locale), from: formatDate(slot.earliestExpectedDate, t, locale), to: formatDate(slot.latestExpectedDate, t, locale) })}</li>
+        <li>{amount?.mode === "fixed"
+          ? t("suggestions.amountFixedReason", { amount: formatMoney(inflow.amount, t, locale) })
+          : t("suggestions.amountRangeReason", { amount: formatMoney(inflow.amount, t, locale), minimum: formatMoney(amount?.minimumAmount, t, locale), maximum: formatMoney(amount?.maximumAmount, t, locale) })}</li>
+      </ul>
+    </ListRow>
+  );
+}
+
 function HistoryDisclosure({ headingId, panelId, lockNoteId, title, count, open, locked = false, onToggle, children }) {
   return (
     <section className="paycheck-history" aria-labelledby={headingId}>
@@ -275,6 +309,9 @@ export default function PaychecksPage() {
   const profilesHeading = useRef(null);
   const candidatesHeading = useRef(null);
   const feedback = useRef(null);
+  const suggestionsHeading = useRef(null);
+  const { dismissed, dismiss, restore, prune } = useSuggestionDismissals();
+  const [suggestionsDismissedOpen, setSuggestionsDismissedOpen] = useState(false);
   const busy = Boolean(state.busyKey) || state.loading || state.refreshing;
   const actionsDisabled = busy || Boolean(editor) || endingTarget !== null || receiptTarget !== null || state.uncertainReceipt;
   const hasContent = state.paychecks.length + state.candidates.length + state.dismissedCandidates.length > 0;
@@ -285,6 +322,26 @@ export default function PaychecksPage() {
     // the profile or moves it to another group; same-card refreshes keep it open.
     if (endingTarget && !state.paychecks.some((profile) => profile.id === endingTarget.id && profile.lifecycle === endingTarget.lifecycle)) setEndingTarget(null);
   }, [endingTarget, state.paychecks]);
+
+  // Ambiguity is decided before dismissals are applied, so dismissing one match never promotes another.
+  const suggestions = useMemo(() => state.suggestionsUnavailable ? []
+    : computeSuggestions({ inflows: state.inflows, paychecks: state.paychecks }), [state.inflows, state.paychecks, state.suggestionsUnavailable]);
+  const visibleSuggestions = suggestions.filter((suggestion) => !dismissed.has(suggestion.key));
+  const dismissedSuggestions = suggestions.filter((suggestion) => dismissed.has(suggestion.key));
+
+  useEffect(() => {
+    // Prune only after every read succeeded together. A dismissal goes only when its deposit, its
+    // active schedule or its slot no longer exists; a match merely hidden by ambiguity is kept.
+    if (state.suggestionsReadId === 0) return;
+    const depositIds = new Set(state.inflows.map((inflow) => String(inflow.id)));
+    prune((value) => {
+      const { profileId, slotAnchor, inflowId } = parseDismissal(value);
+      const profile = state.paychecks.find((candidate) => String(candidate.id) === profileId);
+      return depositIds.has(inflowId) && profile?.lifecycle === "active"
+        && Array.isArray(profile.receiptSlots) && profile.receiptSlots.some((slot) => slot.anchor === slotAnchor);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.suggestionsReadId]);
 
   function focus(ref) {
     requestAnimationFrame(() => ref.current?.focus());
@@ -342,6 +399,21 @@ export default function PaychecksPage() {
     // subsequent End confirmation opened after the lifecycle read completes.
     (result?.ok ? profilesHeading : feedback).current?.focus();
     return result;
+  }
+
+  function linkSuggestion(suggestion) {
+    return submit(() => state.recordReceipt(suggestion.profile.id, { slotAnchor: suggestion.slot.anchor, existingInflowId: Number(suggestion.inflow.id) }));
+  }
+
+  function dismissSuggestion(suggestion) {
+    dismiss(suggestion.key);
+    setSuggestionsDismissedOpen(true);
+    focus(suggestionsHeading);
+  }
+
+  function restoreSuggestion(suggestion) {
+    restore(suggestion.key);
+    focus(suggestionsHeading);
   }
 
   function setHistory(kind, open) {
@@ -409,6 +481,23 @@ export default function PaychecksPage() {
               <div role="group" aria-label={t("groups.active")}><ul className="paycheck-rows">{activeProfiles.map(profileRow)}</ul></div>
             )}
           </section>
+
+          {(visibleSuggestions.length > 0 || dismissedSuggestions.length > 0 || state.suggestionsUnavailable) && (
+            <section className="paycheck-section" aria-labelledby="paycheck-suggestions-heading">
+              <SectionHeader id="paycheck-suggestions-heading" headingRef={suggestionsHeading} focusable title={t("suggestions.heading")} />
+              {state.suggestionsUnavailable ? <p className="muted">{t("suggestions.unavailable")}</p> : <>
+                <p className="muted">{t("suggestions.intro")}</p>
+                {visibleSuggestions.length > 0 && <ul className="paycheck-rows">{visibleSuggestions.map((suggestion) => <SuggestionRow key={suggestion.key} suggestion={suggestion} disabled={actionsDisabled} onLink={linkSuggestion} onDismiss={dismissSuggestion} onRestore={restoreSuggestion} />)}</ul>}
+                {dismissedSuggestions.length > 0 && (
+                  <HistoryDisclosure headingId="paycheck-suggestions-dismissed-heading" panelId="paycheck-suggestions-dismissed-panel" lockNoteId="paycheck-suggestions-dismissed-lock-note"
+                    title={t("suggestions.dismissedHeading")} count={dismissedSuggestions.length} open={suggestionsDismissedOpen} onToggle={() => setSuggestionsDismissedOpen((open) => !open)}>
+                    <p className="muted">{t("suggestions.dismissedIntro")}</p>
+                    <ul className="paycheck-rows">{dismissedSuggestions.map((suggestion) => <SuggestionRow key={suggestion.key} suggestion={suggestion} dismissed disabled={actionsDisabled} onLink={linkSuggestion} onDismiss={dismissSuggestion} onRestore={restoreSuggestion} />)}</ul>
+                  </HistoryDisclosure>
+                )}
+              </>}
+            </section>
+          )}
 
           <section className="paycheck-section" aria-labelledby="paycheck-candidates-heading">
             <SectionHeader id="paycheck-candidates-heading" headingRef={candidatesHeading} focusable title={t("candidates.heading")} action={state.candidates.length > 0 ? <span className="paycheck-count">{t("candidates.toReview", { total: state.candidates.length })}</span> : null} />
