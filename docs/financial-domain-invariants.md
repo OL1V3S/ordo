@@ -388,6 +388,23 @@ category strings are still matched exactly. A budget family failure must not
 hide valid commitment-change attention, and vice versa.
 The full response contract is documented in [`home-read-model.md`](home-read-model.md).
 
+## Paycheck matching suggestions
+
+The Paychecks page may suggest that an unlinked deposit matches an open receipt
+slot of an active pay schedule (`paycheck-match-v1`, computed in the frontend
+from `GET /api/paychecks` and `GET /api/inflows`). A suggestion is advisory: it
+is never persisted, never links automatically, and changes no total, net flow,
+or Confirmed paychecks / Other deposits partition until the user chooses Link,
+which uses the existing receipt write. A match needs the deposit date inside the
+slot's expected window (inclusive, plain calendar strings) and the amount equal
+to a fixed amount in cents or inside an inclusive range, with no tolerance and no
+description check. Deposits already linked to any schedule, paused or ended
+schedules, and ambiguous matches (a deposit fitting several slots or a slot
+fitting several deposits, evaluated before dismissals) yield nothing. Dismissals
+are stored per account in browser storage on that device only, under an opaque
+key, as IDs and a date; they are not synced and not cleared on logout. The
+backend does not check that a linked deposit's date or amount fits the slot.
+
 ## Ownership and API boundary
 
 Financial ownership comes exclusively from authenticated identity claims.

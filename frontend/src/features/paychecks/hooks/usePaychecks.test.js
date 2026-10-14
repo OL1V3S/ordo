@@ -1,6 +1,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import "../../../shared/localization/i18n";
+import { inflowsApi } from "../../inflows/api/inflowsApi";
 import { paychecksApi } from "../api/paychecksApi";
 import { getPaycheckErrorMessage, usePaychecks } from "./usePaychecks";
 
@@ -9,6 +10,8 @@ vi.mock("../api/paychecksApi", () => ({ paychecksApi: {
   dismissCandidate: vi.fn(), reconsiderCandidate: vi.fn(), createPaycheck: vi.fn(),
   updatePaycheck: vi.fn(), updateLifecycle: vi.fn(), recordReceipt: vi.fn(), removeReceipt: vi.fn(),
 } }));
+
+vi.mock("../../inflows/api/inflowsApi", () => ({ inflowsApi: { getAll: vi.fn() } }));
 
 const candidateData = {
   evaluatedOn: "2026-09-05", candidates: [{ fingerprint: "z" }, { fingerprint: "a" }],
@@ -34,6 +37,7 @@ describe("paycheck state", () => {
     vi.resetAllMocks();
     paychecksApi.getCandidates.mockResolvedValue({ data: candidateData });
     paychecksApi.getPaychecks.mockResolvedValue({ data: profileData });
+    inflowsApi.getAll.mockResolvedValue({ data: [{ id: 1 }] });
     for (const method of ["confirmCandidate", "dismissCandidate", "reconsiderCandidate", "createPaycheck", "updatePaycheck", "updateLifecycle", "recordReceipt", "removeReceipt"])
       paychecksApi[method].mockResolvedValue({ data: { id: "saved" } });
   });
@@ -91,6 +95,58 @@ describe("paycheck state", () => {
     expect(result.current.candidates).toEqual(candidateData.candidates);
     expect(result.current.paychecks).toEqual(profileData.paychecks);
     expect(result.current.loadError).toContain("out of date");
+  });
+
+  it("loads deposits with the same read and refreshes them after a write", async () => {
+    const { result } = await ready();
+    expect(result.current.inflows).toEqual([{ id: 1 }]);
+    expect(result.current.suggestionsUnavailable).toBe(false);
+    const firstRead = result.current.suggestionsReadId;
+    inflowsApi.getAll.mockResolvedValueOnce({ data: [{ id: 2 }] });
+    await act(() => result.current.recordReceipt("profile", { slotAnchor: "2026-08-10", existingInflowId: 1 }));
+    expect(inflowsApi.getAll).toHaveBeenCalledTimes(2);
+    expect(result.current.inflows).toEqual([{ id: 2 }]);
+    expect(result.current.suggestionsReadId).toBeGreaterThan(firstRead);
+  });
+
+  it("keeps the page working when only the deposits read fails", async () => {
+    inflowsApi.getAll.mockRejectedValueOnce(serverError(500, "private"));
+    const { result } = await ready();
+    expect(result.current.loadError).toBeNull();
+    expect(result.current.paychecks).toEqual(profileData.paychecks);
+    expect(result.current.candidates).toEqual(candidateData.candidates);
+    expect(result.current.suggestionsUnavailable).toBe(true);
+    expect(result.current.inflows).toEqual([]);
+    expect(result.current.suggestionsReadId).toBe(0);
+  });
+
+  it("drops older deposits when a refresh cannot read them, and recovers on the next read", async () => {
+    const { result } = await ready();
+    inflowsApi.getAll.mockRejectedValueOnce(new Error("network"));
+    await act(() => result.current.refresh());
+    expect(result.current.inflows).toEqual([]);
+    expect(result.current.suggestionsUnavailable).toBe(true);
+    await act(() => result.current.refresh());
+    expect(result.current.inflows).toEqual([{ id: 1 }]);
+    expect(result.current.suggestionsUnavailable).toBe(false);
+  });
+
+  it("treats a malformed deposits payload as unavailable", async () => {
+    inflowsApi.getAll.mockResolvedValueOnce({ data: { not: "a list" } });
+    const { result } = await ready();
+    expect(result.current.suggestionsUnavailable).toBe(true);
+  });
+
+  it("ignores a stale deposits read that finishes after a newer refresh", async () => {
+    const { result } = await ready();
+    const old = deferred();
+    inflowsApi.getAll.mockReturnValueOnce(old.promise);
+    let first;
+    act(() => { first = result.current.refresh(); });
+    inflowsApi.getAll.mockResolvedValueOnce({ data: [{ id: 9 }] });
+    await act(() => result.current.refresh());
+    await act(async () => { old.resolve({ data: [{ id: 5 }] }); await first; });
+    expect(result.current.inflows).toEqual([{ id: 9 }]);
   });
 
   it("ignores older successful and failed reads when a newer refresh wins", async () => {

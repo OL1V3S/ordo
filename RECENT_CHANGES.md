@@ -24,6 +24,13 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-14 — Paycheck matching suggestions on the Paychecks page
+
+[PR #244](https://github.com/OL1V3S/ordo/pull/244) · [Issue #243](https://github.com/OL1V3S/ordo/issues/243)
+
+- The Paychecks page now lists deposits that may match an open slot of an active pay schedule, when the date is inside the expected window and the amount equals the fixed amount or falls in the range. Nothing is linked until you choose "Link to ..."; ambiguous matches are not shown.
+- "Dismiss match" hides a suggestion on this device only (stored in the browser, not synced); "Dismissed matches" lets you show it again. Frontend only: no schema, API, or automatic linking change.
+
 ### 2026-10-14 — Select all and Clear selection send one request in statement import review
 
 [PR #242](https://github.com/OL1V3S/ordo/pull/242) ·
@@ -175,11 +182,3 @@ the permanent, complete archive.
 
 - Activity is now one list plus one "Current task" area and a status area; the Spending and Cash in sections, Records toggles, expense filters and cash search are gone, and Edit/Delete moved into a "..." menu on each timeline row.
 - Full read-only expense and cash-in tables appear only for Home recovery, unconfirmed saves and a failed timeline; write payloads, recovery and import are unchanged.
-
-### 2026-10-09 — Plan hub
-
-[PR #206](https://github.com/OL1V3S/ordo/pull/206) ·
-[Issue #205](https://github.com/OL1V3S/ordo/issues/205)
-
-- Plan now opens on Budgets, and a Budgets / Commitments / Paychecks switcher at the top of each planning page moves between them; each page keeps its own address.
-- Replaced the Plan link list and the compact back-to-Plan link; `/plan` now performs the Budgets page's existing reads.

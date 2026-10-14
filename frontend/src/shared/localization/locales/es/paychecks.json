@@ -30,6 +30,23 @@
     "emptyNoActive": "No hay calendarios de nómina activos",
     "emptyBody": "Revisa un posible pago de nómina más abajo o agrega un calendario de nómina manualmente. Un depósito por sí solo no es un pago de nómina confirmado."
   },
+  "suggestions": {
+    "heading": "Depósitos que podrían coincidir con un calendario de nómina",
+    "intro": "No se vincula nada hasta que elijas Vincular. Descartar oculta una coincidencia solo en este dispositivo.",
+    "unavailable": "No pudimos revisar tus depósitos para buscar coincidencias. El resto de esta página sigue funcionando.",
+    "match": "Podría coincidir con {{name}}",
+    "dateReason": "La fecha del depósito, {{date}}, está dentro de las fechas esperadas, {{from}}–{{to}}.",
+    "amountFixedReason": "El monto, {{amount}}, es igual al monto esperado.",
+    "amountRangeReason": "El monto, {{amount}}, está dentro del rango esperado, {{minimum}}–{{maximum}}.",
+    "link": "Vincular a {{name}}",
+    "linkLabel": "Vincular a {{name}}: {{deposit}}",
+    "dismiss": "Descartar coincidencia",
+    "dismissLabel": "Descartar coincidencia de {{deposit}}",
+    "dismissedHeading": "Coincidencias descartadas",
+    "dismissedIntro": "Estas coincidencias están ocultas solo en este dispositivo. Muestra una de nuevo para recuperarla.",
+    "showAgain": "Mostrar de nuevo",
+    "showAgainLabel": "Mostrar de nuevo: {{deposit}}"
+  },
   "candidates": {
     "heading": "Posibles pagos de nómina",
     "intro": "Revisa los depósitos antes de confirmar un calendario de nómina.",

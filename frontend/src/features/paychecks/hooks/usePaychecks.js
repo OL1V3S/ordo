@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { inflowsApi } from "../../inflows/api/inflowsApi";
 import { paychecksApi } from "../api/paychecksApi";
 import { englishT } from "../utils/formatPaychecks";
 
@@ -39,6 +40,11 @@ export function usePaychecks() {
   const [paychecks, setPaychecks] = useState([]);
   const [candidatesEvaluatedOn, setCandidatesEvaluatedOn] = useState(null);
   const [paychecksEvaluatedOn, setPaychecksEvaluatedOn] = useState(null);
+  // Deposits feed advisory match suggestions only. Their read fails independently so the rest of
+  // the page keeps working; `suggestionsReadId` advances only after every read succeeded together.
+  const [inflows, setInflows] = useState([]);
+  const [suggestionsUnavailable, setSuggestionsUnavailable] = useState(false);
+  const [suggestionsReadId, setSuggestionsReadId] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState(null);
@@ -63,8 +69,12 @@ export function usePaychecks() {
     else setLoading(true);
     setLoadError(null);
     try {
-      const [candidateResponse, paycheckResponse] = await Promise.all([
+      const [candidateResponse, paycheckResponse, inflowResult] = await Promise.all([
         paychecksApi.getCandidates(), paychecksApi.getPaychecks(),
+        inflowsApi.getAll().then(
+          (response) => Array.isArray(response?.data) ? { ok: true, data: response.data } : { ok: false },
+          () => ({ ok: false }),
+        ),
       ]);
       if (!current()) return false;
       setCandidates(candidateResponse.data.candidates);
@@ -72,6 +82,10 @@ export function usePaychecks() {
       setCandidatesEvaluatedOn(candidateResponse.data.evaluatedOn);
       setPaychecks(paycheckResponse.data.paychecks);
       setPaychecksEvaluatedOn(paycheckResponse.data.evaluatedOn);
+      // Never pair fresh schedules with deposits from an older read.
+      setInflows(inflowResult.ok ? inflowResult.data : []);
+      setSuggestionsUnavailable(!inflowResult.ok);
+      if (inflowResult.ok) setSuggestionsReadId((value) => value + 1);
       if (uncertainCreateRef.current) {
         uncertainCreateRef.current = false;
         setUncertainCreate(false);
@@ -181,7 +195,7 @@ export function usePaychecks() {
   }, []);
 
   return {
-    candidates, dismissedCandidates, paychecks, candidatesEvaluatedOn, paychecksEvaluatedOn,
+    candidates, dismissedCandidates, paychecks, inflows, suggestionsUnavailable, suggestionsReadId, candidatesEvaluatedOn, paychecksEvaluatedOn,
     loading, refreshing, loadError: loadError && t(loadError), actionError: actionError && t(actionError),
     notice: notice && t(notice), busyKey, uncertainCreate, uncertainReceipt,
     refresh, clearMessages, acknowledgeUncertainCreate,

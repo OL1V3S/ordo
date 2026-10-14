@@ -30,6 +30,23 @@
     "emptyNoActive": "No active pay schedules",
     "emptyBody": "Review a possible paycheck below or add a pay schedule manually. A deposit alone is not a confirmed paycheck."
   },
+  "suggestions": {
+    "heading": "Deposits that may match a pay schedule",
+    "intro": "Nothing is linked until you choose Link. Dismissing hides a match on this device only.",
+    "unavailable": "We couldn’t check your deposits for matches. The rest of this page still works.",
+    "match": "May match {{name}}",
+    "dateReason": "The deposit date, {{date}}, is within the expected dates, {{from}}–{{to}}.",
+    "amountFixedReason": "The amount, {{amount}}, equals the expected amount.",
+    "amountRangeReason": "The amount, {{amount}}, is within the expected range, {{minimum}}–{{maximum}}.",
+    "link": "Link to {{name}}",
+    "linkLabel": "Link to {{name}}: {{deposit}}",
+    "dismiss": "Dismiss match",
+    "dismissLabel": "Dismiss match for {{deposit}}",
+    "dismissedHeading": "Dismissed matches",
+    "dismissedIntro": "These matches are hidden on this device only. Show one again to bring it back.",
+    "showAgain": "Show again",
+    "showAgainLabel": "Show again: {{deposit}}"
+  },
   "candidates": {
     "heading": "Possible paychecks",
     "intro": "Review the deposits before confirming a pay schedule.",

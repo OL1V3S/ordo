@@ -41,6 +41,15 @@ afterEach(async () => {
 });
 
 describe("Paychecks page in Spanish", () => {
+  it("shows paycheck match suggestions in Spanish without linking anything", async () => {
+    inflowsApi.getAll.mockResolvedValue(response([{ id: 1, description: "Payroll deposit 1", amount: 2500, date: "2026-08-10" }]));
+    await renderPage();
+    expect(await screen.findByRole("heading", { level: 2, name: "Depósitos que podrían coincidir con un calendario de nómina" })).toBeInTheDocument();
+    expect(screen.getByText("Podría coincidir con Acme Payroll")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Vincular a Acme Payroll/ })).toBeEnabled();
+    expect(paychecksApi.recordReceipt).not.toHaveBeenCalled();
+  });
+
   it("renders profiles, candidates and groups in Spanish while keeping user data and formats", async () => {
     const paused = makePaycheck({ id: "22222222-2222-2222-2222-222222222222", displayName: "Paused pay", lifecycle: "paused" });
     const ended = makePaycheck({ id: "33333333-3333-3333-3333-333333333333", displayName: "Ended pay", lifecycle: "ended", nextProjection: null });
@@ -176,7 +185,7 @@ describe("Paychecks page in Spanish", () => {
     await user.type(screen.getByLabelText("Buscar depósitos"), "zzz");
     expect(screen.getByText("Ningún depósito guardado coincide.")).toBeInTheDocument();
     await user.clear(screen.getByLabelText("Buscar depósitos"));
-    await user.click(screen.getByLabelText(/Acme deposit/));
+    await user.click(screen.getByRole("radio", { name: /Acme deposit/ }));
     await user.click(screen.getByRole("button", { name: "Vincular este depósito" }));
     expect(paychecksApi.recordReceipt).toHaveBeenCalledExactlyOnceWith(profile.id, { slotAnchor: "2026-08-10", existingInflowId: 7 });
   });

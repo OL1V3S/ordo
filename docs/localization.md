@@ -294,6 +294,7 @@ In English, a paycheck is always `paycheck`, and a recurring outflow is always
 | Row (import) | Row | Fila | An unsaved line is not a transaction |
 | Paycheck | Paycheck | pago de nómina; navigation and page title: Nómina | Not an income claim |
 | Possible paycheck | Possible paycheck | Posible pago de nómina | Confirming it saves a pay schedule |
+| Paycheck match suggestion | Deposits that may match a pay schedule; May match {{name}}; Link to {{name}} | Depósitos que podrían coincidir con un calendario de nómina; Podría coincidir con {{name}}; Vincular a {{name}} | Advisory only; says "may match", never "confirmed" or "paycheck received"; nothing is linked until the user chooses Link; dismissal is device-local |
 | Link a deposit | Link a deposit (submit: Link this deposit) | Vincular un depósito (submit: Vincular este depósito) | Does not change the pay schedule |
 | How often | How often | Frecuencia | Stored cadence values unchanged |
 | Expected dates | Expected between {start} and {end} | Se espera entre el {start} y el {end} | Expected, not guaranteed |
