@@ -621,6 +621,54 @@ public sealed class SunflowerStatementParserTests
     }
 
     [Fact]
+    public async Task Positioned_whitespace_free_deposits_flow_through_extractor_as_credits()
+    {
+        SyntheticPdfBuilder.PositionedText[] page =
+        [
+            new(50, 760, "-SunflowerBank SYNTHETIC HEADER STATEMENTDATE:02/28/26"),
+            new(50, 744, "DaysinStatementPeriod:28"),
+            new(50, 730, "Deposits/Credits"),
+            new(50, 710, "Deposits"),
+            new(40, 694, "-"),
+            new(50, 694, "Posted"),
+            new(160, 694, "Description"),
+            new(520, 694, "Amount"),
+            new(50, 678, "02/03/26"),
+            new(160, 678, "SYNTHETICPAYROLL"),
+            new(506, 678, "2,450.00"),
+            new(50, 662, "02/10/26"),
+            new(160, 662, "SYNTHETICREFERENCE7"),
+            new(520, 662, "120.50"),
+            new(50, 630, "Electronic Transactions"),
+            new(50, 614, "Posted"),
+            new(160, 614, "Description"),
+            new(520, 614, "Amount"),
+            new(50, 598, "02/05/26"),
+            new(160, 598, "SYNTHETICUTILITY"),
+            new(520, 598, "75.25-"),
+            new(50, 40, "Page1of1")
+        ];
+        var pdf = SyntheticPdfBuilder.BuildPositioned(
+            new IReadOnlyList<SyntheticPdfBuilder.PositionedText>[] { page });
+        var extraction = await new ContainedPdfTextExtractor().ExtractAsync(pdf);
+        Assert.True(extraction.IsSuccess, extraction.Failure?.Code);
+        Assert.Contains(
+            "02/03/26SYNTHETICPAYROLL2,450.0002/10/26SYNTHETICREFERENCE7120.50",
+            extraction.Result!.Pages[0].Text,
+            StringComparison.Ordinal);
+
+        var parsed = new SunflowerStatementParser().Parse(extraction.Result!);
+
+        Assert.True(parsed.IsSuccess, parsed.Failure?.Code);
+        Assert.Collection(
+            parsed.Rows,
+            row => AssertRow(row, 1, 1, "deposits", new DateOnly(2026, 2, 3), "SYNTHETICPAYROLL", 2450.00m, ImportedTransactionDirection.Credit),
+            row => AssertRow(row, 2, 1, "deposits", new DateOnly(2026, 2, 10), "SYNTHETICREFERENCE7", 120.50m, ImportedTransactionDirection.Credit),
+            row => AssertRow(row, 3, 1, "electronic_transactions", new DateOnly(2026, 2, 5), "SYNTHETICUTILITY", 75.25m, ImportedTransactionDirection.Debit));
+        Assert.All(parsed.Rows.Take(2), row => Assert.Equal(ImportedRowClassification.NonExpense, row.Classification));
+    }
+
+    [Fact]
     public void Header_only_page_after_deposits_surfaces_money_free_rows_without_inheriting_the_section()
     {
         var result = new SunflowerStatementParser().Parse(MultiPageResult(

@@ -24,6 +24,14 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-15 — Deposit rows read from whitespace-free statements
+
+[Issue #250](https://github.com/OL1V3S/ordo/issues/250)
+
+- Statement deposits that the PDF text layer runs together without spaces are now read as individual rows in import review. Before, they collapsed into one unreadable line and the deposits were missing. Deposits stay unselected by default and nothing is saved automatically.
+- When a deposits line cannot be read with confidence, the review shows one unreadable line per dated entry instead of any amount, and a header-only page that continues a Deposits section is shown as unreadable lines instead of being skipped.
+- The Sunflower parser rule version is now `sunflower-v4`, so a statement previewed or confirmed under `v3` can be previewed again; row-level duplicate flags remain the protection against saving it twice. Backend only: no schema, API shape, frontend, or dependency change.
+
 ### 2026-10-15 — Unreadable statement lines collapsed in import review
 
 [PR #249](https://github.com/OL1V3S/ordo/pull/249) · [Issue #247](https://github.com/OL1V3S/ordo/issues/247)
@@ -172,11 +180,3 @@ the permanent, complete archive.
 
 - Paychecks now has one status area (including Loading), flat rows with one main action and a "..." actions menu, and collapsed Paused, Ended and Dismissed sections.
 - Paycheck lifecycle, candidate and receipt behavior, payloads and ordering are unchanged; "Expected, not guaranteed." stays next to each projection.
-
-### 2026-10-09 — Commitments declutter
-
-[PR #213](https://github.com/OL1V3S/ordo/pull/213) ·
-[Issue #212](https://github.com/OL1V3S/ordo/issues/212)
-
-- Commitments now has one status area, flat rows with one main action and a "..." actions menu, inline change-review decisions, and collapsed Paused, Ended, Reviewed and Dismissed sections.
-- Lifecycle, candidate and review behavior, payloads and ordering are unchanged. Shared rows and menus gained optional title-level, extra-content and item-list support.
