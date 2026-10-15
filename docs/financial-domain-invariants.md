@@ -405,6 +405,14 @@ are stored per account in browser storage on that device only, under an opaque
 key, as IDs and a date; they are not synced and not cleared on logout. The
 backend does not check that a linked deposit's date or amount fits the slot.
 
+Statement import review uses the same `paycheck-match-v1` for deposit rows that
+are not yet saved. It is still advisory: a suggestion is never persisted, rows
+with a possible-duplicate signal get none, and nothing is linked unless the user
+ticks "Link to ... when saved" for that row. A link is made only after the
+statement is saved, as a separate request through the existing receipt write
+(`existingInflowId`), so saving and linking are not atomic: if the link fails,
+the deposit stays saved and unlinked.
+
 ## Ownership and API boundary
 
 Financial ownership comes exclusively from authenticated identity claims.

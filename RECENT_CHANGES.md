@@ -24,6 +24,13 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-15 — Paycheck matches in statement import review
+
+[Issue #247](https://github.com/OL1V3S/ordo/issues/247) · PR link pending
+
+- Deposit rows in the statement review now show "May match {name}" when they fit an open slot of an active pay schedule (same `paycheck-match-v1` rules as the Paychecks page; ambiguous or possible-duplicate rows get none). English and Spanish.
+- "Link to {name} when saved" is off by default; ticking it also selects the deposit. After saving, the deposit is linked through the existing receipt write. Saving and linking are two requests, so a failed link leaves the deposit saved and unlinked, and the results list says which were linked. Frontend only: no schema, API, parser, or dependency change.
+
 ### 2026-10-14 — Account emails follow the selected language
 
 [PR #246](https://github.com/OL1V3S/ordo/pull/246) ·
@@ -174,11 +181,3 @@ the permanent, complete archive.
 
 - Budgets now has a month picker (previous, next, a month list and This month), flat category rows with a "..." Edit/Delete menu, and one status area that also holds Refresh limits and Retry spending.
 - Month values, write payloads, recovery gating, ordering, zero-limit and status behavior are unchanged.
-
-### 2026-10-09 — Home declutter
-
-[PR #209](https://github.com/OL1V3S/ordo/pull/209) ·
-[Issue #208](https://github.com/OL1V3S/ordo/issues/208)
-
-- Home drops its intro line and "Capture" heading, uses the shared section headers and rows, and shows each Coming Up item as a compact two-line row.
-- On phones a single "Add" button reveals Add expense and Add cash in; wider screens still show both buttons. Data, ordering, capture and recovery behavior are unchanged.

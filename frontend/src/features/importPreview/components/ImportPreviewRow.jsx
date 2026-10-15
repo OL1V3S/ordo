@@ -123,6 +123,9 @@ export default function ImportPreviewRow({
   onDraftChange,
   onSave,
   onSelectionChange,
+  paycheckSuggestion = null,
+  linkIntent = false,
+  onLinkChange = () => {},
 }) {
   const { t } = useTranslation("importPreview");
   const { locale } = useLocale();
@@ -162,6 +165,22 @@ export default function ImportPreviewRow({
         <p className="muted import-row-transaction__qualification">
           {t("row.qualification")}
         </p>
+      )}
+      {isInflow && paycheckSuggestion && (
+        <div className="import-paycheck-match">
+          <p className="import-paycheck-match__title">{t("row.paycheckMatch.may", { name: paycheckSuggestion.profile.displayName })}</p>
+          <label className="import-selection">
+            <input
+              type="checkbox"
+              aria-label={t("row.paycheckMatch.linkAria", { name: paycheckSuggestion.profile.displayName, row: rowContext })}
+              checked={linkIntent}
+              disabled={disabled || draft.pending}
+              onChange={(event) => onLinkChange(event.target.checked)}
+            />
+            <span>{t("row.paycheckMatch.link", { name: paycheckSuggestion.profile.displayName })}</span>
+          </label>
+          <p className="muted">{t("row.paycheckMatch.note")}</p>
+        </div>
       )}
       <details className="import-row-source-details">
         <summary aria-label={sourceDetailsLabel}>{t("row.sourceDetails.summary")}</summary>

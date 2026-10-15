@@ -9,10 +9,13 @@ import {
   bulkClearTargets,
   bulkSelectableExpenses,
   filterCounts,
+  isDepositSelected,
   rowMatchesFilter,
   selectedTotals,
+  snapshotSavedRows,
   summarize,
 } from "../utils/importReview";
+import { useImportPaycheckLinks } from "../hooks/useImportPaycheckLinks";
 import ImportConfirmBar from "./ImportConfirmBar";
 import ImportPreviewRow from "./ImportPreviewRow";
 import ImportResults from "./ImportResults";
@@ -39,6 +42,8 @@ function categoryFromDraft(draft) {
 }
 
 function isDraftDirty(draft, row) {
+  // Rows without expense fields (deposits) have nothing to edit, so they are never dirty.
+  if (!row.isEligible) return false;
   return draft.description.trim() !== (row.editableExpenseDescription ?? "")
     || categoryFromDraft(draft) !== (row.category ?? "");
 }
@@ -106,6 +111,7 @@ export default function ImportPreviewPanel({ importState, onImportConfirmed = as
   const [bulkRunning, setBulkRunning] = useState(false);
   const [bulkProgress, setBulkProgress] = useState(null);
   const [bulkOutcome, setBulkOutcome] = useState(null);
+  const links = useImportPaycheckLinks({ preview });
   const bulkRunningRef = useRef(false);
   const mountedRef = useRef(true);
   const latest = useRef(null);
@@ -265,6 +271,7 @@ export default function ImportPreviewPanel({ importState, onImportConfirmed = as
     || hasDirtyRows
     || bulkRunning
     || confirming
+    || links.preparing
     || confirmationNeedsRefresh;
 
   const currentBatchId = preview?.batchId ?? null;
@@ -371,9 +378,24 @@ export default function ImportPreviewPanel({ importState, onImportConfirmed = as
     return bulkOutcome.hiddenByFilter ? `${text} ${t("filters.clearedHidden")}` : text;
   }
 
+  // Ticking "Link to ..." also selects the deposit. The intent is only recorded once the
+  // selection is saved; unticking keeps the deposit selected and just drops the link.
+  async function changeLink(row, checked) {
+    if (!checked) {
+      links.setIntent(row.rowId, false);
+      return;
+    }
+    const updated = isDepositSelected(row) ? row : await updateSelection(row, true);
+    if (updated && isDepositSelected(updated)) links.setIntent(row.rowId, true);
+  }
+
   async function handleConfirm() {
     if (externallyBlocked() || confirmDisabled || bulkRunningRef.current || rowUpdatesInFlight.current.size > 0) return;
     setRefreshError("");
+    // Chosen links and the deposits that exist before saving, captured for the optional link step.
+    const savedSnapshot = snapshotSavedRows(preview);
+    const plan = await links.prepare();
+    if (externallyBlocked()) return;
     const result = await confirm();
     if (!result) {
       focusAfterRender(issueHeading);
@@ -381,6 +403,7 @@ export default function ImportPreviewPanel({ importState, onImportConfirmed = as
     }
 
     focusAfterRender(completionHeading);
+    if (plan) links.linkAfterConfirm({ plan, confirmation: result, savedRows: savedSnapshot });
     try {
       if (result.importedExpenseCount > 0 || result.importedInflowCount > 0) {
         const refreshed = await onImportConfirmed(result);
@@ -434,6 +457,9 @@ export default function ImportPreviewPanel({ importState, onImportConfirmed = as
         onDraftChange={(changes) => changeDraft(row, changes)}
         onSave={() => { pinRows([row.rowId]); return saveRow(row); }}
         onSelectionChange={(selected) => { pinRows([row.rowId]); return updateSelection(row, selected); }}
+        paycheckSuggestion={links.suggestionFor(row.rowId)}
+        linkIntent={links.hasIntent(row.rowId)}
+        onLinkChange={(checked) => { pinRows([row.rowId]); return changeLink(row, checked); }}
       />
     );
   }
@@ -478,8 +504,11 @@ export default function ImportPreviewPanel({ importState, onImportConfirmed = as
         <ImportResults
           confirmation={confirmation}
           savedRows={confirmedRows}
-          onViewActivity={onViewActivity ? () => { dismissConfirmation?.(); onViewActivity(); } : undefined}
-          onDone={() => { dismissConfirmation?.(); onDone?.(); }}
+          linking={links.linking}
+          linkResults={links.results}
+          onRetryLink={links.retry}
+          onViewActivity={onViewActivity ? () => { dismissConfirmation?.(); links.reset(); onViewActivity(); } : undefined}
+          onDone={() => { dismissConfirmation?.(); links.reset(); onDone?.(); }}
         />
       )}
 

@@ -170,6 +170,12 @@
       "credit": "Money in"
     },
     "qualification": "Saving adds it to your deposits. Not counted as income or as a paycheck.",
+    "paycheckMatch": {
+      "may": "May match {{name}}",
+      "link": "Link to {{name}} when saved",
+      "linkAria": "Link to {{name}} when saved: {{row}}",
+      "note": "This also selects the deposit. It’s linked only after you save, and only if the match still holds. If linking fails, the deposit stays saved and you can link it from Paychecks."
+    },
     "sourceDetails": {
       "summary": "Statement details",
       "aria": "Statement details for {{row}}",
@@ -250,5 +256,17 @@
     "unavailable": "The saved rows aren’t available right now. Open Transactions to see them.",
     "viewActivity": "View in Transactions",
     "done": "Done"
+  },
+  "links": {
+    "heading": "Paycheck links",
+    "linking": "Linking deposits to your pay schedules…",
+    "status": {
+      "linked": "Linked to {{name}}.",
+      "changed": "Not linked: the match changed or couldn’t be confirmed. The deposit is saved. You can link it from Paychecks.",
+      "failed": "Not linked: we couldn’t link it. The deposit is saved. You can link it from Paychecks.",
+      "uncertain": "We couldn’t confirm whether this was linked. The deposit is saved. Try again, or check Paychecks."
+    },
+    "retry": "Try again",
+    "retryAria": "Try linking again: {{description}}"
   }
 }

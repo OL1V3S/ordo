@@ -170,6 +170,12 @@
       "credit": "Abono"
     },
     "qualification": "Al guardarlo, se agrega a tus depósitos. No se cuenta como ingreso ni como pago de nómina.",
+    "paycheckMatch": {
+      "may": "Podría coincidir con {{name}}",
+      "link": "Vincular a {{name}} al guardar",
+      "linkAria": "Vincular a {{name}} al guardar: {{row}}",
+      "note": "Esto también selecciona el depósito. Se vincula solo después de guardar, y solo si la coincidencia sigue siendo la misma. Si no se puede vincular, el depósito queda guardado y puedes vincularlo desde Nómina."
+    },
     "sourceDetails": {
       "summary": "Detalles del estado de cuenta",
       "aria": "Detalles del estado de cuenta: {{row}}",
@@ -250,5 +256,17 @@
     "unavailable": "Las filas guardadas no están disponibles por ahora. Abre Movimientos para verlas.",
     "viewActivity": "Ver en Movimientos",
     "done": "Listo"
+  },
+  "links": {
+    "heading": "Vínculos con pagos de nómina",
+    "linking": "Vinculando depósitos a tus calendarios de nómina…",
+    "status": {
+      "linked": "Vinculado a {{name}}.",
+      "changed": "No se vinculó: la coincidencia cambió o no se pudo confirmar. El depósito está guardado. Puedes vincularlo desde Nómina.",
+      "failed": "No se vinculó: no pudimos vincularlo. El depósito está guardado. Puedes vincularlo desde Nómina.",
+      "uncertain": "No pudimos confirmar si se vinculó. El depósito está guardado. Inténtalo de nuevo o revisa Nómina."
+    },
+    "retry": "Intentar de nuevo",
+    "retryAria": "Intentar vincular de nuevo: {{description}}"
   }
 }
