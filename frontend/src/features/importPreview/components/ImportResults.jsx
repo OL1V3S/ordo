@@ -25,7 +25,7 @@ function SavedRow({ kind, row, locale }) {
 
 // Rendered outside the polite completion live region so a screen reader is not asked to read
 // up to 1000 rows. The list is the last-known state of this tab, guarded by the confirm counts.
-export default function ImportResults({ confirmation, savedRows, onViewActivity, onDone }) {
+export default function ImportResults({ confirmation, savedRows, onViewActivity, onDone, linking = false, linkResults = null, onRetryLink }) {
   const { t } = useTranslation("importPreview");
   const { locale } = useLocale();
   const alreadyConfirmed = confirmation.status === "already_confirmed";
@@ -47,6 +47,38 @@ export default function ImportResults({ confirmation, savedRows, onViewActivity,
           <ul className="import-saved-rows">
             {savedRows.expenses.map((row) => <SavedRow key={row.rowId} kind="expense" row={row} locale={locale} />)}
             {savedRows.deposits.map((row) => <SavedRow key={row.rowId} kind="deposit" row={row} locale={locale} />)}
+          </ul>
+        </section>
+      )}
+      {linking && <p className="muted" role="status">{t("links.linking")}</p>}
+      {linkResults && linkResults.items.length > 0 && (
+        <section className="import-saved__list" aria-labelledby="import-links-heading">
+          <h4 id="import-links-heading" className="h3">{t("links.heading")}</h4>
+          <ul className="import-saved-rows">
+            {linkResults.items.map((item) => (
+              <li className="import-saved-row" key={item.rowId}>
+                <strong className="import-saved-row__description">{item.description || t("row.unavailable")}</strong>
+                <span className="import-saved-row__meta">
+                  {[
+                    formatCalendarDate(item.date, locale) ?? t("row.unavailable"),
+                    item.amount == null ? t("row.unavailable") : (formatMoneyDecimal(item.amount, locale) ?? t("row.unavailable")),
+                  ].join(" · ")}
+                </span>
+                <span className="import-saved-row__meta" role={item.status === "linked" ? "status" : "alert"}>
+                  {t(`links.status.${item.status}`, { name: item.name })}
+                </span>
+                {item.status === "uncertain" && item.retry && !item.retried && onRetryLink && (
+                  <button
+                    type="button"
+                    className="button-ghost"
+                    aria-label={t("links.retryAria", { description: item.description })}
+                    onClick={() => onRetryLink(item.rowId)}
+                  >
+                    {t("links.retry")}
+                  </button>
+                )}
+              </li>
+            ))}
           </ul>
         </section>
       )}

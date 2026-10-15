@@ -77,6 +77,9 @@ silently treating every detected pattern as a financial fact.
   warnings, and confirm the rows to save. Selected debits become expenses.
   Credits are optional and must be explicitly selected; they become inflow
   records without automatically being classified as income or paychecks.
+  A deposit that may match an open pay schedule slot offers an optional
+  "Link to ... when saved" choice; it links only after saving, and the
+  deposit stays saved if linking fails.
   Scanned PDFs are not supported.
 - **Settings and account access:** Choose a System, Light, or Dark theme and an
   English or Spanish interface preference for this browser, then view your

@@ -4,6 +4,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import ImportPreviewPanel from './ImportPreviewPanel'
 import i18n from '../../../shared/localization/i18n'
 
+// Deposit rows read paychecks and deposits for suggestions; keep these tests off the network.
+vi.mock('../../paychecks/api/paychecksApi', () => ({ paychecksApi: { getPaychecks: vi.fn().mockRejectedValue(new Error('unavailable')) } }))
+vi.mock('../../inflows/api/inflowsApi', () => ({ inflowsApi: { getAll: vi.fn().mockRejectedValue(new Error('unavailable')) } }))
+
 const expenseRow = {
   rowId: 'row-1',
   sourceRowOrdinal: 1,
