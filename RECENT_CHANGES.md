@@ -26,7 +26,7 @@ the permanent, complete archive.
 
 ### 2026-10-15 — Paycheck matches in statement import review
 
-[Issue #247](https://github.com/OL1V3S/ordo/issues/247) · PR link pending
+[PR #248](https://github.com/OL1V3S/ordo/pull/248) · [Issue #247](https://github.com/OL1V3S/ordo/issues/247)
 
 - Deposit rows in the statement review now show "May match {name}" when they fit an open slot of an active pay schedule (same `paycheck-match-v1` rules as the Paychecks page; ambiguous or possible-duplicate rows get none). English and Spanish.
 - "Link to {name} when saved" is off by default; ticking it also selects the deposit. After saving, the deposit is linked through the existing receipt write. Saving and linking are two requests, so a failed link leaves the deposit saved and unlinked, and the results list says which were linked. Frontend only: no schema, API, parser, or dependency change.
