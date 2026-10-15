@@ -26,7 +26,7 @@ the permanent, complete archive.
 
 ### 2026-10-15 — Deposit rows read from whitespace-free statements
 
-[Issue #250](https://github.com/OL1V3S/ordo/issues/250)
+[PR #251](https://github.com/OL1V3S/ordo/pull/251) · [Issue #250](https://github.com/OL1V3S/ordo/issues/250)
 
 - Statement deposits that the PDF text layer runs together without spaces are now read as individual rows in import review. Before, they collapsed into one unreadable line and the deposits were missing. Deposits stay unselected by default and nothing is saved automatically.
 - When a deposits line cannot be read with confidence, the review shows one unreadable line per dated entry instead of any amount, and a header-only page that continues a Deposits section is shown as unreadable lines instead of being skipped.
