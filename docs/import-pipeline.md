@@ -111,6 +111,8 @@ Default selection behavior:
 - `non_expense`: cannot be selected for Expense import; a valid confidently directed credit has a separate **Save incoming deposit as inflow evidence** selection that is always false by default; and
 - `invalid`: cannot be selected for expense import.
 
+Invalid rows that have no date, amount, or description are not shown in the review table. The preview lists them in a collapsed "lines couldn't be read" note (row number, statement section, reason) that says they might include transactions and to check the statement. They remain unselectable, are never saved, and are still counted in the statement summary and the to-review filter.
+
 Rows with possible-duplicate warnings are not selected by default. The user must explicitly choose to import or save them.
 
 V1 does not auto-categorize merchants. Eligible expenses default to `uncategorized` unless the user chooses another valid category during review.

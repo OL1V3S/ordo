@@ -152,6 +152,26 @@ describe('import review summary, filters and bar', () => {
     expect(screen.getByRole('radio', { name: 'To review (1)' })).toBeChecked()
   })
 
+  it('moves unreadable lines out of the table into a collapsed note and keeps counting them', async () => {
+    const unreadable = { ...base, rowId: 'u1', sourceRowOrdinal: 6, postedDate: null, amount: null, sourceDescription: '', classification: 'invalid', isEligible: false, errors: ['unsupported_transaction_row'] }
+    render(<ImportPreviewPanel importState={importState({ preview: previewWith([e1, unreadable]) })} />)
+    const note = screen.getByText('1 line couldn’t be read').closest('details')
+    expect(note).not.toHaveAttribute('open')
+    expect(within(note).getByText(/might include transactions/)).toBeInTheDocument()
+    expect(within(note).getByText(/Statement row 6, Electronic transactions/)).toBeInTheDocument()
+    expect(within(tableRegion()).getAllByRole('checkbox')).toHaveLength(1)
+    expect(within(tableRegion()).queryByText(/Statement row 6/)).not.toBeInTheDocument()
+    expect(screen.getByText('Showing 1 of 1 row')).toBeInTheDocument()
+    const summary = screen.getByRole('region', { name: 'Statement summary' })
+    expect(within(summary).getByText('To review or can’t be imported', { selector: 'dt' }).nextSibling).toHaveTextContent('1')
+    expect(screen.getByRole('radio', { name: 'To review (1)' })).toBeInTheDocument()
+  })
+
+  it('shows no unreadable note when every row is readable', () => {
+    render(<ImportPreviewPanel importState={importState()} />)
+    expect(screen.queryByText(/couldn’t be read/)).not.toBeInTheDocument()
+  })
+
   it('keeps the bulk status live region rendered while empty', () => {
     render(<ImportPreviewPanel importState={importState()} />)
     const status = document.querySelector('.import-review-bulk__status')

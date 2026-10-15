@@ -23,6 +23,18 @@ export function isPossibleDuplicateRow(row) {
   return Boolean(row.isPossibleDuplicate || row.isPossibleInflowDuplicate);
 }
 
+// A fully content-less invalid row (no date, amount or description) has nothing to review or
+// edit; the panel lists it in a collapsed note instead of the table. It is still counted by
+// summarize and the "attention" filter so nothing looks silently dropped.
+export function isUnreadableRow(row) {
+  return row.classification === "invalid"
+    && !row.isEligible
+    && !row.isInflowEligible
+    && !row.postedDate
+    && (row.amount === null || row.amount === undefined || row.amount === "")
+    && !String(row.sourceDescription ?? "").trim();
+}
+
 function needsReviewOrInvalid(row) {
   return row.classification === "needs_review" || row.classification === "invalid";
 }

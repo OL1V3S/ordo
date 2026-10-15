@@ -24,6 +24,13 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-15 — Unreadable statement lines collapsed in import review
+
+[PR #249](https://github.com/OL1V3S/ordo/pull/249) · [Issue #247](https://github.com/OL1V3S/ordo/issues/247)
+
+- Lines with no date, amount, or description (such as column headers) no longer clutter the statement review table. They appear in a collapsed "N lines couldn't be read" note that says they might include transactions and to check the statement; they stay unselectable and are never saved. English and Spanish.
+- The statement summary and the to-review filter still count them. Frontend and docs only: the parser, API, schema, and dependencies are unchanged.
+
 ### 2026-10-15 — Paycheck matches in statement import review
 
 [PR #248](https://github.com/OL1V3S/ordo/pull/248) · [Issue #247](https://github.com/OL1V3S/ordo/issues/247)
@@ -173,11 +180,3 @@ the permanent, complete archive.
 
 - Commitments now has one status area, flat rows with one main action and a "..." actions menu, inline change-review decisions, and collapsed Paused, Ended, Reviewed and Dismissed sections.
 - Lifecycle, candidate and review behavior, payloads and ordering are unchanged. Shared rows and menus gained optional title-level, extra-content and item-list support.
-
-### 2026-10-09 — Budgets declutter
-
-[PR #211](https://github.com/OL1V3S/ordo/pull/211) ·
-[Issue #210](https://github.com/OL1V3S/ordo/issues/210)
-
-- Budgets now has a month picker (previous, next, a month list and This month), flat category rows with a "..." Edit/Delete menu, and one status area that also holds Refresh limits and Retry spending.
-- Month values, write payloads, recovery gating, ordering, zero-limit and status behavior are unchanged.

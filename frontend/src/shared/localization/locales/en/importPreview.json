@@ -268,5 +268,13 @@
     },
     "retry": "Try again",
     "retryAria": "Try linking again: {{description}}"
+  },
+  "unreadable": {
+    "summary_one": "{{count}} line couldn’t be read",
+    "summary_other": "{{count}} lines couldn’t be read",
+    "note": "These lines can’t be selected and won’t be saved. They might include transactions, so check your statement to make sure nothing is missing.",
+    "item": "Statement row {{row}}, {{section}}: {{reason}}",
+    "itemNoSection": "Statement row {{row}}: {{reason}}",
+    "reason": "we couldn’t find a date, amount, or description"
   }
 }

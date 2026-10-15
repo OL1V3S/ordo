@@ -10,6 +10,7 @@ import {
   bulkSelectableExpenses,
   filterCounts,
   isDepositSelected,
+  isUnreadableRow,
   rowMatchesFilter,
   selectedTotals,
   snapshotSavedRows,
@@ -18,6 +19,7 @@ import {
 import { useImportPaycheckLinks } from "../hooks/useImportPaycheckLinks";
 import ImportConfirmBar from "./ImportConfirmBar";
 import ImportPreviewRow from "./ImportPreviewRow";
+import ImportUnreadableRows from "./ImportUnreadableRows";
 import ImportResults from "./ImportResults";
 import ImportReviewFilters from "./ImportReviewFilters";
 import ImportReviewSummary from "./ImportReviewSummary";
@@ -455,7 +457,9 @@ export default function ImportPreviewPanel({ importState, onImportConfirmed = as
   }
 
   const pinnedIds = new Set(pinned);
-  const visibleRows = rows.filter((row) => {
+  const unreadableRows = rows.filter(isUnreadableRow);
+  const readableRows = rows.filter((row) => !isUnreadableRow(row));
+  const visibleRows = readableRows.filter((row) => {
     if (filter === "all" || rowMatchesFilter(row, filter, confirmationCodesFor(row.rowId)) || pinnedIds.has(row.rowId)) return true;
     const draft = rowDrafts.batchId === currentBatchId ? rowDrafts.rows[row.rowId] : null;
     return Boolean(draft?.dirty || draft?.pending);
@@ -598,7 +602,7 @@ export default function ImportPreviewPanel({ importState, onImportConfirmed = as
             filter={filter}
             counts={filterCounts(rows, confirmationCodesFor)}
             shown={visibleRows.length}
-            total={rows.length}
+            total={readableRows.length}
             hardLocked={externalLocked || confirming || startingSave || confirmationNeedsRefresh}
             bulkRunning={bulkRunning}
             rowSavePending={hasPendingRows}
@@ -620,6 +624,7 @@ export default function ImportPreviewPanel({ importState, onImportConfirmed = as
               </table>
             </div>
           )}
+          <ImportUnreadableRows rows={unreadableRows} />
           <ImportConfirmBar
             selectedItemsLabel={selectedItemsLabel}
             totals={selectedTotals(rows)}
