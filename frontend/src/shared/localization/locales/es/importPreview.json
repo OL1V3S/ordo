@@ -268,5 +268,13 @@
     },
     "retry": "Intentar de nuevo",
     "retryAria": "Intentar vincular de nuevo: {{description}}"
+  },
+  "unreadable": {
+    "summary_one": "No se pudo leer {{count}} línea",
+    "summary_other": "No se pudieron leer {{count}} líneas",
+    "note": "Estas líneas no se pueden seleccionar y no se guardarán. Podrían incluir transacciones, así que revisa tu estado de cuenta para asegurarte de que no falte nada.",
+    "item": "Fila {{row}} del estado de cuenta, {{section}}: {{reason}}",
+    "itemNoSection": "Fila {{row}} del estado de cuenta: {{reason}}",
+    "reason": "no encontramos fecha, monto ni descripción"
   }
 }

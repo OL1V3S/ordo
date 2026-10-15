@@ -3,6 +3,7 @@ import {
   bulkClearTargets,
   bulkSelectableExpenses,
   filterCounts,
+  isUnreadableRow,
   rowMatchesFilter,
   savedRowsMatchConfirmation,
   selectedTotals,
@@ -150,5 +151,28 @@ describe('importReview saved rows', () => {
     expect(savedRowsMatchConfirmation(saved, { importedExpenseCount: 1, importedInflowCount: 1 })).toBe(true)
     expect(savedRowsMatchConfirmation(saved, { importedExpenseCount: 2, importedInflowCount: 1 })).toBe(false)
     expect(savedRowsMatchConfirmation(null, { importedExpenseCount: 0, importedInflowCount: 0 })).toBe(false)
+  })
+})
+
+describe('importReview unreadable rows', () => {
+  const unreadable = { ...invalid, rowId: 'u1', postedDate: null, amount: null, sourceDescription: '' }
+
+  it('only treats invalid, ineligible rows with no date, amount or description as unreadable', () => {
+    expect(isUnreadableRow(unreadable)).toBe(true)
+    expect(isUnreadableRow({ ...unreadable, sourceDescription: '   ' })).toBe(true)
+    expect(isUnreadableRow(invalid)).toBe(false)
+    expect(isUnreadableRow({ ...unreadable, postedDate: '2026-08-12' })).toBe(false)
+    expect(isUnreadableRow({ ...unreadable, amount: '0.00' })).toBe(false)
+    expect(isUnreadableRow({ ...unreadable, sourceDescription: 'X' })).toBe(false)
+    expect(isUnreadableRow({ ...unreadable, classification: 'needs_review' })).toBe(false)
+    expect(isUnreadableRow({ ...unreadable, isEligible: true })).toBe(false)
+    expect(isUnreadableRow({ ...unreadable, isInflowEligible: true })).toBe(false)
+  })
+
+  it('still counts unreadable rows in the summary and the attention filter', () => {
+    const rows = [expense, unreadable]
+    expect(summarize(rows)).toMatchObject({ total: 2, needsReview: 1, cannotBeSelected: 1 })
+    expect(rowMatchesFilter(unreadable, 'attention')).toBe(true)
+    expect(filterCounts(rows)).toMatchObject({ all: 2, attention: 1 })
   })
 })
