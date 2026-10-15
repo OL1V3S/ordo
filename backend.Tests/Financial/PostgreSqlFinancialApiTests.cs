@@ -1264,14 +1264,14 @@ public sealed class PostgreSqlFinancialApiTests
         var firstPreview = results[0].Preview!;
         var secondPreview = results[1].Preview!;
         Assert.Equal(firstPreview.BatchId, secondPreview.BatchId);
-        Assert.Equal("sunflower-v3", firstPreview.ParserRuleVersion);
+        Assert.Equal("sunflower-v4", firstPreview.ParserRuleVersion);
 
         var batches = await app.FindImportPreviewBatchesAsync(owner.Id);
         Assert.Equal(2, batches.Count);
         var stale = Assert.Single(batches, value => value.Id == predecessor.Id);
         Assert.Equal(ImportPreviewLifecycle.Expired, stale.Lifecycle);
         Assert.Equal("sunflower-v1", stale.ParserRuleVersion);
-        var current = Assert.Single(batches, value => value.ParserRuleVersion == "sunflower-v3");
+        var current = Assert.Single(batches, value => value.ParserRuleVersion == "sunflower-v4");
         Assert.Equal(ImportPreviewLifecycle.Open, current.Lifecycle);
         Assert.Equal(firstPreview.BatchId, current.Id);
         Assert.Equal(2, app.Extractor.CallCount);
@@ -1294,7 +1294,7 @@ public sealed class PostgreSqlFinancialApiTests
                 CREATE FUNCTION reject_current_parser_preview() RETURNS trigger
                 LANGUAGE plpgsql AS $function$
                 BEGIN
-                    IF NEW."ParserRuleVersion" = 'sunflower-v3' THEN
+                    IF NEW."ParserRuleVersion" = 'sunflower-v4' THEN
                         RAISE EXCEPTION 'intentional disposable-test insert rejection';
                     END IF;
                     RETURN NEW;
