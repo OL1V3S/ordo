@@ -60,6 +60,8 @@ export function useImportPaycheckLinks({ preview }) {
   const [preparing, setPreparing] = useState(false);
   const mounted = useRef(true);
   const retrying = useRef(false);
+  // Bumped whenever results are reset or a new batch opens; a late result from an older run is dropped.
+  const runToken = useRef(0);
 
   useEffect(() => {
     mounted.current = true;
@@ -81,6 +83,7 @@ export function useImportPaycheckLinks({ preview }) {
   }, [batchId, wantsData]);
 
   useEffect(() => {
+    runToken.current += 1;
     if (batchId) setResults(null);
   }, [batchId]);
 
@@ -140,6 +143,9 @@ export function useImportPaycheckLinks({ preview }) {
 
   const linkAfterConfirm = useCallback(async ({ plan, confirmation, savedRows }) => {
     if (!plan || plan.intents.length === 0) return;
+    const token = runToken.current + 1;
+    runToken.current = token;
+    const isCurrent = () => mounted.current && runToken.current === token;
     setResults(null);
     setLinking(true);
     // (a) this action created the saved deposits, (b) the saved rows match the counts, and the
@@ -179,9 +185,9 @@ export function useImportPaycheckLinks({ preview }) {
           items.push(resultItem(intent, status, status === "uncertain" ? target : null));
         }
       }
-      if (mounted.current) setResults({ items });
+      if (isCurrent()) setResults({ items });
     } finally {
-      if (mounted.current) setLinking(false);
+      if (isCurrent()) setLinking(false);
     }
   }, []);
 
@@ -191,6 +197,7 @@ export function useImportPaycheckLinks({ preview }) {
     if (!item?.retry || item.retried || retrying.current) return;
     retrying.current = true;
     const target = item.retry;
+    const token = runToken.current;
     let status = "linked";
     try {
       await paychecksApi.recordReceipt(target.profileId, {
@@ -202,7 +209,7 @@ export function useImportPaycheckLinks({ preview }) {
     } finally {
       retrying.current = false;
     }
-    if (!mounted.current) return;
+    if (!mounted.current || runToken.current !== token) return;
     setResults((current) => current && {
       items: current.items.map((entry) => entry.rowId === rowId
         ? { ...entry, status, retry: null, retried: true }
@@ -210,7 +217,11 @@ export function useImportPaycheckLinks({ preview }) {
     });
   }, [results]);
 
-  const reset = useCallback(() => setResults(null), []);
+  const reset = useCallback(() => {
+    runToken.current += 1;
+    setResults(null);
+    setLinking(false);
+  }, []);
 
   return {
     suggestionFor: (rowId) => suggestions.get(rowId) ?? null,

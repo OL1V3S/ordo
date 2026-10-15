@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { act, render, renderHook, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { inflowsApi } from '../../inflows/api/inflowsApi'
 import { paychecksApi } from '../../paychecks/api/paychecksApi'
 import { makePaycheck } from '../../paychecks/test/paycheckFixtures'
 import ImportPreviewPanel from './ImportPreviewPanel'
+import { useImportPaycheckLinks } from '../hooks/useImportPaycheckLinks'
 import i18n from '../../../shared/localization/i18n'
 
 vi.mock('../../paychecks/api/paychecksApi', () => ({ paychecksApi: { getPaychecks: vi.fn(), recordReceipt: vi.fn() } }))
@@ -40,10 +41,11 @@ const confirmedResponse = { batchId: BATCH, status: 'confirmed', confirmedAt: '2
 
 // A small stateful stand-in for the import hook so selection changes and confirm behave like the
 // real one, without any statement API.
-function Harness({ rows = [deposit], confirmResult = confirmedResponse, onConfirm }) {
+function Harness({ rows = [deposit], confirmResult = confirmedResponse, onConfirm, exposePreviewSetter }) {
   const [preview, setPreview] = useState({ batchId: BATCH, sourceType: 'sunflower_pdf', expiresAt: '2026-08-26T12:00:00Z', rows })
   const [confirmation, setConfirmation] = useState(null)
   const [confirmedRows, setConfirmedRows] = useState(null)
+  exposePreviewSetter?.(setPreview)
   const selectedCount = preview?.rows.filter((row) => row.selectedForInflow).length ?? 0
   const state = {
     preview, sourceType: 'sunflower_pdf', loading: false, processing: false, error: '', confirming: false,
@@ -250,6 +252,98 @@ describe('saving and then linking', () => {
       { slotAnchor: '2026-08-10', existingInflowId: 900 },
       { slotAnchor: '2026-07-10', existingInflowId: 901 },
     ])
+  })
+})
+
+describe('locking the review while Save prepares', () => {
+  function gateSnapshot() {
+    let release
+    const gate = new Promise((resolve) => { release = resolve })
+    let entered
+    const reached = new Promise((resolve) => { entered = resolve })
+    inflowsApi.getAll.mockImplementation(async () => {
+      if (savedYet) return { data: [savedInflow] }
+      if (gateOn) { entered(); await gate }
+      return { data: [] }
+    })
+    return { release, reached }
+  }
+  let gateOn = false
+  afterEach(() => { gateOn = false })
+
+  it('disables the review controls from the moment Save is pressed until the save starts', async () => {
+    const user = userEvent.setup()
+    const confirmSpy = vi.fn()
+    render(<Harness onConfirm={confirmSpy} />)
+    await user.click(await toggle())
+    gateOn = true
+    const { release, reached } = gateSnapshot()
+    await user.click(saveButton())
+    await reached
+
+    expect(screen.getByRole('checkbox', { name: /^Save deposit for / })).toBeDisabled()
+    expect(screen.getByRole('checkbox', { name: /when saved/ })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /^Choose another/ })).toBeDisabled()
+    expect(saveButton()).toBeDisabled()
+    expect(confirmSpy).not.toHaveBeenCalled()
+
+    await act(async () => { release() })
+    expect(await screen.findByText('Linked to Acme Payroll.')).toBeInTheDocument()
+    expect(confirmSpy).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not save when the review changed while preparing', async () => {
+    const user = userEvent.setup()
+    const confirmSpy = vi.fn()
+    let setPreview
+    render(<Harness onConfirm={confirmSpy} exposePreviewSetter={(fn) => { setPreview = fn }} />)
+    await user.click(await toggle())
+    gateOn = true
+    const { release, reached } = gateSnapshot()
+    await user.click(saveButton())
+    await reached
+    act(() => { setPreview((current) => ({ ...current, rows: current.rows.map((row) => ({ ...row, selectedForInflow: false })) })) })
+    await act(async () => { release() })
+
+    await waitFor(() => expect(saveButton()).toBeDisabled())
+    expect(confirmSpy).not.toHaveBeenCalled()
+    expect(paychecksApi.recordReceipt).not.toHaveBeenCalled()
+  })
+})
+
+describe('selecting a deposit without a link', () => {
+  it('leaves Save enabled (a selected deposit is not an unsaved edit)', async () => {
+    const user = userEvent.setup()
+    render(<Harness />)
+    await toggle()
+    expect(saveButton()).toBeDisabled()
+    await user.click(screen.getByRole('checkbox', { name: /^Save deposit for / }))
+    await waitFor(() => expect(saveButton()).toBeEnabled())
+  })
+})
+
+describe('late link results', () => {
+  it('drops the results of a run that was reset before it finished', async () => {
+    let releaseRead
+    const hold = new Promise((resolve) => { releaseRead = resolve })
+    const selectedDeposit = { ...deposit, selectedForInflow: true }
+    const preview = { batchId: BATCH, rows: [selectedDeposit] }
+    const { result } = renderHook(() => useImportPaycheckLinks({ preview }))
+    await waitFor(() => expect(result.current.suggestionFor('dep')).not.toBeNull())
+    act(() => result.current.setIntent('dep', true))
+    let plan
+    await act(async () => { plan = await result.current.prepare() })
+    expect(plan.intents).toHaveLength(1)
+
+    savedYet = true
+    inflowsApi.getAll.mockImplementation(async () => { await hold; return { data: [savedInflow] } })
+    let run
+    act(() => { run = result.current.linkAfterConfirm({ plan, confirmation: confirmedResponse, savedRows: { expenses: [], deposits: [selectedDeposit] } }) })
+    act(() => result.current.reset())
+    await act(async () => { releaseRead(); await run })
+
+    expect(result.current.results).toBeNull()
+    expect(result.current.linking).toBe(false)
   })
 })
 

@@ -112,6 +112,9 @@ export default function ImportPreviewPanel({ importState, onImportConfirmed = as
   const [bulkProgress, setBulkProgress] = useState(null);
   const [bulkOutcome, setBulkOutcome] = useState(null);
   const links = useImportPaycheckLinks({ preview });
+  // True from the moment Save is pressed (before confirm() reports confirming) so the review cannot change underneath it.
+  const [startingSave, setStartingSave] = useState(false);
+  const startingSaveRef = useRef(false);
   const bulkRunningRef = useRef(false);
   const mountedRef = useRef(true);
   const latest = useRef(null);
@@ -227,7 +230,7 @@ export default function ImportPreviewPanel({ importState, onImportConfirmed = as
   }
 
   async function runRowUpdate(row, payload, savedFields) {
-    if (externallyBlocked() || confirming || confirmationIssue?.requiresPreviewRefresh || rowUpdatesInFlight.current.has(row.rowId)) return null;
+    if (externallyBlocked() || confirming || confirmationIssue?.requiresPreviewRefresh || rowUpdatesInFlight.current.has(row.rowId) || startingSaveRef.current) return null;
     rowUpdatesInFlight.current.add(row.rowId);
     markRowPending(row);
     try {
@@ -271,6 +274,7 @@ export default function ImportPreviewPanel({ importState, onImportConfirmed = as
     || hasDirtyRows
     || bulkRunning
     || confirming
+    || startingSave
     || links.preparing
     || confirmationNeedsRefresh;
 
@@ -299,7 +303,7 @@ export default function ImportPreviewPanel({ importState, onImportConfirmed = as
   useLayoutEffect(() => {
     latest.current = {
       preview,
-      confirming,
+      confirming: confirming || startingSave,
       confirmationNeedsRefresh,
       externallyBlocked,
       bulkSelection,
@@ -390,13 +394,24 @@ export default function ImportPreviewPanel({ importState, onImportConfirmed = as
   }
 
   async function handleConfirm() {
-    if (externallyBlocked() || confirmDisabled || bulkRunningRef.current || rowUpdatesInFlight.current.size > 0) return;
+    if (startingSaveRef.current || externallyBlocked() || confirmDisabled || bulkRunningRef.current || rowUpdatesInFlight.current.size > 0) return;
+    // Lock the whole review before the first await so nothing can change while the link plan is prepared.
+    startingSaveRef.current = true;
+    setStartingSave(true);
     setRefreshError("");
     // Chosen links and the deposits that exist before saving, captured for the optional link step.
     const savedSnapshot = snapshotSavedRows(preview);
-    const plan = await links.prepare();
-    if (externallyBlocked()) return;
-    const result = await confirm();
+    let plan;
+    let result;
+    try {
+      plan = await links.prepare();
+      // Never confirm a review that changed (or was abandoned) while preparing.
+      if (externallyBlocked() || !mountedRef.current || latest.current?.preview !== preview) return;
+      result = await confirm();
+    } finally {
+      startingSaveRef.current = false;
+      if (mountedRef.current) setStartingSave(false);
+    }
     if (!result) {
       focusAfterRender(issueHeading);
       return;
@@ -453,7 +468,7 @@ export default function ImportPreviewPanel({ importState, onImportConfirmed = as
         row={row}
         draft={draftFor(row)}
         confirmationCodes={confirmationCodesFor(row.rowId)}
-        disabled={externalLocked || confirming || confirmationNeedsRefresh || bulkRunning}
+        disabled={externalLocked || confirming || startingSave || confirmationNeedsRefresh || bulkRunning}
         onDraftChange={(changes) => changeDraft(row, changes)}
         onSave={() => { pinRows([row.rowId]); return saveRow(row); }}
         onSelectionChange={(selected) => { pinRows([row.rowId]); return updateSelection(row, selected); }}
@@ -478,7 +493,7 @@ export default function ImportPreviewPanel({ importState, onImportConfirmed = as
           <button
             type="button"
             className="button-ghost"
-            disabled={externalLocked || confirming || hasPendingRows || hasDirtyRows || bulkRunning}
+            disabled={externalLocked || confirming || startingSave || hasPendingRows || hasDirtyRows || bulkRunning}
             onClick={() => { if (!externallyBlocked()) clearForReupload(); }}
           >
             {t("panel.chooseAnother")}
@@ -520,7 +535,7 @@ export default function ImportPreviewPanel({ importState, onImportConfirmed = as
           id="statement-source"
           required
           value={sourceType}
-          disabled={externalLocked || processing || confirming || Boolean(preview)}
+          disabled={externalLocked || processing || confirming || startingSave || Boolean(preview)}
           onChange={(event) => {
             if (externallyBlocked()) return;
             setRefreshError("");
@@ -584,7 +599,7 @@ export default function ImportPreviewPanel({ importState, onImportConfirmed = as
             counts={filterCounts(rows, confirmationCodesFor)}
             shown={visibleRows.length}
             total={rows.length}
-            hardLocked={externalLocked || confirming || confirmationNeedsRefresh}
+            hardLocked={externalLocked || confirming || startingSave || confirmationNeedsRefresh}
             bulkRunning={bulkRunning}
             rowSavePending={hasPendingRows}
             bulkProgress={bulkProgress}
