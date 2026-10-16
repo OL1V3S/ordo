@@ -143,6 +143,11 @@ with a current-version preview. The predecessor must remain unchanged if fresh
 extraction or parsing fails, and no cross-user preview may participate in the
 replacement decision.
 
+Because both checks above are scoped to the parser/rule version, a version bump
+makes a statement that was already confirmed under the earlier version
+previewable again; only the row-level duplicate flags then protect against
+saving it twice.
+
 ## Row-level duplicate policy
 
 Duplicate handling has two levels.

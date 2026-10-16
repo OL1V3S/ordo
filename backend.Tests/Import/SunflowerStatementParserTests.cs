@@ -72,7 +72,7 @@ public sealed class SunflowerStatementParserTests
         Assert.Equal("SYNTHETIC PURCHASE", row.SourceDescription);
         Assert.Equal(10.00m, row.Amount);
         Assert.Equal(ImportedRowClassification.ExpenseCandidate, row.Classification);
-        Assert.Equal("sunflower-v3", row.Provenance.ParserRuleVersion);
+        Assert.Equal("sunflower-v4", row.Provenance.ParserRuleVersion);
     }
 
     [Fact]
@@ -361,6 +361,557 @@ public sealed class SunflowerStatementParserTests
     {
         var result = Result($"SUNFLOWER HEADER\n{statementDate}\n{daysMarker}\nElectronic Transactions\nPosted Description Amount");
         Assert.Equal("unsupported_statement_format", new SunflowerStatementParser().Parse(result).Failure?.Code);
+    }
+
+    [Fact]
+    public void Whitespace_free_deposits_are_read_positionally_as_unselected_credits_and_electronic_rows_are_unchanged()
+    {
+        var pageOne = DepositsPageText(
+            "02/03/26SYNTHETICPAYROLL2,450.0002/10/26SYNTHETICREFERENCE7120.50" +
+            "02/17/26SYNTHETICREFUND9.9902/24/26SYNTHETICINTEREST0.45");
+        var pageOneWords = new PositionalWords()
+            .Text("Deposits/Credits", .08, .92).Text("4", .50, .92).Amount("2,580.94", .92)
+            .Text("Deposits", .08, .85)
+            .Header(.80)
+            .Row(.75, "02/03/26", "SYNTHETICPAYROLL", "2,450.00")
+            .Row(.70, "02/10/26", "SYNTHETICREFERENCE7", "120.50")
+            .Row(.65, "02/17/26", "SYNTHETICREFUND", "9.99")
+            .Row(.60, "02/24/26", "SYNTHETIC INTEREST", "0.45")
+            .Text("Electronic", .08, .50).Text("Transactions", .20, .50)
+            .Header(.45)
+            .Row(.40, "02/05/26", "SYNTHETICGROCERY", "12.00-")
+            .Text("Page", .08, .05).Text("1", .16, .05).Text("of", .20, .05).Text("2", .25, .05)
+            .ToArray();
+        var pageTwoWords = new PositionalWords()
+            .Header(.90)
+            .Row(.85, "02/12/26", "SYNTHETICUTILITY", "40.00-")
+            .Row(.80, "02/13/26", "SYNTHETICPHONE", "55.10-")
+            .Text("Page", .08, .05).Text("2", .16, .05).Text("of", .20, .05).Text("2", .25, .05)
+            .ToArray();
+        var extraction = PositionalPages(
+            (pageOne, pageOneWords),
+            ("PostedDescriptionAmount\n02/12/26SYNTHETICUTILITY40.00-02/13/26SYNTHETICPHONE55.10-\nPage 2 of 2", pageTwoWords));
+
+        var result = new SunflowerStatementParser().Parse(extraction);
+
+        Assert.True(result.IsSuccess, result.Failure?.Code);
+        Assert.Equal(Enumerable.Range(1, 7), result.Rows.Select(row => row.SourceRowOrdinal));
+        AssertRow(result.Rows[0], 1, 1, "deposits", new DateOnly(2026, 2, 3), "SYNTHETICPAYROLL", 2450.00m, ImportedTransactionDirection.Credit);
+        AssertRow(result.Rows[1], 2, 1, "deposits", new DateOnly(2026, 2, 10), "SYNTHETICREFERENCE7", 120.50m, ImportedTransactionDirection.Credit);
+        AssertRow(result.Rows[2], 3, 1, "deposits", new DateOnly(2026, 2, 17), "SYNTHETICREFUND", 9.99m, ImportedTransactionDirection.Credit);
+        AssertRow(result.Rows[3], 4, 1, "deposits", new DateOnly(2026, 2, 24), "SYNTHETIC INTEREST", 0.45m, ImportedTransactionDirection.Credit);
+        AssertRow(result.Rows[4], 5, 1, "electronic_transactions", new DateOnly(2026, 2, 5), "SYNTHETICGROCERY", 12.00m, ImportedTransactionDirection.Debit);
+        AssertRow(result.Rows[5], 6, 2, "electronic_transactions", new DateOnly(2026, 2, 12), "SYNTHETICUTILITY", 40.00m, ImportedTransactionDirection.Debit);
+        AssertRow(result.Rows[6], 7, 2, "electronic_transactions", new DateOnly(2026, 2, 13), "SYNTHETICPHONE", 55.10m, ImportedTransactionDirection.Debit);
+        Assert.All(result.Rows.Take(4), row =>
+        {
+            Assert.Equal(ImportedRowClassification.NonExpense, row.Classification);
+            Assert.Null(row.EditableExpenseDescription);
+        });
+        Assert.All(result.Rows.Skip(4), row => Assert.Equal(ImportedRowClassification.ExpenseCandidate, row.Classification));
+    }
+
+    [Fact]
+    public void Statement_date_footer_on_a_continuation_page_does_not_stop_electronic_or_deposit_rows()
+    {
+        var firstPage = DepositsPage(
+            "02/03/26SYNTHETICPAYROLL2,450.0002/10/26SYNTHETICREFUND9.99",
+            StandardDeposits).Pages[0];
+        var continuationWords = new PositionalWords()
+            .Header(.90)
+            .Row(.85, "02/12/26", "SYNTHETICUTILITY", "40.00-")
+            .Row(.80, "02/13/26", "SYNTHETICPHONE", "55.10-")
+            .Text("Page", .08, .05).Text("2", .16, .05).Text("of", .20, .05).Text("2", .25, .05)
+            // Combined statement-date footer word below the Page terminal: it must not fail the
+            // Electronic path closed (a standalone date word before the terminal would).
+            .Text("STATEMENTDATE:02/28/26", .08, .02)
+            .ToArray();
+        var extraction = PositionalPages(
+            (firstPage.Text, firstPage.Words.ToArray()),
+            (
+                "PostedDescriptionAmount\n02/12/26SYNTHETICUTILITY40.00-02/13/26SYNTHETICPHONE55.10-" +
+                "\nPage 2 of 2\nSTATEMENTDATE:02/28/26",
+                continuationWords));
+
+        var result = new SunflowerStatementParser().Parse(extraction);
+
+        Assert.True(result.IsSuccess, result.Failure?.Code);
+        Assert.Equal(Enumerable.Range(1, result.Rows.Count), result.Rows.Select(row => row.SourceRowOrdinal));
+        AssertRow(result.Rows[0], 1, 1, "deposits", new DateOnly(2026, 2, 3), "SYNTHETICPAYROLL", 2450.00m, ImportedTransactionDirection.Credit);
+        AssertRow(result.Rows[1], 2, 1, "deposits", new DateOnly(2026, 2, 10), "SYNTHETICREFUND", 9.99m, ImportedTransactionDirection.Credit);
+        AssertRow(result.Rows[2], 3, 1, "electronic_transactions", new DateOnly(2026, 2, 5), "SYNTHETICGROCERY", 12.00m, ImportedTransactionDirection.Debit);
+        AssertRow(result.Rows[3], 4, 2, "electronic_transactions", new DateOnly(2026, 2, 12), "SYNTHETICUTILITY", 40.00m, ImportedTransactionDirection.Debit);
+        AssertRow(result.Rows[4], 5, 2, "electronic_transactions", new DateOnly(2026, 2, 13), "SYNTHETICPHONE", 55.10m, ImportedTransactionDirection.Debit);
+        Assert.All(result.Rows.Take(2), row => Assert.Equal(ImportedRowClassification.NonExpense, row.Classification));
+        Assert.All(result.Rows.Skip(2).Take(3), row => Assert.Equal(ImportedRowClassification.ExpenseCandidate, row.Classification));
+
+        // The footer text itself stays surfaced as money-free unreadable lines (unchanged, D6).
+        var footer = result.Rows.Skip(5).ToList();
+        AssertMoneyFreeInvalid(footer);
+        Assert.All(footer, row => Assert.Equal(2, row.Provenance.SourcePageNumber));
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(-1)]
+    public void Deposits_text_and_geometry_segment_count_mismatch_surfaces_money_free_rows(int textSegmentDelta)
+    {
+        var line = textSegmentDelta > 0
+            ? "02/03/26SYNTHETICPAYROLL2,450.0002/10/26SYNTHETICREFUND9.9902/11/26SYNTHETICEXTRA5.00"
+            : "02/03/26SYNTHETICPAYROLL2,450.00";
+
+        var result = new SunflowerStatementParser().Parse(DepositsPage(line, StandardDeposits));
+
+        Assert.True(result.IsSuccess);
+        var deposits = DepositSectionRows(result);
+        Assert.Equal(textSegmentDelta > 0 ? 3 : 1, deposits.Count);
+        AssertMoneyFreeInvalid(deposits);
+    }
+
+    [Fact]
+    public void Text_debit_marker_that_geometry_missed_is_never_read_as_a_credit()
+    {
+        var result = new SunflowerStatementParser().Parse(DepositsPage(
+            "02/03/26SYNTHETICPAYROLL2,450.00-02/10/26SYNTHETICREFUND9.99",
+            StandardDeposits));
+
+        var deposits = DepositSectionRows(result);
+        Assert.Equal(2, deposits.Count);
+        AssertMoneyFreeInvalid(deposits);
+    }
+
+    [Theory]
+    [InlineData("02/03/26SYNTHETICPAYROLL2,450.0002/11/26SYNTHETICREFUND9.99")]
+    [InlineData("02/10/26SYNTHETICREFUND9.9902/03/26SYNTHETICPAYROLL2,450.00")]
+    public void Deposits_text_dates_that_differ_from_geometry_dates_are_never_read_as_credits(string line)
+    {
+        // Same segment count (2 and 2) and no debit markers; only the ordered dates disagree.
+        var result = new SunflowerStatementParser().Parse(DepositsPage(line, StandardDeposits));
+
+        var deposits = DepositSectionRows(result);
+        Assert.Equal(2, deposits.Count);
+        AssertMoneyFreeInvalid(deposits);
+    }
+
+    [Fact]
+    public void Electronic_heading_without_a_space_absorbed_into_deposits_line_surfaces_everything()
+    {
+        var result = new SunflowerStatementParser().Parse(DepositsPage(
+            "02/03/26SYNTHETICPAYROLL2,450.0002/10/26SYNTHETICREFUND9.99" +
+            "ElectronicTransactionsPostedDescriptionAmount02/05/26SYNTHETICGROCERY12.00-",
+            StandardDeposits,
+            electronicBlockText: string.Empty));
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(3, result.Rows.Count);
+        AssertMoneyFreeInvalid(result.Rows);
+        Assert.All(result.Rows, row => Assert.Equal("deposits", row.SourceSection));
+    }
+
+    [Fact]
+    public void Attached_minus_on_a_deposit_is_invalid_with_the_direction_error()
+    {
+        var result = new SunflowerStatementParser().Parse(DepositsPage(
+            "02/03/26SYNTHETICPAYROLL2,450.00-02/10/26SYNTHETICREFUND9.99",
+            words => words
+                .Text("Deposits", .08, .85)
+                .Header(.80)
+                .Row(.75, "02/03/26", "SYNTHETICPAYROLL", "2,450.00-")
+                .Row(.70, "02/10/26", "SYNTHETICREFUND", "9.99")));
+
+        var deposits = DepositSectionRows(result);
+        Assert.Equal(2, deposits.Count);
+        Assert.Equal(ImportedRowClassification.Invalid, deposits[0].Classification);
+        Assert.Contains("unsupported_transaction_direction", deposits[0].Errors);
+        Assert.Equal(ImportedTransactionDirection.Unresolved, deposits[0].Direction);
+        Assert.Equal(ImportedRowClassification.NonExpense, deposits[1].Classification);
+        Assert.Equal(9.99m, deposits[1].Amount);
+    }
+
+    [Theory]
+    [InlineData("detached_beyond_two_character_widths")]
+    [InlineData("detached_on_separate_baseline")]
+    [InlineData("minus_only_line_before_first_row")]
+    [InlineData("detached_between_description_and_amount")]
+    public void Detached_or_stray_minus_signs_fail_closed_and_never_become_credits(string kind)
+    {
+        var result = new SunflowerStatementParser().Parse(DepositsPage(
+            "02/03/26SYNTHETICPAYROLL2,450.0002/10/26SYNTHETICREFUND9.99",
+            words =>
+            {
+                words.Text("Deposits", .08, .85).Header(.80);
+                if (kind == "minus_only_line_before_first_row")
+                {
+                    words.Raw("-", .50, .511, .775);
+                }
+
+                if (kind == "detached_beyond_two_character_widths")
+                {
+                    words.Row(.75, "02/03/26", "SYNTHETICPAYROLL", "2,450.00", amountRight: .90)
+                        .Raw("-", .93, .94, .75);
+                }
+                else if (kind == "detached_between_description_and_amount")
+                {
+                    words.Row(.75, "02/03/26", "SYNTHETICPAYROLL -", "2,450.00");
+                }
+                else
+                {
+                    words.Row(.75, "02/03/26", "SYNTHETICPAYROLL", "2,450.00");
+                }
+
+                if (kind == "detached_on_separate_baseline")
+                {
+                    words.Raw("-", .93, .94, .725);
+                }
+
+                words.Row(.70, "02/10/26", "SYNTHETICREFUND", "9.99");
+            }));
+
+        var deposits = DepositSectionRows(result);
+        Assert.Equal(2, deposits.Count);
+        AssertMoneyFreeInvalid(deposits);
+    }
+
+    [Theory]
+    [InlineData("column_drift")]
+    [InlineData("overlap")]
+    [InlineData("rotated")]
+    [InlineData("duplicate_amount")]
+    [InlineData("missing_layout")]
+    [InlineData("foreign_line")]
+    [InlineData("summary_line_is_not_the_heading")]
+    public void Ambiguous_deposit_geometry_fails_closed_with_one_invalid_row_per_segment(string kind)
+    {
+        var result = new SunflowerStatementParser().Parse(DepositsPage(
+            "02/03/26SYNTHETICPAYROLL2,450.0002/10/26SYNTHETICREFUND9.99",
+            words =>
+            {
+                words.Text(kind == "summary_line_is_not_the_heading" ? "Deposits/Credits" : "Deposits", .08, .85)
+                    .Header(.80)
+                    .Row(.75, "02/03/26", "SYNTHETICPAYROLL", "2,450.00");
+                if (kind == "overlap")
+                {
+                    words.Raw("02/10/26", .08, .168, .70).Raw("SYNTHETICREFUND", .25, .90, .70).Raw("9.99", .886, .93, .70);
+                }
+                else if (kind == "column_drift")
+                {
+                    words.Row(.70, "02/10/26", "SYNTHETICREFUND", "9.99", amountRight: .74);
+                }
+                else
+                {
+                    words.Row(.70, "02/10/26", "SYNTHETICREFUND", "9.99");
+                }
+
+                if (kind == "rotated")
+                {
+                    words.Raw("1.00", .50, .544, .70, PdfWordOrientation.Rotate90);
+                }
+
+                if (kind == "duplicate_amount")
+                {
+                    words.Raw("11.00", .78, .835, .75);
+                }
+
+                if (kind == "foreign_line")
+                {
+                    words.Text("SYNTHETICNOTE", .25, .725);
+                }
+            },
+            includeLayout: kind != "missing_layout"));
+
+        var deposits = DepositSectionRows(result);
+        Assert.Equal(2, deposits.Count);
+        AssertMoneyFreeInvalid(deposits);
+    }
+
+    [Fact]
+    public void Unsigned_electronic_amount_still_fails_closed()
+    {
+        var result = new SunflowerStatementParser().Parse(PositionalResult(
+            "02/01/26SYNTHETIC710.00-02/02/26SECOND20.00",
+            new PositionalWords()
+                .Header(.80)
+                .Row(.70, "02/01/26", "SYNTHETIC7", "10.00-")
+                .Row(.65, "02/02/26", "SECOND", "20.00")
+                .ToArray()));
+
+        var invalid = Assert.Single(result.Rows);
+        Assert.Equal(ImportedRowClassification.Invalid, invalid.Classification);
+        Assert.Null(invalid.Amount);
+    }
+
+    [Theory]
+    [InlineData(994, true)]
+    [InlineData(995, false)]
+    public void Deposit_rows_count_toward_the_candidate_row_limit(int earlierRows, bool accepted)
+    {
+        var earlierPage = "SUNFLOWER BANK\nSTATEMENT DATE: 02/28/26\nDays in Statement Period: 28\n" +
+                          "Electronic Transactions\nPosted Description Amount\n" +
+                          string.Join('\n', Enumerable.Range(1, earlierRows)
+                              .Select(index => $"02/{((index - 1) % 28) + 1:D2}/26 SYNTHETIC ROW {index:D4} 10.00-"));
+        var depositWords = new PositionalWords().Text("Deposits", .08, .85).Header(.80);
+        var depositLine = new System.Text.StringBuilder();
+        for (var index = 0; index < 6; index++)
+        {
+            depositWords.Row(.75 - (index * .05), $"02/{index + 1:D2}/26", $"SYNTHETICCREDIT{index}", "1.00");
+            depositLine.Append($"02/{index + 1:D2}/26SYNTHETICCREDIT{index}1.00");
+        }
+
+        var result = new SunflowerStatementParser().Parse(PositionalPages(
+            (earlierPage, Array.Empty<PdfExtractedWord>()),
+            ($"Deposits\nPostedDescriptionAmount\n{depositLine}", depositWords.ToArray())));
+
+        if (accepted)
+        {
+            Assert.True(result.IsSuccess, result.Failure?.Code);
+            Assert.Equal(1000, result.Rows.Count);
+        }
+        else
+        {
+            Assert.Equal("candidate_row_limit_exceeded", result.Failure?.Code);
+            Assert.Empty(result.Rows);
+        }
+    }
+
+    [Fact]
+    public async Task Positioned_whitespace_free_deposits_flow_through_extractor_as_credits()
+    {
+        SyntheticPdfBuilder.PositionedText[] page =
+        [
+            new(50, 760, "-SunflowerBank SYNTHETIC HEADER STATEMENTDATE:02/28/26"),
+            new(50, 744, "DaysinStatementPeriod:28"),
+            new(50, 730, "Deposits/Credits"),
+            new(50, 710, "Deposits"),
+            new(40, 694, "-"),
+            new(50, 694, "Posted"),
+            new(160, 694, "Description"),
+            new(520, 694, "Amount"),
+            new(50, 678, "02/03/26"),
+            new(160, 678, "SYNTHETICPAYROLL"),
+            new(506, 678, "2,450.00"),
+            new(50, 662, "02/10/26"),
+            new(160, 662, "SYNTHETICREFERENCE7"),
+            new(520, 662, "120.50"),
+            new(50, 630, "Electronic Transactions"),
+            new(50, 614, "Posted"),
+            new(160, 614, "Description"),
+            new(520, 614, "Amount"),
+            new(50, 598, "02/05/26"),
+            new(160, 598, "SYNTHETICUTILITY"),
+            new(520, 598, "75.25-"),
+            new(50, 40, "Page1of1")
+        ];
+        var pdf = SyntheticPdfBuilder.BuildPositioned(
+            new IReadOnlyList<SyntheticPdfBuilder.PositionedText>[] { page });
+        var extraction = await new ContainedPdfTextExtractor().ExtractAsync(pdf);
+        Assert.True(extraction.IsSuccess, extraction.Failure?.Code);
+        Assert.Contains(
+            "02/03/26SYNTHETICPAYROLL2,450.0002/10/26SYNTHETICREFERENCE7120.50",
+            extraction.Result!.Pages[0].Text,
+            StringComparison.Ordinal);
+
+        var parsed = new SunflowerStatementParser().Parse(extraction.Result!);
+
+        Assert.True(parsed.IsSuccess, parsed.Failure?.Code);
+        Assert.Collection(
+            parsed.Rows,
+            row => AssertRow(row, 1, 1, "deposits", new DateOnly(2026, 2, 3), "SYNTHETICPAYROLL", 2450.00m, ImportedTransactionDirection.Credit),
+            row => AssertRow(row, 2, 1, "deposits", new DateOnly(2026, 2, 10), "SYNTHETICREFERENCE7", 120.50m, ImportedTransactionDirection.Credit),
+            row => AssertRow(row, 3, 1, "electronic_transactions", new DateOnly(2026, 2, 5), "SYNTHETICUTILITY", 75.25m, ImportedTransactionDirection.Debit));
+        Assert.All(parsed.Rows.Take(2), row => Assert.Equal(ImportedRowClassification.NonExpense, row.Classification));
+    }
+
+    [Fact]
+    public void Header_only_page_after_deposits_surfaces_money_free_rows_without_inheriting_the_section()
+    {
+        var result = new SunflowerStatementParser().Parse(MultiPageResult(
+            "SUNFLOWER BANK\nSTATEMENT DATE: 02/28/26\nDays in Statement Period: 28\n" +
+            "Deposits\nPosted Description Amount\n02/03/26 SYNTHETIC PAYROLL 2,450.00",
+            "Posted Description Amount\n02/10/26 SYNTHETIC REFUND 9.99\n" +
+            "02/11/26SYNTHETICONE5.0002/12/26SYNTHETICTWO6.00\nTotal Synthetic Deposits 11.00",
+            "Daily Balance Summary\n02/01 100.00\n02/28 90.00"));
+
+        Assert.True(result.IsSuccess, result.Failure?.Code);
+        Assert.Equal(4, result.Rows.Count);
+        Assert.Equal(ImportedRowClassification.NonExpense, result.Rows[0].Classification);
+        Assert.Equal(1, result.Rows[0].Provenance.SourcePageNumber);
+        var surfaced = result.Rows.Skip(1).ToList();
+        AssertMoneyFreeInvalid(surfaced);
+        Assert.All(surfaced, row =>
+        {
+            Assert.Equal(2, row.Provenance.SourcePageNumber);
+            Assert.Equal(string.Empty, row.SourceSection);
+        });
+        Assert.Equal(new[] { 2, 3, 4 }, surfaced.Select(row => row.SourceRowOrdinal));
+    }
+
+    [Fact]
+    public void Page_without_a_header_or_terminal_after_deposits_yields_no_rows()
+    {
+        // No PostedDescriptionAmount header and no terminal boundary: date-led lines on the
+        // page must neither be read as deposits nor surfaced, whatever section is remembered.
+        var result = new SunflowerStatementParser().Parse(MultiPageResult(
+            "SUNFLOWER BANK\nSTATEMENT DATE: 02/28/26\nDays in Statement Period: 28\n" +
+            "Deposits\nPosted Description Amount\n02/03/26 SYNTHETIC PAYROLL 2,450.00",
+            "02/10/26 SYNTHETIC REFUND 9.99\n" +
+            "02/11/26SYNTHETICONE5.0002/12/26SYNTHETICTWO6.00\nPage 2 of 2"));
+
+        Assert.True(result.IsSuccess, result.Failure?.Code);
+        var row = Assert.Single(result.Rows);
+        Assert.Equal(1, row.Provenance.SourcePageNumber);
+        Assert.Equal(ImportedRowClassification.NonExpense, row.Classification);
+        Assert.DoesNotContain(result.Rows, candidate => candidate.Provenance.SourcePageNumber == 2);
+    }
+
+    [Fact]
+    public void Header_only_page_after_deposits_respects_the_candidate_row_limit()
+    {
+        var segments = string.Concat(Enumerable.Range(0, 1001).Select(index => $"02/01/26SYNTHETICROW{index}1.00"));
+        var result = new SunflowerStatementParser().Parse(MultiPageResult(
+            "SUNFLOWER BANK\nSTATEMENT DATE: 02/28/26\nDays in Statement Period: 28\nDeposits\nPosted Description Amount",
+            $"Posted Description Amount\n{segments}"));
+
+        Assert.Equal("candidate_row_limit_exceeded", result.Failure?.Code);
+        Assert.Empty(result.Rows);
+    }
+
+    private const string DepositsPreamble =
+        "SUNFLOWER BANK\nSTATEMENT DATE: 02/28/26\nDays in Statement Period: 28\n";
+
+    private static string DepositsPageText(string depositLine, string electronicBlockText = DefaultElectronicBlock) =>
+        DepositsPreamble + "Deposits/Credits 4 2,580.94\nDeposits\nPostedDescriptionAmount\n" + depositLine +
+        electronicBlockText + "\nPage 1 of 1";
+
+    private const string DefaultElectronicBlock =
+        "\nElectronic Transactions\nPostedDescriptionAmount\n02/05/26SYNTHETICGROCERY12.00-";
+
+    private static void StandardDeposits(PositionalWords words) =>
+        words.Text("Deposits", .08, .85)
+            .Header(.80)
+            .Row(.75, "02/03/26", "SYNTHETICPAYROLL", "2,450.00")
+            .Row(.70, "02/10/26", "SYNTHETICREFUND", "9.99");
+
+    private static PdfTextExtractionResult DepositsPage(
+        string depositLine,
+        Action<PositionalWords> addDepositRegion,
+        bool includeLayout = true,
+        string electronicBlockText = DefaultElectronicBlock)
+    {
+        var words = new PositionalWords();
+        addDepositRegion(words);
+        if (electronicBlockText.Length > 0)
+        {
+            words.Text("Electronic", .08, .50).Text("Transactions", .20, .50)
+                .Header(.45)
+                .Row(.40, "02/05/26", "SYNTHETICGROCERY", "12.00-");
+        }
+        else
+        {
+            words.Text("Electronic", .08, .55).Text("Transactions", .20, .55)
+                .Header(.50)
+                .Row(.45, "02/05/26", "SYNTHETICGROCERY", "12.00-");
+        }
+
+        words.Text("Page", .08, .05).Text("1", .16, .05).Text("of", .20, .05).Text("1", .25, .05);
+        return PositionalPages((
+            DepositsPageText(depositLine, electronicBlockText),
+            includeLayout ? words.ToArray() : Array.Empty<PdfExtractedWord>()));
+    }
+
+    private static IReadOnlyList<NormalizedImportedRow> DepositSectionRows(SunflowerStatementParseResult result)
+    {
+        Assert.True(result.IsSuccess, result.Failure?.Code);
+        return result.Rows.Where(row => row.SourceSection == "deposits").ToList();
+    }
+
+    private static void AssertMoneyFreeInvalid(IEnumerable<NormalizedImportedRow> rows)
+    {
+        Assert.NotEmpty(rows);
+        Assert.All(rows, row =>
+        {
+            Assert.Equal(ImportedRowClassification.Invalid, row.Classification);
+            Assert.Equal(ImportedTransactionDirection.Unresolved, row.Direction);
+            Assert.Contains("unsupported_transaction_row", row.Errors);
+            Assert.Null(row.PostedDate);
+            Assert.Null(row.Amount);
+            Assert.Equal(string.Empty, row.SourceDescription);
+            Assert.Null(row.EditableExpenseDescription);
+        });
+    }
+
+    private static void AssertRow(
+        NormalizedImportedRow row,
+        int ordinal,
+        int page,
+        string section,
+        DateOnly date,
+        string description,
+        decimal amount,
+        ImportedTransactionDirection direction)
+    {
+        Assert.Equal(ordinal, row.SourceRowOrdinal);
+        Assert.Equal(page, row.Provenance.SourcePageNumber);
+        Assert.Equal(section, row.SourceSection);
+        Assert.Equal(date, row.PostedDate);
+        Assert.Equal(description, row.SourceDescription);
+        Assert.Equal(amount, row.Amount);
+        Assert.Equal(direction, row.Direction);
+        Assert.Empty(row.Errors);
+    }
+
+    private static PdfTextExtractionResult PositionalPages(params (string Text, PdfExtractedWord[] Words)[] pages) =>
+        new(
+            0,
+            pages.Length,
+            pages.Sum(page => page.Text.Length),
+            pages.Select((page, index) => new PdfExtractedPage(index + 1, page.Text, page.Words)).ToArray());
+
+    private sealed class PositionalWords
+    {
+        private const double CharacterWidth = .011;
+        private readonly List<PdfExtractedWord> words = new();
+
+        public PositionalWords Raw(
+            string text,
+            double left,
+            double right,
+            double baseline,
+            PdfWordOrientation orientation = PdfWordOrientation.Horizontal)
+        {
+            words.Add(PositionalWord(words.Count + 1, text, left, right, baseline, orientation));
+            return this;
+        }
+
+        public PositionalWords Text(string text, double left, double baseline) =>
+            Raw(text, left, left + (text.Length * CharacterWidth), baseline);
+
+        public PositionalWords Amount(string text, double baseline, double right = .93) =>
+            Raw(text, right - (text.Length * CharacterWidth), right, baseline);
+
+        public PositionalWords Header(double baseline) =>
+            Raw("Posted", .08, .16, baseline)
+                .Raw("Description", .25, .40, baseline)
+                .Raw("Amount", .85, .93, baseline);
+
+        public PositionalWords Row(
+            double baseline,
+            string date,
+            string description,
+            string amount,
+            double amountRight = .93)
+        {
+            Text(date, .08, baseline);
+            var left = .25;
+            foreach (var part in description.Split(' '))
+            {
+                Text(part, left, baseline);
+                left += (part.Length * CharacterWidth) + .005;
+            }
+
+            return Amount(amount, baseline, amountRight);
+        }
+
+        public PdfExtractedWord[] ToArray() => words.ToArray();
     }
 
     private static SunflowerStatementParseResult ParseRows(string statementDate, params string[] rows) =>

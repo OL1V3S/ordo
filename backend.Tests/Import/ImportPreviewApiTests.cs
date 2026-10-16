@@ -108,8 +108,8 @@ public sealed class ImportPreviewApiTests
 
         Assert.Equal(HttpStatusCode.Created, first.StatusCode);
         Assert.Equal(HttpStatusCode.OK, second.StatusCode);
-        Assert.Equal("sunflower-v3", firstBody.GetProperty("parserRuleVersion").GetString());
-        Assert.Equal("sunflower-v3", secondBody.GetProperty("parserRuleVersion").GetString());
+        Assert.Equal("sunflower-v4", firstBody.GetProperty("parserRuleVersion").GetString());
+        Assert.Equal("sunflower-v4", secondBody.GetProperty("parserRuleVersion").GetString());
         Assert.Equal(firstBody.GetProperty("batchId").GetGuid(), secondBody.GetProperty("batchId").GetGuid());
         Assert.Equal(firstBody.GetProperty("batchId").GetGuid(), resumed.GetProperty("batchId").GetGuid());
         Assert.Equal(1, await app.CountImportPreviewBatchesAsync(owner.Id));
@@ -146,7 +146,7 @@ public sealed class ImportPreviewApiTests
         Assert.Equal(HttpStatusCode.NotFound, crossUserRead.StatusCode);
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         Assert.NotEqual(stale.Id, replacement.GetProperty("batchId").GetGuid());
-        Assert.Equal("sunflower-v3", replacement.GetProperty("parserRuleVersion").GetString());
+        Assert.Equal("sunflower-v4", replacement.GetProperty("parserRuleVersion").GetString());
         Assert.Equal(13, replacement.GetProperty("rows").GetArrayLength());
         Assert.DoesNotContain(
             replacement.GetProperty("rows").EnumerateArray(),
@@ -165,7 +165,7 @@ public sealed class ImportPreviewApiTests
             current =>
             {
                 Assert.Equal(ImportPreviewLifecycle.Open, current.Lifecycle);
-                Assert.Equal("sunflower-v3", current.ParserRuleVersion);
+                Assert.Equal("sunflower-v4", current.ParserRuleVersion);
             });
         var preservedOther = Assert.Single(await app.FindImportPreviewBatchesAsync(other.Id));
         Assert.Equal(otherStale.Id, preservedOther.Id);

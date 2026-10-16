@@ -6,7 +6,7 @@ namespace BudgetPlanner.Import.Sunflower;
 public sealed partial class SunflowerStatementParser : ISunflowerStatementParser
 {
     public const string SourceType = ImportStatementSources.SunflowerPdf;
-    public const string RuleVersion = "sunflower-v3";
+    public const string RuleVersion = "sunflower-v4";
     public const int MaximumCandidateRows = 1_000;
 
     private const string DepositsSection = "deposits";
@@ -61,6 +61,8 @@ public sealed partial class SunflowerStatementParser : ISunflowerStatementParser
             var inUnsupportedCheckSection = false;
             var positionalRows = TryGetPositionalElectronicRows(page, statementDate);
             var positionalRowsConsumed = false;
+            var positionalDepositRowsConsumed = false;
+            var surfaceOnlyDepositsContinuation = false;
 
             void FlushPending()
             {
@@ -97,6 +99,7 @@ public sealed partial class SunflowerStatementParser : ISunflowerStatementParser
                     section = null;
                     pendingSection = null;
                     rememberedSection = null;
+                    surfaceOnlyDepositsContinuation = false;
                     inUnsupportedCheckSection = true;
                     continue;
                 }
@@ -129,6 +132,7 @@ public sealed partial class SunflowerStatementParser : ISunflowerStatementParser
                 {
                     pendingSection = headingSection;
                     rememberedSection = headingSection;
+                    surfaceOnlyDepositsContinuation = false;
                     continue;
                 }
 
@@ -136,6 +140,11 @@ public sealed partial class SunflowerStatementParser : ISunflowerStatementParser
                 {
                     section = pendingSection
                               ?? (rememberedSection == ElectronicTransactionsSection ? rememberedSection : null);
+                    // A header-only page that follows a Deposits section never inherits that
+                    // section or its credit direction; its date-led lines are only surfaced.
+                    surfaceOnlyDepositsContinuation = section is null
+                        && pendingSection is null
+                        && rememberedSection == DepositsSection;
                     continue;
                 }
 
@@ -143,9 +152,33 @@ public sealed partial class SunflowerStatementParser : ISunflowerStatementParser
                 {
                     section = null;
                     pendingSection = null;
+                    surfaceOnlyDepositsContinuation = false;
                     if (IsTerminalBoundary(trimmed))
                     {
                         rememberedSection = null;
+                    }
+                    continue;
+                }
+
+                if (section is null
+                    && surfaceOnlyDepositsContinuation
+                    && !IsKnownNonRow(trimmed)
+                    && LooksLikeTransactionStart(trimmed))
+                {
+                    var surfacedCount = CountDateLedSegments(trimmed);
+                    if (rows.Count + surfacedCount > MaximumCandidateRows)
+                    {
+                        return SunflowerStatementParseResult.Failed(
+                            SunflowerStatementParseFailure.CandidateRowLimitExceeded);
+                    }
+
+                    for (var index = 0; index < surfacedCount; index++)
+                    {
+                        rows.Add(CreateInvalidRow(
+                            sourceLine.PageNumber,
+                            string.Empty,
+                            rows.Count + 1,
+                            "unsupported_transaction_row"));
                     }
                     continue;
                 }
@@ -177,6 +210,51 @@ public sealed partial class SunflowerStatementParser : ISunflowerStatementParser
                                 rows.Count + 1));
                         }
                         positionalRowsConsumed = true;
+                        continue;
+                    }
+
+                    if (!positionalDepositRowsConsumed
+                        && section == DepositsSection
+                        && !sourceLine.Text.Any(char.IsWhiteSpace)
+                        && !TransactionRowRegex().IsMatch(trimmed))
+                    {
+                        var depositRows = TryGetPositionalDepositRows(page, statementDate);
+                        var depositRowsTrusted = depositRows.Count > 0
+                            && PositionalDepositRowsMatchSourceLine(trimmed, depositRows);
+                        var depositRowCount = depositRowsTrusted
+                            ? depositRows.Count
+                            : CountDateLedSegments(trimmed);
+                        if (rows.Count + depositRowCount > MaximumCandidateRows)
+                        {
+                            return SunflowerStatementParseResult.Failed(
+                                SunflowerStatementParseFailure.CandidateRowLimitExceeded);
+                        }
+
+                        if (depositRowsTrusted)
+                        {
+                            foreach (var depositRow in depositRows)
+                            {
+                                rows.Add(ParseRow(
+                                    new PendingRow(page.PageNumber, section, depositRow.SourceText),
+                                    statementDate,
+                                    rows.Count + 1));
+                            }
+                        }
+                        else
+                        {
+                            // Untrusted whitespace-free deposits line: surface one money-free
+                            // row per date-led segment so nothing vanishes and nothing becomes money.
+                            for (var index = 0; index < depositRowCount; index++)
+                            {
+                                rows.Add(CreateInvalidRow(
+                                    sourceLine.PageNumber,
+                                    section,
+                                    rows.Count + 1,
+                                    "unsupported_transaction_row"));
+                            }
+                        }
+
+                        positionalDepositRowsConsumed = true;
                         continue;
                     }
 
@@ -402,6 +480,277 @@ public sealed partial class SunflowerStatementParser : ISunflowerStatementParser
         return candidates.Select(candidate =>
             $"{candidate.Date.Text} {string.Join(' ', candidate.Description.Select(word => word.Text))} {candidate.Amount.CanonicalText}")
             .ToList();
+    }
+
+    // Deposits positional reconstruction (issue #250). Deliberately separate from the
+    // Electronic path above, which is unchanged. Deposits amounts are unsigned, so a
+    // missed debit marker would read a debit as a credit: every ambiguity fails closed
+    // (empty result), and the caller additionally cross-checks the source text line.
+    private static IReadOnlyList<PositionalDepositRow> TryGetPositionalDepositRows(
+        PdfExtractedPage page,
+        DateOnly statementDate)
+    {
+        var none = Array.Empty<PositionalDepositRow>();
+        if (!TryBuildPositionalLines(page, out var lines, out var medianCharacterWidth, out var baselineTolerance))
+        {
+            return none;
+        }
+
+        var headingIndexes = Enumerable.Range(0, lines.Count)
+            .Where(index => JoinedToken(lines[index]).Equals("Deposits", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        if (headingIndexes.Count != 1)
+        {
+            return none;
+        }
+
+        var headerIndex = -1;
+        for (var lineIndex = headingIndexes[0] + 1; lineIndex < lines.Count; lineIndex++)
+        {
+            var joined = JoinedToken(lines[lineIndex]);
+            if (joined.TrimStart('-').Equals("PostedDescriptionAmount", StringComparison.OrdinalIgnoreCase))
+            {
+                headerIndex = lineIndex;
+                break;
+            }
+
+            if (IsDepositsWindowEnd(joined))
+            {
+                return none;
+            }
+        }
+
+        if (headerIndex < 0)
+        {
+            return none;
+        }
+
+        var headerLine = lines[headerIndex];
+        var postedHeaders = headerLine.Words
+            .Where(word => word.Text.Equals("Posted", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        var descriptionHeaders = headerLine.Words
+            .Where(word => word.Text.Equals("Description", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        var amountHeaders = headerLine.Words
+            .Where(word => word.Text.Equals("Amount", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        if (postedHeaders.Count != 1 || descriptionHeaders.Count != 1 || amountHeaders.Count != 1
+            || postedHeaders[0].Right > descriptionHeaders[0].Left
+            || descriptionHeaders[0].Right > amountHeaders[0].Left)
+        {
+            return none;
+        }
+
+        var candidates = new List<PositionalCandidate>();
+        for (var lineIndex = headerIndex + 1; lineIndex < lines.Count; lineIndex++)
+        {
+            var line = lines[lineIndex];
+            var joined = JoinedToken(line);
+            if (IsDepositsWindowEnd(joined))
+            {
+                break;
+            }
+
+            var dateWords = line.Words.Where(word => TransactionDateRegex().IsMatch(word.Text)).ToList();
+            if (dateWords.Count == 0 && IsKnownLayoutContent(joined))
+            {
+                continue;
+            }
+
+            var amountCandidates = new List<PositionalAmount>();
+            for (var wordIndex = 0; wordIndex < line.Words.Count; wordIndex++)
+            {
+                var word = line.Words[wordIndex];
+                if (word.Text.EndsWith("-", StringComparison.Ordinal)
+                    && TryParseAmount(word.Text[..^1], out _))
+                {
+                    amountCandidates.Add(new PositionalAmount(word, null, word.Text));
+                    continue;
+                }
+
+                if (!TryParseAmount(word.Text, out _))
+                {
+                    continue;
+                }
+
+                if (wordIndex + 1 < line.Words.Count
+                    && line.Words[wordIndex + 1].Text == "-"
+                    && line.Words[wordIndex + 1].Left >= word.Right
+                    && line.Words[wordIndex + 1].Left - word.Right <= medianCharacterWidth * 2)
+                {
+                    amountCandidates.Add(new PositionalAmount(
+                        word,
+                        line.Words[wordIndex + 1],
+                        $"{word.Text}-"));
+                }
+                else
+                {
+                    amountCandidates.Add(new PositionalAmount(word, null, word.Text));
+                }
+            }
+
+            // Unlike the Electronic path, any other line inside the window fails closed, even
+            // before the first row: a stray minus sign must never be ignored for credits.
+            if (dateWords.Count != 1 || amountCandidates.Count != 1)
+            {
+                return none;
+            }
+
+            var dateWord = dateWords[0];
+            var amount = amountCandidates[0];
+            var amountWord = amount.Word;
+            if (!TryResolveDate(dateWord.Text, statementDate, out _)
+                || dateWord.Right >= amountWord.Left)
+            {
+                return none;
+            }
+
+            var descriptionWords = line.Words
+                .Where(word => word.Left >= dateWord.Right && word.Right <= amountWord.Left)
+                .ToList();
+            if (descriptionWords.Count == 0
+                || descriptionWords.Any(word => word.Text == "-")
+                || line.Words.Any(word => word != dateWord
+                    && word != amountWord
+                    && word != amount.Marker
+                    && !descriptionWords.Contains(word)))
+            {
+                return none;
+            }
+
+            var lastDescription = descriptionWords[^1];
+            if (lastDescription.Right >= amountWord.Left
+                || line.Words.Max(word => word.Baseline) - line.Words.Min(word => word.Baseline) > baselineTolerance)
+            {
+                return none;
+            }
+
+            candidates.Add(new PositionalCandidate(
+                dateWord,
+                descriptionWords,
+                amount,
+                amountWord.Left - lastDescription.Right));
+        }
+
+        if (candidates.Count == 0)
+        {
+            return none;
+        }
+
+        var dateColumn = Median(candidates.Select(candidate => candidate.Date.Left));
+        var amountColumn = Median(candidates.Select(candidate => candidate.Amount.Right));
+        var columnTolerance = medianCharacterWidth * 2;
+        var headerTolerance = medianCharacterWidth * 4;
+        if (candidates.Any(candidate =>
+                Math.Abs(candidate.Date.Left - dateColumn) > columnTolerance
+                || Math.Abs(candidate.Amount.Right - amountColumn) > columnTolerance
+                || candidate.DescriptionAmountGap < medianCharacterWidth)
+            || Math.Abs(postedHeaders[0].Left - dateColumn) > headerTolerance
+            || Math.Abs(amountHeaders[0].Right - amountColumn) > headerTolerance)
+        {
+            return none;
+        }
+
+        return candidates.Select(candidate => new PositionalDepositRow(
+                $"{candidate.Date.Text} {string.Join(' ', candidate.Description.Select(word => word.Text))} {candidate.Amount.CanonicalText}",
+                candidate.Date.Text,
+                candidate.Amount.CanonicalText.EndsWith("-", StringComparison.Ordinal)))
+            .ToList();
+    }
+
+    // Mandatory guard (issue #250): the positional rows replace the entire triggering text
+    // line, so they must account for exactly that line's date-led segments, in order, with
+    // agreeing debit markers. Any mismatch means nothing from the line becomes money.
+    private static bool PositionalDepositRowsMatchSourceLine(
+        string sourceLine,
+        IReadOnlyList<PositionalDepositRow> rows)
+    {
+        var segmentStarts = DateLedSegmentRegex().Matches(sourceLine);
+        if (segmentStarts.Count != rows.Count)
+        {
+            return false;
+        }
+
+        for (var index = 0; index < rows.Count; index++)
+        {
+            var start = segmentStarts[index].Index;
+            var end = index + 1 < segmentStarts.Count ? segmentStarts[index + 1].Index : sourceLine.Length;
+            if (segmentStarts[index].Value != rows[index].DateText
+                || DebitMarkerRegex().IsMatch(sourceLine[start..end]) != rows[index].HasDebitMarker)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static int CountDateLedSegments(string line) =>
+        Math.Max(1, DateLedSegmentRegex().Matches(line).Count);
+
+    private static bool IsDepositsWindowEnd(string joined) =>
+        joined.Equals("ElectronicTransactions", StringComparison.OrdinalIgnoreCase)
+        || IsLayoutTerminal(joined);
+
+    private static bool TryBuildPositionalLines(
+        PdfExtractedPage page,
+        out List<PositionalLine> lines,
+        out double medianCharacterWidth,
+        out double baselineTolerance)
+    {
+        lines = new List<PositionalLine>();
+        medianCharacterWidth = 0;
+        baselineTolerance = 0;
+        if (page.Words.Count == 0
+            || page.Words.Any(word => word.Orientation != PdfWordOrientation.Horizontal
+                || word.Ordinal <= 0
+                || string.IsNullOrEmpty(word.Text)
+                || !HasValidBox(word)))
+        {
+            return false;
+        }
+
+        var orderedWords = page.Words.OrderBy(word => word.Ordinal).ToList();
+        if (!orderedWords.Select(word => word.Ordinal).SequenceEqual(Enumerable.Range(1, orderedWords.Count)))
+        {
+            return false;
+        }
+
+        var medianHeight = Median(orderedWords.Select(word => word.Top - word.Bottom));
+        medianCharacterWidth = Median(orderedWords
+            .Select(word => (word.Right - word.Left) / word.Text.Length)
+            .Where(width => width > 0));
+        if (medianHeight <= 0 || medianCharacterWidth <= 0)
+        {
+            return false;
+        }
+
+        baselineTolerance = medianHeight * 0.45;
+        foreach (var word in orderedWords.OrderByDescending(word => word.Baseline).ThenBy(word => word.Left))
+        {
+            var tolerance = baselineTolerance;
+            var line = lines
+                .Where(candidate => Math.Abs(candidate.Baseline - word.Baseline) <= tolerance)
+                .OrderBy(candidate => Math.Abs(candidate.Baseline - word.Baseline))
+                .FirstOrDefault();
+            if (line is null)
+            {
+                lines.Add(new PositionalLine(word.Baseline, new List<PdfExtractedWord> { word }));
+            }
+            else
+            {
+                line.Words.Add(word);
+            }
+        }
+
+        lines = lines.OrderByDescending(line => line.Baseline).ToList();
+        foreach (var line in lines)
+        {
+            line.Words.Sort((left, right) => left.Left.CompareTo(right.Left));
+        }
+
+        return true;
     }
 
     private static bool HasValidBox(PdfExtractedWord word) =>
@@ -801,6 +1150,8 @@ public sealed partial class SunflowerStatementParser : ISunflowerStatementParser
 
     private sealed record PositionalLine(double Baseline, List<PdfExtractedWord> Words);
 
+    private sealed record PositionalDepositRow(string SourceText, string DateText, bool HasDebitMarker);
+
     private sealed record PositionalCandidate(
         PdfExtractedWord Date,
         IReadOnlyList<PdfExtractedWord> Description,
@@ -845,6 +1196,12 @@ public sealed partial class SunflowerStatementParser : ISunflowerStatementParser
 
     [GeneratedRegex(@"^(?<date>\d{2}/\d{2}/\d{2})\s+(?<description>.*?)\s+(?<amount>\S+?)(?<debit>-)?$", RegexOptions.CultureInvariant)]
     private static partial Regex TransactionRowRegex();
+
+    [GeneratedRegex(@"\d{2}/\d{2}/\d{2}", RegexOptions.CultureInvariant)]
+    private static partial Regex DateLedSegmentRegex();
+
+    [GeneratedRegex(@"\.\d{2}-", RegexOptions.CultureInvariant)]
+    private static partial Regex DebitMarkerRegex();
 
     [GeneratedRegex(@"^(?<month>\d{2})/(?<day>\d{2})/(?<year>\d{2})$", RegexOptions.CultureInvariant)]
     private static partial Regex TransactionDateRegex();
