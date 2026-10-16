@@ -388,6 +388,52 @@ namespace backend.Migrations
                         });
                 });
 
+            modelBuilder.Entity("BudgetPlanner.Models.DeviceSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("AbsoluteExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("LastUsedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("OwnerId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<byte[]>("SecretHash")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("bytea");
+
+                    b.Property<byte[]>("SecurityStampHash")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("bytea");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerId");
+
+                    b.ToTable("DeviceSessions", t =>
+                        {
+                            t.HasCheckConstraint("CK_DeviceSession_Expiry", "\"AbsoluteExpiresAt\" > \"CreatedAt\"");
+
+                            t.HasCheckConstraint("CK_DeviceSession_LastUsed", "\"LastUsedAt\" >= \"CreatedAt\"");
+
+                            t.HasCheckConstraint("CK_DeviceSession_SecretHash", "octet_length(\"SecretHash\") = 32");
+
+                            t.HasCheckConstraint("CK_DeviceSession_StampHash", "octet_length(\"SecurityStampHash\") = 32");
+                        });
+                });
+
             modelBuilder.Entity("BudgetPlanner.Models.Expense", b =>
                 {
                     b.Property<int>("Id")
@@ -1064,6 +1110,17 @@ namespace backend.Migrations
                     b.Navigation("Commitment");
 
                     b.Navigation("Expense");
+                });
+
+            modelBuilder.Entity("BudgetPlanner.Models.DeviceSession", b =>
+                {
+                    b.HasOne("BudgetPlanner.Models.ApplicationUser", "Owner")
+                        .WithMany()
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Owner");
                 });
 
             modelBuilder.Entity("BudgetPlanner.Models.Expense", b =>

@@ -13,6 +13,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace BudgetPlanner.Tests.Auth;
@@ -32,6 +33,9 @@ internal sealed class TestApplication : WebApplicationFactory<Program>
     private readonly ForgotPasswordLimiterTestSettings? _forgotPasswordLimiterSettings;
     private readonly IForgotPasswordLimiter? _forgotPasswordLimiterOverride;
     private readonly TimeSpan? _tokenLifespan;
+    private readonly TimeProvider? _timeProvider;
+    private readonly Action<DeviceSessionOptions>? _configureDeviceSessions;
+    private readonly ILoggerProvider? _loggerProvider;
 
     private TestApplication(
         EmailFailureMode emailFailureMode,
@@ -39,7 +43,10 @@ internal sealed class TestApplication : WebApplicationFactory<Program>
         IConfirmationResendLimiter? limiterOverride,
         ForgotPasswordLimiterTestSettings? forgotPasswordLimiterSettings,
         IForgotPasswordLimiter? forgotPasswordLimiterOverride,
-        TimeSpan? tokenLifespan)
+        TimeSpan? tokenLifespan,
+        TimeProvider? timeProvider,
+        Action<DeviceSessionOptions>? configureDeviceSessions,
+        ILoggerProvider? loggerProvider)
     {
         EmailSender = new FakeEmailService(emailFailureMode);
         _limiterSettings = limiterSettings;
@@ -47,6 +54,9 @@ internal sealed class TestApplication : WebApplicationFactory<Program>
         _forgotPasswordLimiterSettings = forgotPasswordLimiterSettings;
         _forgotPasswordLimiterOverride = forgotPasswordLimiterOverride;
         _tokenLifespan = tokenLifespan;
+        _timeProvider = timeProvider;
+        _configureDeviceSessions = configureDeviceSessions;
+        _loggerProvider = loggerProvider;
     }
 
     public HttpClient Client { get; private set; } = null!;
@@ -58,7 +68,10 @@ internal sealed class TestApplication : WebApplicationFactory<Program>
         IConfirmationResendLimiter? limiterOverride = null,
         ForgotPasswordLimiterTestSettings? forgotPasswordLimiterSettings = null,
         IForgotPasswordLimiter? forgotPasswordLimiterOverride = null,
-        TimeSpan? tokenLifespan = null)
+        TimeSpan? tokenLifespan = null,
+        TimeProvider? timeProvider = null,
+        Action<DeviceSessionOptions>? configureDeviceSessions = null,
+        ILoggerProvider? loggerProvider = null)
     {
         var application = new TestApplication(
             emailFailureMode,
@@ -66,7 +79,10 @@ internal sealed class TestApplication : WebApplicationFactory<Program>
             limiterOverride,
             forgotPasswordLimiterSettings,
             forgotPasswordLimiterOverride,
-            tokenLifespan);
+            tokenLifespan,
+            timeProvider,
+            configureDeviceSessions,
+            loggerProvider);
         lock (HostStartupLock)
         {
             var originalEnvironment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
@@ -136,7 +152,19 @@ internal sealed class TestApplication : WebApplicationFactory<Program>
                 services.RemoveAll<IForgotPasswordLimiter>();
                 services.AddSingleton(_forgotPasswordLimiterOverride);
             }
+
+            if (_timeProvider != null)
+            {
+                services.RemoveAll<TimeProvider>();
+                services.AddSingleton(_timeProvider);
+            }
+
+            if (_configureDeviceSessions != null)
+                services.Configure(_configureDeviceSessions);
         });
+
+        if (_loggerProvider != null)
+            builder.ConfigureLogging(logging => logging.AddProvider(_loggerProvider));
     }
 
     protected override IHost CreateHost(IHostBuilder builder)
@@ -189,6 +217,20 @@ internal sealed class TestApplication : WebApplicationFactory<Program>
         using var scope = Services.CreateScope();
         var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         return await users.FindByIdAsync(userId);
+    }
+
+    public async Task<IReadOnlyList<DeviceSession>> GetDeviceSessionsAsync()
+    {
+        using var scope = Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<BudgetContext>();
+        return await context.DeviceSessions.AsNoTracking().OrderBy(value => value.CreatedAt).ToListAsync();
+    }
+
+    public async Task<int> CountDeviceSessionsAsync(string? ownerId = null)
+    {
+        using var scope = Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<BudgetContext>();
+        return await context.DeviceSessions.CountAsync(value => ownerId == null || value.OwnerId == ownerId);
     }
 
     protected override void Dispose(bool disposing)
@@ -303,3 +345,39 @@ internal sealed class FakeEmailService(EmailFailureMode failureMode) : IEmailSer
 }
 
 internal sealed record SentEmail(string ToEmail, string Subject, string HtmlBody);
+
+/// <summary>A clock tests can move, so idle and absolute expiry are exercised without waiting.</summary>
+internal sealed class TestClock(DateTimeOffset start) : TimeProvider
+{
+    private DateTimeOffset _now = start;
+
+    public override DateTimeOffset GetUtcNow() => _now;
+
+    public void Advance(TimeSpan by) => _now += by;
+}
+
+internal sealed class CapturingLoggerProvider : ILoggerProvider
+{
+    private readonly ConcurrentQueue<string> _messages = new();
+
+    public IReadOnlyCollection<string> Messages => _messages.ToArray();
+
+    public ILogger CreateLogger(string categoryName) => new CapturingLogger(categoryName, _messages);
+
+    public void Dispose() { }
+
+    private sealed class CapturingLogger(string category, ConcurrentQueue<string> messages) : ILogger
+    {
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(
+            LogLevel logLevel,
+            EventId eventId,
+            TState state,
+            Exception? exception,
+            Func<TState, Exception?, string> formatter) =>
+            messages.Enqueue($"{category}: {formatter(state, exception)} {exception}");
+    }
+}
