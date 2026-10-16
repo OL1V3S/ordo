@@ -24,7 +24,7 @@ the permanent, complete archive.
 
 ## History
 
-### 2026-10-15 — Deposit rows read from whitespace-free statements
+### 2026-10-16 — Deposit rows read from whitespace-free statements
 
 [PR #251](https://github.com/OL1V3S/ordo/pull/251) · [Issue #250](https://github.com/OL1V3S/ordo/issues/250)
 
