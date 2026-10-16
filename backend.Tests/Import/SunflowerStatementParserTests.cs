@@ -411,6 +411,46 @@ public sealed class SunflowerStatementParserTests
         Assert.All(result.Rows.Skip(4), row => Assert.Equal(ImportedRowClassification.ExpenseCandidate, row.Classification));
     }
 
+    [Fact]
+    public void Statement_date_footer_on_a_continuation_page_does_not_stop_electronic_or_deposit_rows()
+    {
+        var firstPage = DepositsPage(
+            "02/03/26SYNTHETICPAYROLL2,450.0002/10/26SYNTHETICREFUND9.99",
+            StandardDeposits).Pages[0];
+        var continuationWords = new PositionalWords()
+            .Header(.90)
+            .Row(.85, "02/12/26", "SYNTHETICUTILITY", "40.00-")
+            .Row(.80, "02/13/26", "SYNTHETICPHONE", "55.10-")
+            .Text("Page", .08, .05).Text("2", .16, .05).Text("of", .20, .05).Text("2", .25, .05)
+            // Combined statement-date footer word below the Page terminal: it must not fail the
+            // Electronic path closed (a standalone date word before the terminal would).
+            .Text("STATEMENTDATE:02/28/26", .08, .02)
+            .ToArray();
+        var extraction = PositionalPages(
+            (firstPage.Text, firstPage.Words.ToArray()),
+            (
+                "PostedDescriptionAmount\n02/12/26SYNTHETICUTILITY40.00-02/13/26SYNTHETICPHONE55.10-" +
+                "\nPage 2 of 2\nSTATEMENTDATE:02/28/26",
+                continuationWords));
+
+        var result = new SunflowerStatementParser().Parse(extraction);
+
+        Assert.True(result.IsSuccess, result.Failure?.Code);
+        Assert.Equal(Enumerable.Range(1, result.Rows.Count), result.Rows.Select(row => row.SourceRowOrdinal));
+        AssertRow(result.Rows[0], 1, 1, "deposits", new DateOnly(2026, 2, 3), "SYNTHETICPAYROLL", 2450.00m, ImportedTransactionDirection.Credit);
+        AssertRow(result.Rows[1], 2, 1, "deposits", new DateOnly(2026, 2, 10), "SYNTHETICREFUND", 9.99m, ImportedTransactionDirection.Credit);
+        AssertRow(result.Rows[2], 3, 1, "electronic_transactions", new DateOnly(2026, 2, 5), "SYNTHETICGROCERY", 12.00m, ImportedTransactionDirection.Debit);
+        AssertRow(result.Rows[3], 4, 2, "electronic_transactions", new DateOnly(2026, 2, 12), "SYNTHETICUTILITY", 40.00m, ImportedTransactionDirection.Debit);
+        AssertRow(result.Rows[4], 5, 2, "electronic_transactions", new DateOnly(2026, 2, 13), "SYNTHETICPHONE", 55.10m, ImportedTransactionDirection.Debit);
+        Assert.All(result.Rows.Take(2), row => Assert.Equal(ImportedRowClassification.NonExpense, row.Classification));
+        Assert.All(result.Rows.Skip(2).Take(3), row => Assert.Equal(ImportedRowClassification.ExpenseCandidate, row.Classification));
+
+        // The footer text itself stays surfaced as money-free unreadable lines (unchanged, D6).
+        var footer = result.Rows.Skip(5).ToList();
+        AssertMoneyFreeInvalid(footer);
+        Assert.All(footer, row => Assert.Equal(2, row.Provenance.SourcePageNumber));
+    }
+
     [Theory]
     [InlineData(1)]
     [InlineData(-1)]
@@ -434,6 +474,19 @@ public sealed class SunflowerStatementParserTests
         var result = new SunflowerStatementParser().Parse(DepositsPage(
             "02/03/26SYNTHETICPAYROLL2,450.00-02/10/26SYNTHETICREFUND9.99",
             StandardDeposits));
+
+        var deposits = DepositSectionRows(result);
+        Assert.Equal(2, deposits.Count);
+        AssertMoneyFreeInvalid(deposits);
+    }
+
+    [Theory]
+    [InlineData("02/03/26SYNTHETICPAYROLL2,450.0002/11/26SYNTHETICREFUND9.99")]
+    [InlineData("02/10/26SYNTHETICREFUND9.9902/03/26SYNTHETICPAYROLL2,450.00")]
+    public void Deposits_text_dates_that_differ_from_geometry_dates_are_never_read_as_credits(string line)
+    {
+        // Same segment count (2 and 2) and no debit markers; only the ordered dates disagree.
+        var result = new SunflowerStatementParser().Parse(DepositsPage(line, StandardDeposits));
 
         var deposits = DepositSectionRows(result);
         Assert.Equal(2, deposits.Count);
@@ -690,6 +743,24 @@ public sealed class SunflowerStatementParserTests
             Assert.Equal(string.Empty, row.SourceSection);
         });
         Assert.Equal(new[] { 2, 3, 4 }, surfaced.Select(row => row.SourceRowOrdinal));
+    }
+
+    [Fact]
+    public void Page_without_a_header_or_terminal_after_deposits_yields_no_rows()
+    {
+        // No PostedDescriptionAmount header and no terminal boundary: date-led lines on the
+        // page must neither be read as deposits nor surfaced, whatever section is remembered.
+        var result = new SunflowerStatementParser().Parse(MultiPageResult(
+            "SUNFLOWER BANK\nSTATEMENT DATE: 02/28/26\nDays in Statement Period: 28\n" +
+            "Deposits\nPosted Description Amount\n02/03/26 SYNTHETIC PAYROLL 2,450.00",
+            "02/10/26 SYNTHETIC REFUND 9.99\n" +
+            "02/11/26SYNTHETICONE5.0002/12/26SYNTHETICTWO6.00\nPage 2 of 2"));
+
+        Assert.True(result.IsSuccess, result.Failure?.Code);
+        var row = Assert.Single(result.Rows);
+        Assert.Equal(1, row.Provenance.SourcePageNumber);
+        Assert.Equal(ImportedRowClassification.NonExpense, row.Classification);
+        Assert.DoesNotContain(result.Rows, candidate => candidate.Provenance.SourcePageNumber == 2);
     }
 
     [Fact]
