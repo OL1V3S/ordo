@@ -26,7 +26,7 @@ the permanent, complete archive.
 
 ### 2026-10-16 — Revocable device sessions for native clients
 
-[Issue #252](https://github.com/OL1V3S/ordo/issues/252)
+[PR #254](https://github.com/OL1V3S/ordo/pull/254) · [Issue #252](https://github.com/OL1V3S/ordo/issues/252)
 
 - The backend can now sign in a native client with a long-lived, revocable device session: `POST /api/auth/device-sessions` (email and password), `/refresh` (rotates the credential and returns a new 2-hour access token) and `/sign-out`. A session expires after 60 days without use or 180 days in total, a reused credential ends the whole session, and a completed password reset ends every session of that account.
 - Web login, the access-token lifetime, the frontend and all existing endpoints are unchanged. Adds the `DeviceSessions` table (migration `AddDeviceSessions`), which must be applied to production before this backend is deployed.
