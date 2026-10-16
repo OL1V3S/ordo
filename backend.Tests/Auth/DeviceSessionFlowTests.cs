@@ -554,6 +554,7 @@ public sealed class DeviceSessionFlowTests
             foreach (var secret in secrets)
                 Assert.DoesNotContain(secret, message, StringComparison.Ordinal);
             Assert.DoesNotContain("Password1!", message, StringComparison.Ordinal);
+            Assert.DoesNotContain("logging@example.com", message, StringComparison.Ordinal);
         }
     }
 
