@@ -1,0 +1,10 @@
+{
+  "type": "https://tools.ietf.org/html/rfc9110#section-15.5.1",
+  "title": "One or more validation errors occurred.",
+  "status": 400,
+  "errors": {
+    "amount": ["synthetic server text that must never be shown"],
+    "Category": ["synthetic server text"],
+    "request": ["ignored"]
+  }
+}

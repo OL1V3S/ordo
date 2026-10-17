@@ -1,0 +1,5 @@
+{
+  "title": "Create request failed",
+  "status": 422,
+  "code": "idempotency_key_reused"
+}

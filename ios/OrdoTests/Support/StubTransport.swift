@@ -26,6 +26,11 @@ final class StubTransport: HTTPTransport, @unchecked Sendable {
         return requests.filter { $0.url?.path == path }.count
     }
 
+    func requests(_ path: String) -> [URLRequest] {
+        lock.lock(); defer { lock.unlock() }
+        return requests.filter { $0.url?.path == path }
+    }
+
     func bodies(_ path: String) -> [Data] {
         lock.lock(); defer { lock.unlock() }
         return requests.filter { $0.url?.path == path }.compactMap(\.httpBody)
