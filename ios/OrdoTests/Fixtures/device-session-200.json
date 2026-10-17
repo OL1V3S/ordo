@@ -1,0 +1,5 @@
+{
+  "token": "synthetic-access-token",
+  "email": "person@example.test",
+  "refreshToken": "synthetic-refresh-token"
+}

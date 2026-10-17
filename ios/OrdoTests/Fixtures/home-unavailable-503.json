@@ -1,0 +1,7 @@
+{
+  "type": "about:blank",
+  "title": "Service Unavailable",
+  "status": 503,
+  "detail": "ignored",
+  "code": "home_unavailable"
+}

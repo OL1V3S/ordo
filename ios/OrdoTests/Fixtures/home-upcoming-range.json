@@ -1,0 +1,65 @@
+{
+  "generatedAt": "2026-10-17T15:04:05.1234567+00:00",
+  "currencyCode": "USD",
+  "evaluations": {
+    "activityThroughDate": "2026-10-17",
+    "upcomingEvaluatedOn": "2026-10-17"
+  },
+  "attention": {
+    "availability": {
+      "state": "available",
+      "reasonCode": null
+    },
+    "kindsEvaluated": [
+      "commitment_change_review",
+      "budget_attention"
+    ],
+    "items": [],
+    "budgetItems": [],
+    "familyAvailability": {
+      "commitment_change_review": {
+        "state": "available",
+        "reasonCode": null
+      },
+      "budget_attention": {
+        "state": "available",
+        "reasonCode": null
+      }
+    },
+    "evaluatedOn": "2026-10-17"
+  },
+  "recentActivity": {
+    "availability": {
+      "state": "available",
+      "reasonCode": null
+    },
+    "items": []
+  },
+  "upcoming": {
+    "availability": {
+      "state": "available",
+      "reasonCode": null
+    },
+    "horizon": {
+      "from": "2026-10-17",
+      "through": "2026-10-30"
+    },
+    "items": [
+      {
+        "kind": "paycheck_projection",
+        "paycheckProfileId": "a1b2c3d4-0000-4000-8000-000000000002",
+        "displayName": "Example side gig",
+        "cadence": "monthly",
+        "anchorDate": "2026-10-28",
+        "earliestExpectedDate": "2026-10-27",
+        "latestExpectedDate": "2026-10-29",
+        "amount": {
+          "mode": "range",
+          "fixedAmount": null,
+          "minimumAmount": "200.00",
+          "maximumAmount": "450.00"
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "generatedAt": "2026-10-17T15:04:05.1234567+00:00",
+  "currencyCode": "USD",
+  "evaluations": {
+    "activityThroughDate": "2026-10-17",
+    "upcomingEvaluatedOn": "2026-10-17"
+  },
+  "attention": {
+    "availability": {
+      "state": "available",
+      "reasonCode": null
+    },
+    "kindsEvaluated": [
+      "commitment_change_review",
+      "budget_attention"
+    ],
+    "items": [],
+    "budgetItems": [],
+    "familyAvailability": {
+      "commitment_change_review": {
+        "state": "available",
+        "reasonCode": null
+      },
+      "budget_attention": {
+        "state": "available",
+        "reasonCode": null
+      }
+    },
+    "evaluatedOn": "2026-10-17"
+  },
+  "recentActivity": {
+    "availability": {
+      "state": "available",
+      "reasonCode": null
+    },
+    "items": []
+  },
+  "upcoming": {
+    "availability": {
+      "state": "available",
+      "reasonCode": null
+    },
+    "horizon": {
+      "from": "2026-10-18",
+      "through": "2026-10-31"
+    },
+    "items": []
+  }
+}

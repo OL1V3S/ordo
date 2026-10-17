@@ -1,0 +1,80 @@
+{
+  "generatedAt": "2026-10-17T15:04:05.1234567+00:00",
+  "currencyCode": "USD",
+  "evaluations": {
+    "activityThroughDate": "2026-10-17",
+    "upcomingEvaluatedOn": "2026-10-17"
+  },
+  "attention": {
+    "availability": {
+      "state": "available",
+      "reasonCode": null
+    },
+    "kindsEvaluated": [
+      "commitment_change_review",
+      "budget_attention"
+    ],
+    "items": [],
+    "budgetItems": [],
+    "familyAvailability": {
+      "commitment_change_review": {
+        "state": "available",
+        "reasonCode": null
+      },
+      "budget_attention": {
+        "state": "available",
+        "reasonCode": null
+      }
+    },
+    "evaluatedOn": "2026-10-17"
+  },
+  "recentActivity": {
+    "availability": {
+      "state": "available",
+      "reasonCode": null
+    },
+    "items": [
+      {
+        "kind": "expense",
+        "recordId": 41,
+        "date": "2026-10-16",
+        "amount": "12.5",
+        "description": "Synthetic maximum amount",
+        "category": "Food",
+        "paycheck": null
+      },
+      {
+        "kind": "account_inflow",
+        "recordId": 17,
+        "date": "2026-10-15",
+        "amount": "1234.56",
+        "description": "Example paycheck deposit",
+        "category": null,
+        "paycheck": {
+          "profileId": "a1b2c3d4-0000-4000-8000-000000000001",
+          "relation": "recorded_receipt"
+        }
+      },
+      {
+        "kind": "expense",
+        "recordId": 40,
+        "date": "2026-10-14",
+        "amount": "4.75",
+        "description": "Coffee beans",
+        "category": "  coffee Beans",
+        "paycheck": null
+      }
+    ]
+  },
+  "upcoming": {
+    "availability": {
+      "state": "available",
+      "reasonCode": null
+    },
+    "horizon": {
+      "from": "2026-10-17",
+      "through": "2026-10-30"
+    },
+    "items": []
+  }
+}

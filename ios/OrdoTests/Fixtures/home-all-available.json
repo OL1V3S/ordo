@@ -1,0 +1,142 @@
+{
+  "generatedAt": "2026-10-17T15:04:05.1234567+00:00",
+  "currencyCode": "USD",
+  "evaluations": {
+    "activityThroughDate": "2026-10-17",
+    "upcomingEvaluatedOn": "2026-10-17"
+  },
+  "attention": {
+    "availability": {
+      "state": "available",
+      "reasonCode": null
+    },
+    "kindsEvaluated": [
+      "commitment_change_review",
+      "budget_attention"
+    ],
+    "items": [
+      {
+        "kind": "commitment_change_review",
+        "commitmentId": "3f1c2a54-9a7e-4c1d-8b0e-0a1b2c3d4e5f",
+        "commitmentName": "Example streaming plan",
+        "reviews": [
+          {
+            "dimension": "amount",
+            "state": "proposed_change"
+          },
+          {
+            "dimension": "missing",
+            "state": "not_seen_recently"
+          }
+        ]
+      }
+    ],
+    "budgetItems": [
+      {
+        "kind": "budget_attention",
+        "category": "Food",
+        "state": "over_limit",
+        "spentAmount": "120.50",
+        "limitAmount": "100.00"
+      },
+      {
+        "kind": "budget_attention",
+        "category": "Bills",
+        "state": "at_limit",
+        "spentAmount": "250.00",
+        "limitAmount": "250.00"
+      }
+    ],
+    "familyAvailability": {
+      "commitment_change_review": {
+        "state": "available",
+        "reasonCode": null
+      },
+      "budget_attention": {
+        "state": "available",
+        "reasonCode": null
+      }
+    },
+    "evaluatedOn": "2026-10-17"
+  },
+  "recentActivity": {
+    "availability": {
+      "state": "available",
+      "reasonCode": null
+    },
+    "items": [
+      {
+        "kind": "expense",
+        "recordId": 41,
+        "date": "2026-10-16",
+        "amount": "9999999999999999.99",
+        "description": "Synthetic maximum amount",
+        "category": "Food",
+        "paycheck": null
+      },
+      {
+        "kind": "account_inflow",
+        "recordId": 17,
+        "date": "2026-10-15",
+        "amount": "1234.56",
+        "description": "Example paycheck deposit",
+        "category": null,
+        "paycheck": {
+          "profileId": "a1b2c3d4-0000-4000-8000-000000000001",
+          "relation": "recorded_receipt"
+        }
+      },
+      {
+        "kind": "expense",
+        "recordId": 40,
+        "date": "2026-10-14",
+        "amount": "4.75",
+        "description": "Coffee beans",
+        "category": "  coffee Beans",
+        "paycheck": null
+      }
+    ]
+  },
+  "upcoming": {
+    "availability": {
+      "state": "available",
+      "reasonCode": null
+    },
+    "horizon": {
+      "from": "2026-10-17",
+      "through": "2026-10-30"
+    },
+    "items": [
+      {
+        "kind": "paycheck_projection",
+        "paycheckProfileId": "a1b2c3d4-0000-4000-8000-000000000001",
+        "displayName": "Example employer",
+        "cadence": "biweekly",
+        "anchorDate": "2026-10-23",
+        "earliestExpectedDate": "2026-10-22",
+        "latestExpectedDate": "2026-10-24",
+        "amount": {
+          "mode": "fixed",
+          "fixedAmount": "1500.00",
+          "minimumAmount": null,
+          "maximumAmount": null
+        }
+      },
+      {
+        "kind": "paycheck_projection",
+        "paycheckProfileId": "a1b2c3d4-0000-4000-8000-000000000002",
+        "displayName": "Example side gig",
+        "cadence": "monthly",
+        "anchorDate": "2026-10-28",
+        "earliestExpectedDate": "2026-10-27",
+        "latestExpectedDate": "2026-10-29",
+        "amount": {
+          "mode": "range",
+          "fixedAmount": null,
+          "minimumAmount": "200.00",
+          "maximumAmount": "450.00"
+        }
+      }
+    ]
+  }
+}
