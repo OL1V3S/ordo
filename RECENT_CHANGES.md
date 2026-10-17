@@ -26,7 +26,7 @@ the permanent, complete archive.
 
 ### 2026-10-17 — Duplicate-safe expense and cash-in creation
 
-[PR #PRNUM](https://github.com/OL1V3S/ordo/pull/PRNUM) · [Issue #253](https://github.com/OL1V3S/ordo/issues/253)
+[PR #255](https://github.com/OL1V3S/ordo/pull/255) · [Issue #253](https://github.com/OL1V3S/ordo/issues/253)
 
 - `POST /api/expenses` and `POST /api/inflows` accept an optional `Idempotency-Key` header (one UUID). A retry with the same key and details returns `200` with the same record instead of creating a duplicate; the same key with different details returns `422`, and a key whose record was deleted returns `409` without recreating it. Keys are per user and shared by both endpoints.
 - Requests without the header, the web app, the frontend and existing responses are unchanged. Adds the `CreateRequestReceipts` table (migration `AddCreateRequestReceipts`), which must be applied to production before this backend is deployed.
