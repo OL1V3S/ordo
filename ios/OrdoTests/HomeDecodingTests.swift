@@ -60,7 +60,7 @@ import Testing
         #expect(home.recentActivity == .available([]))
     }
 
-    @Test(arguments: ["home-invalid-amount", "home-zero-amount", "home-inflow-with-category", "home-non-usd"])
+    @Test(arguments: ["home-invalid-amount", "home-zero-amount", "home-inflow-with-category", "home-non-usd", "home-recent-four-rows"])
     func invalidEnvelopeFailsTheWholeRead(fixture: String) throws {
         #expect(throws: HomeValidation.ParseError.invalidEnvelope) { try Fixtures.snapshot(fixture) }
     }

@@ -37,6 +37,8 @@ final class HomeViewModel {
     private let timeZone: @Sendable () -> TimeZone
     private var loadedFor: CalendarDate?
     private var inFlight = false
+    /// Incremented by `reset()`; a fetch that started under an older value discards its result.
+    private var generation = 0
 
     init(service: HomeService,
          now: @escaping @Sendable () -> Date = { Date() },
@@ -52,6 +54,8 @@ final class HomeViewModel {
 
     /// Drops any previous content (sign-out / sign-in).
     func reset() {
+        generation += 1
+        inFlight = false
         phase = .loading
         loadedFor = nil
         isRefreshing = false
@@ -65,9 +69,10 @@ final class HomeViewModel {
 
     /// Pull to refresh: content stays visible while loading. A failure replaces it (no stale data).
     func refresh() async {
+        let started = generation
         if case .loaded = phase { isRefreshing = true } else { phase = .loading }
         await fetch()
-        isRefreshing = false
+        if started == generation { isRefreshing = false }
     }
 
     /// When the app becomes active: reload only if the local date changed.
@@ -79,13 +84,16 @@ final class HomeViewModel {
     private func fetch() async {
         guard !inFlight else { return }
         inFlight = true
-        defer { inFlight = false }
+        let started = generation
+        defer { if started == generation { inFlight = false } }
         let date = activityThroughDate
         do {
             let snapshot = try await service.loadHome(activityThroughDate: date)
+            guard started == generation else { return }
             loadedFor = date
             phase = .loaded(snapshot)
         } catch {
+            guard started == generation else { return }
             loadedFor = nil
             phase = Self.phase(for: error, current: phase)
         }

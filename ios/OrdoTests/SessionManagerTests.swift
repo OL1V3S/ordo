@@ -35,6 +35,11 @@ private func rejecting(_ stale: String) -> @Sendable (AccessToken) async throws 
     }
 }
 
+private actor AttemptCounter {
+    private var value = 0
+    func next() -> Int { value += 1; return value }
+}
+
 @Suite struct SessionManagerTests {
     @Test func restoreRefreshesAndSavesBeforeExposingTheToken() async throws {
         let h = Harness(stored: "refresh-0")
@@ -49,6 +54,34 @@ private func rejecting(_ stale: String) -> @Sendable (AccessToken) async throws 
         #expect(h.store.writes.allSatisfy { !$0.hasPrefix("access") })
         let token = try await h.manager.authorized { $0.value }
         #expect(token == "access-1")
+        #expect(h.transport.count(refreshPath) == 1)
+    }
+
+    @Test func restoreWhenTheRefreshFailsOfflineStaysSignedInAndRetriesLater() async throws {
+        let h = Harness(stored: "refresh-0")
+        let attempts = AttemptCounter()
+        h.transport.route(refreshPath) { _ in
+            if await attempts.next() == 1 { throw URLError(.notConnectedToInternet) }
+            return session("access-1", "refresh-1")
+        }
+        await h.manager.restore()
+        #expect(await h.manager.state == .signedIn)
+        #expect(h.store.value == "refresh-0")
+        #expect(h.store.writes.isEmpty)
+        #expect(h.transport.count(refreshPath) == 1)
+        let token = try await h.manager.authorized { $0.value }
+        #expect(token == "access-1")
+        #expect(h.transport.count(refreshPath) == 2)
+        #expect(h.store.value == "refresh-1")
+    }
+
+    @Test func restoreWithAnInvalidSessionSignsOutAndClearsTheStore() async throws {
+        let h = Harness(stored: "refresh-0")
+        let invalid = try StubResponse(401, fixture: "auth-session-invalid")
+        h.transport.route(refreshPath) { _ in invalid }
+        await h.manager.restore()
+        #expect(await h.manager.state == .signedOut(.sessionEnded))
+        #expect(h.store.value == nil)
         #expect(h.transport.count(refreshPath) == 1)
     }
 

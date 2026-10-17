@@ -79,7 +79,8 @@ enum HomeValidation {
     private static func recentActivity(_ section: JSONValue) -> RecentActivityState? {
         guard let available = availability(section, itemsKey: "items") else { return nil }
         guard available, let rows = section["items"]?.arrayValue else { return .unavailable }
-        // The web does not cap recent activity in the validator; the backend caps it at 3.
+        // Recent Activity shows at most 3 rows (approved plan); more is an invalid envelope.
+        guard rows.count <= 3 else { return nil }
         var items: [ActivityItem] = []
         for row in rows {
             guard let item = activityItem(row) else { return nil }
