@@ -24,6 +24,13 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-17 — Add expense and Add deposit in the iPhone app
+
+[PR #259](https://github.com/OL1V3S/ordo/pull/259) · [Issue #258](https://github.com/OL1V3S/ordo/issues/258)
+
+- The iPhone app can add an expense or a deposit from Home, in English and Spanish, using the existing create endpoints. Each save sends one `Idempotency-Key` and reuses it for every retry, so a lost response cannot record it twice; an unconfirmed save is kept on the device until it is retried or discarded, and Home is re-read from the server afterwards.
+- Backend, API, schema, web app and required checks are unchanged; the app is still not distributed.
+
 ### 2026-10-17 — Native iOS app with sign-in and a read-only Home
 
 [PR #257](https://github.com/OL1V3S/ordo/pull/257) · [Issue #256](https://github.com/OL1V3S/ordo/issues/256)
@@ -169,11 +176,3 @@ the permanent, complete archive.
 
 - Money, percentages, dates and import timestamps now follow the app language through one shared formatter. Spanish shows USD amounts as `USD 1,234.56` (so they are not read as pesos) and dates in Mexican Spanish style such as `4 mar 2026`; English text is unchanged apart from a few listed corrections (Budgets reset date, grouped large percentages, import preview amounts, unparseable Commitments amounts).
 - Amounts stay exact at any size and calendar dates do not shift with the machine's timezone; calculations, payloads and the backend are unchanged.
-
-### 2026-10-09 — CSS cleanup and architecture
-
-[PR #220](https://github.com/OL1V3S/ordo/pull/220) ·
-[Issue #219](https://github.com/OL1V3S/ordo/issues/219)
-
-- Removed dead CSS (pre-V2 Home, navigation hub, settings and import-card rules), redundant `box-shadow`/`transform: none` overrides, nine unused design tokens, an unused `saved.timingPattern` string and the unused `buildBudgetStatuses` helper; split `components.css` into page-owned `analytics.css`, `commitments.css` and `import-preview.css` and documented the CSS architecture in `docs/design-tokens.md`.
-- The only visible change is spacing between Investing capability list items; no behaviour, markup, API or dependency changes.

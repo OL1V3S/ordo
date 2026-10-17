@@ -16,7 +16,8 @@ struct OrdoApp: App {
             let store = KeychainCredentialStore()
             FreshInstallGuard.apply(defaults: .standard, store: store)
             let api = OrdoAPI(baseURL: configuration.baseURL, transport: URLSessionTransport())
-            model = AppModel(session: SessionManager(api: api, store: store), api: api)
+            model = AppModel(session: SessionManager(api: api, store: store), api: api,
+                             pendingStore: FilePendingSaveStore(directory: FilePendingSaveStore.defaultDirectory))
         } else {
             model = nil
         }

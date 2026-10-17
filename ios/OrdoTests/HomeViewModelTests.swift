@@ -49,4 +49,24 @@ private final class GatedHomeService: HomeService, @unchecked Sendable {
         #expect(service.callCount == 3)
         #expect(model.phase == .loaded(new))
     }
+
+    @Test func aRefreshDuringAnInFlightLoadIsCoalescedIntoAFollowUpLoad() async throws {
+        let before = try Fixtures.snapshot("home-all-available")
+        let after = try Fixtures.snapshot("home-available-empty")
+        let service = GatedHomeService(first: before, later: after)
+        let model = HomeViewModel(service: service)
+
+        let initial = Task { await model.load() }
+        #expect(await waitUntil { service.callCount == 1 })
+        let afterSave = Task { await model.refresh() } // requested while the first load is in flight
+        try await Task.sleep(for: .milliseconds(50))
+        #expect(service.callCount == 1) // not started in parallel
+
+        await service.gate.release()
+        await initial.value
+        await afterSave.value
+        #expect(service.callCount == 2) // exactly one follow-up
+        #expect(model.phase == .loaded(after)) // the pre-save response is not the last word
+        #expect(!model.isRefreshing)
+    }
 }

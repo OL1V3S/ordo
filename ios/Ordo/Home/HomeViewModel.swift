@@ -36,7 +36,10 @@ final class HomeViewModel {
     private let now: @Sendable () -> Date
     private let timeZone: @Sendable () -> TimeZone
     private var loadedFor: CalendarDate?
-    private var inFlight = false
+    /// The running load. A request that arrives while it runs waits for it and asks for one
+    /// follow-up load, so a response that started before a save can never be the last word.
+    private var fetchTask: Task<Void, Never>?
+    private var reloadRequested = false
     /// Incremented by `reset()`; a fetch that started under an older value discards its result.
     private var generation = 0
 
@@ -55,7 +58,8 @@ final class HomeViewModel {
     /// Drops any previous content (sign-out / sign-in).
     func reset() {
         generation += 1
-        inFlight = false
+        fetchTask = nil
+        reloadRequested = false
         phase = .loading
         loadedFor = nil
         isRefreshing = false
@@ -82,10 +86,30 @@ final class HomeViewModel {
     }
 
     private func fetch() async {
-        guard !inFlight else { return }
-        inFlight = true
+        if let fetchTask {
+            reloadRequested = true
+            await fetchTask.value
+            return
+        }
         let started = generation
-        defer { if started == generation { inFlight = false } }
+        let task = Task { [weak self] in
+            guard let self else { return }
+            await self.runLoads(started: started)
+        }
+        fetchTask = task
+        await task.value
+    }
+
+    /// Loads once, then again while another request arrived in the meantime.
+    private func runLoads(started: Int) async {
+        repeat {
+            reloadRequested = false
+            await loadOnce(started: started)
+        } while reloadRequested && started == generation
+        if started == generation { fetchTask = nil }
+    }
+
+    private func loadOnce(started: Int) async {
         let date = activityThroughDate
         do {
             let snapshot = try await service.loadHome(activityThroughDate: date)

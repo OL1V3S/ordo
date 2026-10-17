@@ -1,9 +1,11 @@
 # Ordo for iPhone
 
-A native SwiftUI iPhone app. Slice 1 signs in through the backend's device-session API
-and shows a read-only Home (needs attention, recent transactions, upcoming paychecks).
-It makes no writes to financial data. The governing issue is
-[#256](https://github.com/OL1V3S/ordo/issues/256).
+A native SwiftUI iPhone app. Slice 1 ([#256](https://github.com/OL1V3S/ordo/issues/256))
+signs in through the backend's device-session API and shows Home (needs attention, recent
+transactions, upcoming paychecks). Slice 2 ([#258](https://github.com/OL1V3S/ordo/issues/258))
+adds **Add expense** and **Add deposit** from Home. These are the app's only financial
+writes: `POST /api/expenses` and `POST /api/inflows` with the server's `Idempotency-Key`
+protection. There is no backend, API or schema change.
 
 - iOS 18.0 or later, iPhone only. Swift 6 with strict concurrency. No third-party
   dependencies (SwiftUI, Foundation, Security, os, Swift Testing).
@@ -60,6 +62,51 @@ Keychain tests need the simulator entitlement. The non-required **iOS build and 
 workflow (`.github/workflows/ios-ci.yml`) runs the same command on pull requests that
 touch `ios/**`.
 
+## Add expense and Add deposit
+
+Home has a bottom bar with **Add expense** (primary) and **Add deposit** (secondary), shown in
+every Home state except the first load. Each opens a sheet.
+
+- **Fields.** Expense: description, amount, date (defaults to today on the device calendar),
+  category. Deposit: description, amount, date. A refund is recorded as a deposit.
+- **Categories** come from a fixed list as on the web (there is no category endpoint):
+  Uncategorized (default), Food, Transport, Bills, Entertainment and Other (custom text).
+  A blank custom category sends `uncategorized`. The reserved value `other` is rejected on
+  the phone and never sent. Descriptions keep their case.
+- **Exact money.** Amounts are typed in a locale-aware way and held as integer cents
+  (`Money`), never `Double`. One decimal separator is accepted (the app locale's, or the
+  keyboard's, for example `,`); grouping separators, signs and exponents are rejected. They
+  are sent as a JSON string with two decimals (`"12.50"`). They must be above zero and at
+  most 9999999999999999.99. The server has the final say.
+- **Recorded once.** On the first valid Save the values are frozen with one random
+  lowercase-UUID `Idempotency-Key`, written to disk, and only then sent. From then on the
+  form is read-only and a double tap cannot send a second request. Every retry, including one
+  after a 401 refresh or a relaunch, re-sends the same key and the same bytes.
+- **Results.** `201` and `200` (a replay of the same record) mean saved. `400` shows field
+  messages (the server's field names only, never its text) and the next Save gets a new key.
+  `409 idempotency_key_record_deleted` says the original was deleted and nothing new was
+  saved. `422 idempotency_key_reused` says it may already be saved and is never retried.
+  A timeout, dropped connection, `5xx`, cancellation or any unrecognised answer is
+  **uncertain**: Retry (same key) or Discard (with a warning that it may already be saved).
+  A `401` renews the session through the single refresher and retries with the same key; an
+  ended session signs the user out.
+- **After saving**, Home is re-read from the server. Nothing is added to Home optimistically.
+
+### Pending save
+
+While a save is uncertain its key and locked values stay in one file,
+`Application Support/Ordo/Pending/pending-save.json`, so they survive the app being closed or
+killed. The file is written atomically with file protection until first unlock, is excluded
+from backups, is never in iCloud, and holds no token, email or account id. It is removed on a
+definitive outcome, on Discard, on sign-out, when the session ends, and at a fresh sign-in. It
+is never removed while the session is restoring or after a launch-time signed-out state (no
+credential, or a transient Keychain failure), so an uncertain save survives those. After a
+restored launch the app offers to retry or discard it. Signing out or a forced session end
+discards a waiting save; the sign-out confirmation warns about it. If a leftover file cannot be
+deleted (at sign-in, sign-out, session end or after a definitive outcome), it is marked invalid
+in a non-financial `UserDefaults` flag and ignored: the next launch retries the delete and never
+shows or sends it, and the flag is reset only after the delete succeeds.
+
 ## Security notes
 
 - Only the refresh credential is stored, in the Keychain
@@ -67,12 +114,14 @@ touch `ios/**`.
   memory only. The password is never stored.
 - Exactly one refresh runs at a time (reusing a rotated credential
   ends the session). A refresh from an old session cannot affect a newer one.
-- The app logs only static messages and status codes, never tokens, emails, bodies or
-  amounts. Error bodies are read for their `code` only.
+- The app logs only static messages and status codes, never tokens, emails, bodies, amounts,
+  descriptions or idempotency keys. Error bodies are read for their `code` (and, for a
+  create `400`, the field names) only; server text is never shown.
 - The URL session is ephemeral (no disk cache or cookies).
 
-## Out of scope for slice 1
+## Out of scope
 
-Add Expense and Add Cash In, widget, push notifications, TestFlight or App Store
-distribution, iPad layout, registration and password reset, in-app language picker, and
-links into other web workflows.
+Editing or deleting expenses and deposits, an offline queue that saves later on its own,
+category management, paycheck linking, statement import, receipts, widget, push
+notifications, TestFlight or App Store distribution, iPad layout, registration and
+password reset, in-app language picker, and links into other web workflows.

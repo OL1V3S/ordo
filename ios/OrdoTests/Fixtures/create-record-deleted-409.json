@@ -1,0 +1,6 @@
+{
+  "title": "Create request failed",
+  "detail": "synthetic server text that must never be shown",
+  "status": 409,
+  "code": "idempotency_key_record_deleted"
+}

@@ -12,7 +12,7 @@ struct RootView: View {
         case .signedOut(let reason):
             SignInView(model: model.signInModel, notice: reason, l10n: l10n)
         case .signedIn:
-            HomeView(model: model.homeModel, l10n: l10n) { Task { await model.signOut() } }
+            HomeView(model: model.homeModel, capture: model.captureModel, l10n: l10n) { Task { await model.signOut() } }
         }
     }
 }

@@ -5,8 +5,8 @@ struct DeviceSessionResponse: Sendable {
     let refreshToken: String
 }
 
-/// The only requests the app makes: the three device-session endpoints and `GET /api/home`.
-/// There are no writes to financial data.
+/// The only requests the app makes: the three device-session endpoints, `GET /api/home`, and
+/// the two idempotent creates `POST /api/expenses` and `POST /api/inflows`.
 struct OrdoAPI: Sendable {
     let baseURL: URL
     let transport: HTTPTransport
@@ -70,14 +70,91 @@ struct OrdoAPI: Sendable {
         }
     }
 
+    // MARK: Creates
+
+    private struct ExpenseBody: Encodable {
+        let description: String
+        let amount: String
+        let date: String
+        let category: String
+    }
+
+    private struct InflowBody: Encodable {
+        let description: String
+        let amount: String
+        let date: String
+    }
+
+    /// `amount` is the invariant two-decimal string and `date` is `yyyy-MM-dd`. Identical
+    /// arguments always produce identical bytes, so every retry of one save sends the same request.
+    func createExpense(accessToken: String, idempotencyKey: String, description: String,
+                       amount: String, date: String, category: String) async throws -> CreateResult {
+        let body = try Self.encode(ExpenseBody(description: description, amount: amount, date: date, category: category))
+        return try await create(path: "api/expenses", accessToken: accessToken, idempotencyKey: idempotencyKey, body: body)
+    }
+
+    func createInflow(accessToken: String, idempotencyKey: String, description: String,
+                      amount: String, date: String) async throws -> CreateResult {
+        let body = try Self.encode(InflowBody(description: description, amount: amount, date: date))
+        return try await create(path: "api/inflows", accessToken: accessToken, idempotencyKey: idempotencyKey, body: body)
+    }
+
+    private static func encode<T: Encodable>(_ value: T) throws -> Data {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        return try encoder.encode(value)
+    }
+
+    /// Status and `code` alone decide the outcome. A 2xx body is not needed: Home is re-read.
+    private func create(path: String, accessToken: String, idempotencyKey: String, body: Data) async throws -> CreateResult {
+        let headers = ["Authorization": "Bearer \(accessToken)", "Idempotency-Key": idempotencyKey]
+        let (data, status) = try await perform(post: path, body: body, headers: headers)
+        switch status {
+        case 201: return .created
+        case 200: return .replayed
+        case 401: throw APIError.unauthorized
+        case 400:
+            if Self.errorCode(in: data) == "idempotency_key_invalid" { throw APIError.createRejected }
+            let fields = Self.validationFields(in: data)
+            throw fields.isEmpty ? APIError.createRejected : APIError.validationFailed(fields)
+        case 409:
+            switch Self.errorCode(in: data) {
+            case "idempotency_key_record_deleted": throw APIError.recordDeleted
+            case "idempotency_key_conflict": throw APIError.conflict
+            default: throw APIError.server(409)
+            }
+        case 422:
+            if Self.errorCode(in: data) == "idempotency_key_reused" { throw APIError.keyReused }
+            throw APIError.server(422)
+        default: throw APIError.server(status)
+        }
+    }
+
+    /// Only the keys of the `errors` object are read, case-insensitively and without any `$.`
+    /// prefix. Messages are never read. Unknown keys (such as `request`) are ignored.
+    static func validationFields(in data: Data) -> Set<ValidationField> {
+        guard let errors = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["errors"] as? [String: Any] else {
+            return []
+        }
+        var fields = Set<ValidationField>()
+        for key in errors.keys {
+            var name = key.lowercased()
+            if name.hasPrefix("$.") { name.removeFirst(2) }
+            if let field = ValidationField(rawValue: name) { fields.insert(field) }
+        }
+        return fields
+    }
+
     // MARK: Internals
 
-    private func perform(post path: String, body: Data, timeout: TimeInterval = 30) async throws -> (Data, Int) {
+    private func perform(post path: String, body: Data, timeout: TimeInterval = 30,
+                         headers: [String: String] = [:]) async throws -> (Data, Int) {
         var request = URLRequest(url: baseURL.appending(path: path))
         request.httpMethod = "POST"
         request.httpBody = body
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
+        for (name, value) in headers { request.setValue(value, forHTTPHeaderField: name) }
         request.timeoutInterval = timeout
         return try await send(request)
     }

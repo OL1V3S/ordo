@@ -254,12 +254,18 @@ not implemented yet.
 
 `ios/` holds a native SwiftUI iPhone app (iOS 18+, no third-party dependencies). It
 signs in with the device-session endpoints, keeps only the refresh credential in the
-Keychain, and renders a read-only Home from `GET /api/home`. It validates the response
+Keychain, and renders Home from `GET /api/home`. It validates the response
 with the same rules as the web client, except that it does not re-check the server's
 sort order. A single actor serializes credential refreshes, which the API contract
 requires. The app reads its server address from the build configuration
-(`ios/Config`, with the real address in an untracked `Local.xcconfig`) and makes no
-financial writes. See [`ios/README.md`](ios/README.md).
+(`ios/Config`, with the real address in an untracked `Local.xcconfig`). Its only
+financial writes are adding an expense or a deposit through the existing
+`POST /api/expenses` and `POST /api/inflows`, each with one `Idempotency-Key` that is reused
+for every retry. While a save's outcome is uncertain, its key and locked values are kept in
+one file-protected, backup-excluded file in the app container, cleared on a definitive
+outcome, discard, sign-out, session end or fresh sign-in. If that file cannot be deleted, a
+non-financial `UserDefaults` flag marks it invalid, so the next launch retries the delete and
+never shows or sends it. See [`ios/README.md`](ios/README.md).
 
 ### Persistence and migrations
 
