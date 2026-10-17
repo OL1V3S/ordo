@@ -115,6 +115,26 @@ Docker verification is intentionally excluded from the default local lane due
 to its capability and runtime cost. **Backend build and tests** CI runs it on
 every pull request.
 
+## iOS verification
+
+The native iPhone app lives in `ios/` (see [`ios/README.md`](../ios/README.md)). Run its
+build and tests on macOS with Xcode:
+
+```bash
+xcodebuild -project ios/Ordo.xcodeproj -scheme Ordo \
+  -destination 'platform=iOS Simulator,name=iPhone 17' test
+```
+
+Use any available iPhone simulator. Do not set `CODE_SIGNING_ALLOWED=NO`; the Keychain
+tests need the default simulator signing. Tests use synthetic fixtures and stub
+transports and never contact production. The **iOS build and tests** workflow
+(`.github/workflows/ios-ci.yml`) runs on pull requests that change `ios/**` or that
+workflow. It is not a required check and is not part of `./scripts/verify.sh`, but a
+failing run is a blocking review finding for pull requests that touch `ios/**`. Without
+macOS and Xcode, report the local run as **Not run locally - capability unavailable**
+and rely on that CI job. Manual simulator or device smoke checks use a local backend or
+the owner's own account only, with no production data in fixtures, logs or screenshots.
+
 ## Debugging and smoke checks
 
 Smoke checks are small, changed-boundary behavior checks. They help diagnose a

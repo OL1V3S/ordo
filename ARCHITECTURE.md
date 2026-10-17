@@ -250,6 +250,17 @@ are defined in
 That document may describe approved targets that the current API or schema has
 not implemented yet.
 
+### iOS client
+
+`ios/` holds a native SwiftUI iPhone app (iOS 18+, no third-party dependencies). It
+signs in with the device-session endpoints, keeps only the refresh credential in the
+Keychain, and renders a read-only Home from `GET /api/home`. It validates the response
+with the same rules as the web client, except that it does not re-check the server's
+sort order. A single actor serializes credential refreshes, which the API contract
+requires. The app reads its server address from the build configuration
+(`ios/Config`, with the real address in an untracked `Local.xcconfig`) and makes no
+financial writes. See [`ios/README.md`](ios/README.md).
+
 ### Persistence and migrations
 
 PostgreSQL is the application persistence provider. The database stores
@@ -265,6 +276,9 @@ The frontend is deployed to Vercel, the containerized backend to Render, and
 PostgreSQL to Neon. These are separate deployment boundaries. Repository CI
 builds and tests source changes but does not authorize production changes or
 apply production migrations.
+
+The iOS app is not deployed anywhere: it is built and installed from source on the
+owner's own devices. Its CI job (`iOS build and tests`) is not a required check.
 
 ## Approved and planned extension points
 
