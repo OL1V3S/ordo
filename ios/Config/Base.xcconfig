@@ -1,0 +1,18 @@
+// Shared build settings for the Ordo iOS app. Committed; contains no secrets,
+// no development team and no server address.
+
+// Server address: set per configuration in the untracked Local.xcconfig
+// (see Local.xcconfig.example). When empty the app shows a "not set up" screen.
+ORDO_API_BASE_URL =
+
+ORDO_BUNDLE_ID_PREFIX = com.ol1v3s
+PRODUCT_BUNDLE_IDENTIFIER = $(ORDO_BUNDLE_ID_PREFIX).ordo
+INFOPLIST_KEY_CFBundleDisplayName = Ordo
+
+IPHONEOS_DEPLOYMENT_TARGET = 18.0
+
+// Set your own team in Local.xcconfig to run on a device.
+DEVELOPMENT_TEAM =
+
+// Optional, untracked local overrides (must stay last).
+#include? "Local.xcconfig"

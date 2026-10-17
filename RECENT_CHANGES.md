@@ -24,6 +24,13 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-17 — Native iOS app with sign-in and a read-only Home
+
+[PR #257](https://github.com/OL1V3S/ordo/pull/257) · [Issue #256](https://github.com/OL1V3S/ordo/issues/256)
+
+- New SwiftUI iPhone app in `ios/` (iOS 18+): signs in with the device-session API, keeps the session in the Keychain, and shows a read-only Home (attention, recent transactions, upcoming paychecks) in English and Spanish.
+- Adds a non-required macOS workflow, "iOS build and tests". Backend, API, schema, web app and existing workflows are unchanged; the app is not distributed.
+
 ### 2026-10-17 — Duplicate-safe expense and cash-in creation
 
 [PR #255](https://github.com/OL1V3S/ordo/pull/255) · [Issue #253](https://github.com/OL1V3S/ordo/issues/253)
@@ -170,11 +177,3 @@ the permanent, complete archive.
 
 - Removed dead CSS (pre-V2 Home, navigation hub, settings and import-card rules), redundant `box-shadow`/`transform: none` overrides, nine unused design tokens, an unused `saved.timingPattern` string and the unused `buildBudgetStatuses` helper; split `components.css` into page-owned `analytics.css`, `commitments.css` and `import-preview.css` and documented the CSS architecture in `docs/design-tokens.md`.
 - The only visible change is spacing between Investing capability list items; no behaviour, markup, API or dependency changes.
-
-### 2026-10-09 — Settings, auth pages and Investing redesign
-
-[PR #218](https://github.com/OL1V3S/ordo/pull/218) ·
-[Issue #217](https://github.com/OL1V3S/ordo/issues/217)
-
-- Settings uses flat named sections; the public auth pages now render every status and error through the shared status message with unchanged roles, focus and text; Investing is fully localized (English and Spanish) with flat named regions.
-- No change to sign-in, sessions, error mapping, or theme/language persistence.
