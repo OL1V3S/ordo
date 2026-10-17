@@ -215,6 +215,7 @@ extension View {
     /// A row that holds only a button: no row fill, so the button reads as a standalone control.
     func themedButtonRow() -> some View {
         listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
     }
 
     /// A row filled with a status tone's soft background. Neutral keeps the ordinary surface fill.
