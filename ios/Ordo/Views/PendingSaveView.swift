@@ -10,9 +10,11 @@ struct PendingSaveView: View {
     var body: some View {
         Form {
             Section { status }
+                .themedToneRow(statusTone)
             if let save = model.pending { summarySection(save) }
             if model.phase == .uncertain || model.phase == .unreadable { actions }
         }
+        .themedList()
         .confirmationDialog(l10n.string(.captureDiscardConfirmTitle), isPresented: $confirmingDiscard,
                             titleVisibility: .visible) {
             Button(l10n.string(.captureDiscardConfirm), role: .destructive) { model.discard() }
@@ -22,28 +24,44 @@ struct PendingSaveView: View {
         }
     }
 
+    /// Saving is neutral, uncertain is a warning and an unreadable record is an error.
+    private var statusTone: StatusTone {
+        switch model.phase {
+        case .uncertain: .warning
+        case .unreadable: .danger
+        case .saving, .idle, .editing: .neutral
+        }
+    }
+
     @ViewBuilder private var status: some View {
+        let tone = statusTone
         switch model.phase {
         case .saving:
-            HStack(spacing: 12) {
-                ProgressView()
+            HStack(spacing: Theme.Space.s3.points) {
+                ProgressView().tint(ThemeColor.accent.color)
                 Text(verbatim: l10n.string(.captureSaving))
+                    .font(Theme.Typography.body.font)
+                    .foregroundStyle(ThemeColor.text.color)
             }
             .accessibilityElement(children: .combine)
             .accessibilityAddTraits(.updatesFrequently)
         case .uncertain:
-            VStack(alignment: .leading, spacing: 8) {
-                Label { Text(verbatim: l10n.string(.captureUncertainTitle)).font(.headline) } icon: {
-                    Image(systemName: "exclamationmark.triangle")
+            VStack(alignment: .leading, spacing: Theme.Space.s2.points) {
+                Label {
+                    Text(verbatim: l10n.string(.captureUncertainTitle))
+                        .font(Theme.Typography.rowTitle.font)
+                        .foregroundStyle(ThemeColor.text.color)
+                } icon: {
+                    Image(systemName: "exclamationmark.triangle").foregroundStyle(tone.foreground.color)
                 }
                 Text(verbatim: l10n.string(model.isRecovered ? .captureUncertainRecoveredMessage : .captureUncertainMessage))
-                    .font(.callout)
+                    .font(Theme.Typography.meta.font)
+                    .foregroundStyle(ThemeColor.text.color)
             }
             .accessibilityElement(children: .combine)
         case .unreadable:
-            Label { Text(verbatim: l10n.string(.captureUnreadableMessage)) } icon: {
-                Image(systemName: "exclamationmark.triangle")
-            }
+            InlineStatusView(systemImage: "exclamationmark.triangle",
+                             message: l10n.string(.captureUnreadableMessage), tone: tone)
         case .idle, .editing:
             EmptyView()
         }
@@ -52,16 +70,27 @@ struct PendingSaveView: View {
     private func summarySection(_ save: PendingSave) -> some View {
         let summary = CapturePresenter(l10n: l10n).summary(of: save)
         return Section {
-            LabeledContent(l10n.string(.captureFieldsDescription), value: summary.description)
-            LabeledContent(l10n.string(.captureFieldsAmount), value: summary.amount)
-            LabeledContent(l10n.string(.captureFieldsDate), value: summary.date)
+            summaryRow(l10n.string(.captureFieldsDescription), summary.description)
+            summaryRow(l10n.string(.captureFieldsAmount), summary.amount)
+            summaryRow(l10n.string(.captureFieldsDate), summary.date)
             if let category = summary.category {
-                LabeledContent(l10n.string(.captureFieldsCategory), value: category)
+                summaryRow(l10n.string(.captureFieldsCategory), category)
             }
         } header: {
-            Text(verbatim: summary.kind).accessibilityAddTraits(.isHeader)
+            Text(verbatim: summary.kind).themedSectionHeader().accessibilityAddTraits(.isHeader)
         } footer: {
             Text(verbatim: l10n.string(.captureLocked))
+                .font(Theme.Typography.finePrint.font)
+                .foregroundStyle(ThemeColor.textMuted.color)
+        }
+        .themedRows()
+    }
+
+    private func summaryRow(_ label: String, _ value: String) -> some View {
+        LabeledContent {
+            Text(verbatim: value).foregroundStyle(ThemeColor.text.color)
+        } label: {
+            Text(verbatim: label).foregroundStyle(ThemeColor.textMuted.color)
         }
     }
 
@@ -71,11 +100,13 @@ struct PendingSaveView: View {
                 Button { model.retry() } label: {
                     Text(verbatim: l10n.string(.captureRetry)).frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(OrdoPrimaryButtonStyle())
             }
             Button(role: .destructive) { confirmingDiscard = true } label: {
                 Text(verbatim: l10n.string(.captureDiscard)).frame(maxWidth: .infinity)
             }
+            .buttonStyle(OrdoDestructiveButtonStyle())
         }
+        .themedButtonRow()
     }
 }

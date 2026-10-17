@@ -9,44 +9,42 @@ struct AddActionsBar: View {
     @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: Theme.Space.s3.points) {
             if let notice = model.notice { noticeRow(notice) }
             if model.hasPending && !model.isSheetPresented { pendingBanner }
             actions
         }
         .padding(.horizontal)
-        .padding(.vertical, 12)
-        .background(.bar)
+        .padding(.vertical, Theme.Space.s3.points)
+        // Opaque on every iOS version, so the buttons' contrast is defined. The iOS 26 scroll-edge
+        // bar treatment is deferred to the slice that adds the tab bar.
+        .background(ThemeColor.canvas.color)
+        .overlay(alignment: .top) { ThemeColor.borderSubtle.color.frame(height: 1) }
     }
 
     private var actions: some View {
-        let layout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(spacing: 8))
-                                                  : AnyLayout(HStackLayout(spacing: 12))
+        let layout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(spacing: Theme.Space.s2.points))
+                                                  : AnyLayout(HStackLayout(spacing: Theme.Space.s3.points))
         return layout {
             Button { model.begin(.expense) } label: {
                 Text(verbatim: l10n.string(.captureAddExpense)).frame(maxWidth: .infinity)
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(OrdoPrimaryButtonStyle())
             Button { model.begin(.deposit) } label: {
                 Text(verbatim: l10n.string(.captureAddDeposit)).frame(maxWidth: .infinity)
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(OrdoSecondaryButtonStyle())
         }
-        .controlSize(.large)
         .disabled(!model.canBegin)
         .accessibilityElement(children: .contain)
         .accessibilityLabel(Text(verbatim: l10n.string(.captureHeading)))
     }
 
     private func noticeRow(_ notice: CaptureViewModel.Notice) -> some View {
-        HStack(alignment: .top, spacing: 8) {
-            Label { Text(verbatim: l10n.string(CapturePresenter.noticeKey(notice))) } icon: {
-                Image(systemName: Self.icon(for: notice))
-            }
-            .font(.callout)
-            .frame(maxWidth: .infinity, alignment: .leading)
+        StatusBanner(tone: Self.tone(for: notice), systemImage: Self.icon(for: notice),
+                     message: l10n.string(CapturePresenter.noticeKey(notice))) {
             Button { model.dismissNotice() } label: { Image(systemName: "xmark") }
-                .buttonStyle(.borderless)
+                .buttonStyle(OrdoIconButtonStyle())
                 .accessibilityLabel(Text(verbatim: l10n.string(.commonClose)))
         }
     }
@@ -59,15 +57,19 @@ struct AddActionsBar: View {
         }
     }
 
+    private static func tone(for notice: CaptureViewModel.Notice) -> StatusTone {
+        switch notice {
+        case .saved: .success
+        case .savedRefreshFailed, .keyReused: .warning
+        case .recordDeleted: .info
+        }
+    }
+
     private var pendingBanner: some View {
-        HStack(alignment: .center, spacing: 8) {
-            Label { Text(verbatim: l10n.string(.capturePendingTitle)) } icon: {
-                Image(systemName: "exclamationmark.triangle")
-            }
-            .font(.callout)
-            .frame(maxWidth: .infinity, alignment: .leading)
+        StatusBanner(tone: .warning, systemImage: "exclamationmark.triangle",
+                     message: l10n.string(.capturePendingTitle)) {
             Button(l10n.string(.capturePendingOpen)) { model.reopenSheet() }
-                .buttonStyle(.bordered)
+                .buttonStyle(OrdoSecondaryButtonStyle(fullWidth: false))
         }
     }
 }

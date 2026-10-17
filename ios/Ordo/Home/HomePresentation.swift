@@ -12,6 +12,13 @@ enum AttentionRow: Equatable, Sendable, Identifiable {
     }
 }
 
+/// Which way money moved in an activity row. The sign and the kind label carry this in the text;
+/// the colour only reinforces it.
+enum AmountDirection: Equatable, Sendable {
+    case moneyIn
+    case moneyOut
+}
+
 /// Display rules shared by the Home views and their tests.
 struct HomePresenter: Sendable {
     let l10n: L10n
@@ -77,6 +84,11 @@ struct HomePresenter: Sendable {
     func amount(for item: ActivityItem) -> String { money.signedString(item.amount, kind: item.kind) }
 
     func date(_ date: CalendarDate) -> String { DateFormatting.string(date, language: l10n.language) }
+
+    /// Cash in is `moneyIn`; an expense is `moneyOut`. Zero amounts follow the kind.
+    static func amountDirection(for item: ActivityItem) -> AmountDirection {
+        item.kind == .expense ? .moneyOut : .moneyIn
+    }
 
     func kindLabel(_ kind: ActivityItem.Kind) -> String {
         kind == .expense ? l10n.string(.homeActivityExpense) : l10n.string(.homeActivityCashIn)
