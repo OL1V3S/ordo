@@ -12,6 +12,7 @@ final class AppModel {
     private var observer: Task<Void, Never>?
 
     init(session: SessionManager, api: OrdoAPI, pendingStore: PendingSaveStore,
+         invalidationMark: UserDefaults = .standard,
          language: AppLanguage = .current, deviceLocale: Locale = .current) {
         self.session = session
         signInModel = SignInViewModel { email, password in
@@ -22,6 +23,7 @@ final class AppModel {
         captureModel = CaptureViewModel(
             service: SessionCaptureService(session: session, api: api),
             store: pendingStore,
+            invalidationMark: invalidationMark,
             refreshHome: { [home] in
                 await home.refresh()
                 if case .loaded = home.phase { return true }

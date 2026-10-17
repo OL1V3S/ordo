@@ -103,7 +103,9 @@ is never removed while the session is restoring or after a launch-time signed-ou
 credential, or a transient Keychain failure), so an uncertain save survives those. After a
 restored launch the app offers to retry or discard it. Signing out or a forced session end
 discards a waiting save; the sign-out confirmation warns about it. If a leftover file cannot be
-deleted at sign-in, it is ignored for the rest of that run.
+deleted (at sign-in, sign-out, session end or after a definitive outcome), it is marked invalid
+in a non-financial `UserDefaults` flag and ignored: the next launch retries the delete and never
+shows or sends it, and the flag is reset only after the delete succeeds.
 
 ## Security notes
 

@@ -80,11 +80,16 @@ final class CaptureViewModel {
     /// Set when a leftover record could not be deleted at a fresh sign-in or sign-out: it is never
     /// surfaced or sent in this run, so one account never sees another account's save.
     @ObservationIgnored private var suppressed = false
+    /// A boolean (no financial data) that survives a failed file delete: while set, the stored
+    /// record is invalid, so the next launch retries the delete and never shows or sends it.
+    @ObservationIgnored private let invalidationMark: UserDefaults
+    static let invalidationMarkKey = "app.ordo.pendingSaveInvalidated"
     @ObservationIgnored private var focusSerial = 0
     @ObservationIgnored private var sendTask: Task<Void, Never>?
 
     init(service: CaptureService,
          store: PendingSaveStore,
+         invalidationMark: UserDefaults = .standard,
          refreshHome: @escaping @MainActor () async -> Bool = { true },
          language: AppLanguage = .current,
          deviceLocale: Locale = .current,
@@ -93,6 +98,7 @@ final class CaptureViewModel {
          makeKey: @escaping @Sendable () -> String = { UUID().uuidString.lowercased() }) {
         self.service = service
         self.store = store
+        self.invalidationMark = invalidationMark
         self.refreshHome = refreshHome
         self.language = language
         self.deviceLocale = deviceLocale
@@ -108,7 +114,7 @@ final class CaptureViewModel {
     var hasPending: Bool { phase == .saving || phase == .uncertain || phase == .unreadable }
     var canBegin: Bool { phase == .idle }
     /// Signing out discards the record, so the user is warned while it may already be saved.
-    var needsSignOutWarning: Bool { phase == .saving || phase == .uncertain }
+    var needsSignOutWarning: Bool { phase == .saving || phase == .uncertain || phase == .unreadable }
     var hasStoredRecord: Bool { storedRecord != nil || storedUnreadable }
 
     // MARK: Editing
@@ -189,7 +195,9 @@ final class CaptureViewModel {
                 formError = .couldNotPrepare
                 return
             }
+            // The new record replaced any leftover, so nothing invalid remains on disk.
             suppressed = false
+            setInvalidationMark(false)
             pending = save
             mayHaveReachedServer = false
             startSend(save)
@@ -335,9 +343,23 @@ final class CaptureViewModel {
         draft = CaptureDraft(date: DateFormatting.localCalendarDate(now: now(), timeZone: timeZone))
     }
 
+    /// Removes the record after an outcome, a discard or a session end. If the delete fails, the
+    /// record is marked invalid on disk-independent storage so a relaunch never offers it again.
     private func clearStore() {
-        do { try store.clear() } catch {
+        do {
+            try store.clear()
+            setInvalidationMark(false)
+        } catch {
             logger.error("Pending save could not be removed")
+            setInvalidationMark(true)
+        }
+    }
+
+    private func setInvalidationMark(_ invalid: Bool) {
+        if invalid {
+            invalidationMark.set(true, forKey: Self.invalidationMarkKey)
+        } else {
+            invalidationMark.removeObject(forKey: Self.invalidationMarkKey)
         }
     }
 
@@ -345,6 +367,19 @@ final class CaptureViewModel {
 
     /// Reads the stored record at launch. It is kept but not surfaced until the session is restored.
     func loadStoredRecord() {
+        if invalidationMark.bool(forKey: Self.invalidationMarkKey) {
+            // An earlier delete failed: retry it, and never surface or send the record in this run.
+            storedRecord = nil
+            storedUnreadable = false
+            do {
+                try store.clear()
+                setInvalidationMark(false)
+            } catch {
+                logger.error("Pending save could not be removed")
+                suppressed = true
+            }
+            return
+        }
         switch store.load() {
         case .none: storedRecord = nil; storedUnreadable = false
         case .record(let record): storedRecord = record; storedUnreadable = false
@@ -370,15 +405,18 @@ final class CaptureViewModel {
 
     /// Sign-out, a session that ended, or a fresh sign-in: removes the record so another account
     /// never sees or retries it, and discards any response still in flight. If the file cannot be
-    /// deleted, it is suppressed for the rest of this run.
+    /// deleted, it is suppressed for the rest of this run and marked invalid so the next launch retries
+    /// the delete instead of offering it.
     func invalidate() {
         generation += 1
         do {
             try store.clear()
             suppressed = false
+            setInvalidationMark(false)
         } catch {
             logger.error("Pending save could not be removed")
             suppressed = true
+            setInvalidationMark(true)
         }
         resetToIdle()
         notice = nil

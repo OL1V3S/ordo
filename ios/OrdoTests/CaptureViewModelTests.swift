@@ -2,6 +2,14 @@ import Foundation
 import Testing
 @testable import Ordo
 
+/// A throwaway defaults suite so a test never touches the app's real preferences.
+func isolatedDefaults() -> UserDefaults {
+    let name = "ordo.tests.\(UUID().uuidString)"
+    let defaults = UserDefaults(suiteName: name)!
+    defaults.removePersistentDomain(forName: name)
+    return defaults
+}
+
 private func testKey(_ number: Int) -> String { String(format: "00000000-0000-4000-8000-%012d", number) }
 
 private final class RefreshCounter: @unchecked Sendable {
@@ -18,14 +26,18 @@ private final class RefreshCounter: @unchecked Sendable {
     let store: InMemoryPendingSaveStore
     let service: ScriptedCaptureService
     let refreshes = RefreshCounter()
+    let mark: UserDefaults
 
     init(_ steps: [ScriptedCaptureService.Step], store: InMemoryPendingSaveStore = InMemoryPendingSaveStore(),
+         mark: UserDefaults = isolatedDefaults(),
          onSend: @escaping @Sendable (PendingSave) -> Void = { _ in }) {
         self.store = store
+        self.mark = mark
         service = ScriptedCaptureService(steps, onSend: onSend)
         let counter = Counter()
         let refreshes = self.refreshes
-        model = CaptureViewModel(service: service, store: store, refreshHome: { refreshes.hit() },
+        model = CaptureViewModel(service: service, store: store, invalidationMark: mark,
+                                 refreshHome: { refreshes.hit() },
                                  language: .en, deviceLocale: CaptureFixtures.english,
                                  now: { CaptureFixtures.fixedNow }, timeZone: CaptureFixtures.utc,
                                  makeKey: { testKey(counter.next()) })
@@ -425,6 +437,94 @@ private func failing(_ error: Error) -> ScriptedCaptureService.Step { { _ in thr
         rig.model.surfaceStoredRecord()
         #expect(rig.model.phase == .idle)
         #expect(rig.service.sent.isEmpty)
+    }
+
+    @Test func aFailedDeleteIsMarkedAndTheNextLaunchRetriesItWithoutSurfacingTheRecord() {
+        let mark = isolatedDefaults()
+        let store = InMemoryPendingSaveStore(.record(CaptureFixtures.save()))
+        let first = Rig([created], store: store, mark: mark)
+        first.model.loadStoredRecord()
+        store.setFailClears(true)
+        first.model.invalidate() // a fresh sign-in whose delete fails
+        #expect(mark.bool(forKey: CaptureViewModel.invalidationMarkKey))
+
+        // Relaunch while the delete still fails: retried, never surfaced or sent.
+        let second = Rig([created], store: store, mark: mark)
+        second.model.loadStoredRecord()
+        second.model.surfaceStoredRecord()
+        #expect(second.model.phase == .idle)
+        #expect(!second.model.hasStoredRecord)
+        #expect(store.current != .none)
+        #expect(mark.bool(forKey: CaptureViewModel.invalidationMarkKey)) // still set: the clear failed
+
+        // Relaunch once the delete works: cleared, mark reset, still nothing surfaced.
+        store.setFailClears(false)
+        let third = Rig([created], store: store, mark: mark)
+        third.model.loadStoredRecord()
+        third.model.surfaceStoredRecord()
+        #expect(store.current == .none)
+        #expect(!mark.bool(forKey: CaptureViewModel.invalidationMarkKey))
+        #expect(third.model.phase == .idle)
+        #expect(third.service.sent.isEmpty)
+        #expect(second.service.sent.isEmpty)
+    }
+
+    @Test func aFailedDeleteAfterADefiniteOutcomeIsNotOfferedAgainAtRelaunch() async {
+        let mark = isolatedDefaults()
+        let store = InMemoryPendingSaveStore()
+        let first = Rig([created], store: store, mark: mark)
+        first.fill()
+        store.setFailClears(true)
+        await first.submitAndSettle()
+        #expect(first.model.notice == .saved(.expense))
+        #expect(store.current != .none) // the record is still on disk
+        #expect(mark.bool(forKey: CaptureViewModel.invalidationMarkKey))
+
+        let second = Rig([created], store: store, mark: mark)
+        second.model.loadStoredRecord()
+        second.model.surfaceStoredRecord()
+        #expect(second.model.phase == .idle)
+        #expect(second.service.sent.isEmpty)
+    }
+
+    @Test func theMarkIsResetAfterASuccessfulClear() async {
+        let mark = isolatedDefaults()
+        mark.set(true, forKey: CaptureViewModel.invalidationMarkKey)
+        let store = InMemoryPendingSaveStore(.record(CaptureFixtures.save()))
+        let rig = Rig([created], store: store, mark: mark)
+        rig.model.loadStoredRecord()
+        #expect(store.current == .none)
+        #expect(!mark.bool(forKey: CaptureViewModel.invalidationMarkKey))
+
+        // A later successful invalidate also leaves no mark behind.
+        store.setFailClears(true)
+        rig.model.invalidate()
+        #expect(mark.bool(forKey: CaptureViewModel.invalidationMarkKey))
+        store.setFailClears(false)
+        rig.model.invalidate()
+        #expect(!mark.bool(forKey: CaptureViewModel.invalidationMarkKey))
+    }
+
+    @Test func aFreshSaveReplacesTheLeftoverAndResetsTheMark() async {
+        let mark = isolatedDefaults()
+        let store = InMemoryPendingSaveStore(.record(CaptureFixtures.save()))
+        let rig = Rig([failing(APIError.offline)], store: store, mark: mark)
+        store.setFailClears(true)
+        rig.model.invalidate()
+        #expect(mark.bool(forKey: CaptureViewModel.invalidationMarkKey))
+        rig.fill()
+        await rig.submitAndSettle()
+        #expect(!mark.bool(forKey: CaptureViewModel.invalidationMarkKey))
+        #expect(rig.model.phase == .uncertain)
+    }
+
+    @Test func signOutWarningAppliesToAnUnreadableRecordToo() {
+        let store = InMemoryPendingSaveStore(.unreadable)
+        let rig = Rig([created], store: store)
+        rig.model.loadStoredRecord()
+        rig.model.surfaceStoredRecord()
+        #expect(rig.model.phase == .unreadable)
+        #expect(rig.model.needsSignOutWarning)
     }
 
     // MARK: Through the real session and transport

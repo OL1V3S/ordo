@@ -17,13 +17,14 @@ private func session(_ access: String, _ refresh: String) -> StubResponse {
     let pending: InMemoryPendingSaveStore
     let manager: SessionManager
     let model: AppModel
+    let mark = isolatedDefaults()
 
     init(credential: String?, pending record: PendingSaveLoad) {
         credentials = InMemoryCredentialStore(initial: credential)
         pending = InMemoryPendingSaveStore(record)
         let api = OrdoAPI(baseURL: URL(string: "http://localhost:5298")!, transport: transport)
         manager = SessionManager(api: api, store: credentials)
-        model = AppModel(session: manager, api: api, pendingStore: pending, language: .en,
+        model = AppModel(session: manager, api: api, pendingStore: pending, invalidationMark: mark, language: .en,
                          deviceLocale: CaptureFixtures.english)
         transport.route(signOutPath) { _ in StubResponse(204, Data()) }
         transport.route("/api/home") { _ in try StubResponse(200, fixture: "home-all-available") }
@@ -112,6 +113,7 @@ private func session(_ access: String, _ refresh: String) -> StubResponse {
         try await rig.manager.signIn(email: "other@example.test", password: "synthetic-password")
         #expect(await rig.waitForState(.signedIn))
         #expect(rig.pending.current == .record(record)) // the delete failed
+        #expect(rig.mark.bool(forKey: CaptureViewModel.invalidationMarkKey)) // so the next launch retries it
         #expect(rig.model.captureModel.phase == .idle) // but it is never shown to the new account
         rig.model.captureModel.surfaceStoredRecord()
         #expect(rig.model.captureModel.phase == .idle)

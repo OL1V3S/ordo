@@ -72,7 +72,7 @@ private func object(_ data: Data) throws -> [String: Any] {
 
     @Test func status201And200AreBothSaved() async throws {
         let h = Harness()
-        h.transport.route("/api/expenses") { _ in StubResponse(201) }
+        h.transport.route("/api/expenses") { _ in try StubResponse(201, fixture: "create-created-201") }
         #expect(try await h.expense() == .created)
         h.transport.route("/api/expenses") { _ in StubResponse(200) }
         #expect(try await h.expense() == .replayed)
