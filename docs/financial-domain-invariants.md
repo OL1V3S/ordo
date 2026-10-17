@@ -57,6 +57,26 @@ only when the user explicitly selects it during statement review; that selection
 is false by default. Credits never become Expenses, and saving an imported
 credit does not call it income or a paycheck.
 
+## Create request idempotency
+
+`POST /api/expenses` and `POST /api/inflows` may carry one optional
+`Idempotency-Key` header holding exactly one canonical UUID (the all-zero UUID
+and any other format are rejected with `400 idempotency_key_invalid`). Without
+the header, creation is unchanged and a retry can still create a duplicate.
+
+With a key, one authenticated owner gets at most one expense or cash-in per key;
+the key space is per owner and shared by both endpoints. The first save returns
+`201`. A retry with the same normalized stored values (a SHA-256 fingerprint
+of the trimmed description, two-decimal amount, date and normalized category,
+plus the record kind) returns `200` with that same record as it is now, including
+later edits. The same key with different values, or on the other endpoint,
+returns `422 idempotency_key_reused` and saves nothing. If the original record
+was deleted, the replay returns `409 idempotency_key_record_deleted` and
+creates nothing, so deleted money is never brought back. Receipts live in a
+separate `CreateRequestReceipts` table, are kept until the user is deleted, and
+are not removed with their record. Request keys, amounts and descriptions are
+never logged, and error details never echo them.
+
 ## Confirmed paycheck profiles
 
 The owner-approved Stage 4 plan on [issue #114](https://github.com/OL1V3S/ordo/issues/114)

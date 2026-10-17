@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using BudgetPlanner.Contracts.Inflows;
+using BudgetPlanner.CreateRequests;
 using BudgetPlanner.Data;
 using BudgetPlanner.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -11,7 +12,8 @@ namespace BudgetPlanner.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/inflows")]
-public sealed class InflowsController(BudgetContext context) : ControllerBase
+public sealed class InflowsController(BudgetContext context, IdempotentCreateService idempotentCreate)
+    : ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<InflowResponse>>> GetAll(
@@ -52,6 +54,12 @@ public sealed class InflowsController(BudgetContext context) : ControllerBase
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (userId is null) return Unauthorized();
 
+        var idempotencyKey = IdempotencyKeyHeader.Read(Request.Headers);
+        if (idempotencyKey.Status == IdempotencyKeyStatus.Invalid)
+        {
+            return CreateRequestProblems.InvalidKey();
+        }
+
         if (!TryValidateAndNormalize(
                 request.Description,
                 request.Amount,
@@ -59,6 +67,17 @@ public sealed class InflowsController(BudgetContext context) : ControllerBase
                 out var description))
         {
             return ValidationProblem(ModelState);
+        }
+
+        if (idempotencyKey.Status == IdempotencyKeyStatus.Valid)
+        {
+            return await CreateIdempotentAsync(
+                userId,
+                idempotencyKey.Key,
+                description,
+                request.Amount,
+                request.Date!.Value,
+                cancellationToken);
         }
 
         var inflow = new AccountInflow
@@ -117,6 +136,38 @@ public sealed class InflowsController(BudgetContext context) : ControllerBase
         context.AccountInflows.Remove(inflow);
         await context.SaveChangesAsync(cancellationToken);
         return NoContent();
+    }
+
+    private async Task<ActionResult<InflowResponse>> CreateIdempotentAsync(
+        string userId,
+        Guid key,
+        string description,
+        decimal amount,
+        DateOnly date,
+        CancellationToken cancellationToken)
+    {
+        var result = await idempotentCreate.CreateInflowAsync(
+            userId,
+            key,
+            () => new AccountInflow
+            {
+                OwnerId = userId,
+                Description = description,
+                Amount = amount,
+                Date = date
+            },
+            CreateRequestFingerprint.ForAccountInflow(description, amount, date),
+            cancellationToken);
+
+        return result.Status switch
+        {
+            IdempotentCreateStatus.Created => CreatedAtAction(
+                nameof(Get),
+                new { id = result.AccountInflow!.Id },
+                ToResponse(result.AccountInflow)),
+            IdempotentCreateStatus.Replayed => Ok(ToResponse(result.AccountInflow!)),
+            _ => CreateRequestProblems.For(result.Status)
+        };
     }
 
     private bool TryValidateAndNormalize(
