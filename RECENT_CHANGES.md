@@ -24,6 +24,13 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-17 — Duplicate-safe expense and cash-in creation
+
+[PR #255](https://github.com/OL1V3S/ordo/pull/255) · [Issue #253](https://github.com/OL1V3S/ordo/issues/253)
+
+- `POST /api/expenses` and `POST /api/inflows` accept an optional `Idempotency-Key` header (one UUID). A retry with the same key and details returns `200` with the same record instead of creating a duplicate; the same key with different details returns `422`, and a key whose record was deleted returns `409` without recreating it. Keys are per user and shared by both endpoints.
+- Requests without the header, the web app, the frontend and existing responses are unchanged. Adds the `CreateRequestReceipts` table (migration `AddCreateRequestReceipts`), which must be applied to production before this backend is deployed.
+
 ### 2026-10-16 — Revocable device sessions for native clients
 
 [PR #254](https://github.com/OL1V3S/ordo/pull/254) · [Issue #252](https://github.com/OL1V3S/ordo/issues/252)
@@ -171,11 +178,3 @@ the permanent, complete archive.
 
 - Settings uses flat named sections; the public auth pages now render every status and error through the shared status message with unchanged roles, focus and text; Investing is fully localized (English and Spanish) with flat named regions.
 - No change to sign-in, sessions, error mapping, or theme/language persistence.
-
-### 2026-10-09 — Insights declutter
-
-[PR #216](https://github.com/OL1V3S/ordo/pull/216) ·
-[Issue #215](https://github.com/OL1V3S/ordo/issues/215)
-
-- Insights now has a month picker (earlier/later steps move between months that have recorded data), one status area, flat cash-flow panels, and accessible More spending disclosures.
-- Budget status is a single link to Budgets; Insights no longer reads budget limits. Cash-flow figures, charts and requests are unchanged.

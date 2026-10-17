@@ -209,6 +209,17 @@ schema, totals, or balance. It accepts optional server-side `q`, `kind`, `from`,
 Activity page independently of the per-type lists. See
 [`docs/activity-timeline.md`](docs/activity-timeline.md).
 
+`backend/CreateRequests/` owns duplicate-safe creation for `POST /api/expenses`
+and `POST /api/inflows` when the optional `Idempotency-Key` header is present.
+It parses the key, fingerprints the normalized stored values, and writes the
+record and a `CreateRequestReceipts` row in one `SaveChanges` with a composite
+`(OwnerId, RequestKey)` primary key; a concurrent loser catches the exact
+primary-key unique violation, re-reads the winner's receipt, and replays or
+rejects it, so no second financial row is created and no request returns a 500
+for this race. Requests without the header take the original path unchanged.
+Edit, delete, import and paycheck paths are unaffected. See
+[`docs/financial-domain-invariants.md`](docs/financial-domain-invariants.md).
+
 ### Authentication and ownership boundaries
 
 ASP.NET Core Identity manages users, JWT bearer authentication establishes the
