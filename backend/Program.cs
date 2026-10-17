@@ -157,6 +157,8 @@ builder.Services.AddOptions<ConfirmationResendLimiterOptions>();
 builder.Services.AddSingleton<IConfirmationResendLimiter, ConfirmationResendLimiter>();
 builder.Services.AddOptions<ForgotPasswordLimiterOptions>();
 builder.Services.AddSingleton<IForgotPasswordLimiter, ForgotPasswordLimiter>();
+builder.Services.AddOptions<DeviceSessionOptions>();
+builder.Services.AddScoped<IDeviceSessionService, DeviceSessionService>();
 
 var app = builder.Build();
 

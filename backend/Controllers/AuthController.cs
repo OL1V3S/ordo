@@ -23,6 +23,7 @@ public class AuthController : ControllerBase
     private readonly IAccountConfirmationService _accountConfirmationService;
     private readonly IConfirmationResendLimiter _confirmationResendLimiter;
     private readonly IForgotPasswordLimiter _forgotPasswordLimiter;
+    private readonly IDeviceSessionService _deviceSessions;
 
     public AuthController(
         UserManager<ApplicationUser> userManager,
@@ -30,7 +31,8 @@ public class AuthController : ControllerBase
         IEmailService emailService,
         IAccountConfirmationService accountConfirmationService,
         IConfirmationResendLimiter confirmationResendLimiter,
-        IForgotPasswordLimiter forgotPasswordLimiter)
+        IForgotPasswordLimiter forgotPasswordLimiter,
+        IDeviceSessionService deviceSessions)
     {
         _userManager = userManager;
         _configuration = configuration;
@@ -38,6 +40,7 @@ public class AuthController : ControllerBase
         _accountConfirmationService = accountConfirmationService;
         _confirmationResendLimiter = confirmationResendLimiter;
         _forgotPasswordLimiter = forgotPasswordLimiter;
+        _deviceSessions = deviceSessions;
     }
 
     [HttpPost("register")]
@@ -118,6 +121,7 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> Login(LoginRequest request)
     {
+        // Keep the sign-in checks below in step with CreateDeviceSession (same order).
         var user = await _userManager.FindByEmailAsync(request.Email);
 
         if (user == null)
@@ -138,6 +142,70 @@ public class AuthController : ControllerBase
             token,
             email = user.Email
         });
+    }
+
+    // Device sessions for native clients (#252). Proof is the password (create) or the
+    // session credential (refresh, sign-out); none of these use cookies or an access token.
+    [HttpPost("device-sessions")]
+    public async Task<IActionResult> CreateDeviceSession(
+        CreateDeviceSessionRequest request,
+        CancellationToken cancellationToken)
+    {
+        // Keep the sign-in checks below in step with Login (same order).
+        var user = await _userManager.FindByEmailAsync(request.Email!);
+
+        if (user == null)
+            return Unauthorized(new { code = "invalid_credentials" });
+
+        var passwordValid = await _userManager.CheckPasswordAsync(user, request.Password!);
+
+        if (!passwordValid)
+            return Unauthorized(new { code = "invalid_credentials" });
+
+        // Read from the same tracked user right after the password check, so a password
+        // re-hash during this sign-in cannot end the session being created.
+        var securityStamp = user.SecurityStamp;
+
+        if (!await _userManager.IsEmailConfirmedAsync(user))
+            return Unauthorized(new { code = "email_not_confirmed" });
+
+        var credential = await _deviceSessions.CreateAsync(user.Id, securityStamp, cancellationToken);
+
+        Response.Headers.CacheControl = "no-store";
+        return Ok(new
+        {
+            token = GenerateJwtToken(user),
+            email = user.Email,
+            refreshToken = credential
+        });
+    }
+
+    [HttpPost("device-sessions/refresh")]
+    public async Task<IActionResult> RefreshDeviceSession(
+        DeviceSessionCredentialRequest request,
+        CancellationToken cancellationToken)
+    {
+        var issued = await _deviceSessions.RefreshAsync(request.RefreshToken!, cancellationToken);
+
+        if (issued == null)
+            return Unauthorized(new { code = "session_invalid" });
+
+        Response.Headers.CacheControl = "no-store";
+        return Ok(new
+        {
+            token = GenerateJwtToken(issued.User),
+            email = issued.User.Email,
+            refreshToken = issued.Credential
+        });
+    }
+
+    [HttpPost("device-sessions/sign-out")]
+    public async Task<IActionResult> SignOutDeviceSession(
+        DeviceSessionCredentialRequest request,
+        CancellationToken cancellationToken)
+    {
+        await _deviceSessions.SignOutAsync(request.RefreshToken!, cancellationToken);
+        return NoContent();
     }
 
     [HttpPost("confirm-email")]
@@ -227,6 +295,10 @@ public class AuthController : ControllerBase
         if (!result.Succeeded)
             return BadRequest(result.Errors);
 
+        // The password has already changed, so finish ending device sessions even if
+        // the client disconnects. The security-stamp binding is the fallback.
+        await _deviceSessions.RevokeAllAsync(user.Id, CancellationToken.None);
+
         return Ok(new { message = "Password reset successfully" });
     }
 
@@ -287,3 +359,8 @@ public record ForgotPasswordRequest(
     [Required, StringLength(254), EmailAddress] string? Email,
     [property: JsonConverter(typeof(LenientLanguageJsonConverter))] string? Language = null);
 public record ResetPasswordRequest(string Email, string Token, string NewPassword);
+public record CreateDeviceSessionRequest(
+    [Required, StringLength(254)] string? Email,
+    [Required] string? Password);
+public record DeviceSessionCredentialRequest(
+    [Required, StringLength(256)] string? RefreshToken);

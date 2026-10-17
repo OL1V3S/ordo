@@ -216,6 +216,23 @@ request identity, and protected controllers authorize access. Financial data
 ownership comes from the authenticated identity, not from a client-selected
 user. Cross-user isolation is a mandatory backend responsibility.
 
+Native clients can hold a long-lived, revocable device session instead of
+re-entering a password every two hours. `AuthController` exposes
+`/api/auth/device-sessions` (create from email and password), `/refresh` and
+`/sign-out`; `backend/Authentication/DeviceSessionService.cs` owns the logic and
+the `DeviceSessions` table stores only a SHA-256 hash of the current credential
+secret. A refresh rotates the credential and returns a new 2-hour access token
+from the unchanged token generator. Presenting an already-rotated credential
+ends that session. Sessions end at 60 days idle or 180 days absolute, on
+sign-out, on a completed password reset, or when the user's security stamp no
+longer matches the one captured at sign-in. The API contract is **one refresher
+per credential at a time**: a client that shares a credential across processes
+(for example an app and a widget) must serialize refreshes, and must treat a
+`401` as signed out, because a concurrent or retried refresh with an old
+credential is indistinguishable from reuse and ends the session. The web
+application does not use device sessions, and web login, access-token
+validation and lockout behavior are unchanged.
+
 Approved financial meaning and future authoritative validation destinations
 are defined in
 [`docs/financial-domain-invariants.md`](docs/financial-domain-invariants.md).

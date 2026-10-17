@@ -24,6 +24,7 @@ public class BudgetContext : IdentityDbContext<ApplicationUser>, IDataProtection
     public DbSet<PaycheckProfile> PaycheckProfiles { get; set; }
     public DbSet<PaycheckOccurrence> PaycheckOccurrences { get; set; }
     public DbSet<PaycheckCandidateDismissal> PaycheckCandidateDismissals { get; set; }
+    public DbSet<DeviceSession> DeviceSessions { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -429,6 +430,27 @@ public class BudgetContext : IdentityDbContext<ApplicationUser>, IDataProtection
                 .OnDelete(DeleteBehavior.Cascade);
             dismissal.HasIndex(value => new { value.OwnerId, value.AlgorithmVersion, value.Cadence, value.EvidenceFingerprint })
                 .IsUnique().HasDatabaseName("UX_PaycheckCandidateDismissals_Owner_Origin");
+        });
+
+        modelBuilder.Entity<DeviceSession>(session =>
+        {
+            session.ToTable(table =>
+            {
+                table.HasCheckConstraint(
+                    "CK_DeviceSession_SecretHash", "octet_length(\"SecretHash\") = 32");
+                table.HasCheckConstraint(
+                    "CK_DeviceSession_StampHash", "octet_length(\"SecurityStampHash\") = 32");
+                table.HasCheckConstraint(
+                    "CK_DeviceSession_Expiry", "\"AbsoluteExpiresAt\" > \"CreatedAt\"");
+                table.HasCheckConstraint(
+                    "CK_DeviceSession_LastUsed", "\"LastUsedAt\" >= \"CreatedAt\"");
+            });
+            session.Property(value => value.SecretHash).HasColumnType("bytea").HasMaxLength(32)
+                .IsConcurrencyToken();
+            session.Property(value => value.SecurityStampHash).HasColumnType("bytea").HasMaxLength(32);
+            session.HasOne(value => value.Owner).WithMany().HasForeignKey(value => value.OwnerId)
+                .OnDelete(DeleteBehavior.Cascade);
+            session.HasIndex(value => value.OwnerId);
         });
 
         modelBuilder.Entity<BudgetLimit>()
