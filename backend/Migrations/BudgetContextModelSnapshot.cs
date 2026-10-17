@@ -388,6 +388,60 @@ namespace backend.Migrations
                         });
                 });
 
+            modelBuilder.Entity("BudgetPlanner.Models.CreateRequestReceipt", b =>
+                {
+                    b.Property<string>("OwnerId")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("RequestKey")
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("AccountInflowId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("AccountInflowOwnerId")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("ExpenseId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("RecordKind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<byte[]>("RequestFingerprint")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("bytea");
+
+                    b.HasKey("OwnerId", "RequestKey");
+
+                    b.HasIndex("AccountInflowId")
+                        .IsUnique()
+                        .HasFilter("\"AccountInflowId\" IS NOT NULL");
+
+                    b.HasIndex("ExpenseId")
+                        .IsUnique()
+                        .HasFilter("\"ExpenseId\" IS NOT NULL");
+
+                    b.HasIndex("AccountInflowId", "AccountInflowOwnerId");
+
+                    b.ToTable("CreateRequestReceipts", t =>
+                        {
+                            t.HasCheckConstraint("CK_CreateRequestReceipt_Fingerprint", "octet_length(\"RequestFingerprint\") = 32");
+
+                            t.HasCheckConstraint("CK_CreateRequestReceipt_InflowOwner", "(\"AccountInflowId\" IS NULL AND \"AccountInflowOwnerId\" IS NULL) OR (\"AccountInflowId\" IS NOT NULL AND \"AccountInflowOwnerId\" = \"OwnerId\")");
+
+                            t.HasCheckConstraint("CK_CreateRequestReceipt_Kind", "\"RecordKind\" IN ('Expense', 'AccountInflow')");
+
+                            t.HasCheckConstraint("CK_CreateRequestReceipt_KindLink", "(\"RecordKind\" = 'Expense' AND \"AccountInflowId\" IS NULL AND \"AccountInflowOwnerId\" IS NULL) OR (\"RecordKind\" = 'AccountInflow' AND \"ExpenseId\" IS NULL)");
+                        });
+                });
+
             modelBuilder.Entity("BudgetPlanner.Models.DeviceSession", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1110,6 +1164,33 @@ namespace backend.Migrations
                     b.Navigation("Commitment");
 
                     b.Navigation("Expense");
+                });
+
+            modelBuilder.Entity("BudgetPlanner.Models.CreateRequestReceipt", b =>
+                {
+                    b.HasOne("BudgetPlanner.Models.Expense", "Expense")
+                        .WithMany()
+                        .HasForeignKey("ExpenseId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("BudgetPlanner.Models.ApplicationUser", "Owner")
+                        .WithMany()
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("BudgetPlanner.Models.AccountInflow", "AccountInflow")
+                        .WithMany()
+                        .HasForeignKey("AccountInflowId", "AccountInflowOwnerId")
+                        .HasPrincipalKey("Id", "OwnerId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("FK_CreateRequestReceipts_AccountInflow_Owner");
+
+                    b.Navigation("AccountInflow");
+
+                    b.Navigation("Expense");
+
+                    b.Navigation("Owner");
                 });
 
             modelBuilder.Entity("BudgetPlanner.Models.DeviceSession", b =>

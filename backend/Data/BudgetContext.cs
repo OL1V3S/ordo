@@ -25,6 +25,7 @@ public class BudgetContext : IdentityDbContext<ApplicationUser>, IDataProtection
     public DbSet<PaycheckOccurrence> PaycheckOccurrences { get; set; }
     public DbSet<PaycheckCandidateDismissal> PaycheckCandidateDismissals { get; set; }
     public DbSet<DeviceSession> DeviceSessions { get; set; }
+    public DbSet<CreateRequestReceipt> CreateRequestReceipts { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -451,6 +452,48 @@ public class BudgetContext : IdentityDbContext<ApplicationUser>, IDataProtection
             session.HasOne(value => value.Owner).WithMany().HasForeignKey(value => value.OwnerId)
                 .OnDelete(DeleteBehavior.Cascade);
             session.HasIndex(value => value.OwnerId);
+        });
+
+        modelBuilder.Entity<CreateRequestReceipt>(receipt =>
+        {
+            receipt.ToTable(table =>
+            {
+                table.HasCheckConstraint(
+                    "CK_CreateRequestReceipt_Kind",
+                    "\"RecordKind\" IN ('Expense', 'AccountInflow')");
+                table.HasCheckConstraint(
+                    "CK_CreateRequestReceipt_Fingerprint",
+                    "octet_length(\"RequestFingerprint\") = 32");
+                table.HasCheckConstraint(
+                    "CK_CreateRequestReceipt_KindLink",
+                    "(\"RecordKind\" = 'Expense' AND \"AccountInflowId\" IS NULL AND \"AccountInflowOwnerId\" IS NULL) OR " +
+                    "(\"RecordKind\" = 'AccountInflow' AND \"ExpenseId\" IS NULL)");
+                table.HasCheckConstraint(
+                    "CK_CreateRequestReceipt_InflowOwner",
+                    "(\"AccountInflowId\" IS NULL AND \"AccountInflowOwnerId\" IS NULL) OR " +
+                    "(\"AccountInflowId\" IS NOT NULL AND \"AccountInflowOwnerId\" = \"OwnerId\")");
+            });
+            receipt.HasKey(value => new { value.OwnerId, value.RequestKey });
+            receipt.Property(value => value.RecordKind).HasMaxLength(20);
+            receipt.Property(value => value.RequestFingerprint).HasColumnType("bytea").HasMaxLength(32);
+            receipt.HasOne(value => value.Owner).WithMany().HasForeignKey(value => value.OwnerId)
+                .OnDelete(DeleteBehavior.Cascade);
+            receipt.HasOne(value => value.Expense)
+                .WithMany()
+                .HasForeignKey(value => value.ExpenseId)
+                .OnDelete(DeleteBehavior.SetNull);
+            receipt.HasOne(value => value.AccountInflow)
+                .WithMany()
+                .HasForeignKey(value => new { value.AccountInflowId, value.AccountInflowOwnerId })
+                .HasPrincipalKey(value => new { value.Id, value.OwnerId })
+                .HasConstraintName("FK_CreateRequestReceipts_AccountInflow_Owner")
+                .OnDelete(DeleteBehavior.SetNull);
+            receipt.HasIndex(value => value.ExpenseId)
+                .IsUnique()
+                .HasFilter("\"ExpenseId\" IS NOT NULL");
+            receipt.HasIndex(value => value.AccountInflowId)
+                .IsUnique()
+                .HasFilter("\"AccountInflowId\" IS NOT NULL");
         });
 
         modelBuilder.Entity<BudgetLimit>()

@@ -2,6 +2,7 @@ using System.Security.Claims;
 using System.Globalization;
 using BudgetPlanner.ActivityTimeline;
 using BudgetPlanner.Contracts.Expenses;
+using BudgetPlanner.CreateRequests;
 using BudgetPlanner.Data;
 using BudgetPlanner.Import;
 using BudgetPlanner.Models;
@@ -17,10 +18,12 @@ namespace BudgetPlanner.Controllers;
 public class ExpensesController : ControllerBase
 {
     private readonly BudgetContext _context;
+    private readonly IdempotentCreateService _idempotentCreate;
 
-    public ExpensesController(BudgetContext context)
+    public ExpensesController(BudgetContext context, IdempotentCreateService idempotentCreate)
     {
         _context = context;
+        _idempotentCreate = idempotentCreate;
     }
 
     private string? GetUserId()
@@ -47,13 +50,21 @@ public class ExpensesController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<ExpenseResponse>> PostExpense(CreateExpenseRequest request)
+    public async Task<ActionResult<ExpenseResponse>> PostExpense(
+        CreateExpenseRequest request,
+        CancellationToken cancellationToken = default)
     {
         var userId = GetUserId();
 
         if (userId == null)
         {
             return Unauthorized();
+        }
+
+        var idempotencyKey = IdempotencyKeyHeader.Read(Request.Headers);
+        if (idempotencyKey.Status == IdempotencyKeyStatus.Invalid)
+        {
+            return CreateRequestProblems.InvalidKey();
         }
 
         if (!TryReadAmount(request.Amount, out var amount)
@@ -65,6 +76,18 @@ public class ExpensesController : ControllerBase
                 out var category))
         {
             return ValidationProblem(ModelState);
+        }
+
+        if (idempotencyKey.Status == IdempotencyKeyStatus.Valid)
+        {
+            return await PostIdempotentExpenseAsync(
+                userId,
+                idempotencyKey.Key,
+                description,
+                amount,
+                request.Date,
+                category,
+                cancellationToken);
         }
 
         var expense = new Expense
@@ -162,6 +185,40 @@ public class ExpensesController : ControllerBase
         await _context.SaveChangesAsync();
 
         return NoContent();
+    }
+
+    private async Task<ActionResult<ExpenseResponse>> PostIdempotentExpenseAsync(
+        string userId,
+        Guid key,
+        string description,
+        decimal amount,
+        DateOnly date,
+        string category,
+        CancellationToken cancellationToken)
+    {
+        var result = await _idempotentCreate.CreateExpenseAsync(
+            userId,
+            key,
+            () => new Expense
+            {
+                UserId = userId,
+                Description = description,
+                Amount = amount,
+                Date = date,
+                Category = category
+            },
+            CreateRequestFingerprint.ForExpense(description, amount, date, category),
+            cancellationToken);
+
+        return result.Status switch
+        {
+            IdempotentCreateStatus.Created => CreatedAtAction(
+                nameof(GetExpenses),
+                new { id = result.Expense!.Id },
+                ToResponse(result.Expense)),
+            IdempotentCreateStatus.Replayed => Ok(ToResponse(result.Expense!)),
+            _ => CreateRequestProblems.For(result.Status)
+        };
     }
 
     private bool TryValidateAndNormalize(
