@@ -65,8 +65,8 @@ touch `ios/**`.
 - Only the refresh credential is stored, in the Keychain
   (`AfterFirstUnlockThisDeviceOnly`, not synchronizable). The access token lives in
   memory only. The password is never stored.
-- Exactly one refresh runs at a time (the server treats reuse of a rotated credential as
-  reuse and ends the session). A refresh from an old session cannot affect a newer one.
+- Exactly one refresh runs at a time (the server treats reuse of a rotated credential
+  ends the session). A refresh from an old session cannot affect a newer one.
 - The app logs only static messages and status codes, never tokens, emails, bodies or
   amounts. Error bodies are read for their `code` only.
 - The URL session is ephemeral (no disk cache or cookies).
