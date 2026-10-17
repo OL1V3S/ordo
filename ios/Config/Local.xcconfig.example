@@ -1,0 +1,17 @@
+// Copy this file to Local.xcconfig (git-ignored) and replace the placeholders.
+// Never commit Local.xcconfig, a development team ID or a server address.
+//
+// "http:/$()/host" is how a double slash is written in an xcconfig file
+// ("//" would start a comment).
+
+// Debug in the simulator: the local backend (dotnet run --launch-profile http).
+ORDO_API_BASE_URL[config=Debug][sdk=iphonesimulator*] = http:/$()/localhost:5298
+// Debug on a physical iPhone and Release: your deployed backend over HTTPS.
+ORDO_API_BASE_URL[config=Debug][sdk=iphoneos*] = https:/$()/YOUR-BACKEND-HOST.example
+ORDO_API_BASE_URL[config=Release] = https:/$()/YOUR-BACKEND-HOST.example
+
+// Needed only to install on a physical iPhone.
+DEVELOPMENT_TEAM = YOUR_TEAM_ID
+
+// Optional: use your own bundle identifier prefix.
+// ORDO_BUNDLE_ID_PREFIX = com.example

@@ -57,3 +57,14 @@ publish/
 
 # macOS system files
 .DS_Store
+
+# ---------------------
+# iOS (Xcode)
+# ---------------------
+
+ios/**/xcuserdata/
+ios/**/*.xcuserstate
+ios/**/*.xcresult
+ios/build/
+ios/DerivedData/
+ios/Config/Local.xcconfig
