@@ -24,6 +24,13 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-17 — Ordo look for the iPhone app
+
+[PR #261](https://github.com/OL1V3S/ordo/pull/261) · [Issue #260](https://github.com/OL1V3S/ordo/issues/260)
+
+- The iPhone app now has the web's colors and flat style through one theme layer: light and dark pairs (with Increase Contrast variants), the web's periwinkle accent, buttons that keep readable labels in dark mode, status messages with an icon and text, and money in monospaced digits with cash in shown in green. Navigation, sheets, Dynamic Type and VoiceOver stay native, and three small haptics confirm a save, an uncertain save and a form error.
+- Presentation only: no change to data, networking, saving, sessions, copy, the web app, backend or required checks. New tests check every color in all four appearances, text contrast for the pairs used, and that views use only the theme.
+
 ### 2026-10-17 — Add expense and Add deposit in the iPhone app
 
 [PR #259](https://github.com/OL1V3S/ordo/pull/259) · [Issue #258](https://github.com/OL1V3S/ordo/issues/258)
@@ -168,11 +175,3 @@ the permanent, complete archive.
 
 - The statement import review now opens with a whole-statement summary, row filters (all, needs attention, possible duplicates, incoming deposits, selected), whole-batch "Select all eligible expenses" and "Clear selection" actions, and a sticky confirm bar showing exact, separate expense and incoming-deposit totals.
 - After saving, the import shows the rows it saved with their exact totals and a "View in Activity" action; the Import statement entry point is more prominent and an empty Activity page offers a PDF import prompt. English and Spanish; frontend only, with no API, schema or financial-semantics change.
-
-### 2026-10-12 — Language-aware money, percent and date formatting
-
-[PR #224](https://github.com/OL1V3S/ordo/pull/224) ·
-[Issue #223](https://github.com/OL1V3S/ordo/issues/223)
-
-- Money, percentages, dates and import timestamps now follow the app language through one shared formatter. Spanish shows USD amounts as `USD 1,234.56` (so they are not read as pesos) and dates in Mexican Spanish style such as `4 mar 2026`; English text is unchanged apart from a few listed corrections (Budgets reset date, grouped large percentages, import preview amounts, unparseable Commitments amounts).
-- Amounts stay exact at any size and calendar dates do not shift with the machine's timezone; calculations, payloads and the backend are unchanged.

@@ -107,6 +107,28 @@ deleted (at sign-in, sign-out, session end or after a definitive outcome), it is
 in a non-financial `UserDefaults` flag and ignored: the next launch retries the delete and never
 shows or sends it, and the flag is reset only after the delete succeeds.
 
+## Look and theme
+
+The app uses Ordo's web look through one theme layer (`ios/Ordo/Theme`), while keeping iOS
+structure: large-title navigation, inset-grouped lists, system sheets, Dynamic Type, VoiceOver,
+Reduce Motion and Increase Contrast.
+
+- **Colors** are asset-catalog color sets (`Resources/Assets.xcassets/Theme`, plus `AccentColor`)
+  ported from the web's `themes.css`, with light, dark and Increase Contrast values. The app follows
+  the system appearance; there is no in-app picker.
+- **Views never use raw colors.** They use `ThemeColor`, `Theme.Typography` (text styles only, so
+  everything scales), `Theme.Space`, `Theme.Radius` and the `Ordo*ButtonStyle` styles. The system
+  `.borderedProminent` style is not used: its white label fails contrast on the dark accent.
+  `ThemeSourceRulesTests` scans `ios/Ordo/Views` and fails on raw or system colors, fixed font sizes
+  and system bordered button styles.
+- **Money** is monospaced-digit semibold. The sign and the kind label carry direction; color only
+  reinforces it: cash in is green, spending stays neutral and is never red.
+- **Adding a color:** add it to the web tokens first, then a color set, a `ThemeColor` case, and its
+  row in `docs/design-tokens.md` and `ThemeColorTests`. Add every new text/background pair to
+  `ThemeContrastTests`.
+- The full token mapping and contrast table is in the iOS section of
+  [`docs/design-tokens.md`](../docs/design-tokens.md).
+
 ## Security notes
 
 - Only the refresh credential is stored, in the Keychain
