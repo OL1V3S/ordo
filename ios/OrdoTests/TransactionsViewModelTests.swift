@@ -97,6 +97,7 @@ private let firstPage: ScriptedTransactionsService.Load = { _ in
         }])
         let more = Task { await model.loadMore() }
         #expect(await waitUntil { await MainActor.run { model.isLoadingMore } })
+        #expect(await waitUntil { service.loads.count == 2 })
         await model.loadMore() // one load more at a time
         #expect(service.loads.count == 2)
         await moreGate.release()

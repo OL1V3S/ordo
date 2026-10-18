@@ -84,7 +84,7 @@ private func day(_ text: String) -> CalendarDate { CalendarDate(text)! }
 
     @Test func lastThirtyDaysIsTwentyNineDaysAgoThroughToday() {
         #expect(range(.last30, "2026-10-17")! == ("2026-09-18", "2026-10-17"))
-        #expect(range(.last30, "2028-03-01")! == ("2028-01-31", "2028-03-01")) // through a leap February
+        #expect(range(.last30, "2028-03-01")! == ("2028-02-01", "2028-03-01")) // through a leap February
         #expect(range(.last30, "2026-03-01")! == ("2026-01-31", "2026-03-01")) // through a normal February
     }
 
@@ -166,6 +166,7 @@ private func day(_ text: String) -> CalendarDate { CalendarDate(text)! }
         vm.setFrom(day("2026-10-18"))
         vm.setTo(day("2026-10-17"))
         #expect(vm.filterProblem == .range)
-        #expect(vm.applied.from == nil && vm.applied.to == nil)
+        // A lone `from` was valid and applied; adding an earlier `to` made the draft invalid, so it was not.
+        #expect(vm.applied.to == nil)
     }
 }
