@@ -1,0 +1,6 @@
+{
+  "type": "https://tools.ietf.org/html/rfc9110#section-15.5.1",
+  "title": "synthetic server text that must never be shown",
+  "status": 400,
+  "code": "activity_timeline_search_invalid"
+}

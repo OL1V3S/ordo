@@ -1,0 +1,14 @@
+{
+  "currencyCode": "USD",
+  "items": [
+    {
+      "kind": "expense",
+      "recordId": 7,
+      "date": "2026-10-17",
+      "amount": "12.50",
+      "description": "Synthetic lunch",
+      "category": "Food"
+    }
+  ],
+  "page": { "limit": 25, "hasMore": false, "nextCursor": null }
+}
