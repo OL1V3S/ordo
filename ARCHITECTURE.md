@@ -265,7 +265,9 @@ for every retry. While a save's outcome is uncertain, its key and locked values 
 one file-protected, backup-excluded file in the app container, cleared on a definitive
 outcome, discard, sign-out, session end or fresh sign-in. If that file cannot be deleted, a
 non-financial `UserDefaults` flag marks it invalid, so the next launch retries the delete and
-never shows or sends it. See [`ios/README.md`](ios/README.md).
+never shows or sends it. Every view reads colors, type, spacing and button styles from one theme layer
+(`ios/Ordo/Theme`, asset-catalog color sets ported from the web's semantic tokens, with light, dark and
+Increase Contrast values), and a test fails if a view uses a raw color. See [`ios/README.md`](ios/README.md).
 
 ### Persistence and migrations
 

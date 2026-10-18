@@ -40,6 +40,10 @@ struct CaptureSheet: View {
         .onChange(of: model.focusRequest) { _, request in
             if let request { focus = request.field }
         }
+        // Small haptics that repeat what the screen already says: a save became uncertain, or the
+        // form has an error. Neither is the only feedback.
+        .sensoryFeedback(.warning, trigger: model.phase) { _, phase in phase == .uncertain }
+        .sensoryFeedback(.error, trigger: model.formError) { _, error in error != nil }
     }
 
     private var title: String {
@@ -103,38 +107,40 @@ struct CaptureSheet: View {
                     fieldError(.category)
                 }
             } header: {
-                Text(verbatim: l10n.string(CapturePresenter.legendKey(model.kind))).accessibilityAddTraits(.isHeader)
+                Text(verbatim: l10n.string(CapturePresenter.legendKey(model.kind))).themedSectionHeader().accessibilityAddTraits(.isHeader)
             } footer: {
-                if model.kind == .deposit { Text(verbatim: l10n.string(.captureDepositHint)) }
+                if model.kind == .deposit {
+                    Text(verbatim: l10n.string(.captureDepositHint))
+                        .font(Theme.Typography.finePrint.font)
+                        .foregroundStyle(ThemeColor.textMuted.color)
+                }
             }
+            .themedRows()
 
             if let error = model.formError {
                 Section {
-                    Label { Text(verbatim: l10n.string(CapturePresenter.formErrorKey(error))) } icon: {
-                        Image(systemName: "exclamationmark.triangle")
-                    }
-                    .foregroundStyle(.red)
-                    .font(.callout)
+                    InlineStatusView(systemImage: "exclamationmark.triangle",
+                                     message: l10n.string(CapturePresenter.formErrorKey(error)), tone: .danger)
                 }
+                .themedToneRow(.danger)
             }
 
             Section {
                 Button { model.submit() } label: {
                     Text(verbatim: l10n.string(CapturePresenter.saveKey(model.kind))).frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(OrdoPrimaryButtonStyle())
             }
+            .themedButtonRow()
         }
+        .themedList()
         .scrollDismissesKeyboard(.interactively)
     }
 
     @ViewBuilder private func fieldError(_ field: CaptureField) -> some View {
         if model.fieldErrors.contains(field) {
-            Label { Text(verbatim: l10n.string(CapturePresenter.fieldErrorKey(field))) } icon: {
-                Image(systemName: "exclamationmark.triangle")
-            }
-            .foregroundStyle(.red)
-            .font(.callout)
+            InlineStatusView(systemImage: "exclamationmark.triangle",
+                             message: l10n.string(CapturePresenter.fieldErrorKey(field)), tone: .danger)
         }
     }
 
@@ -161,8 +167,11 @@ struct LabeledField<Content: View>: View {
     @ViewBuilder let content: Content
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(verbatim: label).font(.caption).foregroundStyle(.secondary).accessibilityHidden(true)
+        VStack(alignment: .leading, spacing: Theme.Space.s1.points) {
+            Text(verbatim: label)
+                .font(Theme.Typography.fieldCaption.font)
+                .foregroundStyle(ThemeColor.textMuted.color)
+                .accessibilityHidden(true)
             content
         }
     }

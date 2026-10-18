@@ -11,7 +11,10 @@ struct SignInView: View {
         NavigationStack {
             Form {
                 if notice == .sessionEnded {
-                    Section { InlineStatusView(systemImage: "info.circle", message: l10n.string(.authSessionEnded)) }
+                    Section {
+                        InlineStatusView(systemImage: "info.circle", message: l10n.string(.authSessionEnded), tone: .info)
+                    }
+                    .themedToneRow(.info)
                 }
                 Section {
                     TextField(l10n.string(.authFieldsEmail), text: $model.email)
@@ -41,17 +44,19 @@ struct SignInView: View {
                         } label: {
                             Image(systemName: model.showsPassword ? "eye.slash" : "eye")
                         }
-                        .buttonStyle(.borderless)
+                        .buttonStyle(OrdoIconButtonStyle())
                         .accessibilityLabel(model.showsPassword
                             ? l10n.string(.authPasswordToggleHidePassword)
                             : l10n.string(.authPasswordToggleShowPassword))
                     }
                 }
+                .themedRows()
                 if let key = model.errorKey {
                     Section {
-                        InlineStatusView(systemImage: "exclamationmark.triangle", message: l10n.string(key))
+                        InlineStatusView(systemImage: "exclamationmark.triangle", message: l10n.string(key), tone: .danger)
                             .accessibilityAddTraits(.isStaticText)
                     }
+                    .themedToneRow(.danger)
                 }
                 Section {
                     Button {
@@ -63,9 +68,12 @@ struct SignInView: View {
                                 .frame(maxWidth: .infinity)
                         }
                     }
+                    .buttonStyle(OrdoPrimaryButtonStyle())
                     .disabled(!model.canSubmit)
                 }
+                .themedButtonRow()
             }
+            .themedList()
             .navigationTitle(l10n.string(.authLoginTitle))
             .onChange(of: model.errorKey) { _, key in
                 if let key { AccessibilityNotification.Announcement(l10n.string(key)).post() }

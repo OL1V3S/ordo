@@ -7,7 +7,10 @@ struct RootView: View {
     var body: some View {
         switch model.sessionState {
         case .restoring:
-            ProgressView(l10n.string(.appRestoring)).frame(maxWidth: .infinity, maxHeight: .infinity)
+            ProgressView(l10n.string(.appRestoring))
+                .tint(ThemeColor.accent.color)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .themedCanvas()
                 .accessibilityAddTraits(.updatesFrequently)
         case .signedOut(let reason):
             SignInView(model: model.signInModel, notice: reason, l10n: l10n)
@@ -22,5 +25,7 @@ struct NotConfiguredView: View {
 
     var body: some View {
         StatusMessageView(systemImage: "gearshape.2", message: l10n.string(.appNotConfiguredTitle) + "\n" + l10n.string(.appNotConfiguredMessage))
+            .frame(maxHeight: .infinity)
+            .themedCanvas()
     }
 }

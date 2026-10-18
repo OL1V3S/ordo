@@ -52,6 +52,23 @@ import Testing
         #expect(presenter.amount(for: items[2]) == "−$4.75")
     }
 
+    @Test func amountDirectionFollowsTheKind() throws {
+        let home = try Fixtures.snapshot("home-all-available")
+        guard case .available(let items) = home.recentActivity else { Issue.record("recent"); return }
+        #expect(HomePresenter.amountDirection(for: items[1]) == .moneyIn)
+        #expect(HomePresenter.amountDirection(for: items[2]) == .moneyOut)
+    }
+
+    /// The server never sends a zero amount (the whole read is rejected), but the helper is pure
+    /// and must still follow the kind rather than the value.
+    @Test(arguments: [(ActivityItem.Kind.accountInflow, AmountDirection.moneyIn), (.expense, .moneyOut)])
+    func amountDirectionIgnoresTheValue(kind: ActivityItem.Kind, expected: AmountDirection) throws {
+        let item = ActivityItem(kind: kind, recordId: 1, date: try #require(CalendarDate("2026-10-17")),
+                                amount: try #require(Money.parse("0.00", allowZero: true)),
+                                description: "Synthetic", category: nil, paycheckLinked: false)
+        #expect(HomePresenter.amountDirection(for: item) == expected)
+    }
+
     @Test func budgetTextUsesMoneyFormatting() {
         let presenter = HomePresenter(l10n: L10n(language: .es), currencyCode: "USD")
         let text = presenter.detail(for: .budget(budget("Food", .overLimit, "120.50", "100.00")))
