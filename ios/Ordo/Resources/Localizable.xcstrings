@@ -3090,7 +3090,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "No pudimos confirmar si se eliminó. Reintentar envía la eliminación otra vez; repetirla es seguro. O revisa la lista para ver lo que está guardado."
+            "value": "No pudimos confirmar si se eliminó. “Reintentar” vuelve a enviar la eliminación; es seguro repetirla. También puedes revisar la lista para ver qué está guardado."
           }
         }
       }
@@ -3124,7 +3124,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "No pudimos confirmar si se guardaron tus cambios. Reintentar envía los mismos cambios otra vez; repetirlos es seguro. O revisa la lista para ver lo que está guardado."
+            "value": "No pudimos confirmar si se guardaron tus cambios. “Reintentar” vuelve a enviar los mismos cambios; es seguro repetirlos. También puedes revisar la lista para ver qué está guardado."
           }
         }
       }
