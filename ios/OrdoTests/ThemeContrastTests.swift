@@ -67,6 +67,54 @@ import Testing
         #expect(high >= base - 0.005, "\(pair.testDescription) in \(appearance.testDescription): \(high) < \(base)")
     }
 
+    // MARK: Pressed states (fills composited over the parent background, as drawn)
+
+    /// The backgrounds a button sits on: the canvas, or a surface (a form row, a banner).
+    private static let buttonParents: [ThemeColor] = [.canvas, .surface]
+
+    private static func resolved(_ color: ThemeColor, _ appearance: ThemeAppearance) throws -> RGBA {
+        try #require(ThemeTestSupport.resolve(color, in: appearance))
+    }
+
+    private static func pressedComposite(_ fill: ThemeColor, opacity: Double, over parent: ThemeColor, _ appearance: ThemeAppearance) throws -> RGBA {
+        ThemeTestSupport.composite(try resolved(fill, appearance), opacity: opacity, over: try resolved(parent, appearance))
+    }
+
+    @Test(arguments: buttonParents, ThemeAppearance.allCases)
+    func primaryPressedLabelMeetsAA(parent: ThemeColor, appearance: ThemeAppearance) throws {
+        let fill = try Self.pressedComposite(.accentHover, opacity: OrdoPressed.primaryFillOpacity, over: parent, appearance)
+        let ratio = ThemeTestSupport.contrast(try Self.resolved(.onAccent, appearance), fill)
+        #expect(ratio >= 4.5, "onAccent on pressed primary over \(parent) in \(appearance.testDescription) is \(ratio)")
+    }
+
+    @Test(arguments: buttonParents, ThemeAppearance.allCases)
+    func secondaryPressedFillIsVisibleAndLabelMeetsAA(parent: ThemeColor, appearance: ThemeAppearance) throws {
+        let fill = try Self.pressedComposite(.border, opacity: 1, over: parent, appearance)
+        let visible = ThemeTestSupport.contrast(fill, try Self.resolved(parent, appearance))
+        #expect(visible >= 1.1, "pressed secondary fill over \(parent) in \(appearance.testDescription) is only \(visible)")
+        let label = ThemeTestSupport.contrast(try Self.resolved(.text, appearance), fill)
+        #expect(label >= 4.5, "text on pressed secondary over \(parent) in \(appearance.testDescription) is \(label)")
+    }
+
+    /// The destructive fill alone is subtle in light mode, so the documented cue is the stroke going
+    /// from 1 to 2 points; the label and the stroke must stay at AA / 3:1 on the pressed fill.
+    @Test(arguments: buttonParents, ThemeAppearance.allCases)
+    func destructivePressedLabelAndStrokeStayLegible(parent: ThemeColor, appearance: ThemeAppearance) throws {
+        let fill = try Self.pressedComposite(.dangerSoft, opacity: 1, over: parent, appearance)
+        let danger = try Self.resolved(.danger, appearance)
+        let label = ThemeTestSupport.contrast(danger, fill)
+        #expect(label >= 4.5, "danger label on pressed destructive over \(parent) in \(appearance.testDescription) is \(label)")
+        #expect(OrdoPressed.destructiveStrokeWidth >= 2)
+    }
+
+    @Test(arguments: [ThemeColor.surface, .canvas, .successSoft, .warningSoft, .infoSoft, .dangerSoft], ThemeAppearance.allCases)
+    func pressedIconGlyphMeetsNonTextContrast(background: ThemeColor, appearance: ThemeAppearance) throws {
+        let parent = try Self.resolved(background, appearance)
+        let glyph = ThemeTestSupport.composite(try Self.resolved(.textMuted, appearance), opacity: OrdoPressed.iconGlyphOpacity, over: parent)
+        let ratio = ThemeTestSupport.contrast(glyph, parent)
+        #expect(ratio >= 3, "pressed icon glyph on \(background) in \(appearance.testDescription) is \(ratio)")
+    }
+
     // MARK: The contrast function itself
 
     @Test func blackOnWhiteIs21() {

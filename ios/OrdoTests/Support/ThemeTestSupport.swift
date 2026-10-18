@@ -60,4 +60,11 @@ enum ThemeTestSupport {
         let la = luminance(a), lb = luminance(b)
         return (max(la, lb) + 0.05) / (min(la, lb) + 0.05)
     }
+
+    /// A colour drawn at `opacity` over an opaque background, as SwiftUI composites a dimmed fill.
+    static func composite(_ foreground: RGBA, opacity: Double, over background: RGBA) -> RGBA {
+        func mix(_ top: Int, _ bottom: Int) -> Int { Int((Double(top) * opacity + Double(bottom) * (1 - opacity)).rounded()) }
+        return RGBA(red: mix(foreground.red, background.red), green: mix(foreground.green, background.green),
+                    blue: mix(foreground.blue, background.blue), alpha: 1)
+    }
 }

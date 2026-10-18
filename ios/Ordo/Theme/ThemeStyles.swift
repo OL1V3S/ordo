@@ -2,6 +2,17 @@ import SwiftUI
 
 // MARK: - Buttons
 
+/// The pressed-state numbers the button styles use, shared so the contrast tests check the same values.
+enum OrdoPressed {
+    /// Opacity of the primary fill while pressed (the `accentHover` swap alone is not visible with
+    /// Increase Contrast, where `accent` equals `accentHover`).
+    static let primaryFillOpacity = 0.85
+    /// Stroke width of the destructive button while pressed (1 point at rest).
+    static let destructiveStrokeWidth: CGFloat = 2
+    /// Opacity of the icon button glyph while pressed.
+    static let iconGlyphOpacity = 0.8
+}
+
 /// The shared look of the three Ordo buttons. The system `.borderedProminent` style draws a white
 /// label on the tint, which fails contrast on the dark accent (2.75:1), so the app draws its own,
 /// like the web's `.button-primary` / `.button-ghost`.
@@ -29,7 +40,7 @@ private struct OrdoButtonBody: View {
         guard isEnabled else { return kind == .primary ? .disabledSurface : nil }
         switch kind {
         case .primary: return pressed ? .accentHover : .accent
-        case .secondary: return pressed ? .surfaceSunken : nil
+        case .secondary: return pressed ? .border : nil
         case .destructive: return pressed ? .dangerSoft : nil
         }
     }
@@ -53,11 +64,15 @@ private struct OrdoButtonBody: View {
             .padding(.horizontal, Theme.Space.s4.points)
             .padding(.vertical, Theme.Space.s2.points)
             .frame(maxWidth: fullWidth ? CGFloat.infinity : nil, minHeight: minHeight)
-            // The pressed fill swaps to a darker token, but with Increase Contrast `accent` already
-            // equals `accentHover`, so the fill alone also dims to keep the press visible. The label
-            // and stroke stay fully opaque so their contrast never drops.
-            .background { if let fill { shape.fill(fill.color).opacity(pressed ? 0.85 : 1) } }
-            .overlay { if let stroke { shape.strokeBorder(stroke.color, lineWidth: 1) } }
+            // Pressed cues, all from existing tokens; the label and stroke colors stay fully opaque so
+            // their contrast never drops. Primary swaps to `accentHover` and also dims the fill
+            // (with Increase Contrast `accent` already equals `accentHover`). Secondary fills with
+            // `border`, which is visibly different from `canvas` and `surface` in every appearance.
+            // Destructive fills with `dangerSoft` and thickens its `danger` stroke to 2 points
+            // (drawn inside the shape, so nothing shifts), because no other token keeps the
+            // `danger` label at AA.
+            .background { if let fill { shape.fill(fill.color).opacity(kind == .primary && pressed ? OrdoPressed.primaryFillOpacity : 1) } }
+            .overlay { if let stroke { shape.strokeBorder(stroke.color, lineWidth: kind == .destructive && pressed ? OrdoPressed.destructiveStrokeWidth : 1) } }
             .contentShape(shape)
     }
 }
@@ -70,7 +85,8 @@ struct OrdoPrimaryButtonStyle: ButtonStyle {
     }
 }
 
-/// Transparent with a `borderStrong` stroke and a text label (the web's `.button-ghost`).
+/// Transparent with a `borderStrong` stroke and a text label (the web's `.button-ghost`); pressed
+/// it fills with `border`.
 struct OrdoSecondaryButtonStyle: ButtonStyle {
     var fullWidth = true
     func makeBody(configuration: Configuration) -> some View {
@@ -78,7 +94,8 @@ struct OrdoSecondaryButtonStyle: ButtonStyle {
     }
 }
 
-/// A `danger` label and stroke on a transparent background. Never filled: white on the dark
+/// A `danger` label and stroke on a transparent background; pressed it fills with `dangerSoft` and
+/// the stroke thickens to 2 points. Never solidly filled: white on the dark
 /// danger colour is only 2.64:1. Use with `role: .destructive`, behind a confirmation.
 struct OrdoDestructiveButtonStyle: ButtonStyle {
     var fullWidth = true
@@ -87,7 +104,8 @@ struct OrdoDestructiveButtonStyle: ButtonStyle {
     }
 }
 
-/// A small symbol button (dismiss, show password) with a 44-point target that scales.
+/// A small symbol button (dismiss, show password) with a 44-point target that scales. The glyph
+/// dims to 80% while pressed, which keeps it at 3:1 or better on every background.
 struct OrdoIconButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         IconBody(configuration: configuration)
@@ -103,7 +121,7 @@ struct OrdoIconButtonStyle: ButtonStyle {
                 .foregroundStyle(ThemeColor.textMuted.color)
                 .frame(minWidth: side, minHeight: side)
                 .contentShape(Rectangle())
-                .opacity(configuration.isPressed ? 0.6 : 1)
+                .opacity(configuration.isPressed ? OrdoPressed.iconGlyphOpacity : 1)
         }
     }
 }
