@@ -80,7 +80,9 @@ private struct RowActions: ViewModifier {
         content
             .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                 if canDelete {
-                    Button(role: .destructive, action: delete) {
+                    // Not `.destructive`: the row must not animate away before the confirmation and
+                    // the server result.
+                    Button(action: delete) {
                         Label(presenter.l10n.string(.timelineActionsDelete), systemImage: "trash")
                     }
                     .tint(ThemeColor.danger.color)

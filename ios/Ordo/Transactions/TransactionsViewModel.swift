@@ -127,11 +127,15 @@ final class TransactionsViewModel {
 
     /// Re-reads the first page under the applied filter. The rows stay visible while it runs. After
     /// a known change (`afterChange`), a failure clears them instead of keeping money from before
-    /// the change. Returns true when the rows are fresh.
+    /// the change. Returns true only when the read this call started is the one that completed and
+    /// the rows loaded from it; false when a newer read replaced it or the read failed.
     @discardableResult
     func refresh(afterChange: Bool = false) async -> Bool {
         started = true
-        await startFirstRead(clearRows: false, strict: afterChange).value
+        let task = startFirstRead(clearRows: false, strict: afterChange)
+        let token = readToken
+        await task.value
+        guard token == readToken, firstReadTask == nil else { return false }
         if case .loaded = phase { return !refreshFailed }
         return false
     }

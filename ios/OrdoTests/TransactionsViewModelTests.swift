@@ -271,6 +271,30 @@ private let firstPage: ScriptedTransactionsService.Load = { _ in
         #expect(model.phase == .failed(.offline))
     }
 
+    @Test func aSupersededChangeRefreshDoesNotReportFreshRows() async {
+        let afterChangeGate = Gate()
+        let pullGate = Gate()
+        let service = ScriptedTransactionsService(loads: [
+            firstPage,
+            { _ in await afterChangeGate.wait(); return TimelineFixtures.page(TimelineFixtures.items(1...3)) },
+            { _ in await pullGate.wait(); return TimelineFixtures.page(TimelineFixtures.items(1...5)) },
+        ])
+        let model = makeModel(service)
+        await model.loadIfNeeded()
+        let afterChange = Task { await model.refresh(afterChange: true) }
+        #expect(await waitUntil { service.loads.count == 2 })
+        let pull = Task { await model.refresh() }
+        #expect(await waitUntil { service.loads.count == 3 })
+        await afterChangeGate.release()
+        let supersededResult = await afterChange.value
+        #expect(!supersededResult) // the rows are still the old ones while the newer read runs
+        #expect(loaded(model)?.items.count == 25)
+        await pullGate.release()
+        let pullResult = await pull.value
+        #expect(pullResult)
+        #expect(loaded(model)?.items.count == 5)
+    }
+
     @Test func refreshIfLoadedDoesNothingBeforeTheListWasOpened() async {
         let service = ScriptedTransactionsService(loads: [firstPage])
         let model = makeModel(service)
