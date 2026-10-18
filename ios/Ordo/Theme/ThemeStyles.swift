@@ -53,12 +53,12 @@ private struct OrdoButtonBody: View {
             .padding(.horizontal, Theme.Space.s4.points)
             .padding(.vertical, Theme.Space.s2.points)
             .frame(maxWidth: fullWidth ? CGFloat.infinity : nil, minHeight: minHeight)
-            .background { if let fill { shape.fill(fill.color) } }
+            // The pressed fill swaps to a darker token, but with Increase Contrast `accent` already
+            // equals `accentHover`, so the fill alone also dims to keep the press visible. The label
+            // and stroke stay fully opaque so their contrast never drops.
+            .background { if let fill { shape.fill(fill.color).opacity(pressed ? 0.85 : 1) } }
             .overlay { if let stroke { shape.strokeBorder(stroke.color, lineWidth: 1) } }
             .contentShape(shape)
-            // The pressed fill swaps to a darker token, but with Increase Contrast `accent` already
-            // equals `accentHover`, so the whole button also dims to keep the press visible.
-            .opacity(pressed ? 0.85 : 1)
     }
 }
 
