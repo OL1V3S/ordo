@@ -126,7 +126,9 @@ struct TransactionsView: View {
                                      message: l10n.string(TimelineFilterRules.isActive(loaded.filter) ? .timelineFiltersNoMatches : .timelineEmpty))
                 }
                 ForEach(loaded.items) { item in
-                    TransactionRow(item: item, presenter: presenter, actionsEnabled: mutation.canStart,
+                    // No row actions while the list re-reads: the rows shown may be stale.
+                    TransactionRow(item: item, presenter: presenter,
+                                   actionsEnabled: mutation.canStart && !model.isRefreshing,
                                    edit: { mutation.beginEdit(item) }, delete: { mutation.beginDelete(item) })
                 }
                 paging(loaded)
