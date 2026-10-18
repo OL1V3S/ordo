@@ -258,10 +258,14 @@ Keychain, and renders Home from `GET /api/home`. It validates the response
 with the same rules as the web client, except that it does not re-check the server's
 sort order. A single actor serializes credential refreshes, which the API contract
 requires. The app reads its server address from the build configuration
-(`ios/Config`, with the real address in an untracked `Local.xcconfig`). Its only
-financial writes are adding an expense or a deposit through the existing
+(`ios/Config`, with the real address in an untracked `Local.xcconfig`). A Transactions tab
+reads `GET /api/activity/timeline` (server cursor paging, search and filters, nothing
+persisted). Its financial writes are adding an expense or a deposit through the existing
 `POST /api/expenses` and `POST /api/inflows`, each with one `Idempotency-Key` that is reused
-for every retry. While a save's outcome is uncertain, its key and locked values are kept in
+for every retry, and editing or deleting a record through the existing `PUT` and `DELETE` on
+`/api/expenses/{id}` and `/api/inflows/{id}`. Those four take no key: an edit is an absolute
+replacement and a delete targets a never-reused id, so an identical retry is safe, and every
+change is followed by a re-read from the server with no optimistic money. While a save's outcome is uncertain, its key and locked values are kept in
 one file-protected, backup-excluded file in the app container, cleared on a definitive
 outcome, discard, sign-out, session end or fresh sign-in. If that file cannot be deleted, a
 non-financial `UserDefaults` flag marks it invalid, so the next launch retries the delete and

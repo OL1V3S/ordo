@@ -96,7 +96,7 @@ private let firstPage: ScriptedTransactionsService.Load = { _ in
             return TimelineFixtures.page(TimelineFixtures.items(1...2))
         }])
         let more = Task { await model.loadMore() }
-        #expect(await waitUntil { model.isLoadingMore })
+        #expect(await waitUntil { await MainActor.run { model.isLoadingMore } })
         await model.loadMore() // one load more at a time
         #expect(service.loads.count == 2)
         await moreGate.release()
@@ -223,7 +223,7 @@ private let firstPage: ScriptedTransactionsService.Load = { _ in
         let model = makeModel(service)
         await model.loadIfNeeded()
         let refreshing = Task { await model.refresh() }
-        #expect(await waitUntil { model.isRefreshing })
+        #expect(await waitUntil { await MainActor.run { model.isRefreshing } })
         #expect(loaded(model)?.items.count == 25)
         await gate.release()
         await refreshing.value
