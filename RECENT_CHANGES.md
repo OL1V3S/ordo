@@ -26,7 +26,7 @@ the permanent, complete archive.
 
 ### 2026-10-17 — Transactions in the iPhone app
 
-[Issue #262](https://github.com/OL1V3S/ordo/issues/262)
+[PR #263](https://github.com/OL1V3S/ordo/pull/263) · [Issue #262](https://github.com/OL1V3S/ordo/issues/262)
 
 - The iPhone app has a Transactions tab: browse your expenses and deposits newest first, search and filter by type and dates, and edit or delete a record, in English and Spanish. A delete asks first and names the record; an edit uses the same fields and checks as Add.
 - A change that times out or loses its connection is shown as unconfirmed, and you can retry the same request or check the list. After every change the list and Home are re-read from the server, so no amount is changed on the phone first. Backend, API, schema, web app and required checks are unchanged; the app is still not distributed.
