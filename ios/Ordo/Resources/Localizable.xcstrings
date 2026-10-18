@@ -2602,23 +2602,6 @@
         }
       }
     },
-    "timeline.filters.searchLabel": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Search transactions"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Buscar movimientos"
-          }
-        }
-      }
-    },
     "timeline.filters.searchPlaceholder": {
       "extractionState": "manual",
       "localizations": {
