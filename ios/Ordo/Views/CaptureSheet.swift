@@ -4,6 +4,8 @@ import SwiftUI
 /// frozen it shows the locked values with the saving, uncertain or unreadable state.
 struct CaptureSheet: View {
     let model: CaptureViewModel
+    /// An edit or delete is on its way to the server: Retry waits for it.
+    var writeBlocked = false
     let l10n: L10n
     @FocusState private var focus: CaptureField?
 
@@ -58,7 +60,7 @@ struct CaptureSheet: View {
         case .editing:
             form
         case .saving, .uncertain, .unreadable:
-            PendingSaveView(model: model, l10n: l10n)
+            PendingSaveView(model: model, writeBlocked: writeBlocked, l10n: l10n)
         case .idle:
             Color.clear
         }

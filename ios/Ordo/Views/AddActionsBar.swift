@@ -5,6 +5,8 @@ import SwiftUI
 /// banner that reopens it. Every status has an icon and text, never colour alone.
 struct AddActionsBar: View {
     let model: CaptureViewModel
+    /// An edit or delete is on its way to the server: one write at a time.
+    var writeBlocked = false
     let l10n: L10n
     @Environment(\.dynamicTypeSize) private var typeSize
 
@@ -16,8 +18,7 @@ struct AddActionsBar: View {
         }
         .padding(.horizontal)
         .padding(.vertical, Theme.Space.s3.points)
-        // Opaque on every iOS version, so the buttons' contrast is defined. The iOS 26 scroll-edge
-        // bar treatment is deferred to the slice that adds the tab bar.
+        // Opaque on every iOS version, so the buttons' contrast is defined. It sits above the tab bar.
         .background(ThemeColor.canvas.color)
         .overlay(alignment: .top) { ThemeColor.borderSubtle.color.frame(height: 1) }
     }
@@ -35,7 +36,7 @@ struct AddActionsBar: View {
             }
             .buttonStyle(OrdoSecondaryButtonStyle())
         }
-        .disabled(!model.canBegin)
+        .disabled(!model.canBegin || writeBlocked)
         .accessibilityElement(children: .contain)
         .accessibilityLabel(Text(verbatim: l10n.string(.captureHeading)))
     }

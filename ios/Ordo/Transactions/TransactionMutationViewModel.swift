@@ -115,6 +115,8 @@ final class TransactionMutationViewModel {
     var canStart: Bool { phase == .idle && !isOtherWriteInFlight() }
     /// A request is on its way to the server. Add expense and Add deposit wait for it.
     var isSubmitting: Bool { phase == .submitting }
+    /// Retry is offered while the outcome is unknown, unless another write is saving.
+    var canRetry: Bool { phase == .uncertain && !isOtherWriteInFlight() }
     var isDeleteFlow: Bool { request?.isDelete ?? (phase == .confirmingDelete) }
 
     // MARK: Starting

@@ -2585,6 +2585,23 @@
         }
       }
     },
+    "timeline.filters.remove": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove filter: %1$@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quitar filtro: %1$@"
+          }
+        }
+      }
+    },
     "timeline.filters.searchLabel": {
       "extractionState": "manual",
       "localizations": {

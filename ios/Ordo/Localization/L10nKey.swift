@@ -152,6 +152,7 @@ enum L10nKey: String, CaseIterable, Sendable {
     case timelineFiltersPeriodLast7 = "timeline.filters.period.last7"
     case timelineFiltersPeriodThisMonth = "timeline.filters.period.thisMonth"
     case timelineFiltersPeriodLabel = "timeline.filters.periodLabel"
+    case timelineFiltersRemove = "timeline.filters.remove"
     case timelineFiltersSearchLabel = "timeline.filters.searchLabel"
     case timelineFiltersSearchPlaceholder = "timeline.filters.searchPlaceholder"
     case timelineFiltersSummaryFrom = "timeline.filters.summary.from"

@@ -8,6 +8,8 @@ final class AppModel {
     let signInModel: SignInViewModel
     let homeModel: HomeViewModel
     let captureModel: CaptureViewModel
+    let transactionsModel: TransactionsViewModel
+    let mutationModel: TransactionMutationViewModel
     private let session: SessionManager
     private var observer: Task<Void, Never>?
 
@@ -20,18 +22,35 @@ final class AppModel {
         }
         let home = HomeViewModel(service: SessionHomeService(session: session, api: api))
         homeModel = home
-        captureModel = CaptureViewModel(
+        let transactionsService = SessionTransactionsService(session: session, api: api)
+        let transactions = TransactionsViewModel(service: transactionsService)
+        transactionsModel = transactions
+        let capture = CaptureViewModel(
             service: SessionCaptureService(session: session, api: api),
             store: pendingStore,
             invalidationMark: invalidationMark,
-            refreshHome: { [home] in
+            refreshHome: { [home, transactions] in
                 await home.refresh()
+                // A saved expense or deposit also appears in Transactions, once it has been opened.
+                await transactions.refreshIfLoaded()
                 if case .loaded = home.phase { return true }
                 return false
             },
             language: language,
             deviceLocale: deviceLocale)
+        captureModel = capture
+        mutationModel = TransactionMutationViewModel(
+            service: transactionsService,
+            refreshList: { [transactions] in await transactions.refresh(afterChange: true) },
+            refreshHome: { [home] in await home.refresh() },
+            isOtherWriteInFlight: { [capture] in capture.phase == .saving },
+            language: language,
+            deviceLocale: deviceLocale)
     }
+
+    /// One write at a time: true while a save or an edit or delete is on its way to the server.
+    /// Add expense, Add deposit and a waiting save's Retry wait for it.
+    var isWriteInFlight: Bool { captureModel.phase == .saving || mutationModel.isSubmitting }
 
     func start() async {
         // Read the waiting save (if any) before the session starts. It is surfaced only when the
@@ -44,6 +63,8 @@ final class AppModel {
                 let previous = self.sessionState
                 if state == .signedIn, previous != .signedIn {
                     self.homeModel.reset()
+                    self.transactionsModel.reset()
+                    self.mutationModel.invalidate()
                     Task { await self.homeModel.load() }
                     if previous == .restoring {
                         self.captureModel.surfaceStoredRecord()
@@ -53,6 +74,8 @@ final class AppModel {
                     }
                 } else if state != .signedIn {
                     self.homeModel.reset()
+                    self.transactionsModel.reset()
+                    self.mutationModel.invalidate()
                     // The launch-time `.signedOut(.none)` (no credential, or a transient Keychain
                     // failure) keeps the record; only an ended session clears it.
                     if state == .signedOut(.sessionEnded) { self.captureModel.invalidate() }
@@ -65,6 +88,8 @@ final class AppModel {
 
     func signOut() async {
         captureModel.invalidate()
+        mutationModel.invalidate()
+        transactionsModel.reset()
         await session.signOut()
     }
 }
