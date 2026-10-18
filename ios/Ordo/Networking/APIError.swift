@@ -21,9 +21,16 @@ enum APIError: Error, Equatable, Sendable {
     case recordDeleted
     /// `409 idempotency_key_conflict`: a concurrent request; the outcome is not known.
     case conflict
+    /// `400` on a timeline read, read from its `code` only.
+    case timelineRejected(TimelineRejection)
+    /// `503 activity_timeline_unavailable`.
+    case timelineUnavailable
+    /// `400` on an edit with no recognised field key (the id mismatch, or `request`). The earlier
+    /// attempt may still have been applied, so the caller decides what to say.
+    case updateRejected
 }
 
-/// A field named by a create validation error. Server messages are never read.
+/// A field named by a create or edit validation error. Server messages are never read.
 enum ValidationField: String, Sendable, Hashable {
     case amount, description, date, category
 }
