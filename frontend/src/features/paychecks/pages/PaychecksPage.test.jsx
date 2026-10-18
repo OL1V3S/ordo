@@ -560,6 +560,8 @@ describe("Paychecks page", () => {
       amount: { mode: "fixed", fixedAmount: "2500", minimumAmount: null, maximumAmount: null },
     });
     await screen.findByRole("button", { name: "Actions for Renamed payroll" });
+    // Save moves focus to the heading on the next frame; opening the menu first lets that blur close it.
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Your pay schedules" })).toHaveFocus());
     loadState({ paychecks: [{ ...profile, lifecycle: "paused", nextProjection: null }] });
     await menuAction(user, "Renamed payroll", "Pause Renamed payroll");
     const pausedGroup = await screen.findByRole("group", { name: "Paused pay schedules" });
