@@ -3,6 +3,8 @@ import SwiftUI
 struct HomeView: View {
     let model: HomeViewModel
     let capture: CaptureViewModel
+    /// An edit or delete is on its way to the server: one write at a time.
+    let writeBlocked: Bool
     let l10n: L10n
     let signOut: () -> Void
     @State private var confirmingSignOut = false
@@ -16,7 +18,7 @@ struct HomeView: View {
                     // Capture does not depend on the Home read, so it stays available in every
                     // phase except the first load.
                     if model.phase != .loading || capture.hasPending || capture.notice != nil {
-                        AddActionsBar(model: capture, l10n: l10n)
+                        AddActionsBar(model: capture, writeBlocked: writeBlocked, l10n: l10n)
                     }
                 }
                 .navigationTitle(l10n.string(.homePageTitle))
@@ -34,7 +36,7 @@ struct HomeView: View {
                 }
                 .sheet(isPresented: Binding(get: { capture.isSheetPresented },
                                             set: { if !$0 { capture.sheetDismissed() } })) {
-                    CaptureSheet(model: capture, l10n: l10n)
+                    CaptureSheet(model: capture, writeBlocked: writeBlocked, l10n: l10n)
                 }
                 .onChange(of: capture.notice) { _, notice in
                     if let notice { AccessibilityNotification.Announcement(l10n.string(CapturePresenter.noticeKey(notice))).post() }

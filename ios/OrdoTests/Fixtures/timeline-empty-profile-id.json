@@ -1,0 +1,15 @@
+{
+  "currencyCode": "USD",
+  "items": [
+    {
+      "kind": "account_inflow",
+      "recordId": 9,
+      "date": "2026-10-17",
+      "amount": "1500.00",
+      "description": "Synthetic paycheck deposit",
+      "category": null,
+      "paycheck": { "profileId": "", "relation": "recorded_receipt" }
+    }
+  ],
+  "page": { "limit": 25, "hasMore": false, "nextCursor": null }
+}

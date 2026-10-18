@@ -24,6 +24,13 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-17 — Transactions in the iPhone app
+
+[PR #263](https://github.com/OL1V3S/ordo/pull/263) · [Issue #262](https://github.com/OL1V3S/ordo/issues/262)
+
+- The iPhone app has a Transactions tab: browse your expenses and deposits newest first, search and filter by type and dates, and edit or delete a record, in English and Spanish. A delete asks first and names the record; an edit uses the same fields and checks as Add.
+- A change that times out or loses its connection is shown as unconfirmed, and you can retry the same request or check the list. After every change the list and Home are re-read from the server, so no amount is changed on the phone first. Backend, API, schema, web app and required checks are unchanged; the app is still not distributed.
+
 ### 2026-10-17 — Ordo look for the iPhone app
 
 [PR #261](https://github.com/OL1V3S/ordo/pull/261) · [Issue #260](https://github.com/OL1V3S/ordo/issues/260)
@@ -167,11 +174,3 @@ the permanent, complete archive.
 
 - First of five wording PRs: English and Mexican Spanish now use one approved name per concept in every namespace. Examples: Transactions/Movimientos and Reports/Reportes for the pages, Deposit/Depósito for saved inflows (including transfers and refunds; not income), Recurring expense/Gasto recurrente, pay schedule/calendario de nómina, "Esperado" for expected money, and Quincenal for semimonthly pay.
 - Fallback labels now read "Exact amount unavailable" / "Date unavailable" and are localized by the caller. Added the approved glossary and style guide to `docs/localization.md`, the new Reports label sentence in the financial-invariants doc, and a wording guard test. Frontend and docs only; no API, schema or financial-semantics change.
-
-### 2026-10-12 — Statement import review and results polish
-
-[PR #228](https://github.com/OL1V3S/ordo/pull/228) ·
-[Issue #226](https://github.com/OL1V3S/ordo/issues/226)
-
-- The statement import review now opens with a whole-statement summary, row filters (all, needs attention, possible duplicates, incoming deposits, selected), whole-batch "Select all eligible expenses" and "Clear selection" actions, and a sticky confirm bar showing exact, separate expense and incoming-deposit totals.
-- After saving, the import shows the rows it saved with their exact totals and a "View in Activity" action; the Import statement entry point is more prominent and an empty Activity page offers a PDF import prompt. English and Spanish; frontend only, with no API, schema or financial-semantics change.

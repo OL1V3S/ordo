@@ -1,0 +1,33 @@
+{
+  "currencyCode": "USD",
+  "items": [
+    {
+      "kind": "expense",
+      "recordId": 11,
+      "date": "2026-10-17",
+      "amount": "0.00",
+      "description": "Synthetic legacy zero",
+      "category": "Food",
+      "paycheck": null
+    },
+    {
+      "kind": "expense",
+      "recordId": 12,
+      "date": "2026-10-16",
+      "amount": "-5.00",
+      "description": "Synthetic legacy negative",
+      "category": "Bills",
+      "paycheck": null
+    },
+    {
+      "kind": "account_inflow",
+      "recordId": 13,
+      "date": "2026-10-15",
+      "amount": "-1.50",
+      "description": "Synthetic legacy deposit",
+      "category": null,
+      "paycheck": null
+    }
+  ],
+  "page": { "limit": 25, "hasMore": false, "nextCursor": null }
+}

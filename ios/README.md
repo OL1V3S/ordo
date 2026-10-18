@@ -3,9 +3,12 @@
 A native SwiftUI iPhone app. Slice 1 ([#256](https://github.com/OL1V3S/ordo/issues/256))
 signs in through the backend's device-session API and shows Home (needs attention, recent
 transactions, upcoming paychecks). Slice 2 ([#258](https://github.com/OL1V3S/ordo/issues/258))
-adds **Add expense** and **Add deposit** from Home. These are the app's only financial
-writes: `POST /api/expenses` and `POST /api/inflows` with the server's `Idempotency-Key`
-protection. There is no backend, API or schema change.
+adds **Add expense** and **Add deposit** from Home, using `POST /api/expenses` and
+`POST /api/inflows` with the server's `Idempotency-Key` protection. Slice 3
+([#262](https://github.com/OL1V3S/ordo/issues/262)) adds a **Transactions** tab to browse,
+search, filter, edit and delete expenses and deposits, using `GET /api/activity/timeline` and
+`PUT`/`DELETE` on `/api/expenses/{id}` and `/api/inflows/{id}`. There is no backend, API or
+schema change.
 
 - iOS 18.0 or later, iPhone only. Swift 6 with strict concurrency. No third-party
   dependencies (SwiftUI, Foundation, Security, os, Swift Testing).
@@ -107,6 +110,61 @@ deleted (at sign-in, sign-out, session end or after a definitive outcome), it is
 in a non-financial `UserDefaults` flag and ignored: the next launch retries the delete and never
 shows or sends it, and the flag is reset only after the delete succeeds.
 
+## Transactions
+
+The signed-in app is a two-tab `TabView`: **Home** and **Transactions** (Movimientos), each with
+its own navigation stack. The system tab bar is Liquid Glass on iOS 26 and later and the standard
+bar on iOS 18-25. Add expense and Add deposit stay on Home; Sign out stays in Home's toolbar.
+
+- **List.** The tab reads `GET /api/activity/timeline` (25 rows a page, newest first, the server's
+  cursor) when it first appears. Each row shows the kind, description, date, category (expenses),
+  a paycheck-linked marker and the amount exactly as the server reports it. A stored amount that is
+  not a positive exact amount (a legacy zero or negative) shows "Exact amount unavailable" with the
+  stored text, never repaired. **Show older transactions** loads the next page (no automatic
+  loading); pull to refresh re-reads the first page. A page that fails strict validation is hidden
+  as a whole, as on the web. There are loading, empty, no-matches, error, offline and end states.
+- **Search and filters.** The search field and a Filters sheet (type, period presets, custom
+  dates) work as on the web. Only set filters are sent and the owner is never a parameter. The
+  search is trimmed, limited to 100 UTF-16 units and debounced by 300 ms; kind and dates apply at
+  once. An invalid draft (search too long, `from` after `to`) is never applied and shows the
+  app's own message. Query values are percent-encoded with the RFC 3986 unreserved set, so `+`
+  is not read as a space. Filters are not persisted. A filter the server still rejects shows the
+  app's own message, and a rejected cursor restarts from the first page.
+- **Edit.** Tap a row (or use Edit) for the same fields and validation as Add: description,
+  amount (`Decimal`/`Money`, sent as a two-decimal string), date and, for expenses, category. The
+  description keeps its case. A stored category outside the fixed list is edited as custom text; a
+  legacy `other` must be chosen again and an empty one saves as `uncategorized`. An expense whose
+  stored amount needs review has Delete only; a deposit in that state opens with the amount empty.
+  The deposit form always shows the web's note that a pay-schedule link stays.
+- **Delete.** A confirmation names the record. Deposits reuse the web's copy about the pay-schedule
+  link and import. `204` and `404` both end with the record gone.
+- **Server has the final say.** `400` shows localized field messages (field names only, never
+  server text) and unlocks the form; `404` says the record no longer exists.
+- **One write at a time.** Edits and deletes are disabled while Add is saving, and Add and a
+  waiting save's Retry wait while an edit or delete is submitting. At the first valid Save or
+  Confirm the request is frozen synchronously on the main actor and the form is read-only, so a
+  double tap cannot send a second request.
+- **Uncertain outcomes.** A timeout, dropped connection, cancellation, `5xx` or any unrecognised
+  status leaves the change **uncertain**: **Retry** re-sends the identical frozen request, or
+  **Check transactions** re-reads the list and Home and sends nothing. A `400` on a retry never
+  says "not saved"; it asks the user to check the list.
+- **Why a retry is safe without `Idempotency-Key`.** `PUT` is an absolute replacement (fixed
+  values the server validates again), so the same body twice leaves the same row, and the server's
+  evidence revisions change only when values differ; it never creates a record, so a record deleted
+  meanwhile answers `404`. `DELETE` targets a never-reused, owner-scoped id; a repeat can only
+  answer `404` for the same record. A `401` is refused before the controller runs. Residual risk:
+  last write wins, because the API has no concurrency token (a change made on another device
+  between two attempts is overwritten by the retry).
+- **No optimistic money.** Nothing in the list or on Home changes locally. After an edit, a delete,
+  a `404` or a check, the list and Home are re-read from the server. If the list re-read fails after
+  a known change, the rows are cleared and the error state is shown. A saved expense or deposit
+  also refreshes a list that has been opened.
+- **Session.** A `401` refreshes once through the single-flight refresher and re-sends the same
+  bytes; a second `401` or `session_invalid` signs the user out and drops any late response.
+- **Nothing persisted.** The timeline, filters and in-flight edits and deletes live in memory only.
+  An uncertain change is lost if the app is killed; both operations are idempotent and the server
+  list is the check. There is no new file, `UserDefaults` key or Keychain item.
+
 ## Look and theme
 
 The app uses Ordo's web look through one theme layer (`ios/Ordo/Theme`), while keeping iOS
@@ -137,13 +195,15 @@ Reduce Motion and Increase Contrast.
 - Exactly one refresh runs at a time (reusing a rotated credential
   ends the session). A refresh from an old session cannot affect a newer one.
 - The app logs only static messages and status codes, never tokens, emails, bodies, amounts,
-  descriptions or idempotency keys. Error bodies are read for their `code` (and, for a
-  create `400`, the field names) only; server text is never shown.
+  descriptions, search text, record ids, cursors or idempotency keys. Error bodies are read for
+  their `code` (and, for a create or edit `400`, the field names) only; server text is never shown.
 - The URL session is ephemeral (no disk cache or cookies).
 
 ## Out of scope
 
-Editing or deleting expenses and deposits, an offline queue that saves later on its own,
-category management, paycheck linking, statement import, receipts, widget, push
-notifications, TestFlight or App Store distribution, iPad layout, registration and
-password reset, in-app language picker, and links into other web workflows.
+Add expense and Add deposit on the Transactions tab, bulk edit or delete, undo, an offline queue
+or cache, a concurrency token or conflict detection, automatic infinite scrolling, persisted
+filters, category management, paycheck linking, statement import, receipts, budgets, reports,
+recurring expenses, widget, push notifications, TestFlight or App Store distribution, iPad
+layout, registration and password reset, in-app language picker, and links into other web
+workflows.

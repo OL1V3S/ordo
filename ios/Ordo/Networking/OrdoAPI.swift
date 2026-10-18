@@ -5,8 +5,10 @@ struct DeviceSessionResponse: Sendable {
     let refreshToken: String
 }
 
-/// The only requests the app makes: the three device-session endpoints, `GET /api/home`, and
-/// the two idempotent creates `POST /api/expenses` and `POST /api/inflows`.
+/// The only requests the app makes: the three device-session endpoints, `GET /api/home`,
+/// `GET /api/activity/timeline`, the two idempotent creates `POST /api/expenses` and
+/// `POST /api/inflows`, and the edits and deletes `PUT` and `DELETE` on `/api/expenses/{id}` and
+/// `/api/inflows/{id}`. The edits and deletes take no `Idempotency-Key`; see `MutationRequest`.
 struct OrdoAPI: Sendable {
     let baseURL: URL
     let transport: HTTPTransport
@@ -66,6 +68,114 @@ struct OrdoAPI: Sendable {
         case 503:
             if Self.errorCode(in: data) == "home_unavailable" { throw APIError.homeUnavailable }
             throw APIError.server(503)
+        default: throw APIError.server(status)
+        }
+    }
+
+    // MARK: Timeline
+
+    /// Returns the raw body; validation happens in `TimelineValidation`. Only set filters are sent
+    /// and the owner is never a parameter (it comes from the token). The items are in a fixed
+    /// order and percent-encoded with the RFC 3986 unreserved set, because `URLComponents` leaves
+    /// `+` as it is and the server would read it as a space.
+    func activityTimeline(accessToken: String, query: TimelineQuery) async throws -> Data {
+        var items: [(String, String)] = [("limit", String(query.limit))]
+        if let cursor = query.cursor, !cursor.isEmpty { items.append(("cursor", cursor)) }
+        let search = TimelineFilterRules.trimmedSearch(query.filter.q)
+        if !search.isEmpty { items.append(("q", search)) }
+        if query.filter.kind != .all { items.append(("kind", query.filter.kind.rawValue)) }
+        if let from = query.filter.from { items.append(("from", from.isoString)) }
+        if let to = query.filter.to { items.append(("to", to.isoString)) }
+
+        var components = URLComponents(url: baseURL.appending(path: "api/activity/timeline"), resolvingAgainstBaseURL: false)
+        components?.percentEncodedQueryItems = items.map {
+            URLQueryItem(name: Self.percentEncode($0.0), value: Self.percentEncode($0.1))
+        }
+        guard let url = components?.url else { throw APIError.invalidResponse }
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        request.timeoutInterval = 30
+        let (data, status) = try await send(request)
+        switch status {
+        case 200: return data
+        case 401: throw APIError.unauthorized
+        case 400: throw APIError.timelineRejected(TimelineRejection(code: Self.errorCode(in: data)))
+        case 503:
+            if Self.errorCode(in: data) == "activity_timeline_unavailable" { throw APIError.timelineUnavailable }
+            throw APIError.server(503)
+        default: throw APIError.server(status)
+        }
+    }
+
+    private static let unreserved = CharacterSet(
+        charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~")
+
+    private static func percentEncode(_ text: String) -> String {
+        text.addingPercentEncoding(withAllowedCharacters: unreserved) ?? text
+    }
+
+    // MARK: Edits and deletes
+
+    private struct ExpenseUpdateBody: Encodable {
+        let amount: String
+        let category: String
+        let date: String
+        let description: String
+        let id: Int
+    }
+
+    private struct InflowUpdateBody: Encodable {
+        let amount: String
+        let date: String
+        let description: String
+        let id: Int
+    }
+
+    /// An absolute replacement of the record's values. `id` equals the route id (the server rejects
+    /// a mismatch). Identical arguments always produce identical bytes, so a retry of one frozen
+    /// edit sends exactly the same request.
+    func updateExpense(accessToken: String, id: Int, values: CaptureValidation.FrozenValues) async throws -> MutationResult {
+        let body = try Self.encode(ExpenseUpdateBody(amount: values.amount,
+                                                     category: values.category ?? CaptureValidation.defaultCategory,
+                                                     date: values.date, description: values.descriptionText, id: id))
+        return try await mutate(method: "PUT", path: "api/expenses/\(id)", accessToken: accessToken, body: body)
+    }
+
+    func updateInflow(accessToken: String, id: Int, values: CaptureValidation.FrozenValues) async throws -> MutationResult {
+        let body = try Self.encode(InflowUpdateBody(amount: values.amount, date: values.date,
+                                                    description: values.descriptionText, id: id))
+        return try await mutate(method: "PUT", path: "api/inflows/\(id)", accessToken: accessToken, body: body)
+    }
+
+    func deleteExpense(accessToken: String, id: Int) async throws -> MutationResult {
+        try await mutate(method: "DELETE", path: "api/expenses/\(id)", accessToken: accessToken, body: nil)
+    }
+
+    func deleteInflow(accessToken: String, id: Int) async throws -> MutationResult {
+        try await mutate(method: "DELETE", path: "api/inflows/\(id)", accessToken: accessToken, body: nil)
+    }
+
+    /// Status alone decides a write. Any `2xx` is applied (`204` is expected), `404` means the record
+    /// is gone, a `400` on an edit names its fields by key only, and everything else is left to the
+    /// caller as `.server`, which it treats as an unknown outcome.
+    private func mutate(method: String, path: String, accessToken: String, body: Data?) async throws -> MutationResult {
+        var request = URLRequest(url: baseURL.appending(path: path))
+        request.httpMethod = method
+        request.httpBody = body
+        if body != nil { request.setValue("application/json", forHTTPHeaderField: "Content-Type") }
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        request.timeoutInterval = 30
+        let (data, status) = try await send(request)
+        switch status {
+        case 200..<300: return .applied
+        case 404: return .notFound
+        case 401: throw APIError.unauthorized
+        case 400 where method == "PUT":
+            let fields = Self.validationFields(in: data)
+            throw fields.isEmpty ? APIError.updateRejected : APIError.validationFailed(fields)
         default: throw APIError.server(status)
         }
     }

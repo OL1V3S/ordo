@@ -1,0 +1,15 @@
+{
+  "currencyCode": "USD",
+  "items": [
+    {
+      "kind": "expense",
+      "recordId": 2,
+      "date": "2026-10-01",
+      "amount": "4.25",
+      "description": "Synthetic coffee",
+      "category": "Uncategorized",
+      "paycheck": null
+    }
+  ],
+  "page": { "limit": 25, "hasMore": false, "nextCursor": null }
+}

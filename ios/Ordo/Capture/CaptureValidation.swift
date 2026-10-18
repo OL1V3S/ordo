@@ -37,8 +37,24 @@ enum CaptureValidation {
         return value
     }
 
-    static func freeze(_ draft: CaptureDraft, kind: CaptureKind, key: String, createdAt: Date,
-                       language: AppLanguage, deviceLocale: Locale) -> Result<PendingSave, Failure> {
+    /// The validated, normalised values of a draft: what a create or an edit sends. Descriptions
+    /// and amounts are never printed or logged.
+    struct FrozenValues: Equatable, Sendable, CustomStringConvertible, CustomDebugStringConvertible {
+        /// Invariant two-decimal text such as `"12.50"`.
+        let amount: String
+        let descriptionText: String
+        /// Strict `yyyy-MM-dd`.
+        let date: String
+        /// Normalised category for an expense; nil for a deposit.
+        let category: String?
+
+        var description: String { "FrozenValues(redacted)" }
+        var debugDescription: String { description }
+    }
+
+    /// Applies the same rules as the server to a draft. Capture and edit both use it.
+    static func validateValues(_ draft: CaptureDraft, kind: CaptureKind, language: AppLanguage,
+                               deviceLocale: Locale) -> Result<FrozenValues, Failure> {
         var invalid = Set<CaptureField>()
 
         let description = normalizeDescription(draft.description)
@@ -54,8 +70,19 @@ enum CaptureValidation {
         }
 
         guard invalid.isEmpty, let money else { return .failure(Failure(fields: invalid)) }
-        return .success(PendingSave(schemaVersion: PendingSave.currentSchemaVersion, kind: kind, key: key,
-                                    amount: money.text, descriptionText: description, date: draft.date.isoString,
-                                    category: category, createdAt: createdAt))
+        return .success(FrozenValues(amount: money.text, descriptionText: description,
+                                     date: draft.date.isoString, category: category))
+    }
+
+    static func freeze(_ draft: CaptureDraft, kind: CaptureKind, key: String, createdAt: Date,
+                       language: AppLanguage, deviceLocale: Locale) -> Result<PendingSave, Failure> {
+        switch validateValues(draft, kind: kind, language: language, deviceLocale: deviceLocale) {
+        case .failure(let failure):
+            return .failure(failure)
+        case .success(let values):
+            return .success(PendingSave(schemaVersion: PendingSave.currentSchemaVersion, kind: kind, key: key,
+                                        amount: values.amount, descriptionText: values.descriptionText,
+                                        date: values.date, category: values.category, createdAt: createdAt))
+        }
     }
 }

@@ -4,6 +4,8 @@ import SwiftUI
 /// unreadable record (discard only). Nothing here can be edited.
 struct PendingSaveView: View {
     let model: CaptureViewModel
+    /// An edit or delete is on its way to the server: Retry waits for it. Discard stays available.
+    var writeBlocked = false
     let l10n: L10n
     @State private var confirmingDiscard = false
 
@@ -101,6 +103,7 @@ struct PendingSaveView: View {
                     Text(verbatim: l10n.string(.captureRetry)).frame(maxWidth: .infinity)
                 }
                 .buttonStyle(OrdoPrimaryButtonStyle())
+                .disabled(writeBlocked)
             }
             Button(role: .destructive) { confirmingDiscard = true } label: {
                 Text(verbatim: l10n.string(.captureDiscard)).frame(maxWidth: .infinity)
