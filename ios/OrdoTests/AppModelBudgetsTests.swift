@@ -73,8 +73,6 @@ private func queryItems(_ request: URLRequest) -> [String: String] {
         transport.requests(timelinePath).filter { queryItems($0)["limit"] == "100" && queryItems($0)["kind"] == "expense" }.count
     }
 
-    var currentMonthKey: String { BudgetMonth.current(now: Date(), timeZone: .current).key }
-
     var expense: TimelineItem { TimelineFixtures.item(.expense, id: 7, description: "Synthetic lunch", category: "Food") }
 
     func addFood() {
@@ -89,7 +87,7 @@ private func queryItems(_ request: URLRequest) -> [String: String] {
         let rig = try await Rig.signedIn()
         await rig.model.budgetsModel.loadIfNeeded()
         let limits = try #require(rig.transport.requests(limitsPath).first)
-        #expect(limits.httpMethod == "GET" && queryItems(limits) == ["monthYear": rig.currentMonthKey])
+        #expect(limits.httpMethod == "GET" && queryItems(limits) == ["monthYear": rig.model.budgetsModel.month.key])
         #expect(limits.value(forHTTPHeaderField: "Authorization") == "Bearer access-1")
         #expect(rig.spendingReads == 1)
         #expect(rig.model.budgetsModel.shownRows.count == 2)
@@ -106,7 +104,7 @@ private func queryItems(_ request: URLRequest) -> [String: String] {
         await budgets.settled()
         let post = try #require(rig.transport.requests(limitsPath).first { $0.httpMethod == "POST" })
         #expect(String(decoding: try #require(post.httpBody), as: UTF8.self)
-                == #"{"category":"food","limitAmount":75.00,"monthYear":"\#(rig.currentMonthKey)-01"}"#)
+                == #"{"category":"food","limitAmount":75.00,"monthYear":"\#(rig.model.budgetsModel.month.key)-01"}"#)
         #expect(post.value(forHTTPHeaderField: "Idempotency-Key") == nil)
         #expect(rig.transport.requests(limitsPath).filter { $0.httpMethod == "GET" }.count == 2) // one read, one re-read
         #expect(rig.transport.count("/api/home") == 2)
@@ -263,6 +261,7 @@ private func queryItems(_ request: URLRequest) -> [String: String] {
         let rig = try await Rig.signedIn()
         let budgets = rig.model.budgetsModel
         await budgets.loadIfNeeded()
+        let openingMonthKey = budgets.month.key // the model's own month, read before stepping back
         budgets.stepMonth(by: -1)
         await budgets.settled()
         rig.transport.route(limitsPath) { request in
@@ -276,7 +275,7 @@ private func queryItems(_ request: URLRequest) -> [String: String] {
         #expect(await rig.waitForState(.signedOut(.none)))
         #expect(budgets.limits == .loading && budgets.spending == .loading && budgets.shownRows.isEmpty)
         #expect(budgets.task == nil && budgets.feedback == nil && !budgets.needsRefresh && !budgets.isPending)
-        #expect(budgets.month.key == rig.currentMonthKey) // the month is never carried over
+        #expect(budgets.month.key == openingMonthKey) // the month is never carried over
 
         try await rig.manager.signIn(email: "other@example.test", password: "synthetic-password")
         #expect(await rig.waitForState(.signedIn))

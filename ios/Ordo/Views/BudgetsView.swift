@@ -30,8 +30,8 @@ struct BudgetsView: View {
                 .confirmationDialog(model.deleteTarget.map(presenter.confirmDeleteTitle) ?? "",
                                     isPresented: Binding(get: { model.deleteTarget != nil && !model.isPending },
                                                          set: { if !$0 { model.cancelDelete() } }),
-                                    titleVisibility: .visible, presenting: model.deleteTarget) { _ in
-                    Button(l10n.string(.budgetsCardDelete), role: .destructive) { model.confirmDelete() }
+                                    titleVisibility: .visible, presenting: model.deleteTarget) { row in
+                    Button(l10n.string(.budgetsCardDelete), role: .destructive) { model.confirmDelete(row) }
                     Button(l10n.string(.commonCancel), role: .cancel) { model.cancelDelete() }
                 }
                 .task {

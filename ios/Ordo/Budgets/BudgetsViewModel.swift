@@ -509,9 +509,17 @@ final class BudgetsViewModel {
         }
     }
 
-    func confirmDelete() {
-        guard let row = deleteTarget, task == nil, !mutationDisabled else { return }
+    /// Confirms the delete of the row the dialog presented. The dialog passes its own row so the
+    /// request does not depend on `deleteTarget` still being set when the button's action runs
+    /// (dismissing the dialog clears it).
+    func confirmDelete(_ row: BudgetLimitRow) {
+        guard task == nil, !mutationDisabled else { return }
         start(BudgetWrite(operation: .delete(id: row.id)))
+    }
+
+    func confirmDelete() {
+        guard let row = deleteTarget else { return }
+        confirmDelete(row)
     }
 
     private func start(_ write: BudgetWrite) {

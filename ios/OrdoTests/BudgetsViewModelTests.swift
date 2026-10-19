@@ -379,6 +379,22 @@ private let november = BudgetMonth(year: 2026, month: 11)!
         if case .loaded(let all) = rig.model.limits { #expect(all == rows) } // the server's rows, untouched
     }
 
+    @Test func confirmingThePresentedRowSendsOneDeleteEvenWhenDismissalClearedTheTarget() async {
+        let gate = Gate()
+        let rig = await Rig.loaded()
+        rig.service.setPerforms([{ _ in await gate.wait(); return .applied }])
+        rig.model.beginDelete(rig.food)
+        rig.model.cancelDelete() // the dialog's dismissal ran before the button's action
+        #expect(rig.model.deleteTarget == nil && rig.service.writes.isEmpty)
+        rig.model.confirmDelete(rig.food)
+        rig.model.confirmDelete(rig.food)
+        #expect(await waitUntil { rig.service.writes.count == 1 })
+        #expect(rig.model.isDeleting)
+        await gate.release()
+        await rig.model.settled()
+        #expect(rig.service.writes == [BudgetWrite(operation: .delete(id: rig.food.id))])
+    }
+
     @Test func cancellingTheConfirmationSendsNothing() async {
         let rig = await Rig.loaded()
         rig.model.beginDelete(rig.food)

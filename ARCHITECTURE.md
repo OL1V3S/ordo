@@ -265,7 +265,8 @@ upsert `POST /api/budgetlimits` and removes one with `DELETE /api/budgetlimits/{
 three takes an `Idempotency-Key`: the upsert is an absolute set of one value and the delete
 targets a never-reused id), and reads the month's recorded spending through the same timeline
 endpoint; the month and the limit are sent as exact strings and numbers built from integers,
-and nothing is persisted. Its financial writes are adding an expense or a deposit through the existing
+and nothing is persisted. The app's financial writes are setting or deleting a budget limit (above), adding an
+expense or a deposit through the existing
 `POST /api/expenses` and `POST /api/inflows`, each with one `Idempotency-Key` that is reused
 for every retry, and editing or deleting a record through the existing `PUT` and `DELETE` on
 `/api/expenses/{id}` and `/api/inflows/{id}`. Those four take no key: an edit is an absolute
