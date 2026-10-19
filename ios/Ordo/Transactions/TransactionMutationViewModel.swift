@@ -195,9 +195,18 @@ final class TransactionMutationViewModel {
         }
     }
 
+    /// Confirms the delete of the row the dialog presented. The dialog passes its own row so the
+    /// request does not depend on `phase` and `target` still being set when the button's action runs
+    /// (dismissing the dialog calls `cancelDelete()`, which clears both). A request that is already
+    /// submitting or uncertain, or another feature's save in flight, still refuses it.
+    func confirmDelete(_ item: TimelineItem) {
+        guard phase == .idle || phase == .confirmingDelete, !isOtherWriteInFlight() else { return }
+        start(MutationRequest(kind: item.captureKind, recordId: item.recordId, operation: .delete))
+    }
+
     func confirmDelete() {
-        guard phase == .confirmingDelete, let target, !isOtherWriteInFlight() else { return }
-        start(MutationRequest(kind: target.captureKind, recordId: target.recordId, operation: .delete))
+        guard phase == .confirmingDelete, let target else { return }
+        confirmDelete(target)
     }
 
     /// Re-sends the frozen request unchanged.

@@ -24,6 +24,13 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-19 — iPhone Transactions delete uses the row you confirmed
+
+[PR #271](https://github.com/OL1V3S/ordo/pull/271) · [Issue #270](https://github.com/OL1V3S/ordo/issues/270)
+
+- Deleting an expense or a deposit in the iPhone app now confirms the row the dialog showed, so the delete no longer depends on the order in which the dialog closes and its button runs. The same single delete request is sent after the same confirmation; a double tap or a change already in flight is still ignored.
+- Mirrors the Budgets correction from #269. Backend, API, schema, web app and required checks are unchanged; the app is still not distributed.
+
 ### 2026-10-19 — Budgets in the iPhone app
 
 [PR #269](https://github.com/OL1V3S/ordo/pull/269) · [Issue #268](https://github.com/OL1V3S/ordo/issues/268)
@@ -165,11 +172,3 @@ the permanent, complete archive.
 
 - Third of five wording PRs: the Recurring expenses page now uses plain wording in English and Mexican Spanish. "Supporting expenses" became "Matching expenses", the change buttons read "Use the new details" and "Keep saved details", "Mark as ended" is confirmed with "Yes, mark as ended", and "proposal" and "candidate" are now "possible recurring expense" or "this change".
 - Date ranges read "up to 2 days early or 1 day late" with correct singular and plural forms, ellipses are "…", and the wording guard now also bans internal words in this area and checks that the listed buttons' accessible names start with their visible text. Frontend and docs only; no API, schema or financial-semantics change.
-
-### 2026-10-12 — Plain-language wording: Transactions and import
-
-[PR #231](https://github.com/OL1V3S/ordo/pull/231) ·
-[Issue #229](https://github.com/OL1V3S/ordo/issues/229)
-
-- Second of five wording PRs: the Transactions page and the statement import now use plain, calm wording in English and Mexican Spanish. Errors reassure first and give one next step, the Transactions empty state says how to add, "(no. N)" and "MiB" are spelled out, and the import row problems read as full phrases.
-- The import copy names what you do ("Import selected", "Select all expenses that can be imported", "Can't be imported") and keeps uncertain-save wording honest. The wording guard now also bans internal words in these two areas. Frontend only; no API, schema or financial-semantics change.
