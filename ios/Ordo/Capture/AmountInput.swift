@@ -10,7 +10,9 @@ enum AmountInput {
     /// the device keyboard locale's (for example `,`). Grouping separators, signs, exponents,
     /// currency symbols, spaces inside the number and non-ASCII digits are rejected, never
     /// stripped, so `1,234` can never be misread.
-    static func parse(_ text: String, language: AppLanguage, deviceLocale: Locale) -> Money? {
+    ///
+    /// Zero is rejected unless `allowZero` is set (a budget limit may be an intentional zero).
+    static func parse(_ text: String, language: AppLanguage, deviceLocale: Locale, allowZero: Bool = false) -> Money? {
         var separators = Set<Unicode.Scalar>()
         for locale in [language.formatLocale, deviceLocale] {
             if let separator = locale.decimalSeparator, separator.unicodeScalars.count == 1,
@@ -45,6 +47,6 @@ enum AmountInput {
         var canonical = String(String.UnicodeScalarView(digits)) + "."
         canonical += String(String.UnicodeScalarView(fraction))
         if fraction.count == 0 { canonical += "00" } else if fraction.count == 1 { canonical += "0" }
-        return Money.parse(canonical)
+        return Money.parse(canonical, allowZero: allowZero)
     }
 }

@@ -7,7 +7,10 @@ adds **Add expense** and **Add deposit** from Home, using `POST /api/expenses` a
 `POST /api/inflows` with the server's `Idempotency-Key` protection. Slice 3
 ([#262](https://github.com/OL1V3S/ordo/issues/262)) adds a **Transactions** tab to browse,
 search, filter, edit and delete expenses and deposits, using `GET /api/activity/timeline` and
-`PUT`/`DELETE` on `/api/expenses/{id}` and `/api/inflows/{id}`. There is no backend, API or
+`PUT`/`DELETE` on `/api/expenses/{id}` and `/api/inflows/{id}`. Slice 4
+([#268](https://github.com/OL1V3S/ordo/issues/268)) adds a **Budgets** tab: a month's category
+limits against the recorded spending, with add, edit and delete, using `GET`, `POST` and `DELETE`
+on `/api/budgetlimits` and the existing timeline for spending. There is no backend, API or
 schema change.
 
 - iOS 18.0 or later, iPhone only. Swift 6 with strict concurrency. No third-party
@@ -112,8 +115,8 @@ shows or sends it, and the flag is reset only after the delete succeeds.
 
 ## Transactions
 
-The signed-in app is a two-tab `TabView`: **Home** and **Transactions** (Movimientos), each with
-its own navigation stack. The system tab bar is Liquid Glass on iOS 26 and later and the standard
+The signed-in app is a three-tab `TabView`: **Home**, **Transactions** (Movimientos) and
+**Budgets** (Presupuestos), each with its own navigation stack. The system tab bar is Liquid Glass on iOS 26 and later and the standard
 bar on iOS 18-25. Add expense and Add deposit stay on Home; Sign out stays in Home's toolbar.
 
 - **List.** The tab reads `GET /api/activity/timeline` (25 rows a page, newest first, the server's
@@ -165,6 +168,85 @@ bar on iOS 18-25. Add expense and Add deposit stay on Home; Sign out stays in Ho
   An uncertain change is lost if the app is killed; both operations are idempotent and the server
   list is the check. There is no new file, `UserDefaults` key or Keychain item.
 
+## Budgets
+
+The third tab, **Budgets** (Presupuestos, SF Symbol `chart.pie`), shows how recorded spending compares
+with each category's monthly limit, as the web's Plan, Budgets page does. The web groups Budgets,
+Recurring expenses and Paychecks under a Plan hub; only Budgets exists here, so it is a tab of its own
+until the others arrive. It uses the existing endpoints `GET /api/budgetlimits?monthYear=YYYY-MM`,
+`POST /api/budgetlimits` (the server upserts by owner, exact category and month),
+`DELETE /api/budgetlimits/{id}` and, for spending, `GET /api/activity/timeline`.
+
+- **Month.** The month is an exact `YYYY-MM` key (`BudgetMonth`), never a `Date`. It defaults to the
+  current month on the device calendar (Gregorian, device time zone), steps with integer arithmetic
+  between 0001-01 and 9999-12, and has a **This month** shortcut. Only the visible label ("October
+  2026", "octubre de 2026") is locale-aware. Stepping is blocked while a form is open, a change is
+  pending or a change is unconfirmed.
+- **Rows.** One row per category with its status, the used amount "of" the limit, and for a positive
+  limit with an exact comparison a progress bar and the percent used. When the server returns several
+  rows for one exact category the **last row wins**, as on the web; rows are never merged, repaired or
+  deleted. Statuses, in the web's order: Spending unavailable, Exact spending unavailable, Exact limit
+  unavailable, Zero limit (no spending), Over limit, Limit reached, Near limit, Within limit. Near limit
+  (used at or above 90% of the limit) is a UI-only state, not a Home attention state. The bar is capped
+  at 100%; the percent text is not. The percent and the 90% check use `Int128` in integer cents. A
+  limit that is not a JSON number inside the exact range (a string, a negative, more than two
+  decimals, 2^46 dollars or more) shows "Exact limit unavailable" for that row only.
+- **Recorded spending** comes from the timeline (`kind=expense`, `from` the 1st of the month, `to` the
+  last day, or today for the current month, 100 per page, paged to the end). A future month sends no
+  request and shows `0.00` used. Amounts are summed in `Int64` cents per exact category (Unicode scalar
+  equality, no trimming, case folding or aliases); a stored zero or negative amount, or a total above
+  the maximum, makes only that category "Exact spending unavailable". A repeated record id counts once.
+  Any failed or malformed page, a repeated cursor or more than 100 pages makes the whole month's spending
+  unavailable: the limits stay visible with the web's message and "Try loading spending again", and a
+  partial sum is never shown. An expense with a blank or whitespace-only category (never aliased to
+  "Uncategorized") makes every row's spending "Exact spending unavailable" for that month, with the same
+  retry, as Home's budget family does for the same data.
+- **Add and Edit.** Add chooses Food, Transport, Bills, Entertainment or Other (custom text, trimmed,
+  whitespace collapsed, lowercased, at most 100 characters; blank sends `uncategorized`; `other` is
+  rejected and never sent) and a monthly limit for the selected month. Edit changes only the limit and
+  sends the stored category verbatim, so the upsert key still matches the row. A row whose stored
+  category is blank can only be deleted. The limit is entered with the shared amount input, zero or
+  more, at most two decimals and below 2^46 dollars (70368744177663.99), so the app never saves a limit
+  that it and the web read back as unavailable. Blank, negative and more-than-two-decimals input show
+  the web's validation message on the phone. The server has the final say: `400` shows the same
+  message and unlocks the form.
+- **What the request sends.** `{"category":"food","limitAmount":12.50,"monthYear":"2026-10-01"}` and
+  nothing else: no `id`, `userId` or `user`. The body is written byte by byte with sorted keys, so a
+  retry sends identical bytes. The limit is a JSON number whose text is exactly the two-decimal
+  `Money.text`, so the server reads the same cents. `monthYear` is a date-only `YYYY-MM-01` with no time
+  and no offset; the server reads the year and month and nothing else, so it stores the intended month
+  on any device or server time zone. (The web sends device-local midnight as a UTC instant, which
+  stores the previous month east of UTC; this is reported, and the web is unchanged.)
+- **Delete** asks first, naming the category. `204` and `404` both end with the row gone.
+- **Uncertain writes.** A timeout, dropped connection, cancellation, `5xx` or any unrecognised status
+  leaves the change **unconfirmed**. As on the web, further changes are blocked until the limits are
+  read from the server again with **Refresh limits**; the form stays open with its fields editable, Save
+  disabled and Cancel enabled, and the user is told to check the saved limits first. A change that
+  succeeded but whose limits re-read failed is reported as saved or deleted, with the same gate. There
+  is no "Retry the same request" button.
+- **Why a repeat is safe without `Idempotency-Key`.** The upsert is an absolute set of one value on the
+  row keyed by owner, exact category and month (or one insert), so the same category, limit and month
+  twice leaves the same state. The delete targets a never-reused, owner-scoped id; a repeat can only
+  answer `404` for the same row, which means gone. A `401` is refused before the controller runs.
+  Residual risks: last write wins (no concurrency token), the server's `FirstOrDefaultAsync` has no
+  `OrderBy` so with duplicate rows a repeat may update a different duplicate, and uniqueness is not
+  enforced, so two overlapping inserts could create a duplicate. A duplicate is shown per the last-row
+  rule and never repaired.
+- **No optimistic money.** Nothing is changed locally. After a known change the limits are re-read and
+  Home is refreshed (its budget attention depends on them). A capture save, or a Transactions edit or
+  delete, re-reads the month's spending once Budgets has been opened. Pull to refresh re-reads limits and
+  spending; the spending is also re-read when the device day changes.
+- **One write at a time** across the app: a budget save or delete disables Add expense, Add deposit
+  and Transactions edits, and the reverse. A double tap cannot send a second request.
+- **Session.** A `401` refreshes once through the single-flight refresher and re-sends the same bytes;
+  a second `401` or `session_invalid` signs the user out and drops any late response.
+- **Nothing persisted.** Limits, spending, the form and the gate live in memory only. The owner id the
+  server returns in each limit row is never decoded, shown, stored, logged or sent. Amounts, categories,
+  custom text and record ids are never logged, and server text is never shown.
+- **Out of scope:** pacing, forecasts, rollover, non-monthly budgets, a total across categories,
+  duplicate cleanup, changing a row's category (delete and add instead, as on the web), an offline cache
+  or queue, and the other Plan pages.
+
 ## Look and theme
 
 The app uses Ordo's web look through one theme layer (`ios/Ordo/Theme`), while keeping iOS
@@ -195,7 +277,7 @@ Reduce Motion and Increase Contrast.
 - Exactly one refresh runs at a time (reusing a rotated credential
   ends the session). A refresh from an old session cannot affect a newer one.
 - The app logs only static messages and status codes, never tokens, emails, bodies, amounts,
-  descriptions, search text, record ids, cursors or idempotency keys. Error bodies are read for
+  descriptions, categories, search text, record ids, cursors or idempotency keys. Error bodies are read for
   their `code` (and, for a create or edit `400`, the field names) only; server text is never shown.
 - The URL session is ephemeral (no disk cache or cookies).
 

@@ -1,0 +1,26 @@
+[
+  {
+    "id": 11,
+    "category": "food",
+    "limitAmount": 200.00,
+    "monthYear": "2026-10-01T00:00:00Z",
+    "userId": "synthetic-owner-id",
+    "user": null
+  },
+  {
+    "id": 12,
+    "category": "transport",
+    "limitAmount": 50.5,
+    "monthYear": "2026-10-01T00:00:00Z",
+    "userId": "synthetic-owner-id",
+    "user": null
+  },
+  {
+    "id": 13,
+    "category": "bills",
+    "limitAmount": 0,
+    "monthYear": "2026-10-01T00:00:00Z",
+    "userId": "synthetic-owner-id",
+    "user": null
+  }
+]

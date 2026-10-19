@@ -9,6 +9,11 @@ enum CategoryLabel {
         "entertainment": .categoryEntertainment, "other": .categoryOther, "uncategorized": .categoryUncategorized,
     ]
 
+    /// The catalog key of a known stored category (trimmed, case-insensitive); nil for a custom one.
+    static func knownKey(for category: String) -> L10nKey? {
+        keys[category.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()]
+    }
+
     static func label(for category: String?, l10n: L10n) -> String {
         guard let category else { return l10n.string(.categoryUncategorized) }
         let key = category.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()

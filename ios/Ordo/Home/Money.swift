@@ -29,6 +29,14 @@ struct Money: Hashable, Sendable {
         return Money(text: text, cents: cents)
     }
 
+    /// The amount for exact integer cents, or nil when the cents are negative or above
+    /// `maximumCents`. Zero is allowed. The text is built from the integers, never from a `Double`.
+    static func fromCents(_ cents: Int64) -> Money? {
+        guard cents >= 0, cents <= maximumCents else { return nil }
+        let fraction = cents % 100
+        return Money(text: "\(cents / 100).\(fraction < 10 ? "0" : "")\(fraction)", cents: cents)
+    }
+
     /// Exact decimal value for formatting (parsed with the POSIX locale).
     var decimal: Decimal {
         Decimal(string: text, locale: Locale(identifier: "en_US_POSIX")) ?? 0

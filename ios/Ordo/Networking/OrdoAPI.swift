@@ -9,6 +9,9 @@ struct DeviceSessionResponse: Sendable {
 /// `GET /api/activity/timeline`, the two idempotent creates `POST /api/expenses` and
 /// `POST /api/inflows`, and the edits and deletes `PUT` and `DELETE` on `/api/expenses/{id}` and
 /// `/api/inflows/{id}`. The edits and deletes take no `Idempotency-Key`; see `MutationRequest`.
+/// The Budgets screen adds `GET /api/budgetlimits?monthYear=YYYY-MM`, the upsert
+/// `POST /api/budgetlimits` and `DELETE /api/budgetlimits/{id}`; those take no `Idempotency-Key`
+/// either (see `BudgetsViewModel`).
 struct OrdoAPI: Sendable {
     let baseURL: URL
     let transport: HTTPTransport
@@ -178,6 +181,50 @@ struct OrdoAPI: Sendable {
             throw fields.isEmpty ? APIError.updateRejected : APIError.validationFailed(fields)
         default: throw APIError.server(status)
         }
+    }
+
+    // MARK: Budget limits
+
+    /// Returns the raw body; validation happens in `BudgetLimitsValidation`. The month is the exact
+    /// `YYYY-MM` key and the owner is never a parameter (it comes from the token).
+    func budgetLimits(accessToken: String, month: BudgetMonth) async throws -> Data {
+        var components = URLComponents(url: baseURL.appending(path: "api/budgetlimits"), resolvingAgainstBaseURL: false)
+        components?.percentEncodedQueryItems = [URLQueryItem(name: "monthYear", value: month.key)]
+        guard let url = components?.url else { throw APIError.invalidResponse }
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        request.timeoutInterval = 30
+        let (data, status) = try await send(request)
+        switch status {
+        case 200: return data
+        case 401: throw APIError.unauthorized
+        default: throw APIError.server(status)
+        }
+    }
+
+    /// The server upserts by owner, exact category and month. The body is built byte by byte (see
+    /// `BudgetUpsert.requestBody`), so identical arguments always produce identical bytes.
+    ///
+    /// The upsert has its own status switch and does not use `mutate`: any `2xx` is applied, `400`
+    /// is a validation refusal (its body is never read), `401` is unauthorised, and everything else
+    /// (a `404` included) is left to the caller as `.server`, an unknown outcome.
+    func upsertBudgetLimit(accessToken: String, _ upsert: BudgetUpsert) async throws -> MutationResult {
+        let headers = ["Authorization": "Bearer \(accessToken)"]
+        let (_, status) = try await perform(post: "api/budgetlimits", body: try upsert.requestBody(), headers: headers)
+        switch status {
+        case 200..<300: return .applied
+        case 400: throw APIError.budgetRejected
+        case 401: throw APIError.unauthorized
+        default: throw APIError.server(status)
+        }
+    }
+
+    /// `2xx` means deleted and `404` means the row is gone (missing, or another user's). Any other
+    /// status is an unknown outcome.
+    func deleteBudgetLimit(accessToken: String, id: Int) async throws -> MutationResult {
+        try await mutate(method: "DELETE", path: "api/budgetlimits/\(id)", accessToken: accessToken, body: nil)
     }
 
     // MARK: Creates
