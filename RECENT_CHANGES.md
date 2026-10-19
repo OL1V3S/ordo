@@ -24,6 +24,13 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-19 — Budgets in the iPhone app
+
+[PR #269](https://github.com/OL1V3S/ordo/pull/269) · [Issue #268](https://github.com/OL1V3S/ordo/issues/268)
+
+- The iPhone app has a Budgets tab: pick a month, see each category's limit against the spending recorded for it (a status, the used amount, and a progress bar and percent), and add a category budget, change a limit or delete one, in English and Spanish. A delete asks first and names the category.
+- A budget change that times out or loses its connection is shown as unconfirmed, and further changes wait until the limits are read again from the server; after every change the limits and Home are re-read, so no amount is changed on the phone first. Backend, API, schema, web app and required checks are unchanged; the app is still not distributed.
+
 ### 2026-10-17 — Transactions in the iPhone app
 
 [PR #263](https://github.com/OL1V3S/ordo/pull/263) · [Issue #262](https://github.com/OL1V3S/ordo/issues/262)
@@ -166,11 +173,3 @@ the permanent, complete archive.
 
 - Second of five wording PRs: the Transactions page and the statement import now use plain, calm wording in English and Mexican Spanish. Errors reassure first and give one next step, the Transactions empty state says how to add, "(no. N)" and "MiB" are spelled out, and the import row problems read as full phrases.
 - The import copy names what you do ("Import selected", "Select all expenses that can be imported", "Can't be imported") and keeps uncertain-save wording honest. The wording guard now also bans internal words in these two areas. Frontend only; no API, schema or financial-semantics change.
-
-### 2026-10-12 — Plain-language wording: core terms
-
-[PR #230](https://github.com/OL1V3S/ordo/pull/230) ·
-[Issue #229](https://github.com/OL1V3S/ordo/issues/229)
-
-- First of five wording PRs: English and Mexican Spanish now use one approved name per concept in every namespace. Examples: Transactions/Movimientos and Reports/Reportes for the pages, Deposit/Depósito for saved inflows (including transfers and refunds; not income), Recurring expense/Gasto recurrente, pay schedule/calendario de nómina, "Esperado" for expected money, and Quincenal for semimonthly pay.
-- Fallback labels now read "Exact amount unavailable" / "Date unavailable" and are localized by the caller. Added the approved glossary and style guide to `docs/localization.md`, the new Reports label sentence in the financial-invariants doc, and a wording guard test. Frontend and docs only; no API, schema or financial-semantics change.
