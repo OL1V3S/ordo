@@ -28,6 +28,8 @@ enum APIError: Error, Equatable, Sendable {
     /// `400` on an edit with no recognised field key (the id mismatch, or `request`). The earlier
     /// attempt may still have been applied, so the caller decides what to say.
     case updateRejected
+    /// `400` on a budget limit upsert. The body is plain text or a ProblemDetails and is never read.
+    case budgetRejected
 }
 
 /// A field named by a create or edit validation error. Server messages are never read.
