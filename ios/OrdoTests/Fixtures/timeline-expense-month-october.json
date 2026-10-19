@@ -1,0 +1,33 @@
+{
+  "currencyCode": "USD",
+  "items": [
+    {
+      "kind": "expense",
+      "recordId": 31,
+      "date": "2026-10-17",
+      "amount": "12.50",
+      "description": "Synthetic lunch",
+      "category": "food",
+      "paycheck": null
+    },
+    {
+      "kind": "expense",
+      "recordId": 32,
+      "date": "2026-10-09",
+      "amount": "7.50",
+      "description": "Synthetic snack",
+      "category": "food",
+      "paycheck": null
+    },
+    {
+      "kind": "expense",
+      "recordId": 33,
+      "date": "2026-10-02",
+      "amount": "3.00",
+      "description": "Synthetic bus fare",
+      "category": "transport",
+      "paycheck": null
+    }
+  ],
+  "page": { "limit": 100, "hasMore": false, "nextCursor": null }
+}
