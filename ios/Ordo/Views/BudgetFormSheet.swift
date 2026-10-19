@@ -92,17 +92,19 @@ struct BudgetFormSheet: View {
                 .themedToneRow(.danger)
             }
 
-            if let feedback = model.feedback, model.needsRefresh {
+            if let feedback = model.feedback {
                 // The change is unconfirmed: read the limits again, check them, then save again.
                 Section {
                     InlineStatusView(systemImage: BudgetsPresenter.feedbackIcon(feedback),
                                      message: l10n.string(BudgetsPresenter.feedbackKey(feedback)),
                                      tone: BudgetsPresenter.feedbackTone(feedback))
-                    Button { Task { await model.refreshLimits() } } label: {
-                        Text(verbatim: l10n.string(.budgetsSectionRefresh)).frame(maxWidth: .infinity)
+                    if model.needsRefresh {
+                        Button { Task { await model.refreshLimits() } } label: {
+                            Text(verbatim: l10n.string(.budgetsSectionRefresh)).frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(OrdoSecondaryButtonStyle())
+                        .disabled(!model.canRefreshLimits)
                     }
-                    .buttonStyle(OrdoSecondaryButtonStyle())
-                    .disabled(!model.canRefreshLimits)
                 }
                 .themedToneRow(BudgetsPresenter.feedbackTone(feedback))
             }

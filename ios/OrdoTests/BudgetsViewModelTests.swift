@@ -366,6 +366,19 @@ private let november = BudgetMonth(year: 2026, month: 11)!
         if case .loaded(let all) = rig.model.limits { #expect(all.count == 2) } // nothing was merged locally
     }
 
+    @Test func anEditTargetsTheShownRowOfADuplicatedCategoryAndNothingIsMerged() async throws {
+        let rows = [BudgetFixtures.row(id: 1, category: "food", limit: "10.00"), BudgetFixtures.row(id: 2, category: "food", limit: "20.00")]
+        let rig = await Rig.loaded(ScriptedBudgetsService(limits: [{ _ in rows }]))
+        let shown = try #require(rig.model.shownRows.first)
+        rig.model.beginEdit(shown)
+        #expect(rig.model.task == .edit(shown) && rig.model.draft.amountText == "20.00") // the last row's limit
+        rig.model.edit { $0.amountText = "30" }
+        rig.model.save()
+        await rig.model.settled()
+        #expect(rig.service.writes == [BudgetWrite(operation: .upsert(BudgetUpsert(category: "food", limit: Money.parse("30.00")!, month: october)))])
+        if case .loaded(let all) = rig.model.limits { #expect(all == rows) } // the server's rows, untouched
+    }
+
     @Test func cancellingTheConfirmationSendsNothing() async {
         let rig = await Rig.loaded()
         rig.model.beginDelete(rig.food)
