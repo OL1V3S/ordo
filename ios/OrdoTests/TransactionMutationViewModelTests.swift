@@ -165,6 +165,22 @@ private final class RefreshCounts: @unchecked Sendable {
         #expect(rig.service.performs.count == 1)
     }
 
+    @Test func confirmingThePresentedItemSendsOneDeleteEvenWhenDismissalClearedTheTarget() async {
+        let gate = Gate()
+        let rig = Rig([{ _ in await gate.wait(); return .applied }])
+        rig.model.beginDelete(rig.expense)
+        rig.model.cancelDelete() // the dialog's dismissal ran before the button's action
+        #expect(rig.model.phase == .idle && rig.model.target == nil && rig.service.performs.isEmpty)
+        rig.model.confirmDelete(rig.expense)
+        rig.model.confirmDelete(rig.expense) // a second tap, or a stale dialog, is ignored
+        #expect(rig.model.phase == .submitting)
+        #expect(await waitUntil { rig.service.performs.count == 1 })
+        await gate.release()
+        await rig.model.settled()
+        #expect(rig.service.performs == [MutationRequest(kind: .expense, recordId: 7, operation: .delete)])
+        #expect(rig.model.notice == .deleted(.expense))
+    }
+
     @Test func nothingElseCanStartWhileARequestIsInFlight() async {
         let gate = Gate()
         let rig = Rig([{ _ in await gate.wait(); return .applied }])

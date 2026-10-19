@@ -36,7 +36,7 @@ struct TransactionsView: View {
                                     isPresented: Binding(get: { mutation.phase == .confirmingDelete },
                                                          set: { if !$0 { mutation.cancelDelete() } }),
                                     titleVisibility: .visible, presenting: mutation.target) { item in
-                    Button(presenter.deleteConfirm(item.captureKind), role: .destructive) { mutation.confirmDelete() }
+                    Button(presenter.deleteConfirm(item.captureKind), role: .destructive) { mutation.confirmDelete(item) }
                     Button(l10n.string(.commonCancel), role: .cancel) { mutation.cancelDelete() }
                 } message: { item in
                     if let message = presenter.deleteMessage(item) { Text(verbatim: message) }
