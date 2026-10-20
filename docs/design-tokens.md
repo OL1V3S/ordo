@@ -16,7 +16,8 @@ Shared components built on these tokens are documented in [ui-kit.md](ui-kit.md)
    colors (`danger`, `warning`, `success`, `info`, each with `-soft`), `--chart-*`,
    `--shadow-overlay`.
 3. **Component tokens** (`tokens.css`, `themes.css`): `--card-*`, `--control-*`,
-   `--focus-ring-*`, `--size-touch-target`, `--table-cell-*`, ...
+   `--focus-ring-*`, `--size-touch-target`, `--table-cell-*`, `--overlay-radius`,
+   `--overlay-shadow`, `--overlay-scrim` (modal backdrop), ...
 
 New and migrated CSS uses the semantic names. Legacy aliases keep unmigrated rules
 working: `--color-bg` (canvas), `-bg-accent` (accent-subtle), `-surface-subtle`

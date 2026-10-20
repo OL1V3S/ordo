@@ -15,6 +15,7 @@ const AREAS = [
 function Dialog({ onClosed }) {
   const { t } = useTranslation(["auth", "navigation"]);
   const dialogRef = useRef(null);
+  const titleRef = useRef(null);
   const titleId = useId();
 
   useEffect(() => {
@@ -22,6 +23,8 @@ function Dialog({ onClosed }) {
     if (!dialog || dialog.open) return;
     if (typeof dialog.showModal === "function") dialog.showModal();
     else dialog.setAttribute("open", "");
+    // showModal focuses the Close button, which opens a phone-size dialog scrolled to the bottom.
+    titleRef.current?.focus();
   }, []);
 
   function close() {
@@ -39,9 +42,9 @@ function Dialog({ onClosed }) {
       onClick={(event) => { if (event.target === event.currentTarget) close(); }}
     >
       <div className="whats-ordo-dialog__body">
-        <h2 id={titleId} className="whats-ordo-dialog__title">{t("auth:whatIsOrdo.title")}</h2>
+        <h2 ref={titleRef} id={titleId} tabIndex={-1} className="whats-ordo-dialog__title">{t("auth:whatIsOrdo.title")}</h2>
         <p className="whats-ordo-dialog__intro">{t("auth:whatIsOrdo.intro")}</p>
-        <ul className="whats-ordo-dialog__list">
+        <ul role="list" className="whats-ordo-dialog__list">
           {AREAS.map(({ nav, detail }) => (
             <li key={nav}>
               <span className="whats-ordo-dialog__area">{t(`navigation:destinations.${nav}.label`)}</span>

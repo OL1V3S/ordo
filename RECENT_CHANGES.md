@@ -26,7 +26,7 @@ the permanent, complete archive.
 
 ### 2026-10-20 — iPhone app tabs, sign-in "What is Ordo?", password rules
 
-[Issue #285](https://github.com/OL1V3S/ordo/issues/285)
+[PR #286](https://github.com/OL1V3S/ordo/pull/286) · [PR #287](https://github.com/OL1V3S/ordo/pull/287) · [Issue #285](https://github.com/OL1V3S/ordo/issues/285)
 
 - The iPhone app now has five tabs: Home, Transactions, Plan (Budgets, Recurring expenses and Paychecks behind a switcher), Reports and Settings. Reports and Settings no longer open from Home.
 - Sign-in is centred and has a "What is Ordo?" sheet. Create account lists the password rules one per line, and Forgot password no longer clips its heading.

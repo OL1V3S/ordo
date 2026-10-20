@@ -605,7 +605,11 @@ describe('password rules and What is Ordo? dialog', () => {
     const dialog = screen.getByRole('dialog', { name: 'What is Ordo?' })
     expect(dialog).toHaveAttribute('aria-labelledby')
     const inside = within(dialog)
-    expect(inside.getByRole('heading', { name: 'What is Ordo?', level: 2 })).toBeVisible()
+    const heading = inside.getByRole('heading', { name: 'What is Ordo?', level: 2 })
+    expect(heading).toBeVisible()
+    expect(heading).toHaveAttribute('tabindex', '-1')
+    expect(heading).toHaveFocus()
+    expect(inside.getByRole('list')).toHaveAttribute('role', 'list')
     expect(inside.getByText(/helps you see where your money goes/)).toBeVisible()
     expect(inside.getAllByRole('listitem').map((item) => item.firstChild.textContent)).toEqual([
       'Home', 'Transactions', 'Budgets', 'Recurring expenses', 'Paychecks', 'Reports',
