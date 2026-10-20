@@ -171,4 +171,3 @@ the permanent, complete archive.
 
 - Fourth of five wording PRs: the Paychecks page now uses plain wording in English and Mexican Spanish. Saved schedules are "pay schedules" (Spanish "calendarios de nómina"), the date fields read "Starting pay date" and "First pay day", and the leftover words "candidate", "evidence", "anchor" and "(s)" are gone. The amount error now says "Enter an amount above zero with up to two decimals" on Paychecks and Transactions.
 - Choosing the Quincenal (twice a month) option now shows a short hint: two pay days a month, at least 7 days apart. The wording guard now also covers this page. Frontend and docs only; no API, schema or financial-semantics change.
-
