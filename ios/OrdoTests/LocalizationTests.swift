@@ -24,8 +24,12 @@ import Testing
             #expect(!text.lowercased().contains("usted"), "usted in \(key.rawValue)")
             #expect(!text.contains("..."), "three dots in \(key.rawValue)")
             // "pago" is only acceptable as part of "pago de nómina".
-            let stripped = text.lowercased().replacingOccurrences(of: "pagos de nómina", with: "")
+            var stripped = text.lowercased().replacingOccurrences(of: "pagos de nómina", with: "")
                 .replacingOccurrences(of: "pago de nómina", with: "")
+            // Documented exception (docs/localization.md): "pagos de deudas" in this key only.
+            if key.rawValue == "analytics.summary.about.spending" {
+                stripped = stripped.replacingOccurrences(of: "pagos de deudas", with: "")
+            }
             #expect(!stripped.contains("pago"), "bare pago in \(key.rawValue)")
         }
     }

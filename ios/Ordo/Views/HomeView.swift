@@ -3,6 +3,7 @@ import SwiftUI
 struct HomeView: View {
     let model: HomeViewModel
     let capture: CaptureViewModel
+    let reports: ReportsViewModel
     /// An edit or delete is on its way to the server: one write at a time.
     let writeBlocked: Bool
     let l10n: L10n
@@ -23,6 +24,13 @@ struct HomeView: View {
                 }
                 .navigationTitle(l10n.string(.homePageTitle))
                 .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        NavigationLink {
+                            ReportsView(model: reports, l10n: l10n)
+                        } label: {
+                            Label(l10n.string(.navigationDestinationsInsights), systemImage: "chart.bar.xaxis")
+                        }
+                    }
                     ToolbarItem(placement: .topBarTrailing) {
                         Button(l10n.string(.commonSignOut)) { confirmingSignOut = true }
                     }

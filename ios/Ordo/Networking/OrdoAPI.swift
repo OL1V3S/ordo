@@ -206,6 +206,26 @@ struct OrdoAPI: Sendable {
         }
     }
 
+    /// The cash-flow report for one month. Returns the raw body; validation happens in
+    /// `CashFlowValidation`. Both query values are exact strings and the owner comes from the token.
+    func cashFlow(accessToken: String, month: BudgetMonth, throughDate: CalendarDate) async throws -> Data {
+        var components = URLComponents(url: baseURL.appending(path: "api/analytics/cash-flow"), resolvingAgainstBaseURL: false)
+        components?.percentEncodedQueryItems = [URLQueryItem(name: "month", value: month.key),
+                                                URLQueryItem(name: "throughDate", value: throughDate.isoString)]
+        guard let url = components?.url else { throw APIError.invalidResponse }
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        request.timeoutInterval = 30
+        let (data, status) = try await send(request)
+        switch status {
+        case 200: return data
+        case 401: throw APIError.unauthorized
+        default: throw APIError.server(status)
+        }
+    }
+
     /// The server upserts by owner, exact category and month. The body is built byte by byte (see
     /// `BudgetUpsert.requestBody`), so identical arguments always produce identical bytes.
     ///

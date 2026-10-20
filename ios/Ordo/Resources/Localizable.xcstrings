@@ -18,6 +18,1553 @@
         }
       }
     },
+    "analytics.cashFlow.errors.loadFailed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "We couldn’t load deposits and spending. Try again."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No pudimos cargar los depósitos y gastos. Inténtalo de nuevo."
+          }
+        }
+      }
+    },
+    "analytics.cashFlow.loading": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Loading deposits and spending…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cargando depósitos y gastos…"
+          }
+        }
+      }
+    },
+    "analytics.cashFlow.regionLabel": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deposits and spending"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Depósitos y gastos"
+          }
+        }
+      }
+    },
+    "analytics.cashFlow.retry": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Try loading deposits and spending again"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Intentar cargar los depósitos y gastos de nuevo"
+          }
+        }
+      }
+    },
+    "analytics.categories.empty": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No spending recorded"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No hay gastos registrados"
+          }
+        }
+      }
+    },
+    "analytics.categories.heading": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Where it went"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dónde se gastó"
+          }
+        }
+      }
+    },
+    "analytics.categories.kicker": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ranked by amount"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ordenado por monto"
+          }
+        }
+      }
+    },
+    "analytics.categories.notApplicable": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not applicable"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No aplica"
+          }
+        }
+      }
+    },
+    "analytics.chart.datasets.other": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Other deposits"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Otros depósitos"
+          }
+        }
+      }
+    },
+    "analytics.chart.datasets.paychecks": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confirmed paychecks"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pagos de nómina confirmados"
+          }
+        }
+      }
+    },
+    "analytics.chart.datasets.spent": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spent"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gastado"
+          }
+        }
+      }
+    },
+    "analytics.chart.heading": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deposits and spending over time"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Depósitos y gastos a lo largo del tiempo"
+          }
+        }
+      }
+    },
+    "analytics.chart.kickerFromFloor_one": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ calendar month from %2$@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ mes calendario desde %2$@"
+          }
+        }
+      }
+    },
+    "analytics.chart.kickerFromFloor_other": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ calendar months from %2$@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ meses calendario desde %2$@"
+          }
+        }
+      }
+    },
+    "analytics.chart.kickerSixMonths": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Six calendar months"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seis meses calendario"
+          }
+        }
+      }
+    },
+    "analytics.chart.legendLabel": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chart legend"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leyenda del gráfico"
+          }
+        }
+      }
+    },
+    "analytics.chart.monthToDateNote": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "So far: this month up to today"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A la fecha: este mes hasta hoy"
+          }
+        }
+      }
+    },
+    "analytics.chart.monthToDateTick": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "So far"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A la fecha"
+          }
+        }
+      }
+    },
+    "analytics.chart.table.caption": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Monthly deposits and spending in US dollars"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Depósitos y gastos por mes, en dólares estadounidenses"
+          }
+        }
+      }
+    },
+    "analytics.chart.table.cashIn": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deposits"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Depósitos"
+          }
+        }
+      }
+    },
+    "analytics.chart.table.month": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Month"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mes"
+          }
+        }
+      }
+    },
+    "analytics.chart.table.net": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deposits minus spending"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Depósitos menos gastos"
+          }
+        }
+      }
+    },
+    "analytics.chart.table.note": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Period note"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nota del periodo"
+          }
+        }
+      }
+    },
+    "analytics.chart.table.other": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Other deposits"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Otros depósitos"
+          }
+        }
+      }
+    },
+    "analytics.chart.table.paychecks": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confirmed paychecks"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pagos de nómina confirmados"
+          }
+        }
+      }
+    },
+    "analytics.chart.table.spent": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spent"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gastado"
+          }
+        }
+      }
+    },
+    "analytics.chart.table.summary": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "View chart data"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ver datos del gráfico"
+          }
+        }
+      }
+    },
+    "analytics.format.notApplicable": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not applicable"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No aplica"
+          }
+        }
+      }
+    },
+    "analytics.labels.date": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ %2$@, %3$@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%2$@ de %1$@ de %3$@"
+          }
+        }
+      }
+    },
+    "analytics.labels.month": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ %2$@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ de %2$@"
+          }
+        }
+      }
+    },
+    "analytics.months.long.01": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "January"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "enero"
+          }
+        }
+      }
+    },
+    "analytics.months.long.02": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "February"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "febrero"
+          }
+        }
+      }
+    },
+    "analytics.months.long.03": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "March"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "marzo"
+          }
+        }
+      }
+    },
+    "analytics.months.long.04": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "April"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "abril"
+          }
+        }
+      }
+    },
+    "analytics.months.long.05": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "May"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "mayo"
+          }
+        }
+      }
+    },
+    "analytics.months.long.06": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "June"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "junio"
+          }
+        }
+      }
+    },
+    "analytics.months.long.07": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "July"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "julio"
+          }
+        }
+      }
+    },
+    "analytics.months.long.08": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "August"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "agosto"
+          }
+        }
+      }
+    },
+    "analytics.months.long.09": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "September"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "septiembre"
+          }
+        }
+      }
+    },
+    "analytics.months.long.10": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "October"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "octubre"
+          }
+        }
+      }
+    },
+    "analytics.months.long.11": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "November"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "noviembre"
+          }
+        }
+      }
+    },
+    "analytics.months.long.12": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "December"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "diciembre"
+          }
+        }
+      }
+    },
+    "analytics.months.short.01": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jan"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ene"
+          }
+        }
+      }
+    },
+    "analytics.months.short.02": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feb"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "feb"
+          }
+        }
+      }
+    },
+    "analytics.months.short.03": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mar"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "mar"
+          }
+        }
+      }
+    },
+    "analytics.months.short.04": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apr"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "abr"
+          }
+        }
+      }
+    },
+    "analytics.months.short.05": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "May"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "may"
+          }
+        }
+      }
+    },
+    "analytics.months.short.06": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jun"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "jun"
+          }
+        }
+      }
+    },
+    "analytics.months.short.07": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jul"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "jul"
+          }
+        }
+      }
+    },
+    "analytics.months.short.08": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aug"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ago"
+          }
+        }
+      }
+    },
+    "analytics.months.short.09": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sep"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "sep"
+          }
+        }
+      }
+    },
+    "analytics.months.short.10": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oct"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "oct"
+          }
+        }
+      }
+    },
+    "analytics.months.short.11": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nov"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "nov"
+          }
+        }
+      }
+    },
+    "analytics.months.short.12": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dec"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "dic"
+          }
+        }
+      }
+    },
+    "analytics.page.currentMonth": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This month"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este mes"
+          }
+        }
+      }
+    },
+    "analytics.page.description": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "See your deposits and spending, month by month."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mira tus depósitos y gastos, mes por mes."
+          }
+        }
+      }
+    },
+    "analytics.page.earlierMonth": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Earlier month"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mes anterior"
+          }
+        }
+      }
+    },
+    "analytics.page.laterMonth": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Later month"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mes siguiente"
+          }
+        }
+      }
+    },
+    "analytics.page.month": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Month"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mes"
+          }
+        }
+      }
+    },
+    "analytics.page.refresh": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refresh deposits and spending"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Actualizar depósitos y gastos"
+          }
+        }
+      }
+    },
+    "analytics.page.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reports"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reportes"
+          }
+        }
+      }
+    },
+    "analytics.periodNotes.noCashIn": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No deposits recorded"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No hay depósitos registrados"
+          }
+        }
+      }
+    },
+    "analytics.periodNotes.noSpending": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No spending recorded"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No hay gastos registrados"
+          }
+        }
+      }
+    },
+    "analytics.periodNotes.through": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Through %1$@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hasta el %1$@"
+          }
+        }
+      }
+    },
+    "analytics.summary.about.composition": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confirmed paychecks are deposits linked to one of your pay schedules, including active, paused, and ended ones. Other deposits are all the rest and can include unlinked paychecks, refunds, transfers, and reimbursements. Both count toward Deposits; a deposit isn’t counted as income."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los pagos de nómina confirmados son depósitos vinculados a uno de tus calendarios de nómina, incluidos los activos, en pausa y finalizados. Otros depósitos son todos los demás y pueden incluir pagos de nómina sin vincular, devoluciones, transferencias y reembolsos. Ambos cuentan en Depósitos; un depósito no se cuenta como ingreso."
+          }
+        }
+      }
+    },
+    "analytics.summary.about.coverage": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "These figures come from the transactions you saved and may not include all account activity. Deposits minus spending describes this period; it isn’t an account balance, savings, or money available to spend."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Estas cifras vienen de los movimientos que guardaste y pueden no incluir toda la actividad de la cuenta. Depósitos menos gastos describe este periodo; no es un saldo de la cuenta, ahorros ni dinero disponible para gastar."
+          }
+        }
+      }
+    },
+    "analytics.summary.about.history": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Amounts and dates reflect the transactions you have saved now. Editing or deleting a transaction can change past figures. Confirming a possible paycheck changes the deposits breakdown, but not total deposits or deposits minus spending."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los montos y las fechas reflejan los movimientos que tienes guardados ahora. Editar o eliminar un movimiento puede cambiar cifras anteriores. Confirmar un posible pago de nómina cambia el desglose de los depósitos, pero no el total de depósitos ni depósitos menos gastos."
+          }
+        }
+      }
+    },
+    "analytics.summary.about.rounding": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Linked deposits you edit stay linked and use their current date and amount. Percentages are rounded to the nearest tenth, with halves rounded up, so rounded shares may not add up to 100.0%."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los depósitos vinculados que edites siguen vinculados y usan su fecha y monto actuales. Los porcentajes se redondean a la décima más cercana (las mitades hacia arriba), así que los porcentajes redondeados pueden no sumar 100.0%."
+          }
+        }
+      }
+    },
+    "analytics.summary.about.spending": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spent includes all the money you recorded going out, such as purchases, transfers, debt payments, and money put into investments. Refunds count as deposits and don’t reduce the spending in their original category. Budgets, expected paychecks, expected recurring expenses, and unsaved import previews aren’t included."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gastado incluye todo el dinero que registraste como salida, como compras, transferencias, pagos de deudas y dinero que pasaste a inversiones. Las devoluciones cuentan como depósitos y no reducen el gasto de su categoría original. No se incluyen los presupuestos, los pagos de nómina esperados, los gastos recurrentes esperados ni las vistas previas de importación sin guardar."
+          }
+        }
+      }
+    },
+    "analytics.summary.about.summary": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "About these figures"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Acerca de estas cifras"
+          }
+        }
+      }
+    },
+    "analytics.summary.basis": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Based on your recorded transactions."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Basado en tus movimientos registrados."
+          }
+        }
+      }
+    },
+    "analytics.summary.breakdownLabel": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deposits breakdown"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desglose de los depósitos"
+          }
+        }
+      }
+    },
+    "analytics.summary.cashIn": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deposits"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Depósitos"
+          }
+        }
+      }
+    },
+    "analytics.summary.confirmedPaychecks": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confirmed paychecks"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pagos de nómina confirmados"
+          }
+        }
+      }
+    },
+    "analytics.summary.facts.cashInSpent": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spent as a share of deposits"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gastado como porcentaje de los depósitos"
+          }
+        }
+      }
+    },
+    "analytics.summary.facts.confirmedShare": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confirmed paychecks share"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proporción de pagos de nómina confirmados"
+          }
+        }
+      }
+    },
+    "analytics.summary.facts.edited": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Linked deposits edited after linking"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Depósitos vinculados editados después de vincularlos"
+          }
+        }
+      }
+    },
+    "analytics.summary.facts.expenses": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recorded expenses"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gastos registrados"
+          }
+        }
+      }
+    },
+    "analytics.summary.facts.inflows": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deposits recorded"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Depósitos registrados"
+          }
+        }
+      }
+    },
+    "analytics.summary.facts.inflowsValue": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ (%2$@ linked to a pay schedule, %3$@ other)"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ (vinculados a un calendario de nómina: %2$@, otros: %3$@)"
+          }
+        }
+      }
+    },
+    "analytics.summary.facts.notApplicable": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not applicable: no deposits recorded"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No aplica: no hay depósitos registrados"
+          }
+        }
+      }
+    },
+    "analytics.summary.facts.otherShare": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Other deposits share"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proporción de otros depósitos"
+          }
+        }
+      }
+    },
+    "analytics.summary.facts.profiles": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pay schedules with linked deposits"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Calendarios de nómina con depósitos vinculados"
+          }
+        }
+      }
+    },
+    "analytics.summary.heading": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deposits and spending you recorded"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Depósitos y gastos que registraste"
+          }
+        }
+      }
+    },
+    "analytics.summary.netHeading": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deposits minus spending"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Depósitos menos gastos"
+          }
+        }
+      }
+    },
+    "analytics.summary.netNote": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Total deposits minus total spent"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Total de depósitos menos total gastado"
+          }
+        }
+      }
+    },
+    "analytics.summary.noCashIn": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No deposits recorded"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No hay depósitos registrados"
+          }
+        }
+      }
+    },
+    "analytics.summary.noSpending": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No spending recorded"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No hay gastos registrados"
+          }
+        }
+      }
+    },
+    "analytics.summary.otherCashIn": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Other deposits"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Otros depósitos"
+          }
+        }
+      }
+    },
+    "analytics.summary.spent": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spent"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gastado"
+          }
+        }
+      }
+    },
+    "analytics.summary.through": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Through %1$@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hasta el %1$@"
+          }
+        }
+      }
+    },
     "app.notConfigured.message": {
       "extractionState": "manual",
       "localizations": {
@@ -5454,6 +7001,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Inicio"
+          }
+        }
+      }
+    },
+    "navigation.destinations.insights": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reports"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reportes"
           }
         }
       }

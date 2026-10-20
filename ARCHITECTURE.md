@@ -288,7 +288,7 @@ outcome, discard, sign-out, session end or fresh sign-in. If that file cannot be
 non-financial `UserDefaults` flag marks it invalid, so the next launch retries the delete and
 never shows or sends it. Every view reads colors, type, spacing and button styles from one theme layer
 (`ios/Ordo/Theme`, asset-catalog color sets ported from the web's semantic tokens, with light, dark and
-Increase Contrast values), and a test fails if a view uses a raw color. See [`ios/README.md`](ios/README.md).
+Increase Contrast values), and a test fails if a view uses a raw color. A Reports screen (opened from Home) reads `GET /api/analytics/cash-flow` and shows server figures as exact integer-cent values (no `Double`, no client maths), with a Swift Charts trend (a system framework) and an exact list; nothing is persisted. See [`ios/README.md`](ios/README.md).
 
 ### Persistence and migrations
 
