@@ -25,6 +25,21 @@
 .auth-card .auth-text-action:hover { background: var(--color-surface-subtle); }
 .auth-card .auth-text-action:disabled { color: var(--color-disabled-text); text-decoration: none; }
 .auth-password-requirements { margin: 0; color: var(--color-text-muted); font-size: var(--text-sm); }
+.auth-password-requirements p { margin: 0 0 var(--space-2); }
+.auth-password-requirements ul { margin: 0; padding-inline-start: var(--space-5); list-style: disc; }
+.auth-password-requirements li { padding-inline-start: var(--space-1); }
+.auth-password-requirements li + li { margin-top: var(--space-1); }
+.whats-ordo-dialog { box-sizing: border-box; width: min(100% - 2rem, 32rem); max-height: calc(100dvh - 2 * var(--space-4)); overflow: hidden; padding: 0; border: 1px solid var(--color-border); border-radius: var(--overlay-radius); color: var(--color-text); background: var(--color-surface-raised); box-shadow: var(--overlay-shadow); overflow-wrap: anywhere; }
+.whats-ordo-dialog[open] { display: grid; grid-template-rows: minmax(0, 1fr); }
+.whats-ordo-dialog::backdrop { background: var(--overlay-scrim); }
+.whats-ordo-dialog__body { display: grid; min-height: 0; overflow-y: auto; gap: var(--space-4); padding: clamp(var(--space-4), 4vw, var(--space-5)); }
+.whats-ordo-dialog__title { margin: 0; font-size: var(--text-xl); }
+.whats-ordo-dialog__intro, .whats-ordo-dialog__list, .whats-ordo-dialog__note { margin: 0; }
+.whats-ordo-dialog__list { display: grid; gap: var(--space-3); padding: 0; list-style: none; }
+.whats-ordo-dialog__area { font-weight: var(--weight-bold); }
+.whats-ordo-dialog__detail { display: block; color: var(--color-text-muted); font-size: var(--text-sm); }
+.whats-ordo-dialog__note { color: var(--color-text-muted); font-size: var(--text-sm); }
+.whats-ordo-dialog__close { justify-self: end; }
 .auth-card .status-message { margin: 0; white-space: pre-line; overflow-wrap: anywhere; }
 .auth-disclosure { min-width: 0; border-top: 1px solid var(--color-divider); padding-top: var(--space-3); }
 .auth-secondary > .auth-disclosure { border-top: 0; padding-top: 0; }

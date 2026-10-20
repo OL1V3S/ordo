@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -555,5 +555,122 @@ describe('authentication pages in Spanish', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('Incorrect email or password')
     expect(screen.getByRole('alert')).not.toHaveFocus()
     expect(document.documentElement.lang).toBe('en')
+  })
+})
+
+describe('password rules and What is Ordo? dialog', () => {
+  const protoShow = HTMLDialogElement.prototype.showModal
+  const protoClose = HTMLDialogElement.prototype.close
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    // jsdom lacks modal dialogs; mirror the native open/close/close-event behavior.
+    HTMLDialogElement.prototype.showModal = function showModal() {
+      this.setAttribute('open', '')
+    }
+    HTMLDialogElement.prototype.close = function close() {
+      this.removeAttribute('open')
+      this.dispatchEvent(new Event('close'))
+    }
+  })
+  afterEach(() => {
+    HTMLDialogElement.prototype.showModal = protoShow
+    HTMLDialogElement.prototype.close = protoClose
+    return i18n.changeLanguage('en')
+  })
+
+  it('lists the five password rules as list items on create account', async () => {
+    const user = userEvent.setup()
+    renderAt(<AuthPage onLogin={vi.fn()} />)
+    await user.click(screen.getByRole('button', { name: 'Need an account? Create one' }))
+
+    const items = within(screen.getByRole('list')).getAllByRole('listitem')
+    expect(items.map((item) => item.textContent)).toEqual([
+      'At least 6 characters',
+      'One uppercase letter',
+      'One lowercase letter',
+      'One number',
+      'One special character',
+    ])
+  })
+
+  it('opens from sign-in, shows the tour and note, and closes with the button', async () => {
+    const user = userEvent.setup()
+    renderAt(<AuthPage onLogin={vi.fn()} />)
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+
+    const trigger = screen.getByRole('button', { name: 'What is Ordo?' })
+    await user.click(trigger)
+
+    const dialog = screen.getByRole('dialog', { name: 'What is Ordo?' })
+    expect(dialog).toHaveAttribute('aria-labelledby')
+    const inside = within(dialog)
+    const heading = inside.getByRole('heading', { name: 'What is Ordo?', level: 2 })
+    expect(heading).toBeVisible()
+    expect(heading).toHaveAttribute('tabindex', '-1')
+    expect(heading).toHaveFocus()
+    expect(inside.getByRole('list')).toHaveAttribute('role', 'list')
+    expect(inside.getByText(/helps you see where your money goes/)).toBeVisible()
+    expect(inside.getAllByRole('listitem').map((item) => item.firstChild.textContent)).toEqual([
+      'Home', 'Transactions', 'Budgets', 'Recurring expenses', 'Paychecks', 'Reports',
+    ])
+    expect(inside.getByText(/Sunflower Bank statement PDF/)).toBeVisible()
+    expect(inside.getByText(/aren’t an account balance, savings, or money available to spend/)).toBeVisible()
+
+    await user.click(inside.getByRole('button', { name: 'Close' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(trigger).toHaveFocus()
+  })
+
+  it('closes on Escape (native cancel) and returns focus to the trigger', async () => {
+    const user = userEvent.setup()
+    renderAt(<AuthPage onLogin={vi.fn()} />)
+    const trigger = screen.getByRole('button', { name: 'What is Ordo?' })
+    await user.click(trigger)
+
+    const dialog = screen.getByRole('dialog')
+    // The browser turns Escape into cancel then close; model both.
+    fireEvent(dialog, new Event('cancel', { cancelable: true }))
+    dialog.close()
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(trigger).toHaveFocus()
+  })
+
+  it('closes when the backdrop is clicked but not when the content is clicked', async () => {
+    const user = userEvent.setup()
+    renderAt(<AuthPage onLogin={vi.fn()} />)
+    await user.click(screen.getByRole('button', { name: 'What is Ordo?' }))
+
+    await user.click(screen.getByText(/helps you see where your money goes/))
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('dialog'))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('renders the dialog in Spanish', async () => {
+    const user = userEvent.setup()
+    await i18n.changeLanguage('es')
+    renderAt(<AuthPage onLogin={vi.fn()} />)
+    await user.click(screen.getByRole('button', { name: '¿Qué es Ordo?' }))
+
+    const dialog = screen.getByRole('dialog', { name: '¿Qué es Ordo?' })
+    const inside = within(dialog)
+    expect(inside.getByText(/te ayuda a ver a dónde va tu dinero/)).toBeVisible()
+    expect(inside.getAllByRole('listitem')).toHaveLength(6)
+    expect(inside.getByText(/No son un saldo de la cuenta/)).toBeVisible()
+    expect(inside.getByRole('button', { name: 'Cerrar' })).toBeVisible()
+  })
+
+  it('is offered on sign-in only', async () => {
+    const user = userEvent.setup()
+    renderAt(<AuthPage onLogin={vi.fn()} />)
+    await user.click(screen.getByRole('button', { name: 'Need an account? Create one' }))
+    expect(screen.queryByRole('button', { name: 'What is Ordo?' })).not.toBeInTheDocument()
+
+    cleanup()
+    renderAt(<ForgotPasswordPage />, '/forgot-password')
+    expect(screen.queryByRole('button', { name: 'What is Ordo?' })).not.toBeInTheDocument()
   })
 })
