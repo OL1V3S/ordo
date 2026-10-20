@@ -11,7 +11,7 @@ struct ConfirmCommitmentSheet: View {
     var body: some View {
         NavigationStack {
             Group {
-                if let session = model.confirm, model.confirmCandidate != nil {
+                if let session = model.confirm, model.showsConfirmForm {
                     form(session)
                 } else {
                     List {

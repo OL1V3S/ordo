@@ -254,6 +254,20 @@ import Testing
         #expect(model.writePhase == .idle && model.notice == .checked && model.retryConflictCode == nil)
     }
 
+    @Test func aFailedCheckWithTheConfirmSheetOpenKeepsTheUncertainPanelNotTheChangedMessage() async {
+        let (model, service) = await setup(performs: [{ _ in throw APIError.offline }])
+        model.beginConfirm(candidate)
+        model.submitConfirm()
+        await model.settled()
+        #expect(model.writePhase == .uncertain && model.isSheetPresented && model.showsConfirmForm)
+        service.setLoads([{ throw APIError.offline }])
+        await model.check()
+        #expect(model.confirmCandidate == nil)
+        #expect(model.writePhase == .uncertain && model.confirm != nil && model.isSheetPresented)
+        #expect(model.showsConfirmForm && !model.isChecking)
+        #expect(model.canRetry)
+    }
+
     @Test func checkReleasesTheGateOnlyAfterASuccessfulRead() async {
         let (model, service) = await setup(performs: [{ _ in throw APIError.offline }])
         model.perform(.pause, on: active)

@@ -127,6 +127,11 @@ final class RecurringViewModel {
 
     var confirmCandidate: RecurringCandidate? { confirm.flatMap { candidate(fingerprint: $0.fingerprint) } }
 
+    /// The confirm sheet shows its form (and, while a write is unresolved, the shared Retry/Check panel)
+    /// whenever the candidate is present or a write is submitting/uncertain; only an idle session whose
+    /// candidate is gone shows the "changed" placeholder, so a failed read never hides Retry/Check.
+    var showsConfirmForm: Bool { confirm != nil && (confirmCandidate != nil || writePhase != .idle) }
+
     // MARK: Reading
 
     func loadIfNeeded() async {
