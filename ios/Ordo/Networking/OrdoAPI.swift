@@ -287,6 +287,55 @@ struct OrdoAPI: Sendable {
         }
     }
 
+    // MARK: Recurring expenses
+
+    func commitmentCandidates(accessToken: String) async throws -> Data {
+        try await get("api/commitment-candidates", accessToken: accessToken)
+    }
+
+    func commitments(accessToken: String) async throws -> Data { try await get("api/commitments", accessToken: accessToken) }
+
+    func dismissCandidate(accessToken: String, body: Data) async throws {
+        try await commitmentWrite(method: "POST", path: "api/commitment-candidates/dismiss", accessToken: accessToken, body: body)
+    }
+
+    func reconsiderCandidate(accessToken: String, body: Data) async throws {
+        try await commitmentWrite(method: "POST", path: "api/commitment-candidates/reconsider", accessToken: accessToken, body: body)
+    }
+
+    /// No `Idempotency-Key`: a repeat for the same origin fingerprint is answered with
+    /// `200 alreadyConfirmed` and writes nothing.
+    func confirmCandidate(accessToken: String, body: Data) async throws {
+        try await commitmentWrite(method: "POST", path: "api/commitment-candidates/confirm", accessToken: accessToken, body: body)
+    }
+
+    func updateCommitmentLifecycle(accessToken: String, id: String, body: Data) async throws {
+        try await commitmentWrite(method: "PATCH", path: "api/commitments/\(id)/lifecycle", accessToken: accessToken, body: body)
+    }
+
+    /// `200`, `201` and `204` are applied (the body is not needed: the lists are read again). `400`,
+    /// `404`, `409` and `422` are definitive refusals (the server rolled back); everything else
+    /// (a `5xx` included) is an unknown outcome left to the caller.
+    private func commitmentWrite(method: String, path: String, accessToken: String, body: Data) async throws {
+        var request = URLRequest(url: baseURL.appending(path: path))
+        request.httpMethod = method
+        request.httpBody = body
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        request.timeoutInterval = 30
+        let (data, status) = try await send(request)
+        switch status {
+        case 200, 201, 204: return
+        case 401: throw APIError.unauthorized
+        case 404: throw APIError.commitmentNotFound
+        case 400: throw APIError.commitmentRejected(Self.errorCode(in: data))
+        case 422: throw APIError.commitmentRejected(nil)
+        case 409: throw APIError.commitmentConflict(Self.errorCode(in: data))
+        default: throw APIError.server(status)
+        }
+    }
+
     // MARK: Creates
 
     private struct ExpenseBody: Encodable {

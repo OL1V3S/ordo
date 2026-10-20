@@ -36,6 +36,12 @@ enum APIError: Error, Equatable, Sendable {
     case paycheckNotFound
     /// `409` on a paycheck write; only the `code` of the body is read. The server rolled back.
     case paycheckConflict(String?)
+    /// `400` or `422` on a recurring-expense write; only the `code` of the body is read (a `422` has none used).
+    case commitmentRejected(String?)
+    /// `404 commitment_not_found`: the recurring expense is missing (or another owner's).
+    case commitmentNotFound
+    /// `409` on a recurring-expense write; only the `code` of the body is read. The server rolled back.
+    case commitmentConflict(String?)
 }
 
 /// A field named by a create or edit validation error. Server messages are never read.

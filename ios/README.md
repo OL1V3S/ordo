@@ -14,7 +14,11 @@ on `/api/budgetlimits` and the existing timeline for spending. Slice 5
 ([#272](https://github.com/OL1V3S/ordo/issues/272)) adds a **Paychecks** tab: pay schedules, their
 lifecycle, and linking or removing a received paycheck, using `GET /api/paychecks`,
 `PATCH /api/paychecks/{id}/lifecycle`, `POST /api/paychecks/{id}/receipts`,
-`DELETE /api/paychecks/{id}/receipts/{accountInflowId}` and `GET /api/inflows`. There is no backend, API or
+`DELETE /api/paychecks/{id}/receipts/{accountInflowId}` and `GET /api/inflows`. Slice 6
+([#274](https://github.com/OL1V3S/ordo/issues/274)) adds a **Recurring** tab (Recurring expenses): confirmed
+recurring expenses and detected possible ones, with confirm, dismiss, review again, pause, reactivate and
+end, using `GET /api/commitment-candidates`, `GET /api/commitments`, `POST /api/commitment-candidates/confirm`,
+`/dismiss` and `/reconsider`, and `PATCH /api/commitments/{id}/lifecycle`. There is no backend, API or
 schema change.
 
 - iOS 18.0 or later, iPhone only. Swift 6 with strict concurrency. No third-party
@@ -119,8 +123,8 @@ shows or sends it, and the flag is reset only after the delete succeeds.
 
 ## Transactions
 
-The signed-in app is a four-tab `TabView`: **Home**, **Transactions** (Movimientos),
-**Budgets** (Presupuestos) and **Paychecks** (Nómina), each with its own navigation stack. The system tab bar is Liquid Glass on iOS 26 and later and the standard
+The signed-in app is a five-tab `TabView`: **Home**, **Transactions** (Movimientos),
+**Budgets** (Presupuestos), **Paychecks** (Nómina) and **Recurring** (Recurrentes), each with its own navigation stack. The system tab bar is Liquid Glass on iOS 26 and later and the standard
 bar on iOS 18-25. Add expense and Add deposit stay on Home; Sign out stays in Home's toolbar.
 
 - **List.** The tab reads `GET /api/activity/timeline` (25 rows a page, newest first, the server's
@@ -176,8 +180,7 @@ bar on iOS 18-25. Add expense and Add deposit stay on Home; Sign out stays in Ho
 
 The third tab, **Budgets** (Presupuestos, SF Symbol `chart.pie`), shows how recorded spending compares
 with each category's monthly limit, as the web's Plan, Budgets page does. The web groups Budgets,
-Recurring expenses and Paychecks under a Plan hub; only Budgets exists here, so it is a tab of its own
-until the others arrive. It uses the existing endpoints `GET /api/budgetlimits?monthYear=YYYY-MM`,
+Recurring expenses and Paychecks under a Plan hub; on the phone each is a tab of its own. It uses the existing endpoints `GET /api/budgetlimits?monthYear=YYYY-MM`,
 `POST /api/budgetlimits` (the server upserts by owner, exact category and month),
 `DELETE /api/budgetlimits/{id}` and, for spending, `GET /api/activity/timeline`.
 
@@ -254,7 +257,7 @@ until the others arrive. It uses the existing endpoints `GET /api/budgetlimits?m
 ## Paychecks
 
 The fourth tab, **Paychecks** (Nómina, SF Symbol `banknote`), lists the user's pay schedules as the web's
-Plan, Paychecks page does. Until Recurring expenses arrive, Budgets and Paychecks are tabs of their own;
+Plan, Paychecks page does. Budgets, Recurring and Paychecks are tabs of their own (five tabs, no "More");
 the owner may later regroup them under a Plan hub. It uses `GET /api/paychecks`,
 `PATCH /api/paychecks/{id}/lifecycle`, `POST /api/paychecks/{id}/receipts`,
 `DELETE /api/paychecks/{id}/receipts/{accountInflowId}` and, for saved deposits, `GET /api/inflows`.
@@ -300,6 +303,46 @@ the owner may later regroup them under a Plan hub. It uses `GET /api/paychecks`,
 - **Out of scope:** creating or editing a schedule, detected "possible paychecks", match suggestions,
   statement-import linking, totals of expected money and an offline cache or queue.
 
+## Recurring expenses
+
+The fifth tab, **Recurring** (Recurrentes, SF Symbol `repeat`; the page title is "Recurring expenses" /
+"Gastos recurrentes"), is the web's Plan, Recurring expenses page. It uses `GET /api/commitment-candidates`
+and `GET /api/commitments` (read together; if either fails or is malformed the whole list is hidden with a
+Try again button), `POST /api/commitment-candidates/confirm`, `/dismiss` and `/reconsider`, and
+`PATCH /api/commitments/{id}/lifecycle`.
+
+- **List.** Your recurring expenses (Active), Possible recurring expenses (to review), collapsible Paused and
+  Ended groups and a collapsible Dismissed group, in the web's order, with the server's order kept inside each
+  group. A row shows name, category and cadence, the expected timing summary ("Day 15, up to 1 day early or 2
+  days late") and the expected (or observed) amount. The server has no next-date projection for recurring
+  expenses, so no next date is shown or computed. Expected money is never shown as spent and nothing is totalled.
+  Detail screens list the matching expenses used.
+- **Review and confirm.** A sheet prefilled from the candidate (name, category, how often, weekday or day or
+  month, days before and after, fixed amount or range, with exact observed amounts only). Client checks follow
+  the web plus two server rules the web leaves to the server (range maximum at least the minimum; a yearly day
+  that exists in the month, 29 February allowed). The body is built byte by byte with sorted keys and explicit
+  nulls; amounts are JSON numbers (the web sends exact strings; the server accepts both). An observed amount that
+  cannot be read exactly disables Confirm (an `amount_invalid` message, where the web silently blocks).
+- **Dismiss, Review again, Pause, Reactivate, End.** No confirmation except End, which acts on the recurring
+  expense it presents and closes if that expense changed or disappeared after a re-read. A definitive `fingerprint_invalid`
+  also re-reads (the web does not).
+- **Retry safety.** No `Idempotency-Key`: confirm is idempotent by origin fingerprint (a repeat answers
+  `alreadyConfirmed`, treated as success); dismiss and review again answer `204` when already in the target
+  state; lifecycle is an absolute set. A timeout, lost connection, `5xx` or anything unrecognised is shown as
+  unconfirmed with Retry (identical bytes) and Check (re-reads; sends nothing); all recurring-expense writes wait.
+  If the confirm sheet was dismissed during an unknown outcome and a later Retry is refused, the error is shown
+  as the visible notice. A `409` on Retry forces Check and never says "not saved". Residual risks: a Retry during
+  a still-running first confirm can answer `409 confirmation_conflict`; dismiss and review again answer
+  `409 candidate_changed` after the matching expenses changed; lifecycle changes are last write wins; the unknown
+  state is not persisted.
+- **Refresh.** No optimistic updates: after a decision or a Check both lists and Home are re-read. A saved
+  expense or an expense edit or delete re-reads the tab once it has been opened.
+- **Out of scope:** reviewing detected changes (`/api/commitment-changes`), editing a recurring expense
+  (`PUT /api/commitments/{id}`), the detector's algorithm-version fact, a next-expected date, links from Home's
+  Needs Attention, totals of expected money and an offline cache.
+- **Nothing persisted;** names, categories, amounts, dates, ids and fingerprints are never logged, and server
+  error text is never shown.
+
 ## Look and theme
 
 The app uses Ordo's web look through one theme layer (`ios/Ordo/Theme`), while keeping iOS
@@ -338,7 +381,7 @@ Reduce Motion and Increase Contrast.
 
 Add expense and Add deposit on the Transactions tab, bulk edit or delete, undo, an offline queue
 or cache, a concurrency token or conflict detection, automatic infinite scrolling, persisted
-filters, category management, creating or editing pay schedules, possible-paycheck suggestions, statement import, reports,
-recurring expenses, widget, push notifications, TestFlight or App Store distribution, iPad
+filters, category management, creating or editing pay schedules, possible-paycheck suggestions, commitment change review and editing a recurring expense, statement import, reports,
+widget, push notifications, TestFlight or App Store distribution, iPad
 layout, registration and password reset, in-app language picker, and links into other web
 workflows.
