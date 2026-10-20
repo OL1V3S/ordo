@@ -5,6 +5,8 @@ import Testing
 private let r1 = ImportFixtures.row1
 private let someFile = URL(fileURLWithPath: "/private/var/synthetic-user-file-name.pdf")
 
+private final class ReadFlag: @unchecked Sendable { nonisolated(unsafe) var started = false }
+
 @MainActor @Suite struct ImportViewModelTests {
     // MARK: Opening and upload
 
@@ -267,6 +269,37 @@ private let someFile = URL(fileURLWithPath: "/private/var/synthetic-user-file-na
         failing.confirm()
         await failing.settled()
         #expect(failing.needsReload && failing.message == .duplicateRefreshFailed && !failing.canConfirm)
+    }
+
+    @Test func confirmStaysBusyUntilTheDuplicateReReadFinishes() async {
+        let service = ScriptedImportService(), gate = Gate(), reading = ReadFlag()
+        service.onConfirm = { throw refused(409, "duplicate_review_required") }
+        let model = await selected(service)
+        service.onPreview = {
+            reading.started = true
+            await gate.wait()
+            return ImportFixtures.preview([ImportFixtures.rowJSON(r1, selected: false, duplicate: true)])
+        }
+        model.confirm()
+        while !reading.started { await Task.yield() }
+        #expect(!model.canEdit && !model.canConfirm && model.isWriting)
+        await gate.release()
+        await model.settled()
+        #expect(model.confirmPhase == .idle && model.totals.expenseCount == 0 && !model.canConfirm)
+    }
+
+    @Test func closingAfterAConflictOnConfirmRetryStillRefreshesTheOtherTabs() async {
+        let service = ScriptedImportService(), counter = ImportRefreshCounter()
+        service.onConfirm = { throw APIError.offline }
+        let model = await selected(service, counter)
+        model.confirm()
+        await model.settled()
+        service.onConfirm = { throw refused(409, "confirmation_conflict") }
+        model.retryConfirm()
+        await model.settled()
+        #expect(model.confirmPhase == .idle)
+        await model.close()
+        #expect(counter.count == 1)
     }
 
     @Test func otherRefusalsKeepThePreviewAndAMissingBatchClearsIt() async {

@@ -66,6 +66,8 @@ final class ImportViewModel {
     @ObservationIgnored private var generation = 0
     @ObservationIgnored private var task: Task<Void, Never>?
     @ObservationIgnored private var confirmBatchId: String?
+    /// A confirm whose outcome is still unknown: it ended unknown, or its retry was refused by a conflict.
+    @ObservationIgnored private var confirmOutcomeUnknown = false
 
     /// `refreshOthers` re-reads Home, Transactions, Budgets, Paychecks, Recurring and Reports.
     init(service: ImportService,
@@ -310,6 +312,7 @@ final class ImportViewModel {
         guard canConfirm, let batchId = preview?.batchId else { return }
         message = nil
         confirmBatchId = batchId
+        confirmOutcomeUnknown = false
         sendConfirm(batchId)
     }
 
@@ -317,10 +320,10 @@ final class ImportViewModel {
     func retryConfirm() {
         guard canRetryConfirm, let batchId = confirmBatchId else { return }
         message = nil
-        sendConfirm(batchId)
+        sendConfirm(batchId, isRetry: true)
     }
 
-    private func sendConfirm(_ batchId: String) {
+    private func sendConfirm(_ batchId: String, isRetry: Bool = false) {
         confirmPhase = .submitting
         let started = generation
         let service = self.service
@@ -332,19 +335,24 @@ final class ImportViewModel {
                 self.finishConfirm(confirmation)
                 await self.refreshOthers()
             case .refused(let status, let code):
-                self.confirmPhase = .idle
                 self.confirmBatchId = nil
+                self.confirmOutcomeUnknown = isRetry && status == 409 && code != "duplicate_review_required"
+                // Stays busy through the re-read so nothing can be edited or confirmed against a stale preview.
+                if !(status == 409 && code == "duplicate_review_required") { self.confirmPhase = .idle }
                 await self.applyConfirmRefusal(status: status, code: code, batchId: batchId, started: started)
+                if self.generation == started { self.confirmPhase = .idle }
             case .sessionEnded:
                 self.reset()
             case .uncertain:
                 self.logger.error("A statement import could not be confirmed")
                 self.confirmPhase = .uncertain
+                self.confirmOutcomeUnknown = true
             }
         }
     }
 
     private func finishConfirm(_ confirmation: ImportConfirmation) {
+        confirmOutcomeUnknown = false
         confirmPhase = .idle
         confirmBatchId = nil
         completion = confirmation
@@ -381,7 +389,7 @@ final class ImportViewModel {
     /// tabs are refreshed; the next open reads the open preview again.
     func close() async {
         guard !isWriting else { return }
-        let uncertain = confirmPhase == .uncertain
+        let uncertain = confirmPhase == .uncertain || confirmOutcomeUnknown
         let finished = phase == .completed
         reset()
         if uncertain && !finished { await refreshOthers() }
@@ -401,6 +409,7 @@ final class ImportViewModel {
         isBulkSubmitting = false
         confirmPhase = .idle
         confirmBatchId = nil
+        confirmOutcomeUnknown = false
         needsReload = false
         isReloading = false
     }
