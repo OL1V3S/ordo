@@ -24,6 +24,13 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-20 — Statement import in the iOS app
+
+[Issue #281](https://github.com/OL1V3S/ordo/issues/281)
+
+- The iOS Transactions tab can import a Sunflower statement PDF: upload, review, edit, select and confirm.
+- The PDF is only held in memory; a confirm is retried only on tap and cannot create duplicates.
+
 ### 2026-10-20 — One Refresh button on Transactions
 
 [Issue #279](https://github.com/OL1V3S/ordo/issues/279)
@@ -160,11 +167,3 @@ the permanent, complete archive.
 
 - The remaining places that showed stored category names in English in Spanish mode now read "Servicios", "Comida", "Transporte" and so on: the Budgets list, edit headings and delete confirmations, the Reports category list and comparisons, and Recurring expenses. Categories you typed yourself show exactly as before, and the app's own "uncategorized" now reads "Uncategorized" / "Sin categoría" everywhere.
 - Statement import review rows show the statement date the same way as the saved list ("Oct 11, 2026" / "11 oct 2026") instead of the raw "2026-10-11". Display only; stored values, payloads and sorting are unchanged, and there is no API, schema or financial-semantics change.
-
-### 2026-10-13 — Category names in the user's language, and a roomier import confirm bar
-
-[PR #238](https://github.com/OL1V3S/ordo/pull/238) ·
-[Issue #237](https://github.com/OL1V3S/ordo/issues/237)
-
-- Found in a real-browser check: Home ("Needs your attention" budget items and recent transactions) and the Transactions list showed stored category names such as "bills" and "food" in both languages. They now read "Bills" / "Servicios", "Food" / "Comida" and so on; categories you typed yourself still show exactly as before.
-- On tablet-portrait widths (about 600 to 760px) the statement import confirm bar is now stacked with a full-width button, as on phones, so a long Spanish button label no longer squeezes its summary into a narrow column or makes the bar so tall that it stops sticking. Frontend only; no API, schema or financial-semantics change.

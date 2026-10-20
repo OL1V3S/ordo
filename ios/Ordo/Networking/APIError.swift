@@ -42,6 +42,8 @@ enum APIError: Error, Equatable, Sendable {
     case commitmentNotFound
     /// `409` on a recurring-expense write; only the `code` of the body is read. The server rolled back.
     case commitmentConflict(String?)
+    /// A definitive `4xx` (other than `401`) on a statement import request. Only the status and the `code` of the body are read.
+    case importRefused(status: Int, code: String?)
 }
 
 /// A field named by a create or edit validation error. Server messages are never read.

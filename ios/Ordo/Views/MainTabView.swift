@@ -15,7 +15,7 @@ struct MainTabView: View {
                          l10n: l10n) { Task { await model.signOut() } }
             }
             Tab(l10n.string(.navigationDestinationsActivity), systemImage: "list.bullet.rectangle") {
-                TransactionsView(model: model.transactionsModel, mutation: model.mutationModel, l10n: l10n)
+                TransactionsView(model: model.transactionsModel, mutation: model.mutationModel, importModel: model.importModel, l10n: l10n)
             }
             // The web's Plan hub holds Budgets, Recurring expenses and Paychecks; on the phone each is
             // a tab of its own (five tabs, no "More"). The tab label is shorter than the page title.

@@ -20,7 +20,9 @@ recurring expenses and detected possible ones, with confirm, dismiss, review aga
 end, using `GET /api/commitment-candidates`, `GET /api/commitments`, `POST /api/commitment-candidates/confirm`,
 `/dismiss` and `/reconsider`, and `PATCH /api/commitments/{id}/lifecycle`. Slice 7
 ([#276](https://github.com/OL1V3S/ordo/issues/276)) adds **Reports**, opened from a Home toolbar button,
-using `GET /api/analytics/cash-flow`. There is no backend, API or
+using `GET /api/analytics/cash-flow`. Slice 8
+([#281](https://github.com/OL1V3S/ordo/issues/281)) adds **Statement import**, opened from a Transactions toolbar
+button, using the existing `/api/import-previews` endpoints. There is no backend, API or
 schema change.
 
 - iOS 18.0 or later, iPhone only. Swift 6 with strict concurrency. No third-party
@@ -357,6 +359,17 @@ Reports (Reportes, SF Symbol `chart.bar.xaxis`) is the web's cash-flow region of
 - **Refresh.** Reports re-reads after Capture saves, Transactions edits and deletes, and Paychecks writes, once opened. Not after Budgets or Recurring writes. Sign-out resets it. Nothing is persisted or logged.
 - **Departures from the web.** Pull to refresh replaces the Refresh button; no chart tooltip; the lower "More spending detail" section (previous-month change, largest expenses, "Budget status / Open budgets" link) is omitted.
 
+## Statement import
+
+Import statement (Importar estado de cuenta) is a toolbar button on Transactions that opens a full-screen import. Sunflower PDF only.
+
+- **Flow.** `GET /api/import-previews/open` finds an unfinished preview (`204` shows Choose PDF). The system picker (PDF only) picks a file; it is uploaded once; the review lists rows with filters (All, To review, Possible duplicates, Deposit rows, Selected), summary, select or clear, and per-row selection. Expense rows can edit description and category. Confirm saves the selected rows, then Home and the opened tabs are read again.
+- **Privacy.** The PDF is read into memory only (at most 10 MiB + 1 byte, under file coordination), never copied, cached or saved. The upload file part is always named `statement.pdf`. Nothing but static messages and status codes is logged. A picker copy is deleted only if it is a regular file inside the app's own temp or Inbox folder; nothing else is ever deleted.
+- **No duplicates.** Confirm is never retried automatically. An unknown outcome shows Retry, which sends the same `POST`; the server answers a repeat with `200 already_confirmed` and creates nothing. Closing after an unknown outcome still refreshes the other tabs. An unknown upload is not resent: the open preview is read and the user can choose the file again. Row writes are absolute and bulk select or clear sets state, so they are repeated safely (bulk replays once, then Confirm waits for Reload).
+- **Gate.** Import joins the one-write-at-a-time checks. Sign-out and both session changes reset it; late responses are ignored.
+- **Messages.** Server text is never shown; codes map to the web's catalog entries. Any `413` is "file too large".
+- **Departures from the web.** Bank is fixed to Sunflower; no paycheck linking after saving; saved rows are shown as counts only; no per-row confirmation codes (a duplicate refusal re-reads the preview). iOS-only strings (`importPreview.ios.*`) need Spanish review.
+
 ## Look and theme
 
 The app uses Ordo's web look through one theme layer (`ios/Ordo/Theme`), while keeping iOS
@@ -395,7 +408,7 @@ Reduce Motion and Increase Contrast.
 
 Add expense and Add deposit on the Transactions tab, bulk edit or delete, undo, an offline queue
 or cache, a concurrency token or conflict detection, automatic infinite scrolling, persisted
-filters, category management, creating or editing pay schedules, possible-paycheck suggestions, commitment change review and editing a recurring expense, statement import, Reports' "More spending detail",
+filters, category management, creating or editing pay schedules, possible-paycheck suggestions, commitment change review and editing a recurring expense, paycheck linking after an import, Reports' "More spending detail",
 widget, push notifications, TestFlight or App Store distribution, iPad
 layout, registration and password reset, in-app language picker, and links into other web
 workflows.

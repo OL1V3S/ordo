@@ -14,6 +14,7 @@ final class AppModel {
     let paychecksModel: PaychecksViewModel
     let recurringModel: RecurringViewModel
     let reportsModel: ReportsViewModel
+    let importModel: ImportViewModel
     private let session: SessionManager
     private var observer: Task<Void, Never>?
 
@@ -57,6 +58,18 @@ final class AppModel {
             language: language,
             deviceLocale: deviceLocale)
         recurringModel = recurring
+        let importer = ImportViewModel(
+            service: SessionImportService(session: session, api: api),
+            // A confirmed import (or an unknown one: expenses may exist) adds expenses and deposits everywhere.
+            refreshOthers: { [home, transactions, budgets, paychecks, recurring, reports] in
+                await home.refresh()
+                await transactions.refreshIfLoaded()
+                await budgets.refreshSpendingIfLoaded()
+                await paychecks.refreshIfLoaded()
+                await recurring.refreshIfLoaded()
+                await reports.refreshIfLoaded()
+            })
+        importModel = importer
         let capture = CaptureViewModel(
             service: SessionCaptureService(session: session, api: api),
             store: pendingStore,
@@ -93,22 +106,30 @@ final class AppModel {
                 // An edited or deleted expense or deposit changes the recorded figures.
                 await reports.refreshIfLoaded()
             },
-            isOtherWriteInFlight: { [capture, budgets, paychecks, recurring] in
+            isOtherWriteInFlight: { [capture, budgets, paychecks, recurring, importer] in
                 capture.phase == .saving || budgets.isWriting || paychecks.isWriting || recurring.isWriting
+                    || importer.isWriting
             },
             language: language,
             deviceLocale: deviceLocale)
         mutationModel = mutation
         // One write at a time across the app: a budget save or delete waits for a capture save or a
         // Transactions edit or delete, and the other way round.
-        budgets.setOtherWriteInFlight { [capture, mutation, paychecks, recurring] in
+        budgets.setOtherWriteInFlight { [capture, mutation, paychecks, recurring, importer] in
             capture.phase == .saving || mutation.isSubmitting || paychecks.isWriting || recurring.isWriting
+                || importer.isWriting
         }
-        paychecks.setOtherWriteInFlight { [capture, mutation, budgets, recurring] in
+        paychecks.setOtherWriteInFlight { [capture, mutation, budgets, recurring, importer] in
             capture.phase == .saving || mutation.isSubmitting || budgets.isWriting || recurring.isWriting
+                || importer.isWriting
         }
-        recurring.setOtherWriteInFlight { [capture, mutation, budgets, paychecks] in
+        recurring.setOtherWriteInFlight { [capture, mutation, budgets, paychecks, importer] in
             capture.phase == .saving || mutation.isSubmitting || budgets.isWriting || paychecks.isWriting
+                || importer.isWriting
+        }
+        importer.setOtherWriteInFlight { [capture, mutation, budgets, paychecks, recurring] in
+            capture.phase == .saving || mutation.isSubmitting || budgets.isWriting || paychecks.isWriting
+                || recurring.isWriting
         }
     }
 
@@ -116,7 +137,7 @@ final class AppModel {
     /// its way to the server. Add expense, Add deposit and a waiting save's Retry wait for it.
     var isWriteInFlight: Bool {
         captureModel.phase == .saving || mutationModel.isSubmitting || budgetsModel.isWriting
-            || paychecksModel.isWriting || recurringModel.isWriting
+            || paychecksModel.isWriting || recurringModel.isWriting || importModel.isWriting
     }
 
     func start() async {
@@ -135,6 +156,7 @@ final class AppModel {
                     self.paychecksModel.reset()
                     self.recurringModel.reset()
                     self.reportsModel.reset()
+                    self.importModel.reset()
                     self.mutationModel.invalidate()
                     Task { await self.homeModel.load() }
                     if previous == .restoring {
@@ -150,6 +172,7 @@ final class AppModel {
                     self.paychecksModel.reset()
                     self.recurringModel.reset()
                     self.reportsModel.reset()
+                    self.importModel.reset()
                     self.mutationModel.invalidate()
                     // The launch-time `.signedOut(.none)` (no credential, or a transient Keychain
                     // failure) keeps the record; only an ended session clears it.
@@ -169,6 +192,7 @@ final class AppModel {
         paychecksModel.reset()
         recurringModel.reset()
         reportsModel.reset()
+        importModel.reset()
         await session.signOut()
     }
 }
