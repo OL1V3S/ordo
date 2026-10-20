@@ -7,6 +7,7 @@ import { useLocale } from "../../../shared/localization/useLocale";
 import StatusMessage from "../../../shared/ui/StatusMessage";
 import AuthShell from "./AuthShell";
 import PasswordField from "./PasswordField";
+import WhatIsOrdo from "./WhatIsOrdo";
 import { mapResendFailure, mapSubmitError, translateDescriptors } from "../authMessages";
 
 export default function AuthPage({ onLogin }) {
@@ -242,6 +243,7 @@ export default function AuthPage({ onLogin }) {
         >
           {isLogin ? t("login.switchToRegister") : t("register.switchToLogin")}
         </button>
+        {isLogin && <WhatIsOrdo />}
       </div>
     </AuthShell>
   );
