@@ -17,7 +17,9 @@ struct L10n: Sendable {
     }
 
     /// Looks up a key. Positional `%1$@` arguments are substituted in order.
-    func string(_ key: L10nKey, _ arguments: String...) -> String {
+    func string(_ key: L10nKey, _ arguments: String...) -> String { string(key, arguments: arguments) }
+
+    func string(_ key: L10nKey, arguments: [String]) -> String {
         let format = bundle.localizedString(forKey: key.rawValue, value: key.rawValue, table: nil)
         guard !arguments.isEmpty else { return format }
         return String(format: format, locale: language.formatLocale, arguments: arguments)

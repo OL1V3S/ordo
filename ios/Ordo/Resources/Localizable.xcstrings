@@ -1,6 +1,23 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "activity.page.importStatement": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Import statement"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importar estado de cuenta"
+          }
+        }
+      }
+    },
     "activity.page.title": {
       "extractionState": "manual",
       "localizations": {
@@ -6950,6 +6967,2216 @@
           "stringUnit": {
             "state": "translated",
             "value": "Inicio"
+          }
+        }
+      }
+    },
+    "importPreview.bar.depositsToSave": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deposits to save: %1$@ · %2$@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Depósitos por guardar: %1$@ · %2$@"
+          }
+        }
+      }
+    },
+    "importPreview.bar.expensesToSave": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Expenses to save: %1$@ · %2$@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gastos por guardar: %1$@ · %2$@"
+          }
+        }
+      }
+    },
+    "importPreview.bar.label": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rows to import"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filas por importar"
+          }
+        }
+      }
+    },
+    "importPreview.bar.totalUnavailable": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Total unavailable"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Total no disponible"
+          }
+        }
+      }
+    },
+    "importPreview.bulk.clear": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear selection"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Borrar selección"
+          }
+        }
+      }
+    },
+    "importPreview.bulk.failed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nothing was changed. Try again."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se cambió nada. Inténtalo de nuevo."
+          }
+        }
+      }
+    },
+    "importPreview.bulk.heading": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Select several"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seleccionar varios"
+          }
+        }
+      }
+    },
+    "importPreview.bulk.hint": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skips possible duplicates and deposits. Select those yourself."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Omite los posibles duplicados y los depósitos. Selecciónalos tú."
+          }
+        }
+      }
+    },
+    "importPreview.bulk.selectAll": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Select all expenses that can be imported (%1$@)"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seleccionar todos los gastos que se pueden importar (%1$@)"
+          }
+        }
+      }
+    },
+    "importPreview.completion.alreadySaved": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Already saved on %1$@: %2$@."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ya se guardó el %1$@: %2$@."
+          }
+        }
+      }
+    },
+    "importPreview.completion.alreadySavedUnavailableTime": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Already saved: %1$@. The time isn’t available."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ya se guardó: %1$@. La hora no está disponible."
+          }
+        }
+      }
+    },
+    "importPreview.completion.alreadyTitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Statement already imported"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Estado de cuenta ya importado"
+          }
+        }
+      }
+    },
+    "importPreview.completion.saved": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saved on %1$@: %2$@."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guardado el %1$@: %2$@."
+          }
+        }
+      }
+    },
+    "importPreview.completion.savedUnavailableTime": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saved: %1$@. The time isn’t available."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guardado: %1$@. La hora no está disponible."
+          }
+        }
+      }
+    },
+    "importPreview.completion.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Import complete"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importación completada"
+          }
+        }
+      }
+    },
+    "importPreview.confirmation.confirmation_conflict": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "We couldn’t confirm the import because it changed. Check the preview and try again."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No pudimos confirmar la importación porque cambió. Revisa la vista previa e inténtalo de nuevo."
+          }
+        }
+      }
+    },
+    "importPreview.confirmation.confirmation_failed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "We couldn’t confirm the import, so nothing is shown as imported. You can try again."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No pudimos confirmar la importación, así que no se muestra nada como importado. Puedes intentarlo de nuevo."
+          }
+        }
+      }
+    },
+    "importPreview.confirmation.confirmation_validation_failed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Some selected rows need changes before you can import them."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Algunas filas seleccionadas necesitan cambios antes de poder importarlas."
+          }
+        }
+      }
+    },
+    "importPreview.confirmation.duplicateRefreshFailed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "We saved the new duplicate warnings, but couldn’t load the latest preview. Refresh this page before importing."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guardamos las nuevas advertencias de duplicados, pero no pudimos cargar la vista previa más reciente. Actualiza esta página antes de importar."
+          }
+        }
+      }
+    },
+    "importPreview.confirmation.duplicate_review_required": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "We found new possible duplicates. Check those rows, then select again any you still want to import."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Encontramos posibles duplicados nuevos. Revisa esas filas y vuelve a seleccionar las que aún quieras importar."
+          }
+        }
+      }
+    },
+    "importPreview.confirmation.no_rows_selected": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Select at least one row that can be imported."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Selecciona al menos una fila que se pueda importar."
+          }
+        }
+      }
+    },
+    "importPreview.confirmation.preview_expired": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This preview expired. Upload the statement again to start a new review."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta vista previa venció. Sube el estado de cuenta de nuevo para empezar una nueva revisión."
+          }
+        }
+      }
+    },
+    "importPreview.confirmation.preview_unavailable": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This preview isn’t available. Choose your bank and upload the statement again."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta vista previa no está disponible. Elige tu banco y sube el estado de cuenta de nuevo."
+          }
+        }
+      }
+    },
+    "importPreview.dropzone.choosePdf": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose PDF"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elegir PDF"
+          }
+        }
+      }
+    },
+    "importPreview.errors.already_imported": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This statement was already imported. No duplicate transactions were created."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este estado de cuenta ya se importó. No se crearon movimientos duplicados."
+          }
+        }
+      }
+    },
+    "importPreview.errors.candidate_row_limit_exceeded": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This statement has more than 1,000 rows, which is too many to import at once."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este estado de cuenta tiene más de 1,000 filas, que son demasiadas para importar a la vez."
+          }
+        }
+      }
+    },
+    "importPreview.errors.encrypted_pdf": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "We can’t open PDFs that are password-protected or encrypted."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No podemos abrir PDF protegidos con contraseña ni cifrados."
+          }
+        }
+      }
+    },
+    "importPreview.errors.image_only_pdf": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "We can’t read text in this PDF; it may be scanned. Try the PDF from your bank’s website."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No podemos leer el texto de este PDF; puede ser un escaneo. Prueba con el PDF del sitio de tu banco."
+          }
+        }
+      }
+    },
+    "importPreview.errors.import_in_progress": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Another statement is already being read. Wait for it to finish, then try again."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ya se está leyendo otro estado de cuenta. Espera a que termine e inténtalo de nuevo."
+          }
+        }
+      }
+    },
+    "importPreview.errors.invalid_pdf": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "We couldn’t open this file. Choose a valid PDF."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No pudimos abrir este archivo. Elige un PDF válido."
+          }
+        }
+      }
+    },
+    "importPreview.errors.processing_cancelled": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reading the statement was cancelled."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se canceló la lectura del estado de cuenta."
+          }
+        }
+      }
+    },
+    "importPreview.errors.processing_timed_out": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reading the statement took too long. Try uploading it again."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leer el estado de cuenta tardó demasiado. Intenta subirlo de nuevo."
+          }
+        }
+      }
+    },
+    "importPreview.errors.row_not_selectable": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You can’t select that row for import."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No puedes seleccionar esa fila para importar."
+          }
+        }
+      }
+    },
+    "importPreview.errors.row_validation_failed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check the row details, then try again."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revisa los detalles de la fila e inténtalo de nuevo."
+          }
+        }
+      }
+    },
+    "importPreview.errors.source_required": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose a bank before you upload the PDF."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elige un banco antes de subir el PDF."
+          }
+        }
+      }
+    },
+    "importPreview.errors.unsupported_statement_format": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "We can’t read this type of Sunflower statement."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No podemos leer este tipo de estado de cuenta de Sunflower."
+          }
+        }
+      }
+    },
+    "importPreview.errors.unsupported_statement_source": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "We can’t import statements from this bank. Choose a bank from the list."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No podemos importar estados de cuenta de este banco. Elige un banco de la lista."
+          }
+        }
+      }
+    },
+    "importPreview.errors.upload_too_large": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose a PDF that’s 10 MB or smaller."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elige un PDF de 10 MB o menos."
+          }
+        }
+      }
+    },
+    "importPreview.fallbackErrors.load": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "We couldn’t load your saved import preview."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No pudimos cargar tu vista previa de importación guardada."
+          }
+        }
+      }
+    },
+    "importPreview.fallbackErrors.update": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "We couldn’t update this row. Try again."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No pudimos actualizar esta fila. Inténtalo de nuevo."
+          }
+        }
+      }
+    },
+    "importPreview.fallbackErrors.upload": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "We couldn’t read the statement. Try uploading it again."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No pudimos leer el estado de cuenta. Intenta subirlo de nuevo."
+          }
+        }
+      }
+    },
+    "importPreview.filters.all": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Todas"
+          }
+        }
+      }
+    },
+    "importPreview.filters.attention": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "To review"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Por revisar"
+          }
+        }
+      }
+    },
+    "importPreview.filters.deposits": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deposit rows"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filas de depósito"
+          }
+        }
+      }
+    },
+    "importPreview.filters.duplicates": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Possible duplicates"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Posibles duplicados"
+          }
+        }
+      }
+    },
+    "importPreview.filters.empty": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No rows match this filter. Filtering doesn’t change what you’ve selected."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ninguna fila coincide con este filtro. Filtrar no cambia lo que seleccionaste."
+          }
+        }
+      }
+    },
+    "importPreview.filters.legend": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show rows"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrar filas"
+          }
+        }
+      }
+    },
+    "importPreview.filters.option": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ (%2$@)"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ (%2$@)"
+          }
+        }
+      }
+    },
+    "importPreview.filters.selected": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Selected"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seleccionadas"
+          }
+        }
+      }
+    },
+    "importPreview.filters.showing_one": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Showing %1$@ of %2$@ row"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrando %1$@ de %2$@ fila"
+          }
+        }
+      }
+    },
+    "importPreview.filters.showing_other": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Showing %1$@ of %2$@ rows"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrando %1$@ de %2$@ filas"
+          }
+        }
+      }
+    },
+    "importPreview.ios.editDetails": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit details"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Editar detalles"
+          }
+        }
+      }
+    },
+    "importPreview.ios.fileUnreadable": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "We couldn’t read that file. Choose a PDF again."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No pudimos leer ese archivo. Elige un PDF de nuevo."
+          }
+        }
+      }
+    },
+    "importPreview.ios.intro": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose the PDF you downloaded from Sunflower Bank (up to 10 MB). Scanned statements and photos won’t work."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elige el PDF que descargaste de Sunflower Bank (hasta 10 MB). Los estados de cuenta escaneados y las fotos no funcionan."
+          }
+        }
+      }
+    },
+    "importPreview.ios.reload": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reload"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recargar"
+          }
+        }
+      }
+    },
+    "importPreview.ios.reloadFailed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "We couldn’t reload the preview. Try again."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No pudimos recargar la vista previa. Inténtalo de nuevo."
+          }
+        }
+      }
+    },
+    "importPreview.ios.reloadNeeded": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "We couldn’t confirm what’s saved. Reload before importing."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No pudimos confirmar qué está guardado. Recarga antes de importar."
+          }
+        }
+      }
+    },
+    "importPreview.ios.uncertainConfirm": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "We couldn’t confirm whether the import was saved. Try again to send the same request; it can’t create duplicates. Or close and check Transactions."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No pudimos confirmar si se guardó la importación. Inténtalo de nuevo para enviar la misma solicitud; no puede crear duplicados. O cierra y revisa Movimientos."
+          }
+        }
+      }
+    },
+    "importPreview.ios.uncertainRow": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "We couldn’t confirm whether this row change was saved. Try again, or reload the preview."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No pudimos confirmar si se guardó el cambio de esta fila. Inténtalo de nuevo o recarga la vista previa."
+          }
+        }
+      }
+    },
+    "importPreview.ios.uncertainTitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not sure it was saved"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No sabemos si se guardó"
+          }
+        }
+      }
+    },
+    "importPreview.ios.uploadUncertain": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "We couldn’t confirm the upload. Choose the PDF again."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No pudimos confirmar la carga. Elige el PDF de nuevo."
+          }
+        }
+      }
+    },
+    "importPreview.links.retry": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Try again"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Intentar de nuevo"
+          }
+        }
+      }
+    },
+    "importPreview.panel.eyebrow.complete": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Import complete"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importación completada"
+          }
+        }
+      }
+    },
+    "importPreview.panel.eyebrow.idle": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bank statement import"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importación de estado de cuenta"
+          }
+        }
+      }
+    },
+    "importPreview.panel.eyebrow.review": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Review and confirm"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revisar y confirmar"
+          }
+        }
+      }
+    },
+    "importPreview.panel.loadingPreview": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Looking for an unfinished preview…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buscando una vista previa sin terminar…"
+          }
+        }
+      }
+    },
+    "importPreview.panel.notice": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save any row edits first. Only the expenses and deposits you select are added, and only after you confirm."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Primero guarda los cambios de cada fila. Solo se agregan los gastos y depósitos que selecciones, y solo después de que confirmes."
+          }
+        }
+      }
+    },
+    "importPreview.panel.processing": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reading your statement…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leyendo tu estado de cuenta…"
+          }
+        }
+      }
+    },
+    "importPreview.panel.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Import bank statement"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importar estado de cuenta"
+          }
+        }
+      }
+    },
+    "importPreview.results.guidance.bulk": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wait for the selection update to finish before importing."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Espera a que termine la actualización de la selección antes de importar."
+          }
+        }
+      }
+    },
+    "importPreview.results.guidance.noneSelected": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Select at least one row that can be imported."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Selecciona al menos una fila que se pueda importar."
+          }
+        }
+      }
+    },
+    "importPreview.results.guidance.pending": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wait for the row updates to finish before importing."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Espera a que terminen las actualizaciones de las filas antes de importar."
+          }
+        }
+      }
+    },
+    "importPreview.results.guidance.ready": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Review the selected rows, then save them together."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revisa las filas seleccionadas y luego guárdalas juntas."
+          }
+        }
+      }
+    },
+    "importPreview.results.heading": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Review statement"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revisar estado de cuenta"
+          }
+        }
+      }
+    },
+    "importPreview.results.meta_one": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ rows · available until %2$@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ fila · disponible hasta %2$@"
+          }
+        }
+      }
+    },
+    "importPreview.results.meta_other": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ rows · available until %2$@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ filas · disponible hasta %2$@"
+          }
+        }
+      }
+    },
+    "importPreview.results.save": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save %1$@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guardar %1$@"
+          }
+        }
+      }
+    },
+    "importPreview.results.saving": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saving %1$@…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guardando %1$@…"
+          }
+        }
+      }
+    },
+    "importPreview.row.depositLabel": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save deposit"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guardar depósito"
+          }
+        }
+      }
+    },
+    "importPreview.row.directions.credit": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Money in"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abono"
+          }
+        }
+      }
+    },
+    "importPreview.row.directions.debit": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Money out"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cargo"
+          }
+        }
+      }
+    },
+    "importPreview.row.errorCodes.amount_must_be_positive": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "the amount must be more than zero"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "el monto debe ser mayor que cero"
+          }
+        }
+      }
+    },
+    "importPreview.row.errorCodes.amount_out_of_range": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "the amount is outside the range we support"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "el monto está fuera del rango admitido"
+          }
+        }
+      }
+    },
+    "importPreview.row.errorCodes.amount_precision_invalid": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "the amount can have up to two decimal places"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "el monto puede tener hasta dos decimales"
+          }
+        }
+      }
+    },
+    "importPreview.row.errorCodes.category_required": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "the category is missing"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "falta la categoría"
+          }
+        }
+      }
+    },
+    "importPreview.row.errorCodes.category_reserved": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“Other” can’t be used as the category"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "no puedes usar “Otra” como categoría"
+          }
+        }
+      }
+    },
+    "importPreview.row.errorCodes.category_too_long": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "category too long"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "la categoría es demasiado larga"
+          }
+        }
+      }
+    },
+    "importPreview.row.errorCodes.date_required": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "the date is missing"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "falta la fecha"
+          }
+        }
+      }
+    },
+    "importPreview.row.errorCodes.description_required": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "the description is missing"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "falta la descripción"
+          }
+        }
+      }
+    },
+    "importPreview.row.errorCodes.description_too_long": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "description too long"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "la descripción es demasiado larga"
+          }
+        }
+      }
+    },
+    "importPreview.row.errorCodes.invalid_transaction_amount": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "the transaction amount isn’t valid"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "el monto de la transacción no es válido"
+          }
+        }
+      }
+    },
+    "importPreview.row.errorCodes.invalid_transaction_date": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "the transaction date isn’t valid"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "la fecha de la transacción no es válida"
+          }
+        }
+      }
+    },
+    "importPreview.row.errorCodes.invalid_transaction_description": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "the transaction description isn’t valid"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "la descripción de la transacción no es válida"
+          }
+        }
+      }
+    },
+    "importPreview.row.errorCodes.source_description_too_long": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "the description in the statement is too long"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "la descripción del estado de cuenta es demasiado larga"
+          }
+        }
+      }
+    },
+    "importPreview.row.errorCodes.unsupported_transaction_direction": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "the direction (money out or in) isn’t supported"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "no se admite la dirección (cargo o abono)"
+          }
+        }
+      }
+    },
+    "importPreview.row.errorCodes.unsupported_transaction_row": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "we don’t support this kind of row"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "no admitimos este tipo de fila"
+          }
+        }
+      }
+    },
+    "importPreview.row.fields.category": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Category"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Categoría"
+          }
+        }
+      }
+    },
+    "importPreview.row.fields.customCategory": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Custom category"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Categoría personalizada"
+          }
+        }
+      }
+    },
+    "importPreview.row.fields.description": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Expense description"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Descripción del gasto"
+          }
+        }
+      }
+    },
+    "importPreview.row.fields.notEditable": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not editable"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No editable"
+          }
+        }
+      }
+    },
+    "importPreview.row.fields.saveRow": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save row"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guardar fila"
+          }
+        }
+      }
+    },
+    "importPreview.row.fields.saving": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saving…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guardando…"
+          }
+        }
+      }
+    },
+    "importPreview.row.issue": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Problem: %1$@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Problema: %1$@"
+          }
+        }
+      }
+    },
+    "importPreview.row.notSelectableLabel": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not selectable"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No seleccionable"
+          }
+        }
+      }
+    },
+    "importPreview.row.possibleDuplicate": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Possible duplicate: this looks like one you already saved. Check before selecting it."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Posible duplicado: se parece a uno que ya guardaste. Revísalo antes de seleccionarlo."
+          }
+        }
+      }
+    },
+    "importPreview.row.possibleInflowDuplicate": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Possible duplicate: this looks like a deposit you already saved. Check before saving it."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Posible duplicado: se parece a un depósito que ya guardaste. Revísalo antes de guardarlo."
+          }
+        }
+      }
+    },
+    "importPreview.row.qualification": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saving adds it to your deposits. Not counted as income or as a paycheck."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Al guardarlo, se agrega a tus depósitos. No se cuenta como ingreso ni como pago de nómina."
+          }
+        }
+      }
+    },
+    "importPreview.row.selectLabel": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Select for import"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seleccionar para importar"
+          }
+        }
+      }
+    },
+    "importPreview.row.statusLabels.default": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "To review"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Por revisar"
+          }
+        }
+      }
+    },
+    "importPreview.row.statusLabels.expense_candidate": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Expense to review"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gasto por revisar"
+          }
+        }
+      }
+    },
+    "importPreview.row.statusLabels.invalid": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Can’t be imported"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se puede importar"
+          }
+        }
+      }
+    },
+    "importPreview.row.statusLabels.needs_review": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "To review"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Por revisar"
+          }
+        }
+      }
+    },
+    "importPreview.row.statusLabels.non_expense": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deposit"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Depósito"
+          }
+        }
+      }
+    },
+    "importPreview.row.unavailable": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unavailable"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No disponible"
+          }
+        }
+      }
+    },
+    "importPreview.row.unknownDate": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "date unavailable"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "fecha no disponible"
+          }
+        }
+      }
+    },
+    "importPreview.row.warning": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Warning: %1$@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Advertencia: %1$@"
+          }
+        }
+      }
+    },
+    "importPreview.selection.deposits_one": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ deposit"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ depósito"
+          }
+        }
+      }
+    },
+    "importPreview.selection.deposits_other": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ deposits"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ depósitos"
+          }
+        }
+      }
+    },
+    "importPreview.selection.expenses_one": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ expense"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ gasto"
+          }
+        }
+      }
+    },
+    "importPreview.selection.expenses_other": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ expenses"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ gastos"
+          }
+        }
+      }
+    },
+    "importPreview.selection.summary": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ and %2$@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ y %2$@"
+          }
+        }
+      }
+    },
+    "importPreview.summary.cannotBeSelected": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Can’t be selected (includes rows to review)"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pueden seleccionar (incluye filas por revisar)"
+          }
+        }
+      }
+    },
+    "importPreview.summary.depositsSelected": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deposits selected"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Depósitos seleccionados"
+          }
+        }
+      }
+    },
+    "importPreview.summary.expensesSelected": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Expenses selected"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gastos seleccionados"
+          }
+        }
+      }
+    },
+    "importPreview.summary.heading": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Statement summary"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resumen del estado de cuenta"
+          }
+        }
+      }
+    },
+    "importPreview.summary.needsReview": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "To review or can’t be imported"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Por revisar o no se pueden importar"
+          }
+        }
+      }
+    },
+    "importPreview.summary.possibleDuplicates": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Possible duplicates"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Posibles duplicados"
+          }
+        }
+      }
+    },
+    "importPreview.unreadable.note": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "These lines can’t be selected and won’t be saved. They might include transactions, so check your statement to make sure nothing is missing."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Estas líneas no se pueden seleccionar y no se guardarán. Podrían incluir transacciones, así que revisa tu estado de cuenta para asegurarte de que no falte nada."
+          }
+        }
+      }
+    },
+    "importPreview.unreadable.summary_one": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ line couldn’t be read"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo leer %1$@ línea"
+          }
+        }
+      }
+    },
+    "importPreview.unreadable.summary_other": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ lines couldn’t be read"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudieron leer %1$@ líneas"
           }
         }
       }

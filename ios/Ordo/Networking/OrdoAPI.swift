@@ -356,6 +356,65 @@ struct OrdoAPI: Sendable {
         }
     }
 
+    // MARK: Statement import
+
+    /// `204` means there is no open preview (nil). The PDF itself is never read here.
+    func importOpen(accessToken: String) async throws -> Data? {
+        let (data, status) = try await importRequest(method: "GET", path: "api/import-previews/open",
+                                                     query: [URLQueryItem(name: "sourceType", value: "sunflower_pdf")],
+                                                     accessToken: accessToken)
+        return status == 204 ? nil : data
+    }
+
+    func importPreview(accessToken: String, batchId: String) async throws -> Data {
+        try await importRequest(method: "GET", path: "api/import-previews/\(batchId)", accessToken: accessToken).0
+    }
+
+    /// `body` is a complete multipart body (see `MultipartBody`); the boundary must match it.
+    func createImportPreview(accessToken: String, body: Data, boundary: String) async throws -> Data {
+        try await importRequest(method: "POST", path: "api/import-previews", accessToken: accessToken, body: body,
+                                contentType: "multipart/form-data; boundary=\(boundary)", timeout: 60).0
+    }
+
+    func updateImportRow(accessToken: String, batchId: String, rowId: String, body: Data) async throws -> Data {
+        try await importRequest(method: "PATCH", path: "api/import-previews/\(batchId)/rows/\(rowId)",
+                                accessToken: accessToken, body: body, contentType: "application/json").0
+    }
+
+    func updateImportSelection(accessToken: String, batchId: String, body: Data) async throws -> Data {
+        try await importRequest(method: "POST", path: "api/import-previews/\(batchId)/selection",
+                                accessToken: accessToken, body: body, contentType: "application/json").0
+    }
+
+    /// No body and no `Idempotency-Key`: the server locks the batch and answers a repeat with `200 already_confirmed`.
+    func confirmImport(accessToken: String, batchId: String) async throws -> Data {
+        try await importRequest(method: "POST", path: "api/import-previews/\(batchId)/confirm", accessToken: accessToken).0
+    }
+
+    /// `200`, `201` and `204` succeed. Any other `4xx` (`413` included, with or without a body) is a
+    /// definitive refusal; `5xx` and everything unrecognised stay unknown for the caller.
+    private func importRequest(method: String, path: String, query: [URLQueryItem] = [], accessToken: String,
+                               body: Data? = nil, contentType: String? = nil,
+                               timeout: TimeInterval = 30) async throws -> (Data, Int) {
+        var components = URLComponents(url: baseURL.appending(path: path), resolvingAgainstBaseURL: false)
+        if !query.isEmpty { components?.queryItems = query }
+        guard let url = components?.url else { throw APIError.invalidResponse }
+        var request = URLRequest(url: url)
+        request.httpMethod = method
+        request.httpBody = body
+        if let contentType { request.setValue(contentType, forHTTPHeaderField: "Content-Type") }
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        request.timeoutInterval = timeout
+        let (data, status) = try await send(request)
+        switch status {
+        case 200, 201, 204: return (data, status)
+        case 401: throw APIError.unauthorized
+        case 400..<500: throw APIError.importRefused(status: status, code: Self.errorCode(in: data))
+        default: throw APIError.server(status)
+        }
+    }
+
     // MARK: Creates
 
     private struct ExpenseBody: Encodable {
