@@ -32,7 +32,6 @@ struct WhatIsOrdoView: View {
                                 .font(Theme.Typography.meta.font)
                                 .foregroundStyle(ThemeColor.textMuted.color)
                         }
-                        .accessibilityElement(children: .combine)
                     }
                     StatusBanner(tone: .neutral, systemImage: "info.circle", message: l10n.string(.authWhatIsOrdoNote))
                 }

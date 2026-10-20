@@ -184,7 +184,7 @@ bar on iOS 18-25. Add expense and Add deposit stay on Home; Settings (with Sign 
 
 ## Budgets
 
-The **Budgets** section of the Plan tab (Presupuestos, SF Symbol `chart.pie`), shows how recorded spending compares
+The **Budgets** section of the Plan tab (Presupuestos; first segment of the Plan switcher) shows how recorded spending compares
 with each category's monthly limit, as the web's Plan, Budgets page does. It is the first section of the Plan tab, like the web's Plan hub. It uses the existing endpoints `GET /api/budgetlimits?monthYear=YYYY-MM`,
 `POST /api/budgetlimits` (the server upserts by owner, exact category and month),
 `DELETE /api/budgetlimits/{id}` and, for spending, `GET /api/activity/timeline`.
@@ -261,7 +261,7 @@ with each category's monthly limit, as the web's Plan, Budgets page does. It is 
 
 ## Paychecks
 
-The **Paychecks** section of the Plan tab (Nómina, SF Symbol `banknote`), lists the user's pay schedules as the web's
+The **Paychecks** section of the Plan tab (Nómina; third segment of the Plan switcher) lists the user's pay schedules as the web's
 Plan, Paychecks page does. It uses `GET /api/paychecks`,
 `PATCH /api/paychecks/{id}/lifecycle`, `POST /api/paychecks/{id}/receipts`,
 `DELETE /api/paychecks/{id}/receipts/{accountInflowId}` and, for saved deposits, `GET /api/inflows`.
@@ -309,8 +309,8 @@ Plan, Paychecks page does. It uses `GET /api/paychecks`,
 
 ## Recurring expenses
 
-The **Recurring** section of the Plan tab (Recurrentes, SF Symbol `repeat`; the page title is "Recurring expenses" /
-"Gastos recurrentes"), is the web's Plan, Recurring expenses page. It uses `GET /api/commitment-candidates`
+The **Recurring** section of the Plan tab (second segment of the Plan switcher, labeled "Recurring expenses" /
+"Gastos recurrentes") is the web's Plan, Recurring expenses page. It uses `GET /api/commitment-candidates`
 and `GET /api/commitments` (read together; if either fails or is malformed the whole list is hidden with a
 Try again button), `POST /api/commitment-candidates/confirm`, `/dismiss` and `/reconsider`, and
 `PATCH /api/commitments/{id}/lifecycle`.

@@ -55,14 +55,12 @@ struct ForgotPasswordView: View {
             }
             Section {
                 DisclosureGroup {
-                    VStack(alignment: .leading, spacing: Theme.Space.s3.points) {
-                        Text(verbatim: l10n.string(.authForgotPasswordRecoveryHelp))
-                            .font(Theme.Typography.meta.font)
-                            .foregroundStyle(ThemeColor.textMuted.color)
-                        ResendContent(isSending: model.isResending, canResend: model.canResend, result: model.resendResult,
-                                      l10n: l10n) { Task { await model.resend() } }
-                    }
-                    .padding(.top, Theme.Space.s2.points)
+                    // Separate rows: a tap on the help text must not reach the resend button.
+                    Text(verbatim: l10n.string(.authForgotPasswordRecoveryHelp))
+                        .font(Theme.Typography.meta.font)
+                        .foregroundStyle(ThemeColor.textMuted.color)
+                    ResendContent(isSending: model.isResending, canResend: model.canResend, result: model.resendResult,
+                                  l10n: l10n) { Task { await model.resend() } }
                 } label: {
                     Text(verbatim: l10n.string(.authForgotPasswordRecoverySummary))
                         .font(Theme.Typography.body.font)

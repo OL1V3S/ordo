@@ -22,4 +22,14 @@ import Testing
     @Test func sectionsHaveDistinctIds() {
         #expect(Set(PlanSection.allCases.map(\.id)).count == PlanSection.allCases.count)
     }
+
+    @Test func switcherIsDisabledOnlyWhileAWriteIsInFlight() {
+        #expect(PlanSwitcherRules.isEnabled(writeInFlight: false))
+        #expect(!PlanSwitcherRules.isEnabled(writeInFlight: true))
+    }
+
+    @Test func switcherIsAMenuOnlyAtAccessibilityTextSizes() {
+        #expect(PlanSwitcherRules.style(isAccessibilitySize: false) == .segmented)
+        #expect(PlanSwitcherRules.style(isAccessibilitySize: true) == .menu)
+    }
 }

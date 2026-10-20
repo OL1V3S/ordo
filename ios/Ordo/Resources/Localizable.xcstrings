@@ -2761,13 +2761,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Save your pay schedules and expected amounts, and record each paycheck you receive."
+            "value": "See your pay schedules and expected pay, and the paychecks you received."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Guarda tus calendarios de nómina y los montos esperados, y registra cada pago de nómina que recibas."
+            "value": "Mira tus calendarios de nómina, lo que esperas cobrar y las nóminas que recibiste."
           }
         }
       }
@@ -6338,23 +6338,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mostrar"
-          }
-        }
-      }
-    },
-    "commitments.ios.tabLabel": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Recurring"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Recurrentes"
           }
         }
       }

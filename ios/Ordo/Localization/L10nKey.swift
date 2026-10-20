@@ -373,7 +373,6 @@ enum L10nKey: String, CaseIterable, Sendable {
     case commitmentsIosRefreshFailedAfterWrite = "commitments.ios.refreshFailedAfterWrite"
     case commitmentsIosRetryConflictNote = "commitments.ios.retryConflictNote"
     case commitmentsIosShowGroup = "commitments.ios.showGroup"
-    case commitmentsIosTabLabel = "commitments.ios.tabLabel"
     case commitmentsIosUncertainTitle = "commitments.ios.uncertainTitle"
     case commitmentsIosUncertainWrite = "commitments.ios.uncertainWrite"
     case commitmentsLifecycleActive = "commitments.lifecycle.active"
