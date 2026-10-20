@@ -216,6 +216,33 @@ import Testing
         #expect(model.notice == .receiptRecorded && model.writePhase == .idle)
     }
 
+    @Test func aDismissedSheetThenRetryRefusedShowsTheNoticeAndLinkWorksAgain() async {
+        let (model, _) = await setup(performs: [{ _ in throw APIError.offline }, { _ in throw APIError.paycheckRejected("receipt_inflow_invalid") }])
+        openNewDeposit(model)
+        model.submitReceipt()
+        await model.settled()
+        model.sheetDismissed()
+        #expect(model.writePhase == .uncertain && model.receipt != nil && !model.isSheetPresented)
+        model.retry()
+        await model.settled()
+        #expect(model.writePhase == .idle && model.notice == .error("receipt_inflow_invalid"))
+        #expect(model.receipt == nil && !model.isSheetPresented)
+        openNewDeposit(model)
+        #expect(model.receipt != nil && model.isSheetPresented)
+    }
+
+    @Test func aDismissedSheetThenRetryConflictStaysUncertain() async {
+        let (model, _) = await setup(performs: [{ _ in throw APIError.offline }, { _ in throw APIError.paycheckConflict("receipt_slot_taken") }])
+        openNewDeposit(model)
+        model.submitReceipt()
+        await model.settled()
+        model.sheetDismissed()
+        model.retry()
+        await model.settled()
+        #expect(model.writePhase == .uncertain && model.retryConflictCode == "receipt_slot_taken")
+        #expect(model.notice != .error("receipt_slot_taken"))
+    }
+
     @Test func a409OnRetryForcesACheckAndNeverSaysNotSaved() async {
         let (model, service) = await setup(performs: [{ _ in throw APIError.offline }, { _ in throw APIError.paycheckConflict("paycheck_not_active") }])
         openNewDeposit(model)

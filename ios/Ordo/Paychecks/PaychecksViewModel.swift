@@ -23,7 +23,9 @@ import os
 /// comes first; (2) if the schedule was paused or ended in between, a Retry answers
 /// `409 paycheck_not_active` even though the first attempt landed, so a `409` on a Retry forces a
 /// Check and never says "not saved"; (3) lifecycle changes are last write wins; (4) the unknown
-/// state is not persisted and is lost if the app is closed (the server list is the check).
+/// state is not persisted and is lost if the app is closed (the server list is the check);
+/// (5) after a Check finds no link, a new submission while the first request may still be running on
+/// the server could conflict or duplicate (the web has the same edge).
 @MainActor @Observable
 final class PaychecksViewModel {
     enum ListState: Equatable { case idle, loading, loaded, failed, malformed }
@@ -447,11 +449,15 @@ final class PaychecksViewModel {
         }
     }
 
+    /// A definitive error goes to the open sheet; when the sheet is not presented (it was swiped
+    /// away after an unknown outcome) the receipt state is cleared and the error is shown as the
+    /// visible notice, so the outcome is never dropped and Link a deposit works again.
     private func show(error code: String?) {
-        if var session = receipt {
+        if var session = receipt, isSheetPresented {
             session.errorCode = code ?? "request_failed"
             receipt = session
         } else {
+            closeTask()
             notice = .error(code)
         }
     }

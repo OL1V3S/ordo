@@ -285,7 +285,9 @@ the owner may later regroup them under a Plan hub. It uses `GET /api/paychecks`,
   nothing); every paycheck write waits until it is resolved. A `409` on a Retry is never reported as
   "not saved" and forces a Check. Residual risks: a Retry after the link was removed elsewhere, or the
   deposit deleted elsewhere, creates a new deposit (so Check first); lifecycle changes are last write
-  wins; the unconfirmed state is lost if the app is killed.
+  wins; the unconfirmed state is lost if the app is killed; and after a Check finds no link, a new
+  submission while the first request may still be running on the server could conflict or duplicate
+  (the web has the same edge).
 - **Refresh.** No optimistic updates. After a change or a Check the schedules, Home and Transactions are
   re-read. A capture deposit save or a Transactions deposit edit or delete re-reads the schedules once
   the tab has been opened. If the read after a change fails, the list is hidden with a message.
@@ -294,7 +296,7 @@ the owner may later regroup them under a Plan hub. It uses `GET /api/paychecks`,
   exact decoding above 2^53 cents); the web shows 2^46 dollars and above as unavailable because of
   JavaScript numbers. Anything inexact shows "Exact amount unavailable".
 - **Nothing persisted;** `origin`, timestamps and algorithm versions are never decoded; amounts,
-  names, dates, ids and server text are never logged or shown.
+  names, dates, ids and server text are never logged, and server error text is never shown.
 - **Out of scope:** creating or editing a schedule, detected "possible paychecks", match suggestions,
   statement-import linking, totals of expected money and an offline cache or queue.
 
