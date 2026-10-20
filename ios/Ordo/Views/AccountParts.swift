@@ -86,3 +86,58 @@ struct AnnouncedMessages: ViewModifier {
         }
     }
 }
+
+/// "Password must include:" with one rule per line. VoiceOver reads it as one group: the heading,
+/// then each rule; the bullet glyphs are decoration.
+struct PasswordRequirementsList: View {
+    let title: String
+    let rules: [String]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Theme.Space.s2.points) {
+            Text(verbatim: title)
+                .font(Theme.Typography.rowTitle.font)
+                .foregroundStyle(ThemeColor.text.color)
+                .accessibilityAddTraits(.isHeader)
+            ForEach(rules, id: \.self) { rule in
+                HStack(alignment: .firstTextBaseline, spacing: Theme.Space.s2.points) {
+                    Text(verbatim: "\u{2022}").accessibilityHidden(true)
+                    Text(verbatim: rule).fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 0)
+                }
+                .font(Theme.Typography.body.font)
+                .foregroundStyle(ThemeColor.text.color)
+                .accessibilityElement(children: .combine)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .contain)
+    }
+}
+
+/// The resend result and button without a list section, for a disclosure or a plain layout.
+struct ResendContent: View {
+    let isSending: Bool
+    let canResend: Bool
+    let result: ResendResult?
+    let l10n: L10n
+    let resend: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Theme.Space.s3.points) {
+            if let result {
+                StatusBanner(tone: result.tone, systemImage: result == .sent ? "envelope" : "exclamationmark.triangle",
+                             message: l10n.string(result.key))
+            }
+            Button(action: resend) {
+                HStack {
+                    if isSending { ProgressView() }
+                    Text(verbatim: isSending ? l10n.string(.authResendRequesting) : l10n.string(.authResendAction))
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            .buttonStyle(OrdoSecondaryButtonStyle())
+            .disabled(!canResend)
+        }
+    }
+}

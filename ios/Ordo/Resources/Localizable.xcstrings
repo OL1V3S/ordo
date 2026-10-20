@@ -2670,6 +2670,159 @@
         }
       }
     },
+    "auth.whatIsOrdo.budgets": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Set a monthly limit for each category and compare your spending with it."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pon un límite mensual para cada categoría y compara tu gasto con él."
+          }
+        }
+      }
+    },
+    "auth.whatIsOrdo.commitments": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Review expenses that repeat, like bills and subscriptions, and decide which ones to keep."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revisa los gastos que se repiten, como servicios y suscripciones, y decide cuáles conservar."
+          }
+        }
+      }
+    },
+    "auth.whatIsOrdo.home": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "See recent activity, what needs your attention, and upcoming paychecks. Add an expense or deposit from here."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mira la actividad reciente, lo que requiere tu atención y los próximos pagos de nómina. Agrega un gasto o un depósito desde aquí."
+          }
+        }
+      }
+    },
+    "auth.whatIsOrdo.intro": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ordo helps you see where your money goes. Record spending and deposits, set monthly budgets, and review what repeats."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ordo te ayuda a ver a dónde va tu dinero. Registra gastos y depósitos, pon presupuestos mensuales y revisa lo que se repite."
+          }
+        }
+      }
+    },
+    "auth.whatIsOrdo.note": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Figures come from the transactions you saved and may not include all account activity. They aren’t an account balance, savings, or money available to spend."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las cifras vienen de los movimientos que guardaste y pueden no incluir toda la actividad de la cuenta. No son un saldo de la cuenta, ahorros ni dinero disponible para gastar."
+          }
+        }
+      }
+    },
+    "auth.whatIsOrdo.paychecks": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "See your pay schedules and expected pay, and the paychecks you received."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mira tus calendarios de nómina, lo que esperas cobrar y las nóminas que recibiste."
+          }
+        }
+      }
+    },
+    "auth.whatIsOrdo.reports": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Compare deposits with spending each month, with a six-month trend and spending by category."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Compara los depósitos con los gastos de cada mes, con la tendencia de seis meses y el gasto por categoría."
+          }
+        }
+      }
+    },
+    "auth.whatIsOrdo.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What is Ordo?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Qué es Ordo?"
+          }
+        }
+      }
+    },
+    "auth.whatIsOrdo.transactions": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Browse and search everything you recorded. You can also import a Sunflower Bank statement PDF."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Consulta y busca todo lo que registraste. También puedes importar un estado de cuenta en PDF de Sunflower Bank."
+          }
+        }
+      }
+    },
     "budgets.card.actionsLabel": {
       "extractionState": "manual",
       "localizations": {
@@ -6185,23 +6338,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mostrar"
-          }
-        }
-      }
-    },
-    "commitments.ios.tabLabel": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Recurring"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Recurrentes"
           }
         }
       }
@@ -10112,6 +10248,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nómina"
+          }
+        }
+      }
+    },
+    "navigation.destinations.plan": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plan"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plan"
+          }
+        }
+      }
+    },
+    "navigation.hubs.plan.ariaLabel": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Budgets, recurring expenses, and paychecks"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Presupuestos, gastos recurrentes y nómina"
           }
         }
       }

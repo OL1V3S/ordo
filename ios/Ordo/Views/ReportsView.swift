@@ -1,14 +1,18 @@
 import SwiftUI
 
 /// Reports: the web's cash-flow region (summary, categories, trend) for one month. Read-only.
-/// Pushed from Home, so it has no navigation stack of its own.
+/// A tab of its own, with its own navigation stack.
 struct ReportsView: View {
     let model: ReportsViewModel
     let l10n: L10n
 
     var body: some View {
+        NavigationStack { content }
+    }
+
+    private var content: some View {
         let presenter = ReportsPresenter(l10n: l10n)
-        List {
+        return List {
             Section {
                 ReportsMonthHeader(model: model, presenter: presenter)
             } header: {

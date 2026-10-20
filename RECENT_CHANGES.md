@@ -24,6 +24,13 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-20 — iPhone app: Plan, Reports and Settings tabs, centred sign-in
+
+[Issue #285](https://github.com/OL1V3S/ordo/issues/285)
+
+- The iPhone app now has five tabs: Home, Transactions, Plan (Budgets, Recurring expenses and Paychecks behind a switcher), Reports and Settings. Reports and Settings no longer open from Home.
+- Sign-in is centred and has a "What is Ordo?" sheet. Create account lists the password rules one per line, and Forgot password no longer clips its heading. English and Spanish; backend, API, schema and web app are unchanged.
+
 ### 2026-10-20 — Account and Settings in the iPhone app
 
 [Issue #282](https://github.com/OL1V3S/ordo/issues/282)
@@ -158,11 +165,3 @@ the permanent, complete archive.
 
 - The Paychecks page now lists deposits that may match an open slot of an active pay schedule, when the date is inside the expected window and the amount equals the fixed amount or falls in the range. Nothing is linked until you choose "Link to ..."; ambiguous matches are not shown.
 - "Dismiss match" hides a suggestion on this device only (stored in the browser, not synced); "Dismissed matches" lets you show it again. Frontend only: no schema, API, or automatic linking change.
-
-### 2026-10-14 — Select all and Clear selection send one request in statement import review
-
-[PR #242](https://github.com/OL1V3S/ordo/pull/242) ·
-[Issue #239](https://github.com/OL1V3S/ordo/issues/239)
-
-- Select all and Clear selection in the statement import review now send one request for the whole action instead of one per row. Before this change each took about 29 seconds on a 34-row statement (the owner's measurement); the new speed has not been measured yet. The change is all-or-nothing: there is no longer a "Stopped after X of Y rows" state, and progress shows a count instead of "row n of N".
-- If the connection drops mid-action, the app retries the same request once; if it still can't confirm the result, importing stays locked and you're asked to refresh the page. Uses the endpoint added in [PR #241](https://github.com/OL1V3S/ordo/pull/241); confirm, duplicate checks and single-row edits are unchanged, and there is no schema change.

@@ -6,12 +6,15 @@ enum RecurringRoute: Hashable {
     case candidate(String)
 }
 
-/// The Recurring expenses tab: confirmed recurring expenses (expected, never recorded spending) and
+/// Recurring expenses, in the Plan tab: confirmed recurring expenses (expected, never recorded spending) and
 /// the possible ones the server detected, with the decisions on them. Everything shown is what the
 /// server last reported; after a decision both lists are read again.
 struct RecurringView: View {
     let model: RecurringViewModel
     let l10n: L10n
+    /// The Plan switcher on this root screen.
+    @Binding var planSection: PlanSection
+    let planSwitchEnabled: Bool
     @State private var path: [RecurringRoute] = []
 
     private var presenter: RecurringPresenter { RecurringPresenter(l10n: l10n) }
@@ -19,6 +22,7 @@ struct RecurringView: View {
     var body: some View {
         NavigationStack(path: $path) {
             list
+                .planSwitcher($planSection, isEnabled: planSwitchEnabled, l10n: l10n)
                 .themedCanvas()
                 .navigationTitle(l10n.string(.commitmentsPageTitle))
                 .navigationDestination(for: RecurringRoute.self) { route in

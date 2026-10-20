@@ -1,11 +1,14 @@
 import SwiftUI
 
-/// The Budgets tab: a month's category limits against the spending recorded for them, with add,
+/// Budgets, in the Plan tab: a month's category limits against the spending recorded for them, with add,
 /// edit and delete. Money is shown only as the server last reported it; after a change the limits
 /// are read again and Home is refreshed.
 struct BudgetsView: View {
     let model: BudgetsViewModel
     let l10n: L10n
+    /// The Plan switcher on this root screen.
+    @Binding var planSection: PlanSection
+    let planSwitchEnabled: Bool
     @Environment(\.scenePhase) private var scenePhase
 
     private var presenter: BudgetsPresenter { BudgetsPresenter(l10n: l10n) }
@@ -13,6 +16,7 @@ struct BudgetsView: View {
     var body: some View {
         NavigationStack {
             list
+                .planSwitcher($planSection, isEnabled: planSwitchEnabled, l10n: l10n)
                 .themedCanvas()
                 .navigationTitle(l10n.string(.budgetsPageTitle))
                 .toolbar {

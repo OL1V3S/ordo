@@ -9,19 +9,27 @@ struct ForgotPasswordView: View {
 
     var body: some View {
         Form {
+            // The heading is in the body, not the large navigation title: a title does not wrap, so
+            // the long text was cut off at large text sizes.
+            Section {
+                VStack(alignment: .leading, spacing: Theme.Space.s2.points) {
+                    Text(verbatim: l10n.string(.authForgotPasswordTitle))
+                        .font(Theme.Typography.title.font.weight(.semibold))
+                        .foregroundStyle(ThemeColor.text.color)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityAddTraits(.isHeader)
+                    Text(verbatim: l10n.string(.authForgotPasswordDescription))
+                        .font(Theme.Typography.body.font)
+                        .foregroundStyle(ThemeColor.textMuted.color)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets(top: 0, leading: Theme.Space.s1.points, bottom: 0, trailing: Theme.Space.s1.points))
             Section {
                 AccountEmailField(l10n: l10n, email: $model.email)
-            } footer: {
-                Text(verbatim: l10n.string(.authForgotPasswordDescription) + " " + l10n.string(.authIosLinkOpensInBrowser))
             }
             .themedRows()
-            if let result = model.forgotResult {
-                Section {
-                    InlineStatusView(systemImage: result == .sent ? "envelope" : "exclamationmark.triangle",
-                                     message: l10n.string(result.key), tone: result.tone)
-                }
-                .themedToneRow(result.tone)
-            }
             Section {
                 Button {
                     Task { await model.sendResetLink() }
@@ -34,15 +42,32 @@ struct ForgotPasswordView: View {
                 }
                 .buttonStyle(OrdoPrimaryButtonStyle())
                 .disabled(!model.canSendReset)
+            } footer: {
+                Text(verbatim: l10n.string(.authIosLinkOpensInBrowser))
             }
             .themedButtonRow()
+            if let result = model.forgotResult {
+                Section {
+                    InlineStatusView(systemImage: result == .sent ? "envelope" : "exclamationmark.triangle",
+                                     message: l10n.string(result.key), tone: result.tone)
+                }
+                .themedToneRow(result.tone)
+            }
             Section {
-                Text(verbatim: l10n.string(.authForgotPasswordRecoverySummary))
-                Text(verbatim: l10n.string(.authForgotPasswordRecoveryHelp))
+                DisclosureGroup {
+                    // Separate rows: a tap on the help text must not reach the resend button.
+                    Text(verbatim: l10n.string(.authForgotPasswordRecoveryHelp))
+                        .font(Theme.Typography.meta.font)
+                        .foregroundStyle(ThemeColor.textMuted.color)
+                    ResendContent(isSending: model.isResending, canResend: model.canResend, result: model.resendResult,
+                                  l10n: l10n) { Task { await model.resend() } }
+                } label: {
+                    Text(verbatim: l10n.string(.authForgotPasswordRecoverySummary))
+                        .font(Theme.Typography.body.font)
+                        .foregroundStyle(ThemeColor.text.color)
+                }
             }
             .themedRows()
-            ResendSection(isSending: model.isResending, canResend: model.canResend, result: model.resendResult,
-                          l10n: l10n) { Task { await model.resend() } }
             Section {
                 Button(l10n.string(.authActionsBackToLogin)) { model.backToSignIn() }
                     .buttonStyle(OrdoSecondaryButtonStyle())
@@ -51,7 +76,8 @@ struct ForgotPasswordView: View {
             .themedButtonRow()
         }
         .themedList()
-        .navigationTitle(l10n.string(.authForgotPasswordTitle))
+        .navigationTitle("")
+        .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(model.isBusy)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) { LanguageMenu(choice: language, l10n: l10n) }

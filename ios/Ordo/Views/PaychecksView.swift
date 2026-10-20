@@ -1,11 +1,14 @@
 import SwiftUI
 
-/// The Paychecks tab: the user's pay schedules with their expected (never received) amounts and
+/// Paychecks, in the Plan tab: the user's pay schedules with their expected (never received) amounts and
 /// windows, the lifecycle actions, and linking or removing a received paycheck. Everything shown is
 /// what the server last reported; after a change the schedules are read again.
 struct PaychecksView: View {
     let model: PaychecksViewModel
     let l10n: L10n
+    /// The Plan switcher on this root screen.
+    @Binding var planSection: PlanSection
+    let planSwitchEnabled: Bool
     @State private var path: [String] = []
 
     private var presenter: PaychecksPresenter { PaychecksPresenter(l10n: l10n) }
@@ -13,6 +16,7 @@ struct PaychecksView: View {
     var body: some View {
         NavigationStack(path: $path) {
             list
+                .planSwitcher($planSection, isEnabled: planSwitchEnabled, l10n: l10n)
                 .themedCanvas()
                 .navigationTitle(l10n.string(.paychecksPageTitle))
                 .navigationDestination(for: String.self) { id in

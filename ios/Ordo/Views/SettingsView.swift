@@ -45,7 +45,7 @@ enum SettingsPresenter {
     }
 }
 
-/// Appearance, language and sign-out, pushed from the gear in Home's toolbar (no sixth tab).
+/// Appearance, language and sign-out: the Settings tab, with its own navigation stack.
 /// The account email is not shown: the app does not store it.
 struct SettingsView: View {
     let model: AppModel
@@ -53,6 +53,10 @@ struct SettingsView: View {
     @State private var confirmingSignOut = false
 
     var body: some View {
+        NavigationStack { form }
+    }
+
+    private var form: some View {
         Form {
             Section {
                 Picker(l10n.string(.settingsAppearanceTitle),
