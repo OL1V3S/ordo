@@ -24,6 +24,13 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-20 — Recurring expenses in the iPhone app
+
+[PR #275](https://github.com/OL1V3S/ordo/pull/275) · [Issue #274](https://github.com/OL1V3S/ordo/issues/274)
+
+- The iPhone app has a Recurring tab: your confirmed recurring expenses (Active, with collapsible Paused and Ended groups) and the possible recurring expenses the server detected, with their expected timing and expected or observed amounts, in English and Spanish. You can review and confirm a possible one, dismiss it or review it again, and pause, reactivate or end (ending asks first) a confirmed one.
+- A decision that times out or loses its connection is shown as unconfirmed; you can retry the same request or check the lists, and further recurring-expense changes wait until then. After every decision both lists and Home are re-read from the server, so nothing is changed on the phone first. Expected amounts are never counted as money spent. Reviewing detected changes and editing a recurring expense are not in the app yet. Backend, API, schema, web app and required checks are unchanged; the app is still not distributed.
+
 ### 2026-10-20 — Paychecks in the iPhone app
 
 [PR #273](https://github.com/OL1V3S/ordo/pull/273) · [Issue #272](https://github.com/OL1V3S/ordo/issues/272)
@@ -163,11 +170,3 @@ the permanent, complete archive.
 
 - Fifth and last of the wording PRs: Home, navigation, Settings, sign-in and account pages, Investing, Budgets and Reports now use the same plain wording in English and Mexican Spanish. Examples: "Monthly limit" / "Límite mensual", "So far" / "A la fecha" on the chart, "Limits start over on {date}", "Try again" instead of "Retry", and a plainer Investing page that says Ordo isn't connected to any investment account.
 - Review fixes from the earlier wording PRs are included: Paychecks notices after an uncertain save now say "Paychecks reloaded" instead of "updated", and empty states, error sentences and a few button names are clearer. The wording guard now covers every namespace. Frontend and docs only; no API, schema or financial-semantics change.
-
-### 2026-10-12 — Plain-language wording: Paychecks
-
-[PR #233](https://github.com/OL1V3S/ordo/pull/233) ·
-[Issue #229](https://github.com/OL1V3S/ordo/issues/229)
-
-- Fourth of five wording PRs: the Paychecks page now uses plain wording in English and Mexican Spanish. Saved schedules are "pay schedules" (Spanish "calendarios de nómina"), the date fields read "Starting pay date" and "First pay day", and the leftover words "candidate", "evidence", "anchor" and "(s)" are gone. The amount error now says "Enter an amount above zero with up to two decimals" on Paychecks and Transactions.
-- Choosing the Quincenal (twice a month) option now shows a short hint: two pay days a month, at least 7 days apart. The wording guard now also covers this page. Frontend and docs only; no API, schema or financial-semantics change.

@@ -12,6 +12,7 @@ final class AppModel {
     let mutationModel: TransactionMutationViewModel
     let budgetsModel: BudgetsViewModel
     let paychecksModel: PaychecksViewModel
+    let recurringModel: RecurringViewModel
     private let session: SessionManager
     private var observer: Task<Void, Never>?
 
@@ -44,11 +45,18 @@ final class AppModel {
             language: language,
             deviceLocale: deviceLocale)
         paychecksModel = paychecks
+        let recurring = RecurringViewModel(
+            service: SessionRecurringService(session: session, api: api),
+            // Needs Attention evaluates change reviews of active recurring expenses.
+            refreshOthers: { [home] in await home.refresh() },
+            language: language,
+            deviceLocale: deviceLocale)
+        recurringModel = recurring
         let capture = CaptureViewModel(
             service: SessionCaptureService(session: session, api: api),
             store: pendingStore,
             invalidationMark: invalidationMark,
-            refreshHome: { [home, transactions, budgets] in
+            refreshHome: { [home, transactions, budgets, recurring] in
                 await home.refresh()
                 // A saved expense or deposit also appears in Transactions, once it has been opened.
                 await transactions.refreshIfLoaded()
@@ -56,6 +64,8 @@ final class AppModel {
                 await budgets.refreshSpendingIfLoaded()
                 // A new deposit can be linked to a pay schedule once Paychecks has been opened.
                 await paychecks.refreshIfLoaded()
+                // A saved expense can start or change a possible recurring expense.
+                await recurring.refreshIfLoaded()
                 if case .loaded = home.phase { return true }
                 return false
             },
@@ -65,26 +75,31 @@ final class AppModel {
         let mutation = TransactionMutationViewModel(
             service: transactionsService,
             refreshList: { [transactions] in await transactions.refresh(afterChange: true) },
-            refreshHome: { [home, budgets, paychecks] in
+            refreshHome: { [home, budgets, paychecks, recurring] in
                 await home.refresh()
                 // An edited or deleted expense changes the month's recorded spending.
                 await budgets.refreshSpendingIfLoaded()
                 // A deleted deposit loses its paycheck link; an edited one is marked as edited.
                 await paychecks.refreshIfLoaded()
+                // An edited or deleted expense changes the evidence of recurring expenses.
+                await recurring.refreshIfLoaded()
             },
-            isOtherWriteInFlight: { [capture, budgets, paychecks] in
-                capture.phase == .saving || budgets.isWriting || paychecks.isWriting
+            isOtherWriteInFlight: { [capture, budgets, paychecks, recurring] in
+                capture.phase == .saving || budgets.isWriting || paychecks.isWriting || recurring.isWriting
             },
             language: language,
             deviceLocale: deviceLocale)
         mutationModel = mutation
         // One write at a time across the app: a budget save or delete waits for a capture save or a
         // Transactions edit or delete, and the other way round.
-        budgets.setOtherWriteInFlight { [capture, mutation, paychecks] in
-            capture.phase == .saving || mutation.isSubmitting || paychecks.isWriting
+        budgets.setOtherWriteInFlight { [capture, mutation, paychecks, recurring] in
+            capture.phase == .saving || mutation.isSubmitting || paychecks.isWriting || recurring.isWriting
         }
-        paychecks.setOtherWriteInFlight { [capture, mutation, budgets] in
-            capture.phase == .saving || mutation.isSubmitting || budgets.isWriting
+        paychecks.setOtherWriteInFlight { [capture, mutation, budgets, recurring] in
+            capture.phase == .saving || mutation.isSubmitting || budgets.isWriting || recurring.isWriting
+        }
+        recurring.setOtherWriteInFlight { [capture, mutation, budgets, paychecks] in
+            capture.phase == .saving || mutation.isSubmitting || budgets.isWriting || paychecks.isWriting
         }
     }
 
@@ -92,7 +107,7 @@ final class AppModel {
     /// its way to the server. Add expense, Add deposit and a waiting save's Retry wait for it.
     var isWriteInFlight: Bool {
         captureModel.phase == .saving || mutationModel.isSubmitting || budgetsModel.isWriting
-            || paychecksModel.isWriting
+            || paychecksModel.isWriting || recurringModel.isWriting
     }
 
     func start() async {
@@ -109,6 +124,7 @@ final class AppModel {
                     self.transactionsModel.reset()
                     self.budgetsModel.reset()
                     self.paychecksModel.reset()
+                    self.recurringModel.reset()
                     self.mutationModel.invalidate()
                     Task { await self.homeModel.load() }
                     if previous == .restoring {
@@ -122,6 +138,7 @@ final class AppModel {
                     self.transactionsModel.reset()
                     self.budgetsModel.reset()
                     self.paychecksModel.reset()
+                    self.recurringModel.reset()
                     self.mutationModel.invalidate()
                     // The launch-time `.signedOut(.none)` (no credential, or a transient Keychain
                     // failure) keeps the record; only an ended session clears it.
@@ -139,6 +156,7 @@ final class AppModel {
         transactionsModel.reset()
         budgetsModel.reset()
         paychecksModel.reset()
+        recurringModel.reset()
         await session.signOut()
     }
 }

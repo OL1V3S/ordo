@@ -270,6 +270,12 @@ lifecycle with `PATCH /api/paychecks/{id}/lifecycle`, and links or unlinks a rec
 `POST /api/paychecks/{id}/receipts` and `DELETE /api/paychecks/{id}/receipts/{accountInflowId}`
 (the server's slots are used as given; a repeat of the same link request is answered
 `alreadyRecorded` by the server, so no `Idempotency-Key` is needed; nothing is persisted).
+A Recurring tab reads `GET /api/commitment-candidates` and `GET /api/commitments`, confirms a
+possible recurring expense with `POST /api/commitment-candidates/confirm` (a repeat for the same
+origin fingerprint is answered `alreadyConfirmed`, so no `Idempotency-Key` is needed), dismisses
+or reconsiders one with `POST /api/commitment-candidates/dismiss` and `/reconsider`, and changes
+a confirmed one's lifecycle with `PATCH /api/commitments/{id}/lifecycle`; the lists are re-read
+after every decision and nothing is persisted.
 The app's financial writes are setting or deleting a budget limit (above), adding an
 expense or a deposit through the existing
 `POST /api/expenses` and `POST /api/inflows`, each with one `Idempotency-Key` that is reused
