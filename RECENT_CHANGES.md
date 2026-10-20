@@ -26,7 +26,7 @@ the permanent, complete archive.
 
 ### 2026-10-20 — Paychecks in the iPhone app
 
-[PR #PRNUM](https://github.com/OL1V3S/ordo/pull/PRNUM) · [Issue #272](https://github.com/OL1V3S/ordo/issues/272)
+[PR #273](https://github.com/OL1V3S/ordo/pull/273) · [Issue #272](https://github.com/OL1V3S/ordo/issues/272)
 
 - The iPhone app has a Paychecks tab: your pay schedules with their cadence, expected amount, next expected window ("Expected, not guaranteed.") and number of linked deposits, in English and Spanish. You can pause, reactivate or end a schedule (ending asks first), link a received paycheck to an active schedule's current or previous date as a new deposit or a saved one, and remove a link you made (the deposit stays in Transactions).
 - A change that times out or loses its connection is shown as unconfirmed; you can retry the same request or check the schedules, and further paycheck changes wait until then. After every change the schedules, Home and Transactions are re-read from the server, so nothing is changed on the phone first. Expected paychecks are never counted as money received. Backend, API, schema, web app and required checks are unchanged; the app is still not distributed.
