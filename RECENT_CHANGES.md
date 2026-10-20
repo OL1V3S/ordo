@@ -24,6 +24,13 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-20 — Reports in the iPhone app
+
+[Issue #276](https://github.com/OL1V3S/ordo/issues/276)
+
+- The iPhone app has Reports, opened from Home: the selected month's deposits, spending, confirmed paychecks vs other deposits and deposits minus spending, spending by category, and a six-month trend chart with an exact list, in English and Spanish. You can move between months that have records.
+- Figures come from the server and are shown exactly; the phone does no money maths. Reports re-reads after saves, edits, deletes and paycheck changes. The web's "More spending detail" is not in the app yet. Backend, API, schema, web app and required checks are unchanged.
+
 ### 2026-10-20 — Recurring expenses in the iPhone app
 
 [PR #275](https://github.com/OL1V3S/ordo/pull/275) · [Issue #274](https://github.com/OL1V3S/ordo/issues/274)
@@ -162,11 +169,3 @@ the permanent, complete archive.
 
 - Small follow-ups to the plain-language wording work: notices after an uncertain save in Transactions and Budgets now say the list was reloaded (Spanish "Se volvió a cargar…") instead of "actualizados"; the Reports month buttons are plainly "Earlier month" and "Later month"; Spanish "Verificado el" dates now read "Revisado el"; and the linked-deposit count on a pay schedule no longer repeats its label.
 - The wording guard now also catches "no se guardó." at the end of a sentence. Docs only otherwise: product overview terms and the architecture notes on date-only dates and the import boundary. Frontend and docs only; no API, schema or financial-semantics change.
-
-### 2026-10-12 — Plain-language wording: the rest of the app (final wording PR)
-
-[PR #234](https://github.com/OL1V3S/ordo/pull/234) ·
-[Issue #229](https://github.com/OL1V3S/ordo/issues/229)
-
-- Fifth and last of the wording PRs: Home, navigation, Settings, sign-in and account pages, Investing, Budgets and Reports now use the same plain wording in English and Mexican Spanish. Examples: "Monthly limit" / "Límite mensual", "So far" / "A la fecha" on the chart, "Limits start over on {date}", "Try again" instead of "Retry", and a plainer Investing page that says Ordo isn't connected to any investment account.
-- Review fixes from the earlier wording PRs are included: Paychecks notices after an uncertain save now say "Paychecks reloaded" instead of "updated", and empty states, error sentences and a few button names are clearer. The wording guard now covers every namespace. Frontend and docs only; no API, schema or financial-semantics change.

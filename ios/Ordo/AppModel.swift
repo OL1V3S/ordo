@@ -13,6 +13,7 @@ final class AppModel {
     let budgetsModel: BudgetsViewModel
     let paychecksModel: PaychecksViewModel
     let recurringModel: RecurringViewModel
+    let reportsModel: ReportsViewModel
     private let session: SessionManager
     private var observer: Task<Void, Never>?
 
@@ -25,6 +26,8 @@ final class AppModel {
         }
         let home = HomeViewModel(service: SessionHomeService(session: session, api: api))
         homeModel = home
+        let reports = ReportsViewModel(service: SessionReportsService(session: session, api: api))
+        reportsModel = reports
         let transactionsService = SessionTransactionsService(session: session, api: api)
         let transactions = TransactionsViewModel(service: transactionsService)
         transactionsModel = transactions
@@ -38,9 +41,11 @@ final class AppModel {
         let paychecks = PaychecksViewModel(
             service: SessionPaychecksService(session: session, api: api),
             // A link or a lifecycle change moves Coming Up, the paycheck marker and the deposit partition.
-            refreshOthers: { [home, transactions] in
+            refreshOthers: { [home, transactions, reports] in
                 await home.refresh()
                 await transactions.refreshIfLoaded()
+                // A link changes the confirmed paychecks / other deposits split.
+                await reports.refreshIfLoaded()
             },
             language: language,
             deviceLocale: deviceLocale)
@@ -56,7 +61,7 @@ final class AppModel {
             service: SessionCaptureService(session: session, api: api),
             store: pendingStore,
             invalidationMark: invalidationMark,
-            refreshHome: { [home, transactions, budgets, recurring] in
+            refreshHome: { [home, transactions, budgets, recurring, reports] in
                 await home.refresh()
                 // A saved expense or deposit also appears in Transactions, once it has been opened.
                 await transactions.refreshIfLoaded()
@@ -66,6 +71,8 @@ final class AppModel {
                 await paychecks.refreshIfLoaded()
                 // A saved expense can start or change a possible recurring expense.
                 await recurring.refreshIfLoaded()
+                // ... and in the month's recorded deposits and spending, once Reports has been opened.
+                await reports.refreshIfLoaded()
                 if case .loaded = home.phase { return true }
                 return false
             },
@@ -75,7 +82,7 @@ final class AppModel {
         let mutation = TransactionMutationViewModel(
             service: transactionsService,
             refreshList: { [transactions] in await transactions.refresh(afterChange: true) },
-            refreshHome: { [home, budgets, paychecks, recurring] in
+            refreshHome: { [home, budgets, paychecks, recurring, reports] in
                 await home.refresh()
                 // An edited or deleted expense changes the month's recorded spending.
                 await budgets.refreshSpendingIfLoaded()
@@ -83,6 +90,8 @@ final class AppModel {
                 await paychecks.refreshIfLoaded()
                 // An edited or deleted expense changes the evidence of recurring expenses.
                 await recurring.refreshIfLoaded()
+                // An edited or deleted expense or deposit changes the recorded figures.
+                await reports.refreshIfLoaded()
             },
             isOtherWriteInFlight: { [capture, budgets, paychecks, recurring] in
                 capture.phase == .saving || budgets.isWriting || paychecks.isWriting || recurring.isWriting
@@ -125,6 +134,7 @@ final class AppModel {
                     self.budgetsModel.reset()
                     self.paychecksModel.reset()
                     self.recurringModel.reset()
+                    self.reportsModel.reset()
                     self.mutationModel.invalidate()
                     Task { await self.homeModel.load() }
                     if previous == .restoring {
@@ -139,6 +149,7 @@ final class AppModel {
                     self.budgetsModel.reset()
                     self.paychecksModel.reset()
                     self.recurringModel.reset()
+                    self.reportsModel.reset()
                     self.mutationModel.invalidate()
                     // The launch-time `.signedOut(.none)` (no credential, or a transient Keychain
                     // failure) keeps the record; only an ended session clears it.
@@ -157,6 +168,7 @@ final class AppModel {
         budgetsModel.reset()
         paychecksModel.reset()
         recurringModel.reset()
+        reportsModel.reset()
         await session.signOut()
     }
 }

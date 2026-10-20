@@ -18,7 +18,9 @@ lifecycle, and linking or removing a received paycheck, using `GET /api/paycheck
 ([#274](https://github.com/OL1V3S/ordo/issues/274)) adds a **Recurring** tab (Recurring expenses): confirmed
 recurring expenses and detected possible ones, with confirm, dismiss, review again, pause, reactivate and
 end, using `GET /api/commitment-candidates`, `GET /api/commitments`, `POST /api/commitment-candidates/confirm`,
-`/dismiss` and `/reconsider`, and `PATCH /api/commitments/{id}/lifecycle`. There is no backend, API or
+`/dismiss` and `/reconsider`, and `PATCH /api/commitments/{id}/lifecycle`. Slice 7
+([#276](https://github.com/OL1V3S/ordo/issues/276)) adds **Reports**, opened from a Home toolbar button,
+using `GET /api/analytics/cash-flow`. There is no backend, API or
 schema change.
 
 - iOS 18.0 or later, iPhone only. Swift 6 with strict concurrency. No third-party
@@ -124,7 +126,7 @@ shows or sends it, and the flag is reset only after the delete succeeds.
 ## Transactions
 
 The signed-in app is a five-tab `TabView`: **Home**, **Transactions** (Movimientos),
-**Budgets** (Presupuestos), **Paychecks** (Nómina) and **Recurring** (Recurrentes), each with its own navigation stack. The system tab bar is Liquid Glass on iOS 26 and later and the standard
+**Budgets** (Presupuestos), **Paychecks** (Nómina) and **Recurring** (Recurrentes), each with its own navigation stack. Reports opens from Home's toolbar, so the tabs stay at five. The system tab bar is Liquid Glass on iOS 26 and later and the standard
 bar on iOS 18-25. Add expense and Add deposit stay on Home; Sign out stays in Home's toolbar.
 
 - **List.** The tab reads `GET /api/activity/timeline` (25 rows a page, newest first, the server's
@@ -343,6 +345,18 @@ Try again button), `POST /api/commitment-candidates/confirm`, `/dismiss` and `/r
 - **Nothing persisted;** names, categories, amounts, dates, ids and fingerprints are never logged, and server
   error text is never shown.
 
+## Reports
+
+Reports (Reportes, SF Symbol `chart.bar.xaxis`) is the web's cash-flow region of `/analytics`. It is read-only.
+
+- **Endpoint.** One `GET /api/analytics/cash-flow?month=YYYY-MM&throughDate=YYYY-MM-DD`; `throughDate` is the device-local day. A response for another month or day is rejected, as on the web.
+- **Exact money.** Amounts arrive as integer-cent strings and are held as `Int128` (`CashAmount`), never `Double`; tests cover values above 2^53 and above `Int64`. Nothing is summed or subtracted on the phone. Percentages and money text are ported from the web with exact digits.
+- **Screen.** Month picker (earlier, later, this month, over the listed months), summary (deposits, spent, confirmed paychecks vs other deposits, deposits minus spending, "About these figures"), spending by category, and the six-month trend.
+- **Chart and list.** A Swift Charts bar chart (hidden from VoiceOver) plus the web's "View chart data" as an exact list. No tap tooltip. `approximateDollars` is used only by the chart.
+- **States.** Loading, error with Retry, pull to refresh. A failed refresh clears the report and shows the error. No writes, so no uncertain state.
+- **Refresh.** Reports re-reads after Capture saves, Transactions edits and deletes, and Paychecks writes, once opened. Not after Budgets or Recurring writes. Sign-out resets it. Nothing is persisted or logged.
+- **Departures from the web.** Pull to refresh replaces the Refresh button; no chart tooltip; the lower "More spending detail" section (previous-month change, largest expenses, "Budget status / Open budgets" link) is omitted.
+
 ## Look and theme
 
 The app uses Ordo's web look through one theme layer (`ios/Ordo/Theme`), while keeping iOS
@@ -381,7 +395,7 @@ Reduce Motion and Increase Contrast.
 
 Add expense and Add deposit on the Transactions tab, bulk edit or delete, undo, an offline queue
 or cache, a concurrency token or conflict detection, automatic infinite scrolling, persisted
-filters, category management, creating or editing pay schedules, possible-paycheck suggestions, commitment change review and editing a recurring expense, statement import, reports,
+filters, category management, creating or editing pay schedules, possible-paycheck suggestions, commitment change review and editing a recurring expense, statement import, Reports' "More spending detail",
 widget, push notifications, TestFlight or App Store distribution, iPad
 layout, registration and password reset, in-app language picker, and links into other web
 workflows.
