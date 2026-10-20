@@ -1650,6 +1650,261 @@
         }
       }
     },
+    "auth.actions.backToLogin": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Back to sign in"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volver a iniciar sesión"
+          }
+        }
+      }
+    },
+    "auth.checkEmail.confirmBefore": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confirm %1$@ before signing in."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confirma %1$@ antes de iniciar sesión."
+          }
+        }
+      }
+    },
+    "auth.checkEmail.sent": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A confirmation link was sent to %1$@."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se envió un enlace de confirmación a %1$@."
+          }
+        }
+      }
+    },
+    "auth.checkEmail.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check your email"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revisa tu correo"
+          }
+        }
+      }
+    },
+    "auth.errors.generic": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Something went wrong. Try again."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Algo salió mal. Inténtalo de nuevo."
+          }
+        }
+      }
+    },
+    "auth.errors.identity.DuplicateEmail": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Email '%1$@' is already taken."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El correo '%1$@' ya está en uso."
+          }
+        }
+      }
+    },
+    "auth.errors.identity.DuplicateUserName": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Username '%1$@' is already taken."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El nombre de usuario '%1$@' ya está en uso."
+          }
+        }
+      }
+    },
+    "auth.errors.identity.InvalidEmail": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Email '%1$@' is invalid."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El correo '%1$@' no es válido."
+          }
+        }
+      }
+    },
+    "auth.errors.identity.InvalidUserName": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The username '%1$@' isn’t valid. It can only have letters or numbers."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El nombre de usuario '%1$@' no es válido. Solo puede tener letras o números."
+          }
+        }
+      }
+    },
+    "auth.errors.identity.PasswordRequiresDigit": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your password needs at least 1 number (0-9)."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu contraseña necesita al menos 1 número (0-9)."
+          }
+        }
+      }
+    },
+    "auth.errors.identity.PasswordRequiresLower": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your password needs at least 1 lowercase letter (a-z)."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu contraseña necesita al menos 1 letra minúscula (a-z)."
+          }
+        }
+      }
+    },
+    "auth.errors.identity.PasswordRequiresNonAlphanumeric": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your password needs at least 1 special character."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu contraseña necesita al menos 1 carácter especial."
+          }
+        }
+      }
+    },
+    "auth.errors.identity.PasswordRequiresUniqueChars": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your password needs at least 1 different character."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu contraseña necesita al menos 1 carácter diferente."
+          }
+        }
+      }
+    },
+    "auth.errors.identity.PasswordRequiresUpper": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your password needs at least 1 uppercase letter (A-Z)."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu contraseña necesita al menos 1 letra mayúscula (A-Z)."
+          }
+        }
+      }
+    },
+    "auth.errors.identity.PasswordTooShort": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your password needs at least 6 characters."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu contraseña necesita al menos 6 caracteres."
+          }
+        }
+      }
+    },
     "auth.errors.login.emailNotConfirmed": {
       "extractionState": "manual",
       "localizations": {
@@ -1701,6 +1956,57 @@
         }
       }
     },
+    "auth.errors.registration.deliveryFailed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your account was created, but we couldn’t send the confirmation email. Request a new one."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu cuenta se creó, pero no pudimos enviar el correo de confirmación. Solicita uno nuevo."
+          }
+        }
+      }
+    },
+    "auth.errors.registration.failed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "We couldn’t create your account. Check your details and try again."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No pudimos crear tu cuenta. Revisa tus datos e inténtalo de nuevo."
+          }
+        }
+      }
+    },
+    "auth.fields.confirmPassword": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confirm password"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confirmar contraseña"
+          }
+        }
+      }
+    },
     "auth.fields.email": {
       "extractionState": "manual",
       "localizations": {
@@ -1735,6 +2041,159 @@
         }
       }
     },
+    "auth.forgotPassword.description": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter your email and we’ll send you a reset link."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ingresa tu correo y te enviaremos un enlace para restablecerla."
+          }
+        }
+      }
+    },
+    "auth.forgotPassword.failed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "We couldn’t send the reset link. Try again."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No pudimos enviar el enlace. Inténtalo de nuevo."
+          }
+        }
+      }
+    },
+    "auth.forgotPassword.recovery.help": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter your account email above, then request another confirmation link."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ingresa arriba el correo de tu cuenta y luego solicita otro enlace de confirmación."
+          }
+        }
+      }
+    },
+    "auth.forgotPassword.recovery.summary": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Need a new confirmation email?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Necesitas un nuevo correo de confirmación?"
+          }
+        }
+      }
+    },
+    "auth.forgotPassword.sent": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "If that email has an account, we sent a reset link."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Si ese correo tiene una cuenta, enviamos un enlace de restablecimiento."
+          }
+        }
+      }
+    },
+    "auth.forgotPassword.submit": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Send reset link"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviar enlace de restablecimiento"
+          }
+        }
+      }
+    },
+    "auth.forgotPassword.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Forgot your password?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Olvidaste tu contraseña?"
+          }
+        }
+      }
+    },
+    "auth.ios.linkOpensInBrowser": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The link in the email opens in your browser. Then come back here to sign in."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El enlace del correo se abre en tu navegador. Luego vuelve aquí para iniciar sesión."
+          }
+        }
+      }
+    },
+    "auth.login.forgotPassword": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Forgot password?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Olvidaste tu contraseña?"
+          }
+        }
+      }
+    },
     "auth.login.submit": {
       "extractionState": "manual",
       "localizations": {
@@ -1748,6 +2207,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Iniciar sesión"
+          }
+        }
+      }
+    },
+    "auth.login.switchToRegister": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Need an account? Create one"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Necesitas una cuenta? Crea una"
           }
         }
       }
@@ -1769,6 +2245,23 @@
         }
       }
     },
+    "auth.passwordToggle.hideConfirmPassword": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hide password confirmation"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ocultar confirmación de contraseña"
+          }
+        }
+      }
+    },
     "auth.passwordToggle.hidePassword": {
       "extractionState": "manual",
       "localizations": {
@@ -1786,6 +2279,23 @@
         }
       }
     },
+    "auth.passwordToggle.showConfirmPassword": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show password confirmation"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrar confirmación de contraseña"
+          }
+        }
+      }
+    },
     "auth.passwordToggle.showPassword": {
       "extractionState": "manual",
       "localizations": {
@@ -1799,6 +2309,295 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mostrar contraseña"
+          }
+        }
+      }
+    },
+    "auth.register.ios.creating": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Creating account…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Creando cuenta…"
+          }
+        }
+      }
+    },
+    "auth.register.ios.outcomeUnknown": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "We couldn’t tell if your account was created. If it was, a confirmation link is on its way to %1$@. You can resend it, or go back and sign in."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No pudimos saber si se creó tu cuenta. Si se creó, enviamos un enlace de confirmación a %1$@. Puedes reenviarlo o volver para iniciar sesión."
+          }
+        }
+      }
+    },
+    "auth.register.passwordMismatch": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Passwords do not match."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las contraseñas no coinciden."
+          }
+        }
+      }
+    },
+    "auth.register.requirements.digit": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "One number"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un número"
+          }
+        }
+      }
+    },
+    "auth.register.requirements.length": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "At least 6 characters"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Al menos 6 caracteres"
+          }
+        }
+      }
+    },
+    "auth.register.requirements.lower": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "One lowercase letter"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Una letra minúscula"
+          }
+        }
+      }
+    },
+    "auth.register.requirements.special": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "One special character"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un carácter especial"
+          }
+        }
+      }
+    },
+    "auth.register.requirements.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Password must include:"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La contraseña debe incluir:"
+          }
+        }
+      }
+    },
+    "auth.register.requirements.upper": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "One uppercase letter"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Una letra mayúscula"
+          }
+        }
+      }
+    },
+    "auth.register.submit": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Create account"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Crear cuenta"
+          }
+        }
+      }
+    },
+    "auth.register.switchToLogin": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Already have an account? Sign in"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Ya tienes una cuenta? Inicia sesión"
+          }
+        }
+      }
+    },
+    "auth.register.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Create account"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Crear cuenta"
+          }
+        }
+      }
+    },
+    "auth.resend.action": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resend confirmation email"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reenviar correo de confirmación"
+          }
+        }
+      }
+    },
+    "auth.resend.failed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "We couldn’t send another confirmation email. Try again later."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No pudimos enviar otro correo de confirmación. Inténtalo más tarde."
+          }
+        }
+      }
+    },
+    "auth.resend.rateLimited": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Too many requests. Wait a moment, then try again."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Demasiadas solicitudes. Espera un momento antes de volver a intentarlo."
+          }
+        }
+      }
+    },
+    "auth.resend.requesting": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sending…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviando…"
+          }
+        }
+      }
+    },
+    "auth.resend.sent": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "If an unconfirmed account exists for that email, we sent a confirmation link."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Si existe una cuenta sin confirmar para ese correo, enviamos un enlace de confirmación."
           }
         }
       }
@@ -6151,6 +6950,57 @@
           "stringUnit": {
             "state": "translated",
             "value": "Cerrar sesión"
+          }
+        }
+      }
+    },
+    "common.theme.options.dark": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dark"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oscuro"
+          }
+        }
+      }
+    },
+    "common.theme.options.light": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Light"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claro"
+          }
+        }
+      }
+    },
+    "common.theme.options.system": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "System"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sistema"
           }
         }
       }
@@ -11642,6 +12492,193 @@
           "stringUnit": {
             "state": "translated",
             "value": "Este monto está fuera del rango esperado. Aun así, puedes vincular este depósito."
+          }
+        }
+      }
+    },
+    "settings.account.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Account"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cuenta"
+          }
+        }
+      }
+    },
+    "settings.appearance.helper": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "System follows your device. Light or Dark is saved on this device."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sistema sigue tu dispositivo. Claro u Oscuro se guarda en este dispositivo."
+          }
+        }
+      }
+    },
+    "settings.appearance.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Appearance"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apariencia"
+          }
+        }
+      }
+    },
+    "settings.description": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose how Ordo looks and which language it uses on this device."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elige cómo se ve Ordo y qué idioma usa en este dispositivo."
+          }
+        }
+      }
+    },
+    "settings.ios.languageWaiting": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You can change the language once the current save finishes."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Podrás cambiar el idioma cuando termine el guardado en curso."
+          }
+        }
+      }
+    },
+    "settings.language.helper": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your English or Spanish preference is saved on this device."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu preferencia de inglés o español se guarda en este dispositivo."
+          }
+        }
+      }
+    },
+    "settings.language.label": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Language preference"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preferencia de idioma"
+          }
+        }
+      }
+    },
+    "settings.language.options.en": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "English"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "English"
+          }
+        }
+      }
+    },
+    "settings.language.options.es": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Español"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Español"
+          }
+        }
+      }
+    },
+    "settings.language.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Language"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Idioma"
+          }
+        }
+      }
+    },
+    "settings.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Settings"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Configuración"
           }
         }
       }

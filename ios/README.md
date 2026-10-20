@@ -27,8 +27,9 @@ schema change.
 
 - iOS 18.0 or later, iPhone only. Swift 6 with strict concurrency. No third-party
   dependencies (SwiftUI, Foundation, Security, os, Swift Testing).
-- English and Spanish (es-MX), following the device language. Copy comes from the web
-  catalogs in `frontend/src/shared/localization/locales`.
+- English and Spanish (es-MX). The device language is used until a language is chosen in
+  Settings or on the sign-in screen. Copy comes from the web catalogs in
+  `frontend/src/shared/localization/locales`.
 
 ## Set up
 
@@ -129,7 +130,7 @@ shows or sends it, and the flag is reset only after the delete succeeds.
 
 The signed-in app is a five-tab `TabView`: **Home**, **Transactions** (Movimientos),
 **Budgets** (Presupuestos), **Paychecks** (Nómina) and **Recurring** (Recurrentes), each with its own navigation stack. Reports opens from Home's toolbar, so the tabs stay at five. The system tab bar is Liquid Glass on iOS 26 and later and the standard
-bar on iOS 18-25. Add expense and Add deposit stay on Home; Sign out stays in Home's toolbar.
+bar on iOS 18-25. Add expense and Add deposit stay on Home; Settings (with Sign out) opens from Home's toolbar.
 
 - **List.** The tab reads `GET /api/activity/timeline` (25 rows a page, newest first, the server's
   cursor) when it first appears. Each row shows the kind, description, date, category (expenses),
@@ -370,6 +371,28 @@ Import statement (Importar estado de cuenta) is a toolbar button on Transactions
 - **Messages.** Server text is never shown; codes map to the web's catalog entries. Any `413` is "file too large".
 - **Departures from the web.** Bank is fixed to Sunflower; no paycheck linking after saving; saved rows are shown as counts only; no per-row confirmation codes (a duplicate refusal re-reads the preview). iOS-only strings (`importPreview.ios.*`) need Spanish review.
 
+## Account
+
+The sign-in screen links to **Create account** and **Forgot password?**, like the web.
+
+- **Requests.** `POST /api/auth/register`, `/resend-confirmation` and `/forgot-password`, the same as the web, with no token. `language` is the app's language, so the emails match it. Registering does not sign in.
+- **Create account.** Email, password, confirm password and the web's password list. Only a mismatch is checked on the phone; Identity `code` values map to the web's messages (descriptions are never read). Success, or `503 confirmation_email_delivery_failed`, opens Check your email.
+- **Unknown outcome.** A register timeout or lost connection may have created the account, so Check your email says it is not known and offers Resend and Back to sign in. Never retried automatically.
+- **Resend and forgot** show the same message for any email. A resend `429` says "Too many requests"; any forgot failure is the web's failure message.
+- **Email links open in Safari** on the web's `/confirm-email` and `/reset-password` pages. The app never handles a token; there are no Universal Links or URL schemes. Known gap: those pages open in the web's language, not the app's.
+- **Passwords** live only in memory and are cleared after a submit that reaches Check your email, when the screen is left and on any session change. Nothing is logged or stored. Back is hidden while a request is on its way, and late answers after a reset are ignored.
+- On sign-in, "Confirm your email" adds a Resend confirmation email button.
+- iOS-only strings (`auth.ios.*`, `auth.register.ios.*`, `settings.ios.*`) need Spanish review.
+
+## Settings
+
+A gear in Home's toolbar opens Settings (no sixth tab). The account email is not shown.
+
+- **Appearance:** System (default), Light, Dark, applied at the window root (sheets and dialogs included).
+- **Language:** English or Español. It applies at once to the strings, formatting, amount parsing and system controls (the root `locale`). It is locked while a save, edit or delete is on its way; open drafts are kept. The sign-in and account screens have the same language menu.
+- **Sign out** moved here from Home's toolbar, with the same confirmation and waiting-save warning.
+- **Stored on the device:** only `ordo.theme` and `ordo.language` in `UserDefaults`. Sign-out and an ended session keep them.
+
 ## Look and theme
 
 The app uses Ordo's web look through one theme layer (`ios/Ordo/Theme`), while keeping iOS
@@ -378,7 +401,7 @@ Reduce Motion and Increase Contrast.
 
 - **Colors** are asset-catalog color sets (`Resources/Assets.xcassets/Theme`, plus `AccentColor`)
   ported from the web's `themes.css`, with light, dark and Increase Contrast values. The app follows
-  the system appearance; there is no in-app picker.
+  the system appearance unless Light or Dark is chosen in Settings.
 - **Views never use raw colors.** They use `ThemeColor`, `Theme.Typography` (text styles only, so
   everything scales), `Theme.Space`, `Theme.Radius` and the `Ordo*ButtonStyle` styles. The system
   `.borderedProminent` style is not used: its white label fails contrast on the dark accent.
@@ -403,6 +426,8 @@ Reduce Motion and Increase Contrast.
   descriptions, categories, search text, record ids, cursors or idempotency keys. Error bodies are read for
   their `code` (and, for a create or edit `400`, the field names) only; server text is never shown.
 - The URL session is ephemeral (no disk cache or cookies).
+- `UserDefaults` holds only non-financial flags and the two settings `ordo.theme` and
+  `ordo.language`. Registration adds nothing to the Keychain.
 
 ## Out of scope
 
@@ -410,5 +435,5 @@ Add expense and Add deposit on the Transactions tab, bulk edit or delete, undo, 
 or cache, a concurrency token or conflict detection, automatic infinite scrolling, persisted
 filters, category management, creating or editing pay schedules, possible-paycheck suggestions, commitment change review and editing a recurring expense, paycheck linking after an import, Reports' "More spending detail",
 widget, push notifications, TestFlight or App Store distribution, iPad
-layout, registration and password reset, in-app language picker, and links into other web
-workflows.
+layout, confirming an email or resetting a password inside the app (Universal Links, URL schemes,
+a paste-the-link field), and links into other web workflows.

@@ -14,6 +14,8 @@ struct DeviceSessionResponse: Sendable {
 /// either (see `BudgetsViewModel`).
 /// The Paychecks screen adds `GET /api/paychecks`, `GET /api/inflows`, `PATCH /api/paychecks/{id}/lifecycle`,
 /// `POST /api/paychecks/{id}/receipts` and `DELETE /api/paychecks/{id}/receipts/{accountInflowId}`.
+/// Signed out, the account screens add `POST /api/auth/register`, `POST /api/auth/resend-confirmation`
+/// and `POST /api/auth/forgot-password` (no token). Confirm-email and reset-password stay on the web.
 struct OrdoAPI: Sendable {
     let baseURL: URL
     let transport: HTTPTransport
@@ -54,6 +56,50 @@ struct OrdoAPI: Sendable {
         let body = try JSONEncoder().encode(["refreshToken": refreshToken])
         let (_, status) = try await perform(post: "api/auth/device-sessions/sign-out", body: body, timeout: 5)
         guard status == 204 || status == 200 else { throw APIError.server(status) }
+    }
+
+    // MARK: Account (unauthenticated, no token)
+
+    /// `POST /api/auth/register`. Registering does not sign in. A timeout or a lost connection is an
+    /// unknown outcome (the account may exist); the caller never retries it.
+    func register(email: String, password: String, language: AppLanguage) async throws {
+        let body = try JSONEncoder().encode(["email": email, "password": password, "language": language.rawValue])
+        let (data, status) = try await perform(post: "api/auth/register", body: body,
+                                               ambiguous: [.timedOut, .networkConnectionLost],
+                                               ambiguousError: .registrationOutcomeUnknown)
+        switch status {
+        case 200...299: return
+        case 400: throw APIError.registrationRejected(Self.identityCodes(in: data))
+        case 503 where Self.errorCode(in: data) == "confirmation_email_delivery_failed":
+            throw APIError.confirmationDeliveryFailed
+        default: throw APIError.server(status)
+        }
+    }
+
+    /// `POST /api/auth/resend-confirmation`. The server answers the same for any email.
+    func resendConfirmation(email: String, language: AppLanguage) async throws {
+        try await uniformAccountPost("api/auth/resend-confirmation", email: email, language: language)
+    }
+
+    /// `POST /api/auth/forgot-password`. The server answers the same for any email.
+    func forgotPassword(email: String, language: AppLanguage) async throws {
+        try await uniformAccountPost("api/auth/forgot-password", email: email, language: language)
+    }
+
+    private func uniformAccountPost(_ path: String, email: String, language: AppLanguage) async throws {
+        let body = try JSONEncoder().encode(["email": email, "language": language.rawValue])
+        let (_, status) = try await perform(post: path, body: body)
+        switch status {
+        case 200...299: return
+        case 429: throw APIError.rateLimited
+        default: throw APIError.server(status)
+        }
+    }
+
+    /// Only the string `code` of each item is read. A body that is not an array, or an empty one, is one unknown code.
+    static func identityCodes(in data: Data) -> [IdentityCode] {
+        guard let items = (try? JSONSerialization.jsonObject(with: data)) as? [Any], !items.isEmpty else { return [.unknown] }
+        return items.map { IdentityCode(code: ($0 as? [String: Any])?["code"] as? String) }
     }
 
     /// Returns the raw body; validation happens in `HomeValidation`.
@@ -493,7 +539,8 @@ struct OrdoAPI: Sendable {
     // MARK: Internals
 
     private func perform(post path: String, body: Data, timeout: TimeInterval = 30,
-                         headers: [String: String] = [:]) async throws -> (Data, Int) {
+                         headers: [String: String] = [:], ambiguous: Set<URLError.Code> = [],
+                         ambiguousError: APIError = .offline) async throws -> (Data, Int) {
         var request = URLRequest(url: baseURL.appending(path: path))
         request.httpMethod = "POST"
         request.httpBody = body
@@ -501,15 +548,17 @@ struct OrdoAPI: Sendable {
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         for (name, value) in headers { request.setValue(value, forHTTPHeaderField: name) }
         request.timeoutInterval = timeout
-        return try await send(request)
+        return try await send(request, ambiguous: ambiguous, ambiguousError: ambiguousError)
     }
 
-    private func send(_ request: URLRequest) async throws -> (Data, Int) {
+    private func send(_ request: URLRequest, ambiguous: Set<URLError.Code> = [],
+                      ambiguousError: APIError = .offline) async throws -> (Data, Int) {
         do {
             let (data, response) = try await transport.send(request)
             return (data, response.statusCode)
         } catch let error as URLError {
             if error.code == .cancelled { throw CancellationError() }
+            if ambiguous.contains(error.code) { throw ambiguousError }
             throw Self.offlineCodes.contains(error.code) ? APIError.offline : APIError.invalidResponse
         }
     }

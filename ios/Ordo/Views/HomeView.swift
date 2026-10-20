@@ -7,8 +7,8 @@ struct HomeView: View {
     /// An edit or delete is on its way to the server: one write at a time.
     let writeBlocked: Bool
     let l10n: L10n
-    let signOut: () -> Void
-    @State private var confirmingSignOut = false
+    /// For Settings (appearance, language and sign-out).
+    let app: AppModel
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
@@ -32,15 +32,12 @@ struct HomeView: View {
                         }
                     }
                     ToolbarItem(placement: .topBarTrailing) {
-                        Button(l10n.string(.commonSignOut)) { confirmingSignOut = true }
+                        NavigationLink {
+                            SettingsView(model: app, l10n: l10n)
+                        } label: {
+                            Label(l10n.string(.settingsTitle), systemImage: "gearshape")
+                        }
                     }
-                }
-                .confirmationDialog(l10n.string(.authSignOutConfirmTitle), isPresented: $confirmingSignOut,
-                                    titleVisibility: .visible) {
-                    Button(l10n.string(.commonSignOut), role: .destructive, action: signOut)
-                    Button(l10n.string(.commonCancel), role: .cancel) {}
-                } message: {
-                    Text(verbatim: signOutMessage)
                 }
                 .sheet(isPresented: Binding(get: { capture.isSheetPresented },
                                             set: { if !$0 { capture.sheetDismissed() } })) {
@@ -57,12 +54,6 @@ struct HomeView: View {
                     if phase == .active { Task { await model.reloadIfDateChanged() } }
                 }
         }
-    }
-
-    /// Signing out discards a waiting save, so the user is warned while it may already be saved.
-    private var signOutMessage: String {
-        let base = l10n.string(.authSignOutConfirmMessage)
-        return capture.needsSignOutWarning ? base + "\n\n" + l10n.string(.captureSignOutWarning) : base
     }
 
     @ViewBuilder private var content: some View {

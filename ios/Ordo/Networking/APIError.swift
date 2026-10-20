@@ -44,6 +44,31 @@ enum APIError: Error, Equatable, Sendable {
     case commitmentConflict(String?)
     /// A definitive `4xx` (other than `401`) on a statement import request. Only the status and the `code` of the body are read.
     case importRefused(status: Int, code: String?)
+    /// `400` on a registration: the Identity `code` of each error, in server order. Descriptions are never read.
+    case registrationRejected([IdentityCode])
+    /// `503 confirmation_email_delivery_failed`: the account was created, the email was not sent.
+    case confirmationDeliveryFailed
+    /// A registration timed out or lost its connection: the account may or may not exist.
+    case registrationOutcomeUnknown
+    /// `429` from the resend or forgot-password limiter.
+    case rateLimited
+}
+
+/// Identity error codes the registration can return (the web's whitelist). Anything else is `.unknown`.
+enum IdentityCode: String, Sendable, CaseIterable {
+    case passwordTooShort = "PasswordTooShort"
+    case passwordRequiresNonAlphanumeric = "PasswordRequiresNonAlphanumeric"
+    case passwordRequiresDigit = "PasswordRequiresDigit"
+    case passwordRequiresLower = "PasswordRequiresLower"
+    case passwordRequiresUpper = "PasswordRequiresUpper"
+    case passwordRequiresUniqueChars = "PasswordRequiresUniqueChars"
+    case duplicateUserName = "DuplicateUserName"
+    case duplicateEmail = "DuplicateEmail"
+    case invalidEmail = "InvalidEmail"
+    case invalidUserName = "InvalidUserName"
+    case unknown = "?"
+
+    init(code: String?) { self = code.flatMap(IdentityCode.init(rawValue:)) ?? .unknown }
 }
 
 /// A field named by a create or edit validation error. Server messages are never read.

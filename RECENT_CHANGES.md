@@ -24,6 +24,13 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-20 — Account and Settings in the iPhone app
+
+[Issue #282](https://github.com/OL1V3S/ordo/issues/282)
+
+- The iPhone app can create an account and send confirmation or reset emails, like the web. Email links open the web pages in Safari; the app never handles a token.
+- Settings (gear on Home) has Appearance, Language (English, Español) and Sign out. Only theme and language are stored on the device. Backend, API, schema and web app are unchanged.
+
 ### 2026-10-20 — Statement import in the iOS app
 
 [Issue #281](https://github.com/OL1V3S/ordo/issues/281)
@@ -159,11 +166,3 @@ the permanent, complete archive.
 
 - Select all and Clear selection in the statement import review now send one request for the whole action instead of one per row. Before this change each took about 29 seconds on a 34-row statement (the owner's measurement); the new speed has not been measured yet. The change is all-or-nothing: there is no longer a "Stopped after X of Y rows" state, and progress shows a count instead of "row n of N".
 - If the connection drops mid-action, the app retries the same request once; if it still can't confirm the result, importing stays locked and you're asked to refresh the page. Uses the endpoint added in [PR #241](https://github.com/OL1V3S/ordo/pull/241); confirm, duplicate checks and single-row edits are unchanged, and there is no schema change.
-
-### 2026-10-13 — Category names and import dates in the user's language
-
-[PR #240](https://github.com/OL1V3S/ordo/pull/240) ·
-[Issue #237](https://github.com/OL1V3S/ordo/issues/237)
-
-- The remaining places that showed stored category names in English in Spanish mode now read "Servicios", "Comida", "Transporte" and so on: the Budgets list, edit headings and delete confirmations, the Reports category list and comparisons, and Recurring expenses. Categories you typed yourself show exactly as before, and the app's own "uncategorized" now reads "Uncategorized" / "Sin categoría" everywhere.
-- Statement import review rows show the statement date the same way as the saved list ("Oct 11, 2026" / "11 oct 2026") instead of the raw "2026-10-11". Display only; stored values, payloads and sorting are unchanged, and there is no API, schema or financial-semantics change.

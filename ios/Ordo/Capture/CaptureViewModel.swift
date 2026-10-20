@@ -59,7 +59,8 @@ final class CaptureViewModel {
     /// True when the uncertain record was found on disk after a relaunch.
     private(set) var isRecovered = false
 
-    let language: AppLanguage
+    /// Changed by `AppModel.setLanguage` (only while no write is in flight).
+    var language: AppLanguage
     let deviceLocale: Locale
     let timeZone: TimeZone
 

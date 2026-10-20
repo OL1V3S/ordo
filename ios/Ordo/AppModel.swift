@@ -6,6 +6,9 @@ import Observation
 final class AppModel {
     private(set) var sessionState: SessionState = .restoring
     let signInModel: SignInViewModel
+    let accountModel: AccountFlowViewModel
+    /// Theme and language for the whole app (signed in or out).
+    let settings: AppSettings
     let homeModel: HomeViewModel
     let captureModel: CaptureViewModel
     let transactionsModel: TransactionsViewModel
@@ -20,11 +23,19 @@ final class AppModel {
 
     init(session: SessionManager, api: OrdoAPI, pendingStore: PendingSaveStore,
          invalidationMark: UserDefaults = .standard,
-         language: AppLanguage = .current, deviceLocale: Locale = .current) {
+         language: AppLanguage = .current, deviceLocale: Locale = .current, settings: AppSettings? = nil) {
         self.session = session
-        signInModel = SignInViewModel { email, password in
+        let settings = settings ?? AppSettings(defaults: nil, deviceLanguage: language)
+        self.settings = settings
+        let currentLanguage = settings.language
+        let signIn = SignInViewModel(signIn: { email, password in
             try await session.signIn(email: email, password: password)
-        }
+        }, resend: { [api, settings] email in
+            try await api.resendConfirmation(email: email, language: settings.language)
+        })
+        signInModel = signIn
+        accountModel = AccountFlowViewModel(service: api, language: { [settings] in settings.language },
+                                            returnToSignIn: { [signIn] email in signIn.email = email })
         let home = HomeViewModel(service: SessionHomeService(session: session, api: api))
         homeModel = home
         let reports = ReportsViewModel(service: SessionReportsService(session: session, api: api))
@@ -36,7 +47,7 @@ final class AppModel {
             service: SessionBudgetsService(session: session, api: api),
             // Home's budget attention depends on the limits, so a budget change refreshes Home too.
             refreshHome: { [home] in await home.refresh() },
-            language: language,
+            language: currentLanguage,
             deviceLocale: deviceLocale)
         budgetsModel = budgets
         let paychecks = PaychecksViewModel(
@@ -48,14 +59,14 @@ final class AppModel {
                 // A link changes the confirmed paychecks / other deposits split.
                 await reports.refreshIfLoaded()
             },
-            language: language,
+            language: currentLanguage,
             deviceLocale: deviceLocale)
         paychecksModel = paychecks
         let recurring = RecurringViewModel(
             service: SessionRecurringService(session: session, api: api),
             // Needs Attention evaluates change reviews of active recurring expenses.
             refreshOthers: { [home] in await home.refresh() },
-            language: language,
+            language: currentLanguage,
             deviceLocale: deviceLocale)
         recurringModel = recurring
         let importer = ImportViewModel(
@@ -89,7 +100,7 @@ final class AppModel {
                 if case .loaded = home.phase { return true }
                 return false
             },
-            language: language,
+            language: currentLanguage,
             deviceLocale: deviceLocale)
         captureModel = capture
         let mutation = TransactionMutationViewModel(
@@ -110,7 +121,7 @@ final class AppModel {
                 capture.phase == .saving || budgets.isWriting || paychecks.isWriting || recurring.isWriting
                     || importer.isWriting
             },
-            language: language,
+            language: currentLanguage,
             deviceLocale: deviceLocale)
         mutationModel = mutation
         // One write at a time across the app: a budget save or delete waits for a capture save or a
@@ -140,6 +151,22 @@ final class AppModel {
             || paychecksModel.isWriting || recurringModel.isWriting || importModel.isWriting
     }
 
+    /// Language changes apply at once to the strings and to amount parsing, but never while a write
+    /// is on its way (its values were read in the old language). Open drafts are kept.
+    var canChangeLanguage: Bool { !isWriteInFlight }
+
+    @discardableResult
+    func setLanguage(_ language: AppLanguage) -> Bool {
+        guard canChangeLanguage else { return false }
+        settings.setLanguage(language)
+        captureModel.language = language
+        mutationModel.language = language
+        budgetsModel.language = language
+        paychecksModel.language = language
+        recurringModel.language = language
+        return true
+    }
+
     func start() async {
         // Read the waiting save (if any) before the session starts. It is surfaced only when the
         // session is restored, and removed only by sign-out, a ended session or a fresh sign-in.
@@ -149,6 +176,7 @@ final class AppModel {
             for await state in states {
                 guard let self else { return }
                 let previous = self.sessionState
+                if state != previous { self.accountModel.reset() }
                 if state == .signedIn, previous != .signedIn {
                     self.homeModel.reset()
                     self.transactionsModel.reset()

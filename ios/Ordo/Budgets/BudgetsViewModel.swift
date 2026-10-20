@@ -96,7 +96,8 @@ final class BudgetsViewModel {
     private(set) var invalidFields: Set<BudgetField> = []
     private(set) var focusRequest: FocusRequest?
 
-    let language: AppLanguage
+    /// Changed by `AppModel.setLanguage` (only while no write is in flight).
+    var language: AppLanguage
     let deviceLocale: Locale
 
     @ObservationIgnored private let service: BudgetsService
