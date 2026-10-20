@@ -1,14 +1,13 @@
 import SwiftUI
 
+/// Home, the first tab: attention items, recent activity and upcoming paychecks, with Add expense
+/// and Add deposit. Reports and Settings are tabs of their own.
 struct HomeView: View {
     let model: HomeViewModel
     let capture: CaptureViewModel
-    let reports: ReportsViewModel
     /// An edit or delete is on its way to the server: one write at a time.
     let writeBlocked: Bool
     let l10n: L10n
-    /// For Settings (appearance, language and sign-out).
-    let app: AppModel
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
@@ -23,22 +22,6 @@ struct HomeView: View {
                     }
                 }
                 .navigationTitle(l10n.string(.homePageTitle))
-                .toolbar {
-                    ToolbarItem(placement: .topBarLeading) {
-                        NavigationLink {
-                            ReportsView(model: reports, l10n: l10n)
-                        } label: {
-                            Label(l10n.string(.navigationDestinationsInsights), systemImage: "chart.bar.xaxis")
-                        }
-                    }
-                    ToolbarItem(placement: .topBarTrailing) {
-                        NavigationLink {
-                            SettingsView(model: app, l10n: l10n)
-                        } label: {
-                            Label(l10n.string(.settingsTitle), systemImage: "gearshape")
-                        }
-                    }
-                }
                 .sheet(isPresented: Binding(get: { capture.isSheetPresented },
                                             set: { if !$0 { capture.sheetDismissed() } })) {
                     CaptureSheet(model: capture, writeBlocked: writeBlocked, l10n: l10n)
