@@ -71,7 +71,8 @@ final class TransactionMutationViewModel {
     private(set) var notice: Notice?
     private(set) var isSheetPresented = false
 
-    let language: AppLanguage
+    /// Changed by `AppModel.setLanguage` (only while no write is in flight).
+    var language: AppLanguage
     let deviceLocale: Locale
     let timeZone: TimeZone
 

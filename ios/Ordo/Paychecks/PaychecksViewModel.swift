@@ -82,7 +82,8 @@ final class PaychecksViewModel {
     private(set) var retryConflictCode: String?
     private(set) var isChecking = false
 
-    let language: AppLanguage
+    /// Changed by `AppModel.setLanguage` (only while no write is in flight).
+    var language: AppLanguage
     let deviceLocale: Locale
     let timeZone: TimeZone
 

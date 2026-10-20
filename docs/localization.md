@@ -62,6 +62,10 @@ to English. It is a browser/device preference, not account data, and survives
 logout or session invalidation. Language selection does not infer a region,
 change currency, reload a route, or remount application state.
 
+The iOS app keeps its own device preference (`ordo.language` in `UserDefaults`; no saved choice
+follows the device language) and sends it as `language` on account emails. Web pages opened from
+those emails use the web's preference, not the app's.
+
 English is the fallback language. The English and Spanish JSON catalogs use
 stable semantic keys and must retain identical key/value shapes. Catalogs are
 bundled with the frontend; a future translation-management system may

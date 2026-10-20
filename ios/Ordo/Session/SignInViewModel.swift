@@ -20,19 +20,46 @@ final class SignInViewModel {
     var showsPassword = false
     private(set) var isSigningIn = false
     private(set) var errorKey: L10nKey?
+    private(set) var isResending = false
+    private(set) var resendResult: ResendResult?
 
     private let signIn: @Sendable (String, String) async throws -> Void
+    private let resend: (@MainActor (String) async throws -> Void)?
 
-    init(signIn: @escaping @Sendable (String, String) async throws -> Void) { self.signIn = signIn }
+    init(signIn: @escaping @Sendable (String, String) async throws -> Void,
+         resend: (@MainActor (String) async throws -> Void)? = nil) {
+        self.signIn = signIn
+        self.resend = resend
+    }
+
+    private var trimmedEmail: String { email.trimmingCharacters(in: .whitespacesAndNewlines) }
 
     var canSubmit: Bool {
-        !email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !password.isEmpty && !isSigningIn
+        !trimmedEmail.isEmpty && !password.isEmpty && !isSigningIn
+    }
+
+    /// An unconfirmed email can ask for another confirmation link (same endpoint and messages as the web).
+    var offersResend: Bool { errorKey == .authErrorsLoginEmailNotConfirmed && resend != nil }
+    var canResend: Bool { offersResend && !trimmedEmail.isEmpty && !isResending && !isSigningIn }
+
+    func resendConfirmation() async {
+        guard canResend, let resend else { return }
+        isResending = true
+        resendResult = nil
+        do {
+            try await resend(trimmedEmail)
+            resendResult = .sent
+        } catch {
+            resendResult = AccountErrorMapping.resendResult(for: error)
+        }
+        isResending = false
     }
 
     func submit() async {
         guard canSubmit else { return }
         isSigningIn = true
         errorKey = nil
+        resendResult = nil
         do {
             try await signIn(email, password)
             password = ""
