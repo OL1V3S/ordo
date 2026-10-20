@@ -1,6 +1,7 @@
 {
   "page": {
     "title": "Movimientos",
+    "refresh": "Actualizar",
     "addExpense": "Agregar gasto",
     "addCashIn": "Agregar depósito",
     "importStatement": "Importar estado de cuenta",
@@ -78,14 +79,13 @@
   },
   "spending": {
     "heading": "Gastos",
-    "refresh": "Actualizar gastos",
     "loading": "Cargando gastos…",
     "refreshing": "Actualizando gastos…",
     "loadError": "No pudimos cargar tus gastos.",
     "retry": "Intentar de nuevo",
     "deleteConfirm": "¿Eliminar este gasto?",
     "feedback": {
-      "unknown": "No pudimos confirmar el cambio. Actualiza los gastos y revísalos antes de intentarlo de nuevo.",
+      "unknown": "No pudimos confirmar el cambio. Selecciona Actualizar y revisa tus gastos antes de intentarlo de nuevo.",
       "refreshed": "Se volvió a cargar la lista de gastos. Revísala antes de intentar tu cambio de nuevo.",
       "created": "Gasto guardado.",
       "updated": "Gasto actualizado.",
@@ -93,7 +93,7 @@
       "createdRefreshFailed": "Gasto guardado. No pudimos actualizar la lista, así que actualízala antes de hacer otro cambio.",
       "updatedRefreshFailed": "Gasto actualizado. No pudimos actualizar la lista, así que actualízala antes de hacer otro cambio.",
       "deletedRefreshFailed": "Gasto eliminado. No pudimos actualizar la lista, así que actualízala antes de hacer otro cambio.",
-      "missing": "Este gasto ya no está disponible. Actualiza los gastos antes de hacer otro cambio."
+      "missing": "Este gasto ya no está disponible. Selecciona Actualizar antes de hacer otro cambio."
     }
   },
   "expenseForm": {
@@ -141,13 +141,12 @@
   },
   "cashIn": {
     "heading": "Depósitos",
-    "refresh": "Actualizar depósitos",
     "intro": "Dinero que entró a tu cuenta, incluidas transferencias y devoluciones. No se cuenta como ingreso, ni como pago de nómina a menos que lo vincules a un calendario de nómina.",
     "viewInsights": "Ver reportes",
     "checked": "Revisé los depósitos",
     "loading": "Cargando depósitos…",
     "refreshing": "Actualizando depósitos…",
-    "loadError": "No pudimos cargar tus depósitos. Actualízalos para intentarlo de nuevo.",
+    "loadError": "No pudimos cargar tus depósitos. Selecciona Actualizar para intentarlo de nuevo.",
     "targetMissing": "Este depósito ya no está en la lista actual. Cancela esta tarea para elegir otro depósito.",
     "delete": {
       "heading": "¿Eliminar depósito: {{description}} ({{date}})?",
@@ -167,8 +166,8 @@
       "validation": "No guardamos el depósito. Revisa los detalles e inténtalo de nuevo.",
       "unauthorized": "Tu sesión terminó. Inicia sesión de nuevo.",
       "forbidden": "No tienes permiso para cambiar este depósito.",
-      "missing": "Este depósito no está disponible. Actualiza los depósitos antes de hacer otro cambio.",
-      "unknown": "No pudimos confirmar el cambio. Actualiza los depósitos y revisa la lista antes de intentarlo de nuevo.",
+      "missing": "Este depósito no está disponible. Selecciona Actualizar antes de hacer otro cambio.",
+      "unknown": "No pudimos confirmar el cambio. Selecciona Actualizar y revisa tus depósitos antes de intentarlo de nuevo.",
       "unknownChecked": "Se volvió a cargar la lista de depósitos. Revisa si se guardó tu cambio antes de intentarlo de nuevo.",
       "refreshed": "Se volvió a cargar la lista de depósitos. Revisa los depósitos actuales antes de hacer otro cambio.",
       "retryAvailable": "Revisaste tus depósitos. Ya puedes intentarlo de nuevo; no se hará automáticamente.",

@@ -81,7 +81,9 @@ describe("Activity spending in Spanish", () => {
     expect(screen.getByRole("button", { name: "Agregar depósito" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Importar estado de cuenta" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Gastos" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Actualizar gastos" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Actualizar" })).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Actualizar gastos" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Actualizar depósitos" })).not.toBeInTheDocument();
     expect(screen.getByText("Todavía no hay movimientos. Agrega un gasto o un depósito para empezar.")).toBeVisible();
     expect(screen.queryByRole("button", { name: "Add expense" })).not.toBeInTheDocument();
     expect(screen.queryByText("No expenses yet.")).not.toBeInTheDocument();
@@ -239,7 +241,7 @@ describe("Activity cash in in Spanish", () => {
     renderPage();
 
     expect(screen.getByText(/Dinero que entró a tu cuenta, incluidas transferencias y devoluciones\./)).toBeVisible();
-    expect(screen.getByRole("button", { name: "Actualizar depósitos" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Actualizar" })).toBeVisible();
     expect(screen.queryByLabelText("Buscar depósitos")).not.toBeInTheDocument();
     const table = screen.getByRole("region", { name: "Tabla de depósitos" });
     for (const name of ["Descripción", "Monto", "Fecha", "Acciones"]) {
@@ -266,7 +268,7 @@ describe("Activity cash in in Spanish", () => {
 
     mockLists({ cash: { error: new Error("offline") } });
     renderPage();
-    expect(screen.getByText("No pudimos cargar tus depósitos. Actualízalos para intentarlo de nuevo.")).toBeInTheDocument();
+    expect(screen.getByText("No pudimos cargar tus depósitos. Selecciona Actualizar para intentarlo de nuevo.")).toBeInTheDocument();
   });
 
   it("renders the cash-in form, its field errors, and the saved feedback in Spanish", async () => {
