@@ -10,7 +10,11 @@ search, filter, edit and delete expenses and deposits, using `GET /api/activity/
 `PUT`/`DELETE` on `/api/expenses/{id}` and `/api/inflows/{id}`. Slice 4
 ([#268](https://github.com/OL1V3S/ordo/issues/268)) adds a **Budgets** tab: a month's category
 limits against the recorded spending, with add, edit and delete, using `GET`, `POST` and `DELETE`
-on `/api/budgetlimits` and the existing timeline for spending. There is no backend, API or
+on `/api/budgetlimits` and the existing timeline for spending. Slice 5
+([#272](https://github.com/OL1V3S/ordo/issues/272)) adds a **Paychecks** tab: pay schedules, their
+lifecycle, and linking or removing a received paycheck, using `GET /api/paychecks`,
+`PATCH /api/paychecks/{id}/lifecycle`, `POST /api/paychecks/{id}/receipts`,
+`DELETE /api/paychecks/{id}/receipts/{accountInflowId}` and `GET /api/inflows`. There is no backend, API or
 schema change.
 
 - iOS 18.0 or later, iPhone only. Swift 6 with strict concurrency. No third-party
@@ -115,8 +119,8 @@ shows or sends it, and the flag is reset only after the delete succeeds.
 
 ## Transactions
 
-The signed-in app is a three-tab `TabView`: **Home**, **Transactions** (Movimientos) and
-**Budgets** (Presupuestos), each with its own navigation stack. The system tab bar is Liquid Glass on iOS 26 and later and the standard
+The signed-in app is a four-tab `TabView`: **Home**, **Transactions** (Movimientos),
+**Budgets** (Presupuestos) and **Paychecks** (Nómina), each with its own navigation stack. The system tab bar is Liquid Glass on iOS 26 and later and the standard
 bar on iOS 18-25. Add expense and Add deposit stay on Home; Sign out stays in Home's toolbar.
 
 - **List.** The tab reads `GET /api/activity/timeline` (25 rows a page, newest first, the server's
@@ -247,6 +251,55 @@ until the others arrive. It uses the existing endpoints `GET /api/budgetlimits?m
   duplicate cleanup, changing a row's category (delete and add instead, as on the web), an offline cache
   or queue, and the other Plan pages.
 
+## Paychecks
+
+The fourth tab, **Paychecks** (Nómina, SF Symbol `banknote`), lists the user's pay schedules as the web's
+Plan, Paychecks page does. Until Recurring expenses arrive, Budgets and Paychecks are tabs of their own;
+the owner may later regroup them under a Plan hub. It uses `GET /api/paychecks`,
+`PATCH /api/paychecks/{id}/lifecycle`, `POST /api/paychecks/{id}/receipts`,
+`DELETE /api/paychecks/{id}/receipts/{accountInflowId}` and, for saved deposits, `GET /api/inflows`.
+
+- **List.** Active schedules first, then collapsible Paused and Ended groups (collapsed until a pause or
+  end opens the destination). A row shows the name, status, cadence, expected amount, the next expected
+  window with "Expected, not guaranteed." and the number of linked deposits. Expected money is never
+  shown as received and nothing on the screen is totalled. A detail screen adds the web's facts and the
+  linked deposits. The pay schedule itself cannot be created or edited here.
+- **Lifecycle.** Active: Pause, End. Paused: Reactivate, End. Ended: Reactivate, Pause (as on the web).
+  End asks first; Pause and Reactivate do not.
+- **Link a deposit.** Offered for an active schedule only, for the slots the server lists in
+  `receiptSlots` (current, previous). The app never computes slots, so near midnight the server's UTC
+  "current" slot can differ from the device's day. The user records a new deposit (description, amount,
+  date; the amount is sent as a JSON number whose text is the exact two-decimal amount) or picks a saved
+  deposit. Saved deposits that any schedule (any lifecycle) already has linked are not offered: the
+  server has no "linked" flag, so the app derives the set from the evidence of the `GET /api/paychecks`
+  read. `GET /api/inflows` is unbounded, as on the web. Warnings (date outside the window, amount
+  differs or outside the range) are advisory and never block. A slot that disappears after a refresh
+  stays visible as "(previously selected)" and Link is disabled until a listed date is chosen.
+- **Remove a link.** Only links the user recorded can be removed, on any lifecycle, after a
+  confirmation. The deposit stays in Transactions.
+- **Retry safety.** `POST .../receipts` takes no `Idempotency-Key`. The server answers a repeat of the
+  same request (same schedule and slot, the same saved deposit, or the same new-deposit date, amount
+  and description) with `200 alreadyRecorded` and writes nothing. The first valid tap freezes the
+  request (exact bytes) and sends once; a timeout, lost connection, `5xx` or anything unrecognised is
+  an unconfirmed result: Retry re-sends the identical bytes and Check re-reads the schedules (sends
+  nothing); every paycheck write waits until it is resolved. A `409` on a Retry is never reported as
+  "not saved" and forces a Check. Residual risks: a Retry after the link was removed elsewhere, or the
+  deposit deleted elsewhere, creates a new deposit (so Check first); lifecycle changes are last write
+  wins; the unconfirmed state is lost if the app is killed; and after a Check finds no link, a new
+  submission while the first request may still be running on the server could conflict or duplicate
+  (the web has the same edge).
+- **Refresh.** No optimistic updates. After a change or a Check the schedules, Home and Transactions are
+  re-read. A capture deposit save or a Transactions deposit edit or delete re-reads the schedules once
+  the tab has been opened. If the read after a change fails, the list is hidden with a message.
+- **One write at a time** across the app, shared with capture, Transactions and Budgets.
+- **Amounts.** Money is decoded as `Decimal` and shown exactly up to 9999999999999999.99 (tests prove
+  exact decoding above 2^53 cents); the web shows 2^46 dollars and above as unavailable because of
+  JavaScript numbers. Anything inexact shows "Exact amount unavailable".
+- **Nothing persisted;** `origin`, timestamps and algorithm versions are never decoded; amounts,
+  names, dates, ids and server text are never logged, and server error text is never shown.
+- **Out of scope:** creating or editing a schedule, detected "possible paychecks", match suggestions,
+  statement-import linking, totals of expected money and an offline cache or queue.
+
 ## Look and theme
 
 The app uses Ordo's web look through one theme layer (`ios/Ordo/Theme`), while keeping iOS
@@ -285,7 +338,7 @@ Reduce Motion and Increase Contrast.
 
 Add expense and Add deposit on the Transactions tab, bulk edit or delete, undo, an offline queue
 or cache, a concurrency token or conflict detection, automatic infinite scrolling, persisted
-filters, category management, paycheck linking, statement import, receipts, budgets, reports,
+filters, category management, creating or editing pay schedules, possible-paycheck suggestions, statement import, reports,
 recurring expenses, widget, push notifications, TestFlight or App Store distribution, iPad
 layout, registration and password reset, in-app language picker, and links into other web
 workflows.

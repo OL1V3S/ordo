@@ -11,6 +11,7 @@ final class AppModel {
     let transactionsModel: TransactionsViewModel
     let mutationModel: TransactionMutationViewModel
     let budgetsModel: BudgetsViewModel
+    let paychecksModel: PaychecksViewModel
     private let session: SessionManager
     private var observer: Task<Void, Never>?
 
@@ -33,6 +34,16 @@ final class AppModel {
             language: language,
             deviceLocale: deviceLocale)
         budgetsModel = budgets
+        let paychecks = PaychecksViewModel(
+            service: SessionPaychecksService(session: session, api: api),
+            // A link or a lifecycle change moves Coming Up, the paycheck marker and the deposit partition.
+            refreshOthers: { [home, transactions] in
+                await home.refresh()
+                await transactions.refreshIfLoaded()
+            },
+            language: language,
+            deviceLocale: deviceLocale)
+        paychecksModel = paychecks
         let capture = CaptureViewModel(
             service: SessionCaptureService(session: session, api: api),
             store: pendingStore,
@@ -43,6 +54,8 @@ final class AppModel {
                 await transactions.refreshIfLoaded()
                 // ... and in the month's recorded spending, once Budgets has been opened.
                 await budgets.refreshSpendingIfLoaded()
+                // A new deposit can be linked to a pay schedule once Paychecks has been opened.
+                await paychecks.refreshIfLoaded()
                 if case .loaded = home.phase { return true }
                 return false
             },
@@ -52,24 +65,34 @@ final class AppModel {
         let mutation = TransactionMutationViewModel(
             service: transactionsService,
             refreshList: { [transactions] in await transactions.refresh(afterChange: true) },
-            refreshHome: { [home, budgets] in
+            refreshHome: { [home, budgets, paychecks] in
                 await home.refresh()
                 // An edited or deleted expense changes the month's recorded spending.
                 await budgets.refreshSpendingIfLoaded()
+                // A deleted deposit loses its paycheck link; an edited one is marked as edited.
+                await paychecks.refreshIfLoaded()
             },
-            isOtherWriteInFlight: { [capture, budgets] in capture.phase == .saving || budgets.isWriting },
+            isOtherWriteInFlight: { [capture, budgets, paychecks] in
+                capture.phase == .saving || budgets.isWriting || paychecks.isWriting
+            },
             language: language,
             deviceLocale: deviceLocale)
         mutationModel = mutation
         // One write at a time across the app: a budget save or delete waits for a capture save or a
         // Transactions edit or delete, and the other way round.
-        budgets.setOtherWriteInFlight { [capture, mutation] in capture.phase == .saving || mutation.isSubmitting }
+        budgets.setOtherWriteInFlight { [capture, mutation, paychecks] in
+            capture.phase == .saving || mutation.isSubmitting || paychecks.isWriting
+        }
+        paychecks.setOtherWriteInFlight { [capture, mutation, budgets] in
+            capture.phase == .saving || mutation.isSubmitting || budgets.isWriting
+        }
     }
 
     /// One write at a time: true while a save, an edit or delete, or a budget save or delete is on
     /// its way to the server. Add expense, Add deposit and a waiting save's Retry wait for it.
     var isWriteInFlight: Bool {
         captureModel.phase == .saving || mutationModel.isSubmitting || budgetsModel.isWriting
+            || paychecksModel.isWriting
     }
 
     func start() async {
@@ -85,6 +108,7 @@ final class AppModel {
                     self.homeModel.reset()
                     self.transactionsModel.reset()
                     self.budgetsModel.reset()
+                    self.paychecksModel.reset()
                     self.mutationModel.invalidate()
                     Task { await self.homeModel.load() }
                     if previous == .restoring {
@@ -97,6 +121,7 @@ final class AppModel {
                     self.homeModel.reset()
                     self.transactionsModel.reset()
                     self.budgetsModel.reset()
+                    self.paychecksModel.reset()
                     self.mutationModel.invalidate()
                     // The launch-time `.signedOut(.none)` (no credential, or a transient Keychain
                     // failure) keeps the record; only an ended session clears it.
@@ -113,6 +138,7 @@ final class AppModel {
         mutationModel.invalidate()
         transactionsModel.reset()
         budgetsModel.reset()
+        paychecksModel.reset()
         await session.signOut()
     }
 }

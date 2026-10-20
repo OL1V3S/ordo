@@ -265,7 +265,12 @@ upsert `POST /api/budgetlimits` and removes one with `DELETE /api/budgetlimits/{
 three takes an `Idempotency-Key`: the upsert is an absolute set of one value and the delete
 targets a never-reused id), and reads the month's recorded spending through the same timeline
 endpoint; the month and the limit are sent as exact strings and numbers built from integers,
-and nothing is persisted. The app's financial writes are setting or deleting a budget limit (above), adding an
+and nothing is persisted. A Paychecks tab reads `GET /api/paychecks` and `GET /api/inflows`, changes a schedule's
+lifecycle with `PATCH /api/paychecks/{id}/lifecycle`, and links or unlinks a received paycheck with
+`POST /api/paychecks/{id}/receipts` and `DELETE /api/paychecks/{id}/receipts/{accountInflowId}`
+(the server's slots are used as given; a repeat of the same link request is answered
+`alreadyRecorded` by the server, so no `Idempotency-Key` is needed; nothing is persisted).
+The app's financial writes are setting or deleting a budget limit (above), adding an
 expense or a deposit through the existing
 `POST /api/expenses` and `POST /api/inflows`, each with one `Idempotency-Key` that is reused
 for every retry, and editing or deleting a record through the existing `PUT` and `DELETE` on

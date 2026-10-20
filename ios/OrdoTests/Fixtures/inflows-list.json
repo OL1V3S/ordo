@@ -1,0 +1,6 @@
+[
+  { "id": 9, "description": "Synthetic Bonus", "amount": 500.00, "date": "2026-10-10" },
+  { "id": 6, "description": "Synthetic side", "amount": 150.00, "date": "2026-09-30" },
+  { "id": 5, "description": "Synthetic pay", "amount": 1200.25, "date": "2026-10-02" },
+  { "id": 4, "description": "Synthetic Refund", "amount": 0.1, "date": "2026-09-01" }
+]

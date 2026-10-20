@@ -12,6 +12,8 @@ struct DeviceSessionResponse: Sendable {
 /// The Budgets screen adds `GET /api/budgetlimits?monthYear=YYYY-MM`, the upsert
 /// `POST /api/budgetlimits` and `DELETE /api/budgetlimits/{id}`; those take no `Idempotency-Key`
 /// either (see `BudgetsViewModel`).
+/// The Paychecks screen adds `GET /api/paychecks`, `GET /api/inflows`, `PATCH /api/paychecks/{id}/lifecycle`,
+/// `POST /api/paychecks/{id}/receipts` and `DELETE /api/paychecks/{id}/receipts/{accountInflowId}`.
 struct OrdoAPI: Sendable {
     let baseURL: URL
     let transport: HTTPTransport
@@ -225,6 +227,64 @@ struct OrdoAPI: Sendable {
     /// status is an unknown outcome.
     func deleteBudgetLimit(accessToken: String, id: Int) async throws -> MutationResult {
         try await mutate(method: "DELETE", path: "api/budgetlimits/\(id)", accessToken: accessToken, body: nil)
+    }
+
+    // MARK: Paychecks
+
+    func paychecks(accessToken: String) async throws -> Data { try await get("api/paychecks", accessToken: accessToken) }
+
+    /// All saved deposits, newest first. Unbounded, as on the web.
+    func inflows(accessToken: String) async throws -> Data { try await get("api/inflows", accessToken: accessToken) }
+
+    private func get(_ path: String, accessToken: String) async throws -> Data {
+        var request = URLRequest(url: baseURL.appending(path: path))
+        request.httpMethod = "GET"
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        request.timeoutInterval = 30
+        let (data, status) = try await send(request)
+        switch status {
+        case 200: return data
+        case 401: throw APIError.unauthorized
+        default: throw APIError.server(status)
+        }
+    }
+
+    func updatePaycheckLifecycle(accessToken: String, id: String, body: Data) async throws {
+        try await paycheckWrite(method: "PATCH", path: "api/paychecks/\(id)/lifecycle", accessToken: accessToken, body: body)
+    }
+
+    /// No `Idempotency-Key`: a repeat of the same body to the same slot is answered by the server
+    /// with `200 alreadyRecorded`.
+    func recordPaycheckReceipt(accessToken: String, id: String, body: Data) async throws {
+        try await paycheckWrite(method: "POST", path: "api/paychecks/\(id)/receipts", accessToken: accessToken, body: body)
+    }
+
+    func removePaycheckReceipt(accessToken: String, id: String, inflowId: Int) async throws {
+        try await paycheckWrite(method: "DELETE", path: "api/paychecks/\(id)/receipts/\(inflowId)",
+                                accessToken: accessToken, body: nil)
+    }
+
+    /// `200` and `201` are applied (the body is not needed: the list is read again). `400` and `409`
+    /// are definitive refusals that carry a `code`; `404` means the schedule is gone. Everything else
+    /// (a `5xx` included) is an unknown outcome left to the caller.
+    private func paycheckWrite(method: String, path: String, accessToken: String, body: Data?) async throws {
+        var request = URLRequest(url: baseURL.appending(path: path))
+        request.httpMethod = method
+        request.httpBody = body
+        if body != nil { request.setValue("application/json", forHTTPHeaderField: "Content-Type") }
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        request.timeoutInterval = 30
+        let (data, status) = try await send(request)
+        switch status {
+        case 200, 201: return
+        case 401: throw APIError.unauthorized
+        case 404: throw APIError.paycheckNotFound
+        case 400: throw APIError.paycheckRejected(Self.errorCode(in: data))
+        case 409: throw APIError.paycheckConflict(Self.errorCode(in: data))
+        default: throw APIError.server(status)
+        }
     }
 
     // MARK: Creates
