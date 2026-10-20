@@ -26,11 +26,8 @@ struct CreateAccountView: View {
             }
             .themedRows()
             Section {
-                ForEach(Self.requirements, id: \.self) { key in
-                    Text(verbatim: l10n.string(key))
-                }
-            } header: {
-                Text(verbatim: l10n.string(.authRegisterRequirementsTitle)).themedSectionHeader()
+                PasswordRequirementsList(title: l10n.string(.authRegisterRequirementsTitle),
+                                         rules: Self.requirements.map { l10n.string($0) })
             }
             .themedRows()
             if !model.registerMessages.isEmpty {
