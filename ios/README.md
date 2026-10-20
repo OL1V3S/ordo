@@ -19,7 +19,7 @@ lifecycle, and linking or removing a received paycheck, using `GET /api/paycheck
 recurring expenses and detected possible ones, with confirm, dismiss, review again, pause, reactivate and
 end, using `GET /api/commitment-candidates`, `GET /api/commitments`, `POST /api/commitment-candidates/confirm`,
 `/dismiss` and `/reconsider`, and `PATCH /api/commitments/{id}/lifecycle`. Slice 7
-([#276](https://github.com/OL1V3S/ordo/issues/276)) adds **Reports**, opened from a Home toolbar button,
+([#276](https://github.com/OL1V3S/ordo/issues/276)) adds **Reports**,
 using `GET /api/analytics/cash-flow`. Slice 8
 ([#281](https://github.com/OL1V3S/ordo/issues/281)) adds **Statement import**, opened from a Transactions toolbar
 button, using the existing `/api/import-previews` endpoints. There is no backend, API or
@@ -128,9 +128,10 @@ shows or sends it, and the flag is reset only after the delete succeeds.
 
 ## Transactions
 
-The signed-in app is a five-tab `TabView`: **Home**, **Transactions** (Movimientos),
-**Budgets** (Presupuestos), **Paychecks** (Nómina) and **Recurring** (Recurrentes), each with its own navigation stack. Reports opens from Home's toolbar, so the tabs stay at five. The system tab bar is Liquid Glass on iOS 26 and later and the standard
-bar on iOS 18-25. Add expense and Add deposit stay on Home; Settings (with Sign out) opens from Home's toolbar.
+The signed-in app is a five-tab `TabView`: **Home**, **Transactions** (Movimientos), **Plan**
+(SF Symbol `list.clipboard`), **Reports** (Reportes) and **Settings** (Configuración), each with its own navigation stack.
+Plan holds Budgets, Recurring expenses and Paychecks behind a switcher under the navigation bar (a menu at accessibility text sizes; off while a write is on its way). Switching rebuilds the area: data and drafts are kept, but a pushed screen, open groups and scroll position start over. The system tab bar is Liquid Glass on iOS 26 and later and the standard
+bar on iOS 18-25. Add expense and Add deposit stay on Home; Settings (with Sign out) is its own tab.
 
 - **List.** The tab reads `GET /api/activity/timeline` (25 rows a page, newest first, the server's
   cursor) when it first appears. Each row shows the kind, description, date, category (expenses),
@@ -183,9 +184,8 @@ bar on iOS 18-25. Add expense and Add deposit stay on Home; Settings (with Sign 
 
 ## Budgets
 
-The third tab, **Budgets** (Presupuestos, SF Symbol `chart.pie`), shows how recorded spending compares
-with each category's monthly limit, as the web's Plan, Budgets page does. The web groups Budgets,
-Recurring expenses and Paychecks under a Plan hub; on the phone each is a tab of its own. It uses the existing endpoints `GET /api/budgetlimits?monthYear=YYYY-MM`,
+The **Budgets** section of the Plan tab (Presupuestos, SF Symbol `chart.pie`), shows how recorded spending compares
+with each category's monthly limit, as the web's Plan, Budgets page does. It is the first section of the Plan tab, like the web's Plan hub. It uses the existing endpoints `GET /api/budgetlimits?monthYear=YYYY-MM`,
 `POST /api/budgetlimits` (the server upserts by owner, exact category and month),
 `DELETE /api/budgetlimits/{id}` and, for spending, `GET /api/activity/timeline`.
 
@@ -261,9 +261,8 @@ Recurring expenses and Paychecks under a Plan hub; on the phone each is a tab of
 
 ## Paychecks
 
-The fourth tab, **Paychecks** (Nómina, SF Symbol `banknote`), lists the user's pay schedules as the web's
-Plan, Paychecks page does. Budgets, Recurring and Paychecks are tabs of their own (five tabs, no "More");
-the owner may later regroup them under a Plan hub. It uses `GET /api/paychecks`,
+The **Paychecks** section of the Plan tab (Nómina, SF Symbol `banknote`), lists the user's pay schedules as the web's
+Plan, Paychecks page does. It uses `GET /api/paychecks`,
 `PATCH /api/paychecks/{id}/lifecycle`, `POST /api/paychecks/{id}/receipts`,
 `DELETE /api/paychecks/{id}/receipts/{accountInflowId}` and, for saved deposits, `GET /api/inflows`.
 
@@ -310,7 +309,7 @@ the owner may later regroup them under a Plan hub. It uses `GET /api/paychecks`,
 
 ## Recurring expenses
 
-The fifth tab, **Recurring** (Recurrentes, SF Symbol `repeat`; the page title is "Recurring expenses" /
+The **Recurring** section of the Plan tab (Recurrentes, SF Symbol `repeat`; the page title is "Recurring expenses" /
 "Gastos recurrentes"), is the web's Plan, Recurring expenses page. It uses `GET /api/commitment-candidates`
 and `GET /api/commitments` (read together; if either fails or is malformed the whole list is hidden with a
 Try again button), `POST /api/commitment-candidates/confirm`, `/dismiss` and `/reconsider`, and
@@ -350,7 +349,7 @@ Try again button), `POST /api/commitment-candidates/confirm`, `/dismiss` and `/r
 
 ## Reports
 
-Reports (Reportes, SF Symbol `chart.bar.xaxis`) is the web's cash-flow region of `/analytics`. It is read-only.
+Reports (Reportes, SF Symbol `chart.bar.xaxis`) is a tab of its own, the web's cash-flow region of `/analytics`. It is read-only.
 
 - **Endpoint.** One `GET /api/analytics/cash-flow?month=YYYY-MM&throughDate=YYYY-MM-DD`; `throughDate` is the device-local day. A response for another month or day is rejected, as on the web.
 - **Exact money.** Amounts arrive as integer-cent strings and are held as `Int128` (`CashAmount`), never `Double`; tests cover values above 2^53 and above `Int64`. Nothing is summed or subtracted on the phone. Percentages and money text are ported from the web with exact digits.
@@ -373,7 +372,7 @@ Import statement (Importar estado de cuenta) is a toolbar button on Transactions
 
 ## Account
 
-The sign-in screen links to **Create account** and **Forgot password?**, like the web.
+The sign-in screen is a centred column (it scrolls at large text sizes or with the keyboard open) with **Forgot password?**, **Create account** and **What is Ordo?**, like the web's links. What is Ordo? opens a sheet that describes the shipped areas, names Sunflower Bank PDF import only, and says the figures are not a balance, savings or money available to spend. Create account lists the password rules one per line. Forgot password has a wrapping in-body heading (no navigation title) and keeps the confirmation-email help and resend in a collapsed disclosure.
 
 - **Requests.** `POST /api/auth/register`, `/resend-confirmation` and `/forgot-password`, the same as the web, with no token. `language` is the app's language, so the emails match it. Registering does not sign in.
 - **Create account.** Email, password, confirm password and the web's password list. Only a mismatch is checked on the phone; Identity `code` values map to the web's messages (descriptions are never read). Success, or `503 confirmation_email_delivery_failed`, opens Check your email.
@@ -386,11 +385,11 @@ The sign-in screen links to **Create account** and **Forgot password?**, like th
 
 ## Settings
 
-A gear in Home's toolbar opens Settings (no sixth tab). The account email is not shown.
+Settings is the fifth tab. The account email is not shown.
 
 - **Appearance:** System (default), Light, Dark, applied at the window root (sheets and dialogs included).
 - **Language:** English or Español. It applies at once to the strings, formatting, amount parsing and system controls (the root `locale`). It is locked while a save, edit or delete is on its way; open drafts are kept. The sign-in and account screens have the same language menu.
-- **Sign out** moved here from Home's toolbar, with the same confirmation and waiting-save warning.
+- **Sign out** is here, with the same confirmation and waiting-save warning.
 - **Stored on the device:** only `ordo.theme` and `ordo.language` in `UserDefaults`. Sign-out and an ended session keep them.
 
 ## Look and theme
