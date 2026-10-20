@@ -1,0 +1,46 @@
+{
+  "evaluatedOn": "2026-10-20",
+  "paychecks": [
+    {
+      "id": "11111111-1111-4111-8111-111111111111",
+      "displayName": "Synthetic Employer",
+      "lifecycle": "active",
+      "schedule": { "cadence": "biweekly", "referenceAnchorDate": "2026-10-16", "firstMonthAnchor": null, "secondMonthAnchor": null },
+      "windowBeforeDays": 1,
+      "windowAfterDays": 2,
+      "amount": { "mode": "fixed", "fixedAmount": 1200.25, "minimumAmount": null, "maximumAmount": null },
+      "source": "manual",
+      "origin": { "algorithmVersion": "v1", "fingerprint": "secret-fingerprint" },
+      "createdAt": "2026-01-01T00:00:00Z",
+      "updatedAt": "2026-01-02T00:00:00Z",
+      "evidence": [
+        { "accountInflowId": 5, "postedDate": "2026-10-02", "amount": 1200.25, "description": "Synthetic pay", "source": "manual",
+          "slotAnchor": "2026-10-02", "timingOffsetDays": 0, "linkedAt": "2026-10-02T10:00:00Z", "editedSinceConfirmation": false,
+          "assignmentKind": "recorded_receipt" }
+      ],
+      "receiptSlots": [
+        { "relation": "current", "anchor": "2026-10-16", "earliestExpectedDate": "2026-10-15", "latestExpectedDate": "2026-10-18" },
+        { "relation": "previous", "anchor": "2026-10-02", "earliestExpectedDate": "2026-10-01", "latestExpectedDate": "2026-10-04" }
+      ],
+      "nextProjection": { "algorithmVersion": "v1", "evaluatedOn": "2026-10-20", "anchor": "2026-10-30",
+                          "earliestExpectedDate": "2026-10-29", "latestExpectedDate": "2026-11-01",
+                          "amount": { "mode": "fixed", "fixedAmount": 1200.25 } }
+    },
+    {
+      "id": "22222222-2222-4222-8222-222222222222",
+      "displayName": "Synthetic Side Job",
+      "lifecycle": "paused",
+      "schedule": { "cadence": "semimonthly", "firstMonthAnchor": { "kind": "day", "day": 1 }, "secondMonthAnchor": { "kind": "month_end" } },
+      "windowBeforeDays": 0,
+      "windowAfterDays": 1,
+      "amount": { "mode": "range", "minimumAmount": 100.00, "maximumAmount": 250.50 },
+      "source": "candidate",
+      "evidence": [
+        { "accountInflowId": 6, "postedDate": "2026-09-30", "amount": 150.00, "description": "Synthetic side", "source": "imported",
+          "slotAnchor": "2026-09-30", "timingOffsetDays": -1, "editedSinceConfirmation": true, "assignmentKind": "confirmation_evidence" }
+      ],
+      "receiptSlots": [],
+      "nextProjection": null
+    }
+  ]
+}

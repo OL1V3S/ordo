@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The signed-in app: Home, Transactions and Budgets, each with its own navigation stack. The system tab bar
+/// The signed-in app: Home, Transactions, Budgets and Paychecks, each with its own navigation stack. The system tab bar
 /// is Liquid Glass on iOS 26 and later and the standard bar before that. Capture (Add expense and
 /// Add deposit) is presented only from Home, so two views never present the same sheet.
 struct MainTabView: View {
@@ -16,10 +16,13 @@ struct MainTabView: View {
             Tab(l10n.string(.navigationDestinationsActivity), systemImage: "list.bullet.rectangle") {
                 TransactionsView(model: model.transactionsModel, mutation: model.mutationModel, l10n: l10n)
             }
-            // The web's Plan hub holds Budgets, Recurring expenses and Paychecks; only Budgets exists
-            // here, so it is a tab of its own until the others arrive.
+            // The web's Plan hub holds Budgets, Recurring expenses and Paychecks. Until Recurring
+            // expenses arrive, Budgets and Paychecks are tabs of their own (four tabs, no "More").
             Tab(l10n.string(.navigationDestinationsBudgets), systemImage: "chart.pie") {
                 BudgetsView(model: model.budgetsModel, l10n: l10n)
+            }
+            Tab(l10n.string(.navigationDestinationsPaychecks), systemImage: "banknote") {
+                PaychecksView(model: model.paychecksModel, l10n: l10n)
             }
         }
     }

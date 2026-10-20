@@ -24,6 +24,13 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-20 — Paychecks in the iPhone app
+
+[PR #PRNUM](https://github.com/OL1V3S/ordo/pull/PRNUM) · [Issue #272](https://github.com/OL1V3S/ordo/issues/272)
+
+- The iPhone app has a Paychecks tab: your pay schedules with their cadence, expected amount, next expected window ("Expected, not guaranteed.") and number of linked deposits, in English and Spanish. You can pause, reactivate or end a schedule (ending asks first), link a received paycheck to an active schedule's current or previous date as a new deposit or a saved one, and remove a link you made (the deposit stays in Transactions).
+- A change that times out or loses its connection is shown as unconfirmed; you can retry the same request or check the schedules, and further paycheck changes wait until then. After every change the schedules, Home and Transactions are re-read from the server, so nothing is changed on the phone first. Expected paychecks are never counted as money received. Backend, API, schema, web app and required checks are unchanged; the app is still not distributed.
+
 ### 2026-10-19 — iPhone Transactions delete uses the row you confirmed
 
 [PR #271](https://github.com/OL1V3S/ordo/pull/271) · [Issue #270](https://github.com/OL1V3S/ordo/issues/270)
@@ -165,10 +172,3 @@ the permanent, complete archive.
 - Fourth of five wording PRs: the Paychecks page now uses plain wording in English and Mexican Spanish. Saved schedules are "pay schedules" (Spanish "calendarios de nómina"), the date fields read "Starting pay date" and "First pay day", and the leftover words "candidate", "evidence", "anchor" and "(s)" are gone. The amount error now says "Enter an amount above zero with up to two decimals" on Paychecks and Transactions.
 - Choosing the Quincenal (twice a month) option now shows a short hint: two pay days a month, at least 7 days apart. The wording guard now also covers this page. Frontend and docs only; no API, schema or financial-semantics change.
 
-### 2026-10-12 — Plain-language wording: Recurring expenses
-
-[PR #232](https://github.com/OL1V3S/ordo/pull/232) ·
-[Issue #229](https://github.com/OL1V3S/ordo/issues/229)
-
-- Third of five wording PRs: the Recurring expenses page now uses plain wording in English and Mexican Spanish. "Supporting expenses" became "Matching expenses", the change buttons read "Use the new details" and "Keep saved details", "Mark as ended" is confirmed with "Yes, mark as ended", and "proposal" and "candidate" are now "possible recurring expense" or "this change".
-- Date ranges read "up to 2 days early or 1 day late" with correct singular and plural forms, ellipses are "…", and the wording guard now also bans internal words in this area and checks that the listed buttons' accessible names start with their visible text. Frontend and docs only; no API, schema or financial-semantics change.
