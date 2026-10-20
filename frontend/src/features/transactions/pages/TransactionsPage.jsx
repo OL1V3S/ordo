@@ -306,6 +306,10 @@ export default function TransactionsPage() {
   const checkCash = !captureRecovery.source && !timelineFailed
     && (Boolean(inflowCapture.gate) || ["refreshed", "unknown_checked", "retry_available"].includes(cashOutcome));
 
+  // One Refresh reloads both lists. Each handler keeps its own gate and swallows its own error, so one failing never hides the other.
+  const refreshBoth = () => Promise.all([expenseCapture.refreshRecovery(), inflowCapture.refreshRecovery()]);
+  const refreshDisabled = expensesLoading || cash.loading || expenseCapture.pending || inflowCapture.pending;
+
   const showImportPrompt = !showImport && !captureRecovery.source
     && !expensesLoading && !expensesError && !cash.loading && !cash.error
     && expenses.length === 0 && cash.inflows.length === 0;
@@ -364,9 +368,7 @@ export default function TransactionsPage() {
         {cash.loading && <StatusMessage>{cash.inflows.length ? ta("cashIn.refreshing") : ta("cashIn.loading")}</StatusMessage>}
         {cash.error && <StatusMessage tone="danger">{ta("cashIn.loadError")}</StatusMessage>}
         <div className="activity-status__refresh">
-          <button type="button" className="button-ghost" disabled={expensesLoading || expenseCapture.pending}
-            onClick={expenseCapture.refreshRecovery}>{ta("spending.refresh")}</button>
-          <button type="button" className="button-ghost" disabled={cash.loading || inflowCapture.pending} onClick={inflowCapture.refreshRecovery}>{ta("cashIn.refresh")}</button>
+          <button type="button" className="button-ghost" disabled={refreshDisabled} onClick={refreshBoth}>{ta("page.refresh")}</button>
         </div>
         <p className="muted">{ta("cashIn.intro")}</p>
       </div>

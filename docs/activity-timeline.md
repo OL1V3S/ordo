@@ -119,7 +119,7 @@ displays backend ProblemDetails text.
 hook (request-id, abort, and session staleness guards; first page, load older,
 refresh resets to the first page), a timeline-specific response validator, and
 the presentation component. The Transactions page is one list plus one task area: a status area
-(feedback, load errors with Try again, Refresh expenses and Refresh deposits, the cash-in
+(feedback, load errors with Try again, one Refresh button that reloads both lists, the cash-in
 disclaimer, which stays visible when idle), a "Current task" area (expense edit panel, Add
 expense, the cash-in task, statement import; today's locks are unchanged, so tasks stack as
 before) and the timeline. There are no Spending or Cash in sections, Records toggles, expense

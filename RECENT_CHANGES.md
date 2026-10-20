@@ -24,6 +24,13 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-20 — One Refresh button on Transactions
+
+[Issue #279](https://github.com/OL1V3S/ordo/issues/279)
+
+- The web Transactions page has one Refresh button that reloads both the expense and deposit lists, replacing "Refresh expenses" and "Refresh deposits". Recovery messages now say "Select Refresh". English and Spanish.
+- Refresh is off while either list loads or a save is running. Each list's recovery checks and write blocks are unchanged. iPhone app, backend, API and schema are unchanged.
+
 ### 2026-10-20 — Reports in the iPhone app
 
 [Issue #276](https://github.com/OL1V3S/ordo/issues/276)
@@ -161,11 +168,3 @@ the permanent, complete archive.
 
 - Found in a real-browser check: Home ("Needs your attention" budget items and recent transactions) and the Transactions list showed stored category names such as "bills" and "food" in both languages. They now read "Bills" / "Servicios", "Food" / "Comida" and so on; categories you typed yourself still show exactly as before.
 - On tablet-portrait widths (about 600 to 760px) the statement import confirm bar is now stacked with a full-width button, as on phones, so a long Spanish button label no longer squeezes its summary into a narrow column or makes the bar so tall that it stops sticking. Frontend only; no API, schema or financial-semantics change.
-
-### 2026-10-12 — Wording cleanup: leftovers from the wording series
-
-[PR #236](https://github.com/OL1V3S/ordo/pull/236) ·
-[Issue #235](https://github.com/OL1V3S/ordo/issues/235)
-
-- Small follow-ups to the plain-language wording work: notices after an uncertain save in Transactions and Budgets now say the list was reloaded (Spanish "Se volvió a cargar…") instead of "actualizados"; the Reports month buttons are plainly "Earlier month" and "Later month"; Spanish "Verificado el" dates now read "Revisado el"; and the linked-deposit count on a pay schedule no longer repeats its label.
-- The wording guard now also catches "no se guardó." at the end of a sentence. Docs only otherwise: product overview terms and the architecture notes on date-only dates and the import boundary. Frontend and docs only; no API, schema or financial-semantics change.

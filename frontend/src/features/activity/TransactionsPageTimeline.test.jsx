@@ -106,7 +106,7 @@ describe("Activity timeline on the Activity page", () => {
       expect(screen.queryByRole("navigation", { name: "Secciones de actividad" })).not.toBeInTheDocument();
       expect(screen.queryByRole("heading", { name: "Gastos" })).not.toBeInTheDocument();
       expect(screen.queryByRole("button", { name: /^Registros de/ })).not.toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "Actualizar gastos" })).toBeVisible();
+      expect(screen.getByRole("button", { name: "Actualizar" })).toBeVisible();
     } finally {
       await i18n.changeLanguage("en");
     }
@@ -146,7 +146,7 @@ describe("Activity timeline on the Activity page", () => {
 
     const status = document.querySelector(".activity-status");
     expect(within(status).getByRole("button", { name: "Try again" })).toBeVisible();
-    expect(within(status).getByRole("button", { name: "Refresh deposits" })).toBeVisible();
+    expect(within(status).getByRole("button", { name: "Refresh" })).toBeVisible();
     expect(screen.queryByRole("button", { name: /records$/i })).not.toBeInTheDocument();
   });
 
@@ -198,16 +198,13 @@ describe("Activity timeline on the Activity page", () => {
     expect(screen.getByText("Deposit saved. Reports use its deposit date.")).toBeInTheDocument();
   });
 
-  it("refreshes the timeline after the manual per-type refresh buttons", async () => {
+  it("reloads both lists and the timeline with the one Refresh button", async () => {
     const user = userEvent.setup();
     renderPage();
 
-    await user.click(screen.getByRole("button", { name: "Refresh expenses" }));
-    await waitFor(() => expect(timelineRefresh).toHaveBeenCalledTimes(1));
-    expect(expenses.refresh).toHaveBeenCalledOnce();
-
-    await user.click(screen.getByRole("button", { name: "Refresh deposits" }));
+    await user.click(screen.getByRole("button", { name: "Refresh" }));
     await waitFor(() => expect(timelineRefresh).toHaveBeenCalledTimes(2));
+    expect(expenses.refresh).toHaveBeenCalledOnce();
     expect(cash.refresh).toHaveBeenCalledOnce();
   });
 
@@ -444,7 +441,7 @@ describe("Timeline row actions on the Activity page", () => {
 
     await chooseRowAction(user, /^Delete expense Lunch/);
 
-    expect(await screen.findByRole("alert")).toHaveTextContent(/This expense is no longer available\. Refresh expenses/);
+    expect(await screen.findByRole("alert")).toHaveTextContent(/This expense is no longer available\. Select Refresh before/);
     expect(screen.getByText(/Your transactions may be out of date/)).toBeInTheDocument();
     await waitFor(() => expect(timelineRefresh).toHaveBeenCalled());
     await waitFor(() => expect(document.querySelector(".activity-feedback")).toHaveFocus());
@@ -507,7 +504,7 @@ describe("Timeline row actions on the Activity page", () => {
     await fillNewExpense(user);
     await user.click(screen.getByRole("button", { name: "Save expense" }));
     expect(await screen.findByRole("region", { name: "Expenses table" })).toBeVisible();
-    await user.click(screen.getByRole("button", { name: "Refresh expenses" }));
+    await user.click(screen.getByRole("button", { name: "Refresh" }));
     await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Expenses refreshed. Check them"));
     expect(screen.getByRole("heading", { name: "Check your transactions" })).toBeVisible();
     expect(screen.getByRole("region", { name: "Expenses table" })).toBeVisible();

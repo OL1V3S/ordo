@@ -1,6 +1,7 @@
 {
   "page": {
     "title": "Transactions",
+    "refresh": "Refresh",
     "addExpense": "Add expense",
     "addCashIn": "Add deposit",
     "importStatement": "Import statement",
@@ -78,14 +79,13 @@
   },
   "spending": {
     "heading": "Spending",
-    "refresh": "Refresh expenses",
     "loading": "Loading expenses…",
     "refreshing": "Refreshing expenses…",
     "loadError": "We couldn’t load your expenses.",
     "retry": "Try again",
     "deleteConfirm": "Delete this expense?",
     "feedback": {
-      "unknown": "We couldn’t confirm the change. Refresh expenses and check them before trying again.",
+      "unknown": "We couldn’t confirm the change. Select Refresh and check your expenses before trying again.",
       "refreshed": "Expenses refreshed. Check them before trying your change again.",
       "created": "Expense saved.",
       "updated": "Expense updated.",
@@ -93,7 +93,7 @@
       "createdRefreshFailed": "Expense saved. We couldn’t refresh the list, so refresh it before making another change.",
       "updatedRefreshFailed": "Expense updated. We couldn’t refresh the list, so refresh it before making another change.",
       "deletedRefreshFailed": "Expense deleted. We couldn’t refresh the list, so refresh it before making another change.",
-      "missing": "This expense is no longer available. Refresh expenses before making another change."
+      "missing": "This expense is no longer available. Select Refresh before making another change."
     }
   },
   "expenseForm": {
@@ -141,13 +141,12 @@
   },
   "cashIn": {
     "heading": "Deposits",
-    "refresh": "Refresh deposits",
     "intro": "Money that came into your account, including transfers and refunds. Not counted as income, and not a paycheck unless you link it to a pay schedule.",
     "viewInsights": "View reports",
     "checked": "I checked deposits",
     "loading": "Loading deposits…",
     "refreshing": "Refreshing deposits…",
-    "loadError": "We couldn’t load your deposits. Refresh them to try again.",
+    "loadError": "We couldn’t load your deposits. Select Refresh to try again.",
     "targetMissing": "This deposit is no longer in the current list. Cancel this task to choose another deposit.",
     "delete": {
       "heading": "Delete deposit: {{description}} ({{date}})?",
@@ -167,8 +166,8 @@
       "validation": "We didn’t save the deposit. Check the details and try again.",
       "unauthorized": "Your session ended. Sign in again.",
       "forbidden": "You don’t have permission to change this deposit.",
-      "missing": "This deposit is unavailable. Refresh deposits before making another change.",
-      "unknown": "We couldn’t confirm the change. Refresh deposits and check the list before trying again.",
+      "missing": "This deposit is unavailable. Select Refresh before making another change.",
+      "unknown": "We couldn’t confirm the change. Select Refresh and check your deposits before trying again.",
       "unknownChecked": "Deposits refreshed. Check whether your change was saved before you try again.",
       "refreshed": "Deposits refreshed. Check the current deposits before making another change.",
       "retryAvailable": "You checked your deposits. You can try again now; it won’t run automatically.",
