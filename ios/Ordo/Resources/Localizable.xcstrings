@@ -1186,7 +1186,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Gastado incluye todo el dinero que registraste como salida, como compras, transferencias, abonos a deudas y dinero que pasaste a inversiones. Las devoluciones cuentan como depósitos y no reducen el gasto de su categoría original. No se incluyen los presupuestos, los pagos de nómina esperados, los gastos recurrentes esperados ni las vistas previas de importación sin guardar."
+            "value": "Gastado incluye todo el dinero que registraste como salida, como compras, transferencias, pagos de deudas y dinero que pasaste a inversiones. Las devoluciones cuentan como depósitos y no reducen el gasto de su categoría original. No se incluyen los presupuestos, los pagos de nómina esperados, los gastos recurrentes esperados ni las vistas previas de importación sin guardar."
           }
         }
       }
