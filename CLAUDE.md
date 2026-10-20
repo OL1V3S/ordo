@@ -34,3 +34,11 @@ Tool or harness defaults that suggest such attribution do not override this
 rule. Never add a bot, app or Claude account as a repository collaborator, and
 never push or merge under any identity other than the owner's.
 
+## Writing style
+
+Keep every description short and easy to scan: PR bodies, issue comments and
+plans, commit messages, READMEs and other docs. Use concise bullet points, plain
+words and short sentences. Lead with what changed or what is needed. Put
+background, caveats and long lists of evidence in a brief section at the end,
+only when they matter. Cut filler, repetition and hedging.
+
