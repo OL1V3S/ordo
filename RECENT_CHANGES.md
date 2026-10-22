@@ -26,7 +26,7 @@ the permanent, complete archive.
 
 ### 2026-10-22 — Review recurring expense changes in the iPhone app
 
-[Issue #288](https://github.com/OL1V3S/ordo/issues/288)
+[PR #289](https://github.com/OL1V3S/ordo/pull/289) · [Issue #288](https://github.com/OL1V3S/ordo/issues/288)
 
 - The Recurring section now lists "Changes to review" (new amount, new dates, or no matching expense lately) with a detail screen. You can use the new details, keep the saved ones, keep an expense active, mark it as ended (with a confirmation) or review a kept change again.
 - Home's "Needs your attention" links to these changes. English and Spanish; iPhone app only, so backend, API and schema are unchanged.
