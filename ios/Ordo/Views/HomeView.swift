@@ -8,6 +8,8 @@ struct HomeView: View {
     /// An edit or delete is on its way to the server: one write at a time.
     let writeBlocked: Bool
     let l10n: L10n
+    /// Jumps to Plan, Recurring expenses, Changes to review (`AppModel.openRecurringReviews`).
+    var openReviews: () -> Void = {}
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
@@ -49,7 +51,7 @@ struct HomeView: View {
         case .loaded(let snapshot):
             let presenter = HomePresenter(l10n: l10n, currencyCode: snapshot.currencyCode)
             List {
-                AttentionSection(state: snapshot.attention, presenter: presenter)
+                AttentionSection(state: snapshot.attention, presenter: presenter, reviewsEnabled: !writeBlocked, openReviews: openReviews)
                 RecentActivitySection(state: snapshot.recentActivity, presenter: presenter)
                 UpcomingSection(state: snapshot.upcoming, presenter: presenter)
             }

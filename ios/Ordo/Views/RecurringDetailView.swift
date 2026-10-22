@@ -16,6 +16,8 @@ struct RecurringDetailView: View {
                 if let commitment = model.commitment(id: id) { commitmentContent(commitment) } else { gone }
             case .candidate(let fingerprint):
                 if let candidate = model.candidate(fingerprint: fingerprint) { candidateContent(candidate) } else { gone }
+            case .change:
+                gone
             }
         }
         .themedList()
@@ -29,6 +31,7 @@ struct RecurringDetailView: View {
         switch route {
         case .commitment(let id): model.commitment(id: id)?.name ?? l10n.string(.commitmentsPageTitle)
         case .candidate(let fingerprint): model.candidate(fingerprint: fingerprint)?.name ?? l10n.string(.commitmentsPageTitle)
+        case .change: l10n.string(.commitmentsPageTitle)
         }
     }
 

@@ -28,6 +28,30 @@ struct HomePresenter: Sendable {
 
     // MARK: Attention
 
+    /// The link from Needs your attention to the recurring expense reviews (web `OverviewPage`).
+    enum AttentionLink: Equatable { case openReviews, viewAll(Int) }
+
+    /// Shown when there are recurring-expense items (all of them as a count when more exist than the
+    /// two rows shown) and also when attention is unavailable or malformed, so the reviews can still be
+    /// reached. Not shown for an empty list; Home has no attention state while loading.
+    static func attentionLink(_ state: SectionState<AttentionContent>) -> AttentionLink? {
+        switch state {
+        case .malformed, .unavailable: return .openReviews
+        case .available(let content):
+            guard !content.commitmentItems.isEmpty else { return nil }
+            let shown = attentionRows(content).filter { if case .commitment = $0 { true } else { false } }.count
+            guard content.commitmentItems.count > shown else { return .openReviews }
+            return .viewAll(content.commitmentItems.reduce(0) { $0 + $1.reviews.count })
+        }
+    }
+
+    func title(for link: AttentionLink) -> String {
+        switch link {
+        case .openReviews: l10n.string(.homeAttentionOpenReviews)
+        case .viewAll(let count): l10n.string(count == 1 ? .homeAttentionViewAllOne : .homeAttentionViewAllOther, String(count))
+        }
+    }
+
     /// Actionable budget items, then commitment items, then `at_limit` items, capped at 2.
     /// The app computes this order itself rather than trusting the server's sort order.
     static func attentionRows(_ content: AttentionContent) -> [AttentionRow] {

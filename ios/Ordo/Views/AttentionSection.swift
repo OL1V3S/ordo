@@ -3,6 +3,9 @@ import SwiftUI
 struct AttentionSection: View {
     let state: SectionState<AttentionContent>
     let presenter: HomePresenter
+    /// Opens Plan, Recurring expenses at Changes to review. Off while a write is in flight.
+    var reviewsEnabled = true
+    var openReviews: () -> Void = {}
 
     var body: some View {
         Section {
@@ -35,6 +38,18 @@ struct AttentionSection: View {
                 if content.isPartial {
                     InlineStatusView(systemImage: "exclamationmark.triangle", message: presenter.l10n.string(.homeAttentionPartialUnavailable), tone: .warning)
                 }
+            }
+            if let link = HomePresenter.attentionLink(state) {
+                Button { openReviews() } label: {
+                    HStack {
+                        Text(verbatim: presenter.title(for: link))
+                            .font(Theme.Typography.rowTitle.font)
+                        Spacer(minLength: 0)
+                        Image(systemName: "chevron.right").accessibilityHidden(true)
+                    }
+                    .foregroundStyle(reviewsEnabled ? ThemeColor.accent.color : ThemeColor.textMuted.color)
+                }
+                .disabled(!reviewsEnabled)
             }
         } header: {
             Text(verbatim: presenter.l10n.string(.homeAttentionHeading)).themedSectionHeader().accessibilityAddTraits(.isHeader)

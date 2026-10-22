@@ -173,9 +173,11 @@ struct RecurringStatusContent: View {
                         .font(Theme.Typography.meta.font)
                         .foregroundStyle(ThemeColor.text.color)
                     if let code = model.retryConflictCode {
-                        Text(verbatim: l10n.string(RecurringPresenter.errorKey(code)))
-                            .font(Theme.Typography.meta.font)
-                            .foregroundStyle(ThemeColor.text.color)
+                        if let key = RecurringPresenter.retryConflictKey(code) {
+                            Text(verbatim: l10n.string(key))
+                                .font(Theme.Typography.meta.font)
+                                .foregroundStyle(ThemeColor.text.color)
+                        }
                         Text(verbatim: l10n.string(.commitmentsIosRetryConflictNote))
                             .font(Theme.Typography.meta.font)
                             .foregroundStyle(ThemeColor.text.color)
@@ -213,6 +215,13 @@ struct RecurringDialogs: ViewModifier {
                                 titleVisibility: .visible, presenting: model.endTarget) { commitment in
                 Button(l10n.string(.commitmentsSavedConfirmEnd), role: .destructive) { model.confirmEnd(commitment) }
                 Button(l10n.string(.commitmentsSavedCancelEnd), role: .cancel) { model.cancelEnd() }
+            }
+            .confirmationDialog(model.changeEndTarget.map { l10n.string(.commitmentsChangesMarkEndedPrompt, $0.name) } ?? "",
+                                isPresented: Binding(get: { isActive && model.changeEndTarget != nil },
+                                                     set: { if !$0 { model.cancelChangeEnd() } }),
+                                titleVisibility: .visible, presenting: model.changeEndTarget) { target in
+                Button(l10n.string(.commitmentsChangesConfirmMarkEnded), role: .destructive) { model.confirmChangeEnd(target) }
+                Button(l10n.string(.commitmentsChangesCancelMarkEnded), role: .cancel) { model.cancelChangeEnd() }
             }
     }
 }

@@ -35,16 +35,17 @@ enum PlanSwitcherRules {
 struct PlanView: View {
     let model: AppModel
     let l10n: L10n
-    @State private var section: PlanSection = .budgets
 
     var body: some View {
-        switch section {
+        let section = Bindable(model).planSection
+        switch model.planSection {
         case .budgets:
-            BudgetsView(model: model.budgetsModel, l10n: l10n, planSection: $section, planSwitchEnabled: PlanSwitcherRules.isEnabled(writeInFlight: model.isWriteInFlight))
+            BudgetsView(model: model.budgetsModel, l10n: l10n, planSection: section, planSwitchEnabled: PlanSwitcherRules.isEnabled(writeInFlight: model.isWriteInFlight))
         case .recurring:
-            RecurringView(model: model.recurringModel, l10n: l10n, planSection: $section, planSwitchEnabled: PlanSwitcherRules.isEnabled(writeInFlight: model.isWriteInFlight))
+            RecurringView(model: model.recurringModel, l10n: l10n, planSection: section, planSwitchEnabled: PlanSwitcherRules.isEnabled(writeInFlight: model.isWriteInFlight),
+                          scrollToChanges: Bindable(model).scrollToChanges)
         case .paychecks:
-            PaychecksView(model: model.paychecksModel, l10n: l10n, planSection: $section, planSwitchEnabled: PlanSwitcherRules.isEnabled(writeInFlight: model.isWriteInFlight))
+            PaychecksView(model: model.paychecksModel, l10n: l10n, planSection: section, planSwitchEnabled: PlanSwitcherRules.isEnabled(writeInFlight: model.isWriteInFlight))
         }
     }
 }

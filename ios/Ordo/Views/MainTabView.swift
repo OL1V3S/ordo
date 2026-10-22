@@ -10,20 +10,21 @@ struct MainTabView: View {
     let l10n: L10n
 
     var body: some View {
-        TabView {
-            Tab(l10n.string(.navigationDestinationsHome), systemImage: "house") {
-                HomeView(model: model.homeModel, capture: model.captureModel, writeBlocked: model.isWriteInFlight, l10n: l10n)
+        TabView(selection: Bindable(model).selectedTab) {
+            Tab(l10n.string(.navigationDestinationsHome), systemImage: "house", value: AppTab.home) {
+                HomeView(model: model.homeModel, capture: model.captureModel, writeBlocked: model.isWriteInFlight, l10n: l10n,
+                         openReviews: { model.openRecurringReviews() })
             }
-            Tab(l10n.string(.navigationDestinationsActivity), systemImage: "list.bullet.rectangle") {
+            Tab(l10n.string(.navigationDestinationsActivity), systemImage: "list.bullet.rectangle", value: AppTab.activity) {
                 TransactionsView(model: model.transactionsModel, mutation: model.mutationModel, importModel: model.importModel, l10n: l10n)
             }
-            Tab(l10n.string(.navigationDestinationsPlan), systemImage: "list.clipboard") {
+            Tab(l10n.string(.navigationDestinationsPlan), systemImage: "list.clipboard", value: AppTab.plan) {
                 PlanView(model: model, l10n: l10n)
             }
-            Tab(l10n.string(.navigationDestinationsInsights), systemImage: "chart.bar.xaxis") {
+            Tab(l10n.string(.navigationDestinationsInsights), systemImage: "chart.bar.xaxis", value: AppTab.insights) {
                 ReportsView(model: model.reportsModel, l10n: l10n)
             }
-            Tab(l10n.string(.settingsTitle), systemImage: "gearshape") {
+            Tab(l10n.string(.settingsTitle), systemImage: "gearshape", value: AppTab.settings) {
                 SettingsView(model: model, l10n: l10n)
             }
         }
