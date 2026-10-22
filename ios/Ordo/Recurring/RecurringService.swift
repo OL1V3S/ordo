@@ -4,6 +4,8 @@ import Foundation
 protocol RecurringService: Sendable {
     /// Both reads must succeed; otherwise nothing is returned.
     func load() async throws -> RecurringSnapshot
+    /// The change-review read, independent of `load()`: either can fail alone.
+    func loadChanges() async throws -> CommitmentChangesSnapshot
     /// Sends exactly the bytes of the write. Throws `APIError` for refusals and unknown outcomes.
     func perform(_ write: CommitmentWrite) async throws
 }
@@ -29,6 +31,17 @@ struct SessionRecurringService: RecurringService {
         }
     }
 
+    func loadChanges() async throws -> CommitmentChangesSnapshot {
+        let api = self.api
+        let data = try await session.authorized { token in try await api.commitmentChanges(accessToken: token.value) }
+        do {
+            return try CommitmentChangesValidation.parse(data)
+        } catch {
+            throw RecurringReadError.malformed
+        }
+    }
+
+
     func perform(_ write: CommitmentWrite) async throws {
         let api = self.api
         try await session.authorized { token in
@@ -36,6 +49,8 @@ struct SessionRecurringService: RecurringService {
             case .confirm(_, let body): try await api.confirmCandidate(accessToken: token.value, body: body)
             case .dismiss(_, let body): try await api.dismissCandidate(accessToken: token.value, body: body)
             case .reconsider(_, let body): try await api.reconsiderCandidate(accessToken: token.value, body: body)
+            case .change(_, _, _, let path, let body):
+                try await api.decideCommitmentChange(accessToken: token.value, path: path, body: body)
             case .lifecycle(let id, _, let body):
                 try await api.updateCommitmentLifecycle(accessToken: token.value, id: id, body: body)
             }

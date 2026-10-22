@@ -76,6 +76,7 @@ struct RecurringPresenter {
         case .paused: l10n.string(.commitmentsHistoryPaused)
         case .ended: l10n.string(.commitmentsHistoryEnded)
         case .dismissed: l10n.string(.commitmentsHistoryDismissedHeading)
+        case .reviewedChanges: l10n.string(.commitmentsChangesReviewedHeading)
         }
     }
 
@@ -184,6 +185,8 @@ struct RecurringPresenter {
         case "amount_invalid": .commitmentsFeedbackErrorsAmountInvalid
         case "lifecycle_invalid": .commitmentsFeedbackErrorsLifecycleInvalid
         case "commitment_not_found": .commitmentsFeedbackErrorsCommitmentNotFound
+        case "dimension_invalid": .commitmentsFeedbackErrorsDimensionInvalid
+        case "change_proposal_changed": .commitmentsFeedbackErrorsChangeProposalChanged
         default: .commitmentsFeedbackErrorsRequestFailed
         }
     }
@@ -194,6 +197,12 @@ struct RecurringPresenter {
         case .dismissed: .commitmentsFeedbackNoticesDismissed
         case .reconsidered: .commitmentsFeedbackNoticesReconsidered
         case .lifecycle: .commitmentsFeedbackNoticesLifecycle
+        case .amountAccepted: .commitmentsFeedbackNoticesAmountAccepted
+        case .timingAccepted: .commitmentsFeedbackNoticesTimingAccepted
+        case .markedEnded: .commitmentsFeedbackNoticesMarkedEnded
+        case .keptActive: .commitmentsFeedbackNoticesKeptActive
+        case .keptCurrent: .commitmentsFeedbackNoticesKeptCurrent
+        case .changeReconsidered: .commitmentsFeedbackNoticesChangeReconsidered
         case .checked: .commitmentsIosCheckedNotice
         case .refreshFailedAfterWrite: .commitmentsIosRefreshFailedAfterWrite
         case .error(let code): errorKey(code)
@@ -202,7 +211,8 @@ struct RecurringPresenter {
 
     static func noticeTone(_ notice: RecurringViewModel.Notice) -> StatusTone {
         switch notice {
-        case .confirmed, .dismissed, .reconsidered, .lifecycle: .success
+        case .confirmed, .dismissed, .reconsidered, .lifecycle, .amountAccepted, .timingAccepted, .markedEnded,
+             .keptActive, .keptCurrent, .changeReconsidered: .success
         case .checked, .refreshFailedAfterWrite: .warning
         case .error: .danger
         }
@@ -210,7 +220,8 @@ struct RecurringPresenter {
 
     static func noticeIcon(_ notice: RecurringViewModel.Notice) -> String {
         switch notice {
-        case .confirmed, .dismissed, .reconsidered, .lifecycle: "checkmark.circle"
+        case .confirmed, .dismissed, .reconsidered, .lifecycle, .amountAccepted, .timingAccepted, .markedEnded,
+             .keptActive, .keptCurrent, .changeReconsidered: "checkmark.circle"
         case .checked, .refreshFailedAfterWrite, .error: "exclamationmark.triangle"
         }
     }

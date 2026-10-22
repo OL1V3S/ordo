@@ -29,7 +29,7 @@ import os
 final class RecurringViewModel {
     enum ListState: Equatable { case idle, loading, loaded, failed, malformed }
     enum WritePhase: Equatable { case idle, submitting, uncertain }
-    enum Group: Hashable, Sendable { case paused, ended, dismissed }
+    enum Group: Hashable, Sendable { case paused, ended, dismissed, reviewedChanges }
     enum LifecycleAction: Equatable, Sendable {
         case pause, reactivate, end
         var target: CommitmentLifecycle {
@@ -43,6 +43,7 @@ final class RecurringViewModel {
 
     enum Notice: Equatable {
         case confirmed, dismissed, reconsidered, lifecycle
+        case amountAccepted, timingAccepted, markedEnded, keptActive, keptCurrent, changeReconsidered
         /// The unknown outcome was resolved by reading the server.
         case checked
         case refreshFailedAfterWrite
@@ -66,6 +67,10 @@ final class RecurringViewModel {
     private(set) var confirm: ConfirmSession?
     private(set) var isSheetPresented = false
     private(set) var endTarget: RecurringCommitment?
+    /// The change review, read independently of the lists: it can fail alone, and then nothing in it can be decided.
+    private(set) var changes: CommitmentChangesSnapshot?
+    private(set) var changesFailed = false
+    private(set) var changeEndTarget: ChangeEndTarget?
     private(set) var expanded: Set<Group> = []
     /// The `409` code a Retry was answered with: the earlier attempt may have landed, so Check is required.
     private(set) var retryConflictCode: String?
@@ -104,6 +109,8 @@ final class RecurringViewModel {
 
     var isWriting: Bool { writePhase == .submitting }
     var canWrite: Bool { listState == .loaded && writePhase == .idle && !isOtherWriteInFlight() }
+    /// Decisions on changes also need the changes read, so they never act on a stale or missing proposal.
+    var canDecideChanges: Bool { canWrite && changes != nil && !changesFailed }
     var canRetry: Bool { writePhase == .uncertain && retryConflictCode == nil && !isChecking && !isOtherWriteInFlight() }
 
     func commitments(in lifecycle: CommitmentLifecycle) -> [RecurringCommitment] {
@@ -150,23 +157,36 @@ final class RecurringViewModel {
     /// Reads both lists. They are only ever replaced by a newer successful read; a failed read hides
     /// them, so nothing possibly stale is shown as current. Returns whether the read succeeded.
     @discardableResult
-    func refresh() async -> Bool {
+    func refresh(requireChanges: Bool = false) async -> Bool {
         started = true
         readSerial += 1
         let serial = readSerial
         let session = generation
         if snapshot == nil { listState = .loading } else { isRefreshing = true }
         defer { if serial == readSerial { isRefreshing = false } }
+        async let changesRead = Self.readChanges(service)
         do {
             let result = try await service.load()
+            let changesResult = await changesRead
             guard serial == readSerial, session == generation else { return false }
             snapshot = result
             listState = .loaded
+            switch changesResult {
+            case .success(let value):
+                changes = value
+                changesFailed = false
+            case .failure:
+                changes = nil
+                changesFailed = true
+                logger.error("Recurring expense changes could not be loaded")
+            }
             reconcile()
-            return true
+            return !requireChanges || !changesFailed
         } catch RecurringReadError.malformed {
             guard serial == readSerial, session == generation else { return false }
             snapshot = nil
+            changes = nil
+            changesFailed = false
             listState = .malformed
             reconcile()
             logger.error("The recurring expenses response was not usable")
@@ -174,11 +194,17 @@ final class RecurringViewModel {
         } catch {
             guard serial == readSerial, session == generation else { return false }
             snapshot = nil
+            changes = nil
+            changesFailed = false
             listState = .failed
             reconcile()
             logger.error("Recurring expenses could not be loaded")
             return false
         }
+    }
+
+    nonisolated private static func readChanges(_ service: RecurringService) async -> Result<CommitmentChangesSnapshot, Error> {
+        do { return .success(try await service.loadChanges()) } catch { return .failure(error) }
     }
 
     /// After a read: the End confirmation closes when the presented recurring expense is gone or its
@@ -191,6 +217,10 @@ final class RecurringViewModel {
             } else {
                 endTarget = nil
             }
+        }
+        if let target = changeEndTarget {
+            let pending = changes?.change(id: target.commitmentId)?.assessment(id: target.assessmentId)
+            if pending?.decision != .pending { changeEndTarget = nil }
         }
         if writePhase == .idle, let session = confirm {
             let listed = snapshot?.candidates.contains { $0.fingerprint == session.fingerprint } == true
@@ -252,6 +282,34 @@ final class RecurringViewModel {
                                                      body: CommitmentRequestBody.fingerprint(candidate.fingerprint))), isRetry: false)
     }
 
+    // MARK: Change review
+
+    /// Starts a decision on one assessment, or opens the Mark as ended confirmation. Refused unless
+    /// the changes are loaded, no write is in flight and the assessment is still shown with this
+    /// decision (an amount assessment that is not exact offers none).
+    func decide(_ decision: ChangeDecision, commitmentId: String, assessmentId: String) {
+        guard canDecideChanges, ChangeWrites.make(decision, commitmentId: commitmentId, assessmentId: assessmentId,
+                                                  in: changes) != nil else { return }
+        notice = nil
+        if decision == .markEnded {
+            if let change = changes?.change(id: commitmentId) {
+                changeEndTarget = ChangeEndTarget(commitmentId: commitmentId, assessmentId: assessmentId, name: change.commitment.name)
+            }
+        } else if let write = ChangeWrites.make(decision, commitmentId: commitmentId, assessmentId: assessmentId, in: changes) {
+            start(write, isRetry: false)
+        }
+    }
+
+    /// Confirms the Mark as ended dialog for the change it presented.
+    func confirmChangeEnd(_ target: ChangeEndTarget) {
+        changeEndTarget = nil
+        guard canDecideChanges, let write = ChangeWrites.make(.markEnded, commitmentId: target.commitmentId,
+                                                              assessmentId: target.assessmentId, in: changes) else { return }
+        start(write, isRetry: false)
+    }
+
+    func cancelChangeEnd() { changeEndTarget = nil }
+
     // MARK: Review and confirm
 
     func beginConfirm(_ candidate: RecurringCandidate) {
@@ -309,7 +367,7 @@ final class RecurringViewModel {
 
     // MARK: Sending
 
-    private func start(_ write: CommitmentWrite, isRetry: Bool) {
+    func start(_ write: CommitmentWrite, isRetry: Bool) {
         frozen = write
         writePhase = .submitting
         retryConflictCode = nil
@@ -361,14 +419,18 @@ final class RecurringViewModel {
             switch write.operation {
             case .lifecycle(_, let value, _): if value != .active { expanded.insert(value == .paused ? .paused : .ended) }
             case .dismiss: expanded.insert(.dismissed)
+            case .change(_, _, let decision, _, _):
+                if decision == .keep { expanded.insert(.reviewedChanges) }
+                if decision == .markEnded { expanded.insert(.ended) }
             case .confirm, .reconsider: break
             }
-            await finish(Self.successNotice(write), generation: started)
+            await finish(Self.successNotice(write), requireChanges: write.operation.isChangeDecision, generation: started)
         case .refused(let code):
             // A definitive refusal: nothing changed and the form is editable again.
             resolveWrite()
             show(error: code, for: write)
-            if code == "fingerprint_invalid" { await readAgain() }
+            // A refused change decision (400 / 422) changes nothing and reads nothing again.
+            if code == "fingerprint_invalid", !write.operation.isChangeDecision { await readAgain() }
         case .notFound:
             resolveWrite()
             closeTask()
@@ -383,7 +445,8 @@ final class RecurringViewModel {
             } else {
                 resolveWrite()
                 show(error: code, for: write)
-                await readAgain()
+                // Only a changed proposal is read again for a change decision.
+                if !write.operation.isChangeDecision || code == "change_proposal_changed" { await readAgain() }
             }
         case .uncertain:
             logger.error("A recurring expense change could not be confirmed")
@@ -400,6 +463,13 @@ final class RecurringViewModel {
         case .dismiss: .dismissed
         case .reconsider: .reconsidered
         case .lifecycle: .lifecycle
+        case .change(_, let dimension, let decision, _, _):
+            switch decision {
+            case .accept: dimension == .amount ? .amountAccepted : .timingAccepted
+            case .markEnded: .markedEnded
+            case .keep: dimension == .missing ? .keptActive : .keptCurrent
+            case .reconsider: .changeReconsidered
+            }
         }
     }
 
@@ -429,11 +499,11 @@ final class RecurringViewModel {
     }
 
     /// After a known change nothing is changed locally: both lists and Home are read again.
-    private func finish(_ newNotice: Notice, generation started: Int) async {
+    private func finish(_ newNotice: Notice, requireChanges: Bool, generation started: Int) async {
         resolveWrite()
         closeTask()
         notice = newNotice
-        let fresh = await refresh()
+        let fresh = await refresh(requireChanges: requireChanges)
         await refreshOthers()
         guard generation == started, notice == newNotice else { return }
         if !fresh { notice = .refreshFailedAfterWrite }
@@ -445,7 +515,8 @@ final class RecurringViewModel {
         let started = generation
         isChecking = true
         defer { isChecking = false }
-        let fresh = await refresh()
+        // A change decision is only resolved by reading the changes again.
+        let fresh = await refresh(requireChanges: frozen?.operation.isChangeDecision == true)
         guard generation == started else { return }
         guard fresh else { return }
         await refreshOthers()
@@ -465,11 +536,14 @@ final class RecurringViewModel {
         confirm = nil
         isSheetPresented = false
         endTarget = nil
+        changeEndTarget = nil
     }
 
     private func resetState() {
         readSerial += 1
         snapshot = nil
+        changes = nil
+        changesFailed = false
         listState = .idle
         isRefreshing = false
         started = false
