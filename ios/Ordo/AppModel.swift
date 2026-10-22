@@ -1,6 +1,9 @@
 import Foundation
 import Observation
 
+/// The tabs of the signed-in app, in tab bar order.
+enum AppTab: Hashable, Sendable { case home, activity, plan, insights, settings }
+
 /// Bridges the `SessionManager` actor to SwiftUI and owns the screen-level view models.
 @MainActor @Observable
 final class AppModel {
@@ -18,6 +21,11 @@ final class AppModel {
     let recurringModel: RecurringViewModel
     let reportsModel: ReportsViewModel
     let importModel: ImportViewModel
+    /// Tab and Plan section selection live here so Home can open Recurring expenses.
+    var selectedTab: AppTab = .home
+    var planSection: PlanSection = .budgets
+    /// Set by `openRecurringReviews`; Recurring scrolls to Changes to review and clears it.
+    var scrollToChanges = false
     private let session: SessionManager
     private var observer: Task<Void, Never>?
 
@@ -151,6 +159,24 @@ final class AppModel {
             || paychecksModel.isWriting || recurringModel.isWriting || importModel.isWriting
     }
 
+    /// Home's "Review recurring expenses": Plan, Recurring expenses, scrolled to Changes to review.
+    /// Refused while a write is in flight, as the Plan switcher is (switching would tear down a
+    /// screen that is saving).
+    @discardableResult
+    func openRecurringReviews() -> Bool {
+        guard PlanSwitcherRules.isEnabled(writeInFlight: isWriteInFlight) else { return false }
+        planSection = .recurring
+        scrollToChanges = true
+        selectedTab = .plan
+        return true
+    }
+
+    private func resetNavigation() {
+        selectedTab = .home
+        planSection = .budgets
+        scrollToChanges = false
+    }
+
     /// Language changes apply at once to the strings and to amount parsing, but never while a write
     /// is on its way (its values were read in the old language). Open drafts are kept.
     var canChangeLanguage: Bool { !isWriteInFlight }
@@ -177,6 +203,7 @@ final class AppModel {
                 guard let self else { return }
                 let previous = self.sessionState
                 if state != previous { self.accountModel.reset() }
+                if state != .signedIn || previous != .signedIn { self.resetNavigation() }
                 if state == .signedIn, previous != .signedIn {
                     self.homeModel.reset()
                     self.transactionsModel.reset()

@@ -23,6 +23,7 @@ private func session(_ access: String, _ refresh: String) -> StubResponse {
         transport.route("/api/activity/timeline") { _ in try StubResponse(200, fixture: "timeline-first-page") }
         transport.route("/api/commitment-candidates") { _ in StubResponse(200, json: #"{"candidates":[],"dismissedCandidates":[]}"#) }
         transport.route("/api/commitments") { _ in StubResponse(200, json: "[]") }
+        transport.route("/api/commitment-changes") { _ in StubResponse(200, json: #"{"evaluatedOn":"2026-10-01","changes":[]}"#) }
         transport.route("/api/paychecks") { _ in try StubResponse(200, fixture: "paychecks-full") }
         transport.route("/api/inflows") { _ in StubResponse(201, json: "{}") }
         transport.route("/api/expenses") { _ in StubResponse(201, json: "{}") }
@@ -100,4 +101,51 @@ private func session(_ access: String, _ refresh: String) -> StubResponse {
         await rig.model.signOut()
         #expect(rig.model.recurringModel.listState == .idle && rig.model.recurringModel.snapshot == nil)
     }
+
+    @Test func openingTheReviewsSelectsPlanRecurringAndAsksToScroll() async throws {
+        let rig = try await RecurringRig.signedIn()
+        #expect(rig.model.selectedTab == .home && rig.model.planSection == .budgets && !rig.model.scrollToChanges)
+        #expect(rig.model.openRecurringReviews())
+        #expect(rig.model.selectedTab == .plan && rig.model.planSection == .recurring && rig.model.scrollToChanges)
+    }
+
+    @Test func openingTheReviewsIsRefusedWhileAWriteIsInFlight() async throws {
+        let rig = try await RecurringRig.signedIn()
+        let gate = Gate()
+        rig.transport.route("/api/commitments") { _ in
+            StubResponse(200, json: #"[{"id":"\#(RecurringFixtures.id1)","name":"Synthetic Rent","lifecycle":"active","evidence":[]}]"#)
+        }
+        rig.transport.route("/api/commitments/\(RecurringFixtures.id1)/lifecycle") { _ in await gate.wait(); return StubResponse(200, json: "{}") }
+        let model = rig.model.recurringModel
+        await model.loadIfNeeded()
+        model.perform(.pause, on: try #require(model.commitments(in: .active).first))
+        #expect(rig.model.isWriteInFlight)
+        #expect(!rig.model.openRecurringReviews())
+        #expect(rig.model.selectedTab == .home && rig.model.planSection == .budgets && !rig.model.scrollToChanges)
+        await gate.release()
+        await model.settled()
+        #expect(rig.model.openRecurringReviews())
+    }
+
+    @Test func aChangeDecisionIsAWriteInFlightForTheWholeApp() async throws {
+        let rig = try await RecurringRig.signedIn()
+        let gate = Gate()
+        let fp = RecurringFixtures.fp1
+        rig.transport.route("/api/commitment-changes") { _ in
+            StubResponse(200, json: ChangeFixtures.body(amount: ChangeFixtures.amountJSON(fp)))
+        }
+        rig.transport.route("/api/commitment-changes/\(RecurringFixtures.id1)/amount/keep") { _ in
+            await gate.wait(); return StubResponse(204, Data())
+        }
+        let model = rig.model.recurringModel
+        await model.loadIfNeeded()
+        let change = try #require(model.pendingChanges.first)
+        model.decide(.keep, commitmentId: change.id, assessmentId: change.assessments[0].id)
+        #expect(model.isWriting && rig.model.isWriteInFlight && !rig.model.canChangeLanguage)
+        #expect(!rig.model.openRecurringReviews())
+        await gate.release()
+        await model.settled()
+        #expect(!rig.model.isWriteInFlight && model.notice == .keptCurrent)
+    }
 }
+

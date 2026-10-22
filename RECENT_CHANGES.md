@@ -24,6 +24,13 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-22 — Review recurring expense changes in the iPhone app
+
+[PR #289](https://github.com/OL1V3S/ordo/pull/289) · [Issue #288](https://github.com/OL1V3S/ordo/issues/288)
+
+- The Recurring section now lists "Changes to review" (new amount, new dates, or no matching expense lately) with a detail screen. You can use the new details, keep the saved ones, keep an expense active, mark it as ended (with a confirmation) or review a kept change again.
+- Home's "Needs your attention" links to these changes. English and Spanish; iPhone app only, so backend, API and schema are unchanged.
+
 ### 2026-10-20 — iPhone app tabs, sign-in "What is Ordo?", password rules
 
 [PR #286](https://github.com/OL1V3S/ordo/pull/286) · [PR #287](https://github.com/OL1V3S/ordo/pull/287) · [Issue #285](https://github.com/OL1V3S/ordo/issues/285)
@@ -160,10 +167,3 @@ the permanent, complete archive.
 
 - The confirmation and password-reset emails are now sent in English or Spanish, following the language selected in the app when you register, resend a confirmation, or request a reset. The wording says "Ordo" in both languages.
 - A missing or unrecognized language falls back to English, and the English emails are unchanged. The account does not store a language, and responses and limits are unchanged. Adds an optional `language` field to those three requests; no schema or dependency change.
-
-### 2026-10-14 — Paycheck matching suggestions on the Paychecks page
-
-[PR #244](https://github.com/OL1V3S/ordo/pull/244) · [Issue #243](https://github.com/OL1V3S/ordo/issues/243)
-
-- The Paychecks page now lists deposits that may match an open slot of an active pay schedule, when the date is inside the expected window and the amount equals the fixed amount or falls in the range. Nothing is linked until you choose "Link to ..."; ambiguous matches are not shown.
-- "Dismiss match" hides a suggestion on this device only (stored in the browser, not synced); "Dismissed matches" lets you show it again. Frontend only: no schema, API, or automatic linking change.

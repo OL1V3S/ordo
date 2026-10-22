@@ -361,6 +361,15 @@ struct OrdoAPI: Sendable {
 
     func commitments(accessToken: String) async throws -> Data { try await get("api/commitments", accessToken: accessToken) }
 
+    func commitmentChanges(accessToken: String) async throws -> Data {
+        try await get("api/commitment-changes", accessToken: accessToken)
+    }
+
+    /// `path` comes from `CommitmentChangePath`; the body is only `{"fingerprint":...}`. `204` is applied.
+    func decideCommitmentChange(accessToken: String, path: String, body: Data) async throws {
+        try await commitmentWrite(method: "POST", path: path, accessToken: accessToken, body: body)
+    }
+
     func dismissCandidate(accessToken: String, body: Data) async throws {
         try await commitmentWrite(method: "POST", path: "api/commitment-candidates/dismiss", accessToken: accessToken, body: body)
     }

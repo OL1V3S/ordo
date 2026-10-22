@@ -16,7 +16,8 @@ import Testing
 
     private func bodyText(_ write: CommitmentWrite) -> String {
         switch write.operation {
-        case .confirm(_, let body), .dismiss(_, let body), .reconsider(_, let body), .lifecycle(_, _, let body):
+        case .confirm(_, let body), .dismiss(_, let body), .reconsider(_, let body), .lifecycle(_, _, let body),
+             .change(_, _, _, _, let body):
             String(decoding: body, as: UTF8.self)
         }
     }

@@ -58,15 +58,20 @@ enum RecurringFixtures {
 /// Scripted service: records every read and write and returns or throws the next scripted result.
 final class ScriptedRecurringService: RecurringService, @unchecked Sendable {
     typealias Load = @Sendable () async throws -> RecurringSnapshot
+    typealias LoadChanges = @Sendable () async throws -> CommitmentChangesSnapshot
     typealias Perform = @Sendable (CommitmentWrite) async throws -> Void
 
     private let lock = NSLock()
     private var loadSteps: [Load]
     private var performSteps: [Perform]
+    private var changeSteps: [LoadChanges]
+    private var changeLoads = 0
     private var loads = 0
     private var performed: [CommitmentWrite] = []
 
-    init(loads: [Load] = [{ RecurringFixtures.snapshot() }], performs: [Perform] = [{ _ in }]) {
+    init(loads: [Load] = [{ RecurringFixtures.snapshot() }], performs: [Perform] = [{ _ in }],
+         changes: [LoadChanges] = [{ CommitmentChangesSnapshot(evaluatedOn: CalendarDate("2026-10-01"), changes: []) }]) {
+        changeSteps = changes
         loadSteps = loads
         performSteps = performs
     }
@@ -74,6 +79,8 @@ final class ScriptedRecurringService: RecurringService, @unchecked Sendable {
     var loadCount: Int { lock.lock(); defer { lock.unlock() }; return loads }
     var writes: [CommitmentWrite] { lock.lock(); defer { lock.unlock() }; return performed }
 
+    var changeLoadCount: Int { lock.lock(); defer { lock.unlock() }; return changeLoads }
+    func setChanges(_ steps: [LoadChanges]) { lock.lock(); changeSteps = steps; lock.unlock() }
     func setLoads(_ steps: [Load]) { lock.lock(); loadSteps = steps; lock.unlock() }
     func setPerforms(_ steps: [Perform]) { lock.lock(); performSteps = steps; lock.unlock() }
 
@@ -82,6 +89,15 @@ final class ScriptedRecurringService: RecurringService, @unchecked Sendable {
             lock.lock(); defer { lock.unlock() }
             loads += 1
             return loadSteps.count > 1 ? loadSteps.removeFirst() : loadSteps[0]
+        }()
+        return try await step()
+    }
+
+    func loadChanges() async throws -> CommitmentChangesSnapshot {
+        let step: LoadChanges = {
+            lock.lock(); defer { lock.unlock() }
+            changeLoads += 1
+            return changeSteps.count > 1 ? changeSteps.removeFirst() : changeSteps[0]
         }()
         return try await step()
     }

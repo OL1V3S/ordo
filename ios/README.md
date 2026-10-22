@@ -312,7 +312,7 @@ Plan, Paychecks page does. It uses `GET /api/paychecks`,
 The **Recurring** section of the Plan tab (second segment of the Plan switcher, labeled "Recurring expenses" /
 "Gastos recurrentes") is the web's Plan, Recurring expenses page. It uses `GET /api/commitment-candidates`
 and `GET /api/commitments` (read together; if either fails or is malformed the whole list is hidden with a
-Try again button), `POST /api/commitment-candidates/confirm`, `/dismiss` and `/reconsider`, and
+Try again button), `GET /api/commitment-changes` (see Changes to review), `POST /api/commitment-candidates/confirm`, `/dismiss` and `/reconsider`, and
 `PATCH /api/commitments/{id}/lifecycle`.
 
 - **List.** Your recurring expenses (Active), Possible recurring expenses (to review), collapsible Paused and
@@ -341,9 +341,29 @@ Try again button), `POST /api/commitment-candidates/confirm`, `/dismiss` and `/r
   state is not persisted.
 - **Refresh.** No optimistic updates: after a decision or a Check both lists and Home are re-read. A saved
   expense or an expense edit or delete re-reads the tab once it has been opened.
-- **Out of scope:** reviewing detected changes (`/api/commitment-changes`), editing a recurring expense
-  (`PUT /api/commitments/{id}`), the detector's algorithm-version fact, a next-expected date, links from Home's
-  Needs Attention, totals of expected money and an offline cache.
+- **Changes to review.** `GET /api/commitment-changes` is read with the two lists but on its own: if only it
+  fails, the lists stay, the Changes section says it could not be loaded with a Try again button, and no change
+  can be decided. The "Changes to review (N)" section sits between Active and Possible; a collapsed "Reviewed
+  changes" group holds kept changes. Rows open a detail screen (the only place with decisions): saved details
+  against the observed change, the expenses behind it, missed dates, why it was suggested, when it was checked
+  and the detector version. Only amount and timing `proposed_change` and missing `not_seen_recently` /
+  `possibly_ended` assessments with a 64-hex fingerprint and a pending or kept decision are shown (a bad
+  fingerprint hides only that assessment). Pending amount or timing: Use the new details, Keep saved details.
+  Possibly ended: Mark as ended (with a confirmation) and Keep active; not seen lately: Keep active only. Kept:
+  Review again. Snapshot money arrives as JSON numbers and is read as `Decimal`; proposed and observed amounts
+  are strings read exactly. An amount assessment whose proposed value, evidence list or observation amounts are
+  not exact disables every decision on it and says to refresh. Decisions are
+  `POST /api/commitment-changes/{id}/amount|timing/accept`, `/missing/mark-ended`, `/{dimension}/keep` and
+  `/{dimension}/reconsider`, each with only `{"fingerprint": ...}`, through the same write machine as the other
+  recurring-expense writes (one write at a time, Retry sends identical bytes, a `409` on Retry forces Check, a
+  Keep Retry answered `204` is success). Only `409 change_proposal_changed` and `404 commitment_not_found` re-read;
+  `400` and `422` show the error and change nothing. After a success both lists, the changes and Home are re-read.
+- **Home link.** Needs your attention shows "Review recurring expenses" (or "See all N items to review" when more
+  items exist than the two shown) when there are recurring-expense items, and also when attention is unavailable
+  or malformed. It opens Plan, Recurring expenses and scrolls to Changes. It is off while a write is in flight,
+  like the Plan switcher. Tab and Plan section selection live in `AppModel`.
+- **Out of scope:** editing a recurring expense (`PUT /api/commitments/{id}`), a next-expected date, quick
+  decisions on list rows, links from individual attention rows, totals of expected money and an offline cache.
 - **Nothing persisted;** names, categories, amounts, dates, ids and fingerprints are never logged, and server
   error text is never shown.
 
@@ -432,7 +452,7 @@ Reduce Motion and Increase Contrast.
 
 Add expense and Add deposit on the Transactions tab, bulk edit or delete, undo, an offline queue
 or cache, a concurrency token or conflict detection, automatic infinite scrolling, persisted
-filters, category management, creating or editing pay schedules, possible-paycheck suggestions, commitment change review and editing a recurring expense, paycheck linking after an import, Reports' "More spending detail",
+filters, category management, creating or editing pay schedules, possible-paycheck suggestions, editing a recurring expense, paycheck linking after an import, Reports' "More spending detail",
 widget, push notifications, TestFlight or App Store distribution, iPad
 layout, confirming an email or resetting a password inside the app (Universal Links, URL schemes,
 a paste-the-link field), and links into other web workflows.

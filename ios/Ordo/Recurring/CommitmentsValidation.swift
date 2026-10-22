@@ -23,7 +23,7 @@ enum CommitmentsValidation {
         return .exact(money)
     }
 
-    private struct RawEvidence: Decodable {
+    struct RawEvidence: Decodable {
         let expenseId: Int
         let date: String?
         let amount: String?
