@@ -5305,6 +5305,856 @@
         }
       }
     },
+    "commitments.changes.accept": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use the new details"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usar los datos nuevos"
+          }
+        }
+      }
+    },
+    "commitments.changes.acceptLabel.amount": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use the new details: amount for %1$@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usar los datos nuevos: monto de %1$@"
+          }
+        }
+      }
+    },
+    "commitments.changes.acceptLabel.timing": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use the new details: dates for %1$@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usar los datos nuevos: fechas de %1$@"
+          }
+        }
+      }
+    },
+    "commitments.changes.cancelMarkEnded": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancel"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancelar"
+          }
+        }
+      }
+    },
+    "commitments.changes.confirmMarkEnded": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yes, mark as ended"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sí, marcar como finalizado"
+          }
+        }
+      }
+    },
+    "commitments.changes.currentExpectation": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saved details"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lo guardado"
+          }
+        }
+      }
+    },
+    "commitments.changes.details": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Details"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Detalles"
+          }
+        }
+      }
+    },
+    "commitments.changes.detectionDetails": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Why we suggested this"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Por qué lo sugerimos"
+          }
+        }
+      }
+    },
+    "commitments.changes.dimension.amount": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Amount change"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cambio de monto"
+          }
+        }
+      }
+    },
+    "commitments.changes.dimension.missing": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Missing expense"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gasto faltante"
+          }
+        }
+      }
+    },
+    "commitments.changes.dimension.timing": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Date change"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cambio de fechas"
+          }
+        }
+      }
+    },
+    "commitments.changes.emptyPending": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No recurring expense changes to review."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No hay cambios de gastos recurrentes por revisar."
+          }
+        }
+      }
+    },
+    "commitments.changes.emptyReviewed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No reviewed changes."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No hay cambios revisados."
+          }
+        }
+      }
+    },
+    "commitments.changes.evaluated": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checked on"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revisado el"
+          }
+        }
+      }
+    },
+    "commitments.changes.explanation.amount_one": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ recent expense supports this amount change."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ gasto reciente respalda este cambio de monto."
+          }
+        }
+      }
+    },
+    "commitments.changes.explanation.amount_other": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ recent expenses support this amount change."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ gastos recientes respaldan este cambio de monto."
+          }
+        }
+      }
+    },
+    "commitments.changes.explanation.missing.monthly_one": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ expected monthly date has passed without a matching expense."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ha pasado %1$@ fecha mensual esperada sin un gasto que coincida."
+          }
+        }
+      }
+    },
+    "commitments.changes.explanation.missing.monthly_other": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ expected monthly dates have passed without a matching expense."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Han pasado %1$@ fechas mensuales esperadas sin un gasto que coincida."
+          }
+        }
+      }
+    },
+    "commitments.changes.explanation.missing.other_one": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ expected date has passed without a matching expense."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ha pasado %1$@ fecha esperada sin un gasto que coincida."
+          }
+        }
+      }
+    },
+    "commitments.changes.explanation.missing.other_other": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ expected dates have passed without a matching expense."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Han pasado %1$@ fechas esperadas sin un gasto que coincida."
+          }
+        }
+      }
+    },
+    "commitments.changes.explanation.missing.weekly_one": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ expected weekly date has passed without a matching expense."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ha pasado %1$@ fecha semanal esperada sin un gasto que coincida."
+          }
+        }
+      }
+    },
+    "commitments.changes.explanation.missing.weekly_other": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ expected weekly dates have passed without a matching expense."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Han pasado %1$@ fechas semanales esperadas sin un gasto que coincida."
+          }
+        }
+      }
+    },
+    "commitments.changes.explanation.missing.yearly_one": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ expected yearly date has passed without a matching expense."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ha pasado %1$@ fecha anual esperada sin un gasto que coincida."
+          }
+        }
+      }
+    },
+    "commitments.changes.explanation.missing.yearly_other": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ expected yearly dates have passed without a matching expense."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Han pasado %1$@ fechas anuales esperadas sin un gasto que coincida."
+          }
+        }
+      }
+    },
+    "commitments.changes.explanation.timing_one": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ recent expense supports this date change."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ gasto reciente respalda este cambio de fechas."
+          }
+        }
+      }
+    },
+    "commitments.changes.explanation.timing_other": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ recent expenses support this date change."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ gastos recientes respaldan este cambio de fechas."
+          }
+        }
+      }
+    },
+    "commitments.changes.eyebrowPending": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "To review"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Por revisar"
+          }
+        }
+      }
+    },
+    "commitments.changes.eyebrowReviewed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reviewed change"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cambio revisado"
+          }
+        }
+      }
+    },
+    "commitments.changes.heading": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Changes to review"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cambios por revisar"
+          }
+        }
+      }
+    },
+    "commitments.changes.intro": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "We noticed these changes in your recent expenses. Nothing changes until you choose, and your choice applies only to this change."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notamos estos cambios en tus gastos recientes. Nada cambia hasta que elijas, y tu elección aplica solo a este cambio."
+          }
+        }
+      }
+    },
+    "commitments.changes.keepActive": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep active"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mantener activo"
+          }
+        }
+      }
+    },
+    "commitments.changes.keepCurrent": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep saved details"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mantener lo guardado"
+          }
+        }
+      }
+    },
+    "commitments.changes.keepCurrentLabel.amount": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep saved details: amount for %1$@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mantener lo guardado: monto de %1$@"
+          }
+        }
+      }
+    },
+    "commitments.changes.keepCurrentLabel.missing": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep active: %1$@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mantener activo: %1$@"
+          }
+        }
+      }
+    },
+    "commitments.changes.keepCurrentLabel.timing": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep saved details: dates for %1$@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mantener lo guardado: fechas de %1$@"
+          }
+        }
+      }
+    },
+    "commitments.changes.markEnded": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mark as ended"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Marcar como finalizado"
+          }
+        }
+      }
+    },
+    "commitments.changes.markEndedLabel": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mark as ended: %1$@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Marcar como finalizado: %1$@"
+          }
+        }
+      }
+    },
+    "commitments.changes.markEndedPrompt": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mark %1$@ as ended? This changes its status. You can change it again from this recurring expense."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Marcar %1$@ como finalizado? Esto cambia su estado. Podrás volver a cambiarlo desde este gasto recurrente."
+          }
+        }
+      }
+    },
+    "commitments.changes.notSeen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not seen lately"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No ha aparecido últimamente"
+          }
+        }
+      }
+    },
+    "commitments.changes.observationNote": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This is an observation, not an automatic status change."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esto es una observación, no un cambio automático de estado."
+          }
+        }
+      }
+    },
+    "commitments.changes.observedChange": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Observed change"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cambio observado"
+          }
+        }
+      }
+    },
+    "commitments.changes.possiblyEnded": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "May have ended"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Puede que haya terminado"
+          }
+        }
+      }
+    },
+    "commitments.changes.reconsider": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Review again"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volver a revisar"
+          }
+        }
+      }
+    },
+    "commitments.changes.reconsiderLabel.amount": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Review again: amount change for %1$@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volver a revisar: cambio de monto de %1$@"
+          }
+        }
+      }
+    },
+    "commitments.changes.reconsiderLabel.missing": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Review again: missing expense for %1$@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volver a revisar: gasto faltante de %1$@"
+          }
+        }
+      }
+    },
+    "commitments.changes.reconsiderLabel.timing": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Review again: date change for %1$@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volver a revisar: cambio de fechas de %1$@"
+          }
+        }
+      }
+    },
+    "commitments.changes.reviewedHeading": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reviewed changes"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cambios revisados"
+          }
+        }
+      }
+    },
+    "commitments.changes.reviewedIntro": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You kept the saved details for these exact changes. Use Review again to look at one again."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mantuviste lo guardado en estos cambios exactos. Usa Volver a revisar si quieres verlo de nuevo."
+          }
+        }
+      }
+    },
+    "commitments.changes.statusKept": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kept"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mantenido"
+          }
+        }
+      }
+    },
+    "commitments.changes.statusPending": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pending"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pendiente"
+          }
+        }
+      }
+    },
     "commitments.evidence.heading": {
       "extractionState": "manual",
       "localizations": {
@@ -5492,6 +6342,23 @@
         }
       }
     },
+    "commitments.feedback.errors.change_proposal_changed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This change was updated. We loaded the latest details."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este cambio se actualizó. Cargamos los detalles más recientes."
+          }
+        }
+      }
+    },
     "commitments.feedback.errors.commitment_not_found": {
       "extractionState": "manual",
       "localizations": {
@@ -5522,6 +6389,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Este posible gasto recurrente cambió mientras lo confirmabas. Cargamos los datos más recientes."
+          }
+        }
+      }
+    },
+    "commitments.feedback.errors.dimension_invalid": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This change can no longer be reviewed. Refresh and try again."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este cambio ya no se puede revisar. Actualiza e inténtalo de nuevo."
           }
         }
       }
@@ -5628,6 +6512,40 @@
         }
       }
     },
+    "commitments.feedback.notices.amountAccepted": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Expected amount updated."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Monto esperado actualizado."
+          }
+        }
+      }
+    },
+    "commitments.feedback.notices.changeReconsidered": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Change returned to your review list."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El cambio volvió a tu lista de revisión."
+          }
+        }
+      }
+    },
     "commitments.feedback.notices.confirmed": {
       "extractionState": "manual",
       "localizations": {
@@ -5662,6 +6580,40 @@
         }
       }
     },
+    "commitments.feedback.notices.keptActive": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recurring expense kept active."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El gasto recurrente se mantiene activo."
+          }
+        }
+      }
+    },
+    "commitments.feedback.notices.keptCurrent": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saved details kept."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se mantiene lo guardado."
+          }
+        }
+      }
+    },
     "commitments.feedback.notices.lifecycle": {
       "extractionState": "manual",
       "localizations": {
@@ -5679,6 +6631,23 @@
         }
       }
     },
+    "commitments.feedback.notices.markedEnded": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recurring expense marked as ended."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gasto recurrente marcado como finalizado."
+          }
+        }
+      }
+    },
     "commitments.feedback.notices.reconsidered": {
       "extractionState": "manual",
       "localizations": {
@@ -5692,6 +6661,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "El posible gasto recurrente volvió a tu lista de revisión."
+          }
+        }
+      }
+    },
+    "commitments.feedback.notices.timingAccepted": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Expected dates updated."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fechas esperadas actualizadas."
           }
         }
       }
@@ -6240,6 +7226,23 @@
         }
       }
     },
+    "commitments.ios.changesLoadFailed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "We couldn’t load the changes to review. Try again."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No pudimos cargar los cambios por revisar. Inténtalo de nuevo."
+          }
+        }
+      }
+    },
     "commitments.ios.check": {
       "extractionState": "manual",
       "localizations": {
@@ -6270,6 +7273,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Se recargaron los gastos recurrentes. Revisa lo que está guardado antes de intentarlo de nuevo."
+          }
+        }
+      }
+    },
+    "commitments.ios.exactUnavailable": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exact amount unavailable. Refresh to get the latest version before you decide on this change."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Monto exacto no disponible. Actualiza para obtener la versión más reciente antes de decidir sobre este cambio."
           }
         }
       }
@@ -6423,6 +7443,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "Pausado"
+          }
+        }
+      }
+    },
+    "commitments.page.changesLink_one": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ change to review"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ cambio por revisar"
+          }
+        }
+      }
+    },
+    "commitments.page.changesLink_other": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ changes to review"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ cambios por revisar"
           }
         }
       }
@@ -7549,6 +8603,23 @@
         }
       }
     },
+    "home.attention.openReviews": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Review recurring expenses"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revisar gastos recurrentes"
+          }
+        }
+      }
+    },
     "home.attention.partialUnavailable": {
       "extractionState": "manual",
       "localizations": {
@@ -7596,6 +8667,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "Estos elementos no están disponibles en este momento."
+          }
+        }
+      }
+    },
+    "home.attention.viewAll_one": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "See the %1$@ item to review"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ver el %1$@ elemento por revisar"
+          }
+        }
+      }
+    },
+    "home.attention.viewAll_other": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "See all %1$@ items to review"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ver los %1$@ elementos por revisar"
           }
         }
       }
