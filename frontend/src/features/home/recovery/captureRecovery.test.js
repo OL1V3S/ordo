@@ -61,6 +61,20 @@ describe("Home capture recovery marker", () => {
     expect(getCaptureRecoverySnapshot()).toBeNull();
   });
 
+  it("keeps the recovery marker and callbacks valid when only the access token changes", () => {
+    const { result } = renderHook(() => useCaptureRecovery());
+    const before = result.current;
+    act(() => { markCaptureRecovery("expense"); });
+    act(() => {
+      localStorage.setItem("token", "token-a-refreshed");
+      window.dispatchEvent(new StorageEvent("storage", { key: "token", storageArea: localStorage }));
+    });
+
+    expect(getCaptureRecoverySnapshot()).toBe("expense");
+    expect(before.clear()).toBe(true);
+    expect(getCaptureRecoverySnapshot()).toBeNull();
+  });
+
   it("does not let a stale session callback mark or clear the next account's recovery state", () => {
     const { result } = renderHook(() => useCaptureRecovery());
     const stale = result.current;

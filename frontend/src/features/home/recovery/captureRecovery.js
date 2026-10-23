@@ -5,7 +5,7 @@ const PREFIX = "ordo-home-uncertain-write:";
 const listeners = new Set();
 const volatileMarkers = new Map();
 let lastSession = getSessionSnapshot();
-const accountKey = (session) => session?.token && session?.email
+const accountKey = (session) => session?.signedIn && session?.email
   ? `${PREFIX}${encodeURIComponent(session.email.trim().toLowerCase())}` : null;
 
 function emit() { listeners.forEach((listener) => listener()); }

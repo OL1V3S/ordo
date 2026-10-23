@@ -11,7 +11,7 @@ export function useHomeData() {
   const activeController = useRef(null);
 
   const read = useCallback(async (readSession) => {
-    if (!readSession?.token || readSession !== getSessionSnapshot()) return { stale: true };
+    if (!readSession?.signedIn || readSession !== getSessionSnapshot()) return { stale: true };
 
     activeController.current?.abort();
     const controller = new AbortController();
@@ -39,7 +39,7 @@ export function useHomeData() {
   }, []);
 
   useEffect(() => {
-    if (!session.token) {
+    if (!session.signedIn) {
       latest.current += 1;
       activeController.current?.abort();
       activeController.current = null;
@@ -60,7 +60,7 @@ export function useHomeData() {
 
   return {
     data: matches ? state.data : null,
-    loading: matches ? state.loading : Boolean(session.token),
+    loading: matches ? state.loading : Boolean(session.signedIn),
     error: matches ? state.error : false,
     activityThroughDate: matches ? state.activityThroughDate : null,
     refresh,

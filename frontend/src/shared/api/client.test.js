@@ -131,6 +131,28 @@ describe('authenticated response recovery', () => {
     expect(request.adapter).toHaveBeenCalledOnce()
   })
 
+  it('ignores an old-token 401 after a same-sign-in refresh and keeps the session', async () => {
+    const before = getSessionSnapshot()
+    const request = pendingRequest()
+    await request.started
+    localStorage.setItem('token', 'refreshed-token')
+
+    request.reject()
+    await request.result
+
+    expect(localStorage.getItem('token')).toBe('refreshed-token')
+    expect(getSessionSnapshot()).toBe(before)
+  })
+
+  it('invalidates on a 401 for the refreshed token of the same sign-in', async () => {
+    localStorage.setItem('token', 'refreshed-token')
+    const adapter = vi.fn(async (config) => { throw httpError(config) })
+
+    await client.get('/api/expenses', { adapter }).catch(() => {})
+
+    expect(localStorage.getItem('token')).toBeNull()
+  })
+
   it('ignores an old 401 when another tab replaces storage before its event arrives', async () => {
     const request = pendingRequest()
     await request.started
