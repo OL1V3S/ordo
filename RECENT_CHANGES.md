@@ -26,7 +26,7 @@ the permanent, complete archive.
 
 ### 2026-10-23 — iPhone widget: this month's spending
 
-PR TBD · [Issue #291](https://github.com/OL1V3S/ordo/issues/291)
+[PR #297](https://github.com/OL1V3S/ordo/pull/297) · [Issue #291](https://github.com/OL1V3S/ordo/issues/291)
 
 - The Home Screen widget now shows this month's exact spending and a six-month graph from the existing cash-flow report, labelled "Updated …"; it asks you to open Ordo when its copy is old.
 - The app shares only the 2-hour access token with the widget through a shared Keychain item, removed at sign-out; the refresh credential never leaves the app. iPhone app only, so backend, API and schema are unchanged.
