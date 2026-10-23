@@ -421,6 +421,32 @@ Settings is the fifth tab. The account email is not shown.
 - **Sign out** is here, with the same confirmation and waiting-save warning.
 - **Stored on the device:** only `ordo.theme` and `ordo.language` in `UserDefaults`. Sign-out and an ended session keep them.
 
+## Home Screen widget
+
+Slice 291a ([#291](https://github.com/OL1V3S/ordo/issues/291)) adds a medium Home Screen
+widget, the `OrdoWidgetExtension` target (bundle ID `$(ORDO_BUNDLE_ID_PREFIX).ordo.widget`,
+embedded in Ordo, same xcconfigs).
+
+- It shows "Open Ordo to see spending" and two buttons, **Add expense** and **Add deposit**.
+  It reads no account data, makes no network call and never writes money. It has no
+  entitlements, no App Group and no Keychain access. The spending graph comes in 291b.
+- The buttons are `Link`s to `ordo-widget://capture/expense` and
+  `ordo-widget://capture/deposit` (`ios/Shared/WidgetDeepLink.swift`, built into both
+  targets). The app's `onOpenURL` calls `AppModel.handle(_:)`. Only those two exact URLs are
+  accepted: no query, fragment, user or port, and no amount or prefill is ever read. The
+  scheme is deliberately **not** in `CFBundleURLTypes`, so other apps and web pages cannot
+  open it.
+- Signed in with nothing open: switches to Home and opens the form (nothing is saved until
+  the user taps Save). A sheet, full-screen cover or confirmation on another tab, an open
+  capture form, or a write on its way: the link does nothing, so no draft is lost. A waiting
+  (uncertain) save: Home only, never replaced. Restoring: held, applied only if the restore
+  reaches signed in. Signed out: dropped.
+- To make this detectable, the view-local flags for the Transactions filters, the statement
+  import and its row editor, and the sign-out confirmation moved into their models.
+- English and Spanish (`ios/OrdoWidget/Localizable.xcstrings`, device language).
+- Add the widget on a device or simulator by long-pressing the Home Screen, then **Ordo**.
+  Run on a device with your own team: the extension needs the same signing as the app.
+
 ## Look and theme
 
 The app uses Ordo's web look through one theme layer (`ios/Ordo/Theme`), while keeping iOS

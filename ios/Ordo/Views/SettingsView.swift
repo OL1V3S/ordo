@@ -50,7 +50,6 @@ enum SettingsPresenter {
 struct SettingsView: View {
     let model: AppModel
     let l10n: L10n
-    @State private var confirmingSignOut = false
 
     var body: some View {
         NavigationStack { form }
@@ -89,7 +88,7 @@ struct SettingsView: View {
             }
             .themedRows()
             Section {
-                Button(l10n.string(.commonSignOut), role: .destructive) { confirmingSignOut = true }
+                Button(l10n.string(.commonSignOut), role: .destructive) { model.isConfirmingSignOut = true }
                     .buttonStyle(OrdoDestructiveButtonStyle())
             } header: {
                 Text(verbatim: l10n.string(.settingsAccountTitle)).themedSectionHeader()
@@ -98,7 +97,7 @@ struct SettingsView: View {
         }
         .themedList()
         .navigationTitle(l10n.string(.settingsTitle))
-        .confirmationDialog(l10n.string(.authSignOutConfirmTitle), isPresented: $confirmingSignOut,
+        .confirmationDialog(l10n.string(.authSignOutConfirmTitle), isPresented: Bindable(model).isConfirmingSignOut,
                             titleVisibility: .visible) {
             Button(l10n.string(.commonSignOut), role: .destructive) { Task { await model.signOut() } }
             Button(l10n.string(.commonCancel), role: .cancel) {}

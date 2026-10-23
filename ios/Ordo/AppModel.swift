@@ -26,6 +26,11 @@ final class AppModel {
     var planSection: PlanSection = .budgets
     /// Set by `openRecurringReviews`; Recurring scrolls to Changes to review and clears it.
     var scrollToChanges = false
+    /// The Settings sign-out confirmation is open. Lifted out of the view so `handle(_:)` can see it.
+    var isConfirmingSignOut = false
+    /// A widget link that arrived while the session was restoring. It is applied only if the restore
+    /// reaches signed in, and dropped otherwise.
+    private var heldLink: WidgetDeepLink?
     private let session: SessionManager
     private var observer: Task<Void, Never>?
 
@@ -171,6 +176,43 @@ final class AppModel {
         return true
     }
 
+    /// Any sheet, full-screen cover or confirmation open outside Home's own capture flow. A widget
+    /// link never navigates while one is open: switching tabs could discard what the user is doing.
+    var isOtherModalPresented: Bool {
+        transactionsModel.isFiltersPresented || importModel.isPresented || importModel.editingRow != nil
+            || mutationModel.isSheetPresented || mutationModel.phase == .confirmingDelete
+            || budgetsModel.isSheetPresented || budgetsModel.deleteTarget != nil
+            || paychecksModel.isSheetPresented || paychecksModel.endTarget != nil || paychecksModel.removeTarget != nil
+            || recurringModel.isSheetPresented || recurringModel.endTarget != nil || recurringModel.changeEndTarget != nil
+            || isConfirmingSignOut
+    }
+
+    /// Opens Add expense or Add deposit from a Home Screen widget link. A link never saves anything.
+    /// - Restoring: held until the session is restored (see `start()`).
+    /// - Signed out or not configured: dropped.
+    /// - Signed in: only when nothing else is open and no write is on its way.
+    func handle(_ url: URL) {
+        guard let link = WidgetDeepLink.parse(url) else { return }
+        switch sessionState {
+        case .restoring: heldLink = link
+        case .signedOut: heldLink = nil
+        case .signedIn: route(link)
+        }
+    }
+
+    private func route(_ link: WidgetDeepLink) {
+        // Another screen's sheet, a capture form that is open, or a write on its way: do nothing,
+        // so no draft is discarded and no saving screen is torn down.
+        guard !isOtherModalPresented, !captureModel.isSheetPresented, !isWriteInFlight else { return }
+        selectedTab = .home
+        // A waiting save (uncertain or unreadable): Home only, where its banner is. Never replace it.
+        guard captureModel.canBegin else { return }
+        switch link {
+        case .addExpense: captureModel.begin(.expense)
+        case .addDeposit: captureModel.begin(.deposit)
+        }
+    }
+
     private func resetNavigation() {
         selectedTab = .home
         planSection = .budgets
@@ -234,12 +276,21 @@ final class AppModel {
                     if state == .signedOut(.sessionEnded) { self.captureModel.invalidate() }
                 }
                 self.sessionState = state
+                // A held widget link applies after the navigation reset and the surfaced waiting
+                // save (which downgrades it to Home only). Any other state drops it.
+                if state == .signedIn, let link = self.heldLink {
+                    self.heldLink = nil
+                    self.route(link)
+                } else if state != .signedIn {
+                    self.heldLink = nil
+                }
             }
         }
         await session.restore()
     }
 
     func signOut() async {
+        isConfirmingSignOut = false
         captureModel.invalidate()
         mutationModel.invalidate()
         transactionsModel.reset()
