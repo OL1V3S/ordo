@@ -1,5 +1,6 @@
 let snapshot;
 let generation = 0;
+let fallbackId = null;
 const listeners = new Set();
 
 // Identity is a random, non-secret id minted per sign-in. The access token is
@@ -18,11 +19,24 @@ export function getSessionSnapshot() {
   const email = localStorage.getItem("email");
   let id = localStorage.getItem("sessionId");
 
-  if (!token) id = null;
+  if (!token) {
+    id = null;
+    fallbackId = null;
+  }
   else if (!id) {
     // Sign-in from before session ids existed: mint one so the session is stable.
-    id = newSessionId();
-    localStorage.setItem("sessionId", id);
+    try {
+      localStorage.setItem("sessionId", newSessionId());
+      // Another tab may have minted first: adopt whatever is stored.
+      id = localStorage.getItem("sessionId");
+    } catch {
+      id = null;
+    }
+    if (!id) {
+      // Storage unavailable: keep one in-memory id so the session stays stable.
+      fallbackId ??= newSessionId();
+      id = fallbackId;
+    }
   }
 
   if (snapshot && id !== snapshot.id) generation += 1;
@@ -60,9 +74,10 @@ export function subscribeToSession(listener) {
 export function establishSession(token, email) {
   getSessionSnapshot();
   const id = newSessionId();
+  localStorage.setItem("sessionId", id);
   localStorage.setItem("token", token);
   localStorage.setItem("email", email);
-  localStorage.setItem("sessionId", id);
+  fallbackId = null;
   generation += 1;
   snapshot = Object.freeze({ signedIn: Boolean(localStorage.getItem("token")), id, email: localStorage.getItem("email"), generation });
   notifyListeners();

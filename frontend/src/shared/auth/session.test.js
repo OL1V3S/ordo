@@ -180,4 +180,37 @@ describe('shared authentication session', () => {
     expect(session.id).toMatch(/^[0-9a-f]{32}$/)
     expect(getSessionSnapshot()).toBe(session)
   })
+  it('adopts the id stored by another tab after minting for a legacy token', () => {
+    localStorage.setItem('token', 'legacy')
+    const realSet = Storage.prototype.setItem
+    const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function (key, value) {
+      if (key === 'sessionId') return realSet.call(this, key, 'other-tab-id')
+      return realSet.call(this, key, value)
+    })
+    expect(getSessionSnapshot().id).toBe('other-tab-id')
+    spy.mockRestore()
+  })
+
+  it('does not throw and keeps a stable id when storing the id fails', () => {
+    localStorage.setItem('token', 'legacy')
+    const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('quota')
+    })
+    const first = getSessionSnapshot()
+    expect(first.id).toMatch(/^[0-9a-f]{32}$/)
+    expect(getSessionSnapshot()).toBe(first)
+    spy.mockRestore()
+  })
+
+  it('writes sessionId before token and email when establishing', () => {
+    const keys = []
+    const realSet = Storage.prototype.setItem
+    const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function (key, value) {
+      keys.push(key)
+      return realSet.call(this, key, value)
+    })
+    establishSession('t', 'a@b.c')
+    spy.mockRestore()
+    expect(keys).toEqual(['sessionId', 'token', 'email'])
+  })
 })
