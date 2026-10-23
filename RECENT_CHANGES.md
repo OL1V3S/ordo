@@ -24,6 +24,13 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-23 — iPhone Home Screen widget: Add expense and Add deposit
+
+[PR #294](https://github.com/OL1V3S/ordo/pull/294) · [Issue #291](https://github.com/OL1V3S/ordo/issues/291)
+
+- New medium Home Screen widget with two buttons that open Add expense and Add deposit in the app. Nothing is saved from the widget. It shows "Open Ordo to see spending" for now; the spending graph is a later slice.
+- The widget reads no account data and shares no credentials. English and Spanish; iPhone app only, so backend, API and schema are unchanged.
+
 ### 2026-10-22 — Edit a recurring expense in the iPhone app
 
 [PR #290](https://github.com/OL1V3S/ordo/pull/290) · [Issue #288](https://github.com/OL1V3S/ordo/issues/288)
@@ -159,10 +166,3 @@ the permanent, complete archive.
 
 - Lines with no date, amount, or description (such as column headers) no longer clutter the statement review table. They appear in a collapsed "N lines couldn't be read" note that says they might include transactions and to check the statement; they stay unselectable and are never saved. English and Spanish.
 - The statement summary and the to-review filter still count them. Frontend and docs only: the parser, API, schema, and dependencies are unchanged.
-
-### 2026-10-15 — Paycheck matches in statement import review
-
-[PR #248](https://github.com/OL1V3S/ordo/pull/248) · [Issue #247](https://github.com/OL1V3S/ordo/issues/247)
-
-- Deposit rows in the statement review now show "May match {name}" when they fit an open slot of an active pay schedule (same `paycheck-match-v1` rules as the Paychecks page; ambiguous or possible-duplicate rows get none). English and Spanish.
-- "Link to {name} when saved" is off by default; ticking it also selects the deposit. After saving, the deposit is linked through the existing receipt write. Saving and linking are two requests, so a failed link leaves the deposit saved and unlinked, and the results list says which were linked. Frontend only: no schema, API, parser, or dependency change.
