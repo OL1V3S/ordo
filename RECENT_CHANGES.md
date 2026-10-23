@@ -26,7 +26,7 @@ the permanent, complete archive.
 
 ### 2026-10-23 — Web session endpoints (backend)
 
-[Issue #292](https://github.com/OL1V3S/ordo/issues/292)
+[PR #295](https://github.com/OL1V3S/ordo/pull/295) · [Issue #292](https://github.com/OL1V3S/ordo/issues/292)
 
 - New `POST /api/auth/web-session`, `/refresh` and `/sign-out` keep a long-lived web session in an HttpOnly, Secure, SameSite=Strict cookie. They reuse device sessions and are guarded by an Origin and custom-header check.
 - Additive and not used by the web app yet: login, device sessions, schema and CORS are unchanged.
