@@ -199,6 +199,34 @@ describe('web-session orchestration', () => {
     expect(session.getAccessToken()).not.toBe(token)
   })
 
+  it('never schedules a refresh sooner than the floor, even for an expiring token', async () => {
+    vi.useFakeTimers()
+    localStorage.setItem('token', jwt(30 * 1000))
+    localStorage.setItem('email', 'person@example.invalid')
+    client.refresh.mockResolvedValue({ status: 200, data: { token: jwt(2 * HOUR), email: 'person@example.invalid' } })
+
+    await mod.startWebSession()
+    await vi.advanceTimersByTimeAsync(mod.MIN_REFRESH_INTERVAL_MS - 1000)
+    expect(client.refresh).not.toHaveBeenCalled()
+    await vi.advanceTimersByTimeAsync(2000)
+    expect(client.refresh).toHaveBeenCalledOnce()
+  })
+
+  it('does not spin on refreshes when a skewed clock makes every new token look nearly expired', async () => {
+    vi.useFakeTimers()
+    localStorage.setItem('token', jwt(60 * 1000))
+    localStorage.setItem('email', 'person@example.invalid')
+    // Every token received looks like it expires in 2 minutes.
+    client.refresh.mockImplementation(async () => ({ status: 200, data: { token: jwt(2 * 60 * 1000), email: 'person@example.invalid' } }))
+
+    await mod.startWebSession()
+    await vi.advanceTimersByTimeAsync(10 * 60 * 1000)
+
+    expect(client.refresh.mock.calls.length).toBeGreaterThan(0)
+    expect(client.refresh.mock.calls.length).toBeLessThanOrEqual(10)
+    expect(session.getAccessToken()).toBeTruthy()
+  })
+
   it('signs out on the server, clears storage and signs out other tabs', async () => {
     session.establishSession(jwt(HOUR), 'person@example.invalid')
     client.signOut.mockResolvedValue({ status: 204, data: '' })

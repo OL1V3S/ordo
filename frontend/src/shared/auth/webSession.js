@@ -20,6 +20,10 @@ export const REFRESH_LEAD_MS = 5 * 60 * 1000;
 // Inside the lock, a token with more than this left was refreshed by another tab.
 const FRESH_ENOUGH_MS = 10 * 60 * 1000;
 const RETRY_DELAY_MS = 60 * 1000;
+// A scheduled refresh never fires sooner than this, and a tab never starts a
+// non-401 refresh within this long of its last success. Guards against a device
+// clock running ahead, where a fresh token looks nearly expired.
+export const MIN_REFRESH_INTERVAL_MS = 60 * 1000;
 const BOOT_WAIT_MS = 4000;
 
 let inFlight = null;
@@ -28,6 +32,7 @@ let channel = null;
 let started = false;
 let bootPromise = null;
 let bootPending = false;
+let lastRefreshAt = 0;
 const bootListeners = new Set();
 
 // JWT `exp` in milliseconds, used for scheduling only; null when unreadable.
@@ -92,6 +97,8 @@ async function runRefresh(triggerToken, reason) {
   if (stored && stored !== triggerToken) return true;
   if (stored && reason !== "unauthorized" && timeLeft(stored) > FRESH_ENOUGH_MS) return true;
 
+  if (stored && reason !== "unauthorized" && Date.now() - lastRefreshAt < MIN_REFRESH_INTERVAL_MS) return true;
+
   const before = getSessionSnapshot();
   let response;
   try {
@@ -114,6 +121,7 @@ async function runRefresh(triggerToken, reason) {
   const { token, email } = response.data ?? {};
   if (isSignOutPending() || !sameSignIn(before) || typeof token !== "string" || !token) return false;
 
+  lastRefreshAt = Date.now();
   if (before.signedIn) replaceAccessToken(token, email);
   else establishSession(token, email);
   return true;
@@ -141,7 +149,7 @@ function schedule() {
   const token = getAccessToken();
   if (!token) return;
 
-  const delay = Math.max(0, timeLeft(token) - REFRESH_LEAD_MS);
+  const delay = Math.max(MIN_REFRESH_INTERVAL_MS, timeLeft(token) - REFRESH_LEAD_MS);
   timer = setTimeout(async () => {
     timer = null;
     const refreshed = await refreshWebSession({ triggerToken: token });
