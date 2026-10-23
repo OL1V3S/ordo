@@ -148,6 +148,52 @@ public sealed class PostgreSqlDeviceSessionTests
     }
 
     [PostgreSqlFact]
+    public async Task Parallel_web_refreshes_with_one_cookie_yield_one_success_and_no_server_errors()
+    {
+        const int parallel = 8;
+        const string email = "web-race@example.com";
+        const string cookieName = "__Secure-ordo-web-session";
+        await using var app = new PostgreSqlFinancialApiTestApplication();
+        using var user = await app.CreateAuthenticatedUserAsync(email);
+
+        static HttpRequestMessage WebRequest(string route, object? body, string? cookie)
+        {
+            var request = new HttpRequestMessage(HttpMethod.Post, route);
+            if (body != null) request.Content = JsonContent.Create(body);
+            request.Headers.Add("Origin", "https://frontend.test");
+            request.Headers.Add("X-Ordo-Web-Session", "1");
+            if (cookie != null) request.Headers.Add("Cookie", $"{cookieName}={cookie}");
+            return request;
+        }
+
+        for (var round = 0; round < 5; round++)
+        {
+            string cookie;
+            using (var client = app.CreateTestClient())
+            {
+                using var signIn = await client.SendAsync(
+                    WebRequest("/api/auth/web-session", new { email, password = Password }, null));
+                Assert.Equal(HttpStatusCode.OK, signIn.StatusCode);
+                var line = signIn.Headers.GetValues("Set-Cookie")
+                    .Single(value => value.StartsWith(cookieName + "=", StringComparison.Ordinal));
+                cookie = line.Split(';')[0][(cookieName.Length + 1)..];
+            }
+
+            var results = await RaceAsync(parallel, _ => app.CreateTestClient(), async client =>
+            {
+                using var response = await client.SendAsync(
+                    WebRequest("/api/auth/web-session/refresh", null, cookie));
+                return response.StatusCode;
+            });
+
+            Assert.DoesNotContain(results, status => (int)status >= 500);
+            Assert.Single(results, status => status == HttpStatusCode.OK);
+            Assert.Equal(parallel - 1, results.Count(status => status == HttpStatusCode.Unauthorized));
+            Assert.Equal(0, await CountAsync(app, user.Id));
+        }
+    }
+
+    [PostgreSqlFact]
     public async Task Refresh_racing_a_password_reset_leaves_no_usable_session_and_reset_still_returns_200()
     {
         await using var app = new PostgreSqlFinancialApiTestApplication();

@@ -208,6 +208,82 @@ public class AuthController : ControllerBase
         return NoContent();
     }
 
+    // Web sessions (#292): the same session as device sessions, but the credential
+    // travels only in an HttpOnly cookie and never in a body. Every action is behind
+    // WebSessionGuard (Origin + custom header) and none reads an access token.
+    [HttpPost("web-session")]
+    [WebSessionGuard]
+    public async Task<IActionResult> CreateWebSession(
+        LoginRequest request,
+        CancellationToken cancellationToken)
+    {
+        // Same checks, order and error bodies as Login; stamp read as in CreateDeviceSession.
+        var user = await _userManager.FindByEmailAsync(request.Email);
+
+        if (user == null)
+            return Unauthorized("Invalid email or password");
+
+        var passwordValid = await _userManager.CheckPasswordAsync(user, request.Password);
+
+        if (!passwordValid)
+            return Unauthorized("Invalid email or password");
+
+        var securityStamp = user.SecurityStamp;
+
+        if (!await _userManager.IsEmailConfirmedAsync(user))
+            return Unauthorized("Please confirm your email before logging in.");
+
+        // End the session of a cookie being replaced, so orphaned rows cannot
+        // use up the shared per-account session cap.
+        var existing = WebSessionCookie.Read(Request);
+        if (existing != null)
+            await _deviceSessions.SignOutAsync(existing, cancellationToken);
+
+        var credential = await _deviceSessions.CreateAsync(user.Id, securityStamp, cancellationToken);
+
+        WebSessionCookie.Write(HttpContext, credential);
+        return Ok(new
+        {
+            token = GenerateJwtToken(user),
+            email = user.Email
+        });
+    }
+
+    [HttpPost("web-session/refresh")]
+    [WebSessionGuard]
+    public async Task<IActionResult> RefreshWebSession(CancellationToken cancellationToken)
+    {
+        var credential = WebSessionCookie.Read(Request);
+        var issued = credential == null
+            ? null
+            : await _deviceSessions.RefreshAsync(credential, cancellationToken);
+
+        if (issued == null)
+        {
+            WebSessionCookie.Clear(HttpContext);
+            return Unauthorized(new { code = "session_invalid" });
+        }
+
+        WebSessionCookie.Write(HttpContext, issued.Credential);
+        return Ok(new
+        {
+            token = GenerateJwtToken(issued.User),
+            email = issued.User.Email
+        });
+    }
+
+    [HttpPost("web-session/sign-out")]
+    [WebSessionGuard]
+    public async Task<IActionResult> SignOutWebSession(CancellationToken cancellationToken)
+    {
+        var credential = WebSessionCookie.Read(Request);
+        if (credential != null)
+            await _deviceSessions.SignOutAsync(credential, cancellationToken);
+
+        WebSessionCookie.Clear(HttpContext);
+        return NoContent();
+    }
+
     [HttpPost("confirm-email")]
     public async Task<IActionResult> ConfirmEmail(ConfirmEmailRequest request)
     {

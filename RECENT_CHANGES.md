@@ -24,6 +24,13 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-23 — Web session endpoints (backend)
+
+[PR #295](https://github.com/OL1V3S/ordo/pull/295) · [Issue #292](https://github.com/OL1V3S/ordo/issues/292)
+
+- New `POST /api/auth/web-session`, `/refresh` and `/sign-out` keep a long-lived web session in an HttpOnly, Secure, SameSite=Strict cookie. They reuse device sessions and are guarded by an Origin and custom-header check.
+- Additive and not used by the web app yet: login, device sessions, schema and CORS are unchanged.
+
 ### 2026-10-23 — iPhone Home Screen widget: Add expense and Add deposit
 
 [PR #294](https://github.com/OL1V3S/ordo/pull/294) · [Issue #291](https://github.com/OL1V3S/ordo/issues/291)
@@ -159,10 +166,3 @@ the permanent, complete archive.
 - Statement deposits that the PDF text layer runs together without spaces are now read as individual rows in import review. Before, they collapsed into one unreadable line and the deposits were missing. Deposits stay unselected by default and nothing is saved automatically.
 - When a deposits line cannot be read with confidence, the review shows one unreadable line per dated entry instead of any amount, and a header-only page that continues a Deposits section is shown as unreadable lines instead of being skipped.
 - The Sunflower parser rule version is now `sunflower-v4`, so a statement previewed or confirmed under `v3` can be previewed again; row-level duplicate flags remain the protection against saving it twice. Backend only: no schema, API shape, frontend, or dependency change.
-
-### 2026-10-15 — Unreadable statement lines collapsed in import review
-
-[PR #249](https://github.com/OL1V3S/ordo/pull/249) · [Issue #247](https://github.com/OL1V3S/ordo/issues/247)
-
-- Lines with no date, amount, or description (such as column headers) no longer clutter the statement review table. They appear in a collapsed "N lines couldn't be read" note that says they might include transactions and to check the statement; they stay unselectable and are never saved. English and Spanish.
-- The statement summary and the to-review filter still count them. Frontend and docs only: the parser, API, schema, and dependencies are unchanged.

@@ -161,6 +161,7 @@ builder.Services.AddOptions<ForgotPasswordLimiterOptions>();
 builder.Services.AddSingleton<IForgotPasswordLimiter, ForgotPasswordLimiter>();
 builder.Services.AddOptions<DeviceSessionOptions>();
 builder.Services.AddScoped<IDeviceSessionService, DeviceSessionService>();
+builder.Services.AddScoped<WebSessionGuardFilter>();
 
 var app = builder.Build();
 
