@@ -26,7 +26,7 @@ the permanent, complete archive.
 
 ### 2026-10-22 — Edit a recurring expense in the iPhone app
 
-[Issue #288](https://github.com/OL1V3S/ordo/issues/288)
+[PR #290](https://github.com/OL1V3S/ordo/pull/290) · [Issue #288](https://github.com/OL1V3S/ordo/issues/288)
 
 - Active, paused and ended recurring expenses now have an Edit action (row menu and detail screen) with the same form as Review and confirm; "Save changes" updates it.
 - A saved amount that cannot be read exactly is left empty and has to be entered. A refused save keeps the form and your changes. English and Spanish; iPhone app only, so backend, API and schema are unchanged.
