@@ -1,8 +1,8 @@
 import SwiftUI
 
-/// Review and confirm a possible recurring expense: the web's form, prefilled from what the server
-/// observed. Nothing is saved until Confirm; the server resolves the matching expenses itself.
-struct ConfirmCommitmentSheet: View {
+/// Review and confirm a possible recurring expense, or edit a saved one: the web's form, prefilled
+/// from what the server observed or saved. Nothing is saved until Confirm or Save changes.
+struct CommitmentFormSheet: View {
     let model: RecurringViewModel
     let presenter: RecurringPresenter
 
@@ -16,14 +16,15 @@ struct ConfirmCommitmentSheet: View {
                 } else {
                     List {
                         InlineStatusView(systemImage: "exclamationmark.triangle",
-                                         message: l10n.string(.commitmentsFeedbackErrorsCandidateChanged), tone: .warning)
+                                         message: l10n.string(model.isEditing ? .commitmentsFeedbackErrorsCommitmentNotFound
+                                                              : .commitmentsFeedbackErrorsCandidateChanged), tone: .warning)
                             .themedRows()
                     }
                     .themedList()
                 }
             }
             .themedCanvas()
-            .navigationTitle(Text(verbatim: l10n.string(.commitmentsCandidatesConfirmCommitment)))
+            .navigationTitle(Text(verbatim: l10n.string(model.isEditing ? .commitmentsSavedEdit : .commitmentsCandidatesConfirmCommitment)))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -111,7 +112,8 @@ struct ConfirmCommitmentSheet: View {
 
             Section {
                 Button { model.submitConfirm() } label: {
-                    Text(verbatim: l10n.string(.commitmentsCandidatesConfirmCommitment)).frame(maxWidth: .infinity)
+                    Text(verbatim: l10n.string(model.isEditing ? .commitmentsSavedSaveChanges : .commitmentsCandidatesConfirmCommitment))
+                        .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(OrdoPrimaryButtonStyle())
                 .disabled(!model.canWrite || draft.observedUnsafe)

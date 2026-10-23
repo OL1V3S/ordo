@@ -61,7 +61,7 @@ struct CandidateRow: View {
     }
 }
 
-/// Pause, Reactivate and End, as a trailing button and a menu.
+/// Pause, Reactivate, Edit and End, as a trailing button and a menu.
 struct CommitmentActionsRow: View {
     let commitment: RecurringCommitment
     let model: RecurringViewModel
@@ -92,6 +92,10 @@ struct CommitmentActionsRow: View {
 
     /// The same items for the menu and a long press (Reactivate is also the trailing button).
     @ViewBuilder var actionButtons: some View {
+        Button { model.beginEdit(commitment) } label: {
+            Text(verbatim: l10n.string(.commitmentsSavedEdit))
+        }
+        .accessibilityLabel(Text(verbatim: l10n.string(.commitmentsSavedEditLabel, commitment.name)))
         ForEach(RecurringViewModel.actions(for: commitment.lifecycle), id: \.self) { action in
             Button(role: action == .end ? .destructive : nil) {
                 model.perform(action, on: commitment)

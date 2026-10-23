@@ -5,7 +5,13 @@ enum ConfirmField: Int, Comparable, Sendable, CaseIterable {
     static func < (a: ConfirmField, b: ConfirmField) -> Bool { a.rawValue < b.rawValue }
 }
 
-/// The "Review and confirm" form, a port of the web's `CommitmentForm` for a candidate.
+/// What the form saves: a possible recurring expense (confirm) or a saved one (edit).
+enum CommitmentFormTarget: Equatable, Sendable {
+    case candidate(fingerprint: String)
+    case commitment(id: String)
+}
+
+/// The recurring expense form, a port of the web's `CommitmentForm` for a candidate or a saved one.
 struct ConfirmDraft: Equatable, Sendable, CustomStringConvertible, CustomDebugStringConvertible {
     enum Cadence: String, CaseIterable, Sendable { case weekly, monthly, yearly }
     enum MonthlyTiming: String, CaseIterable, Sendable { case dayofmonth, monthend }
@@ -15,7 +21,7 @@ struct ConfirmDraft: Equatable, Sendable, CustomStringConvertible, CustomDebugSt
     static let maximumName = 500
     static let maximumCategory = 100
 
-    let fingerprint: String
+    let target: CommitmentFormTarget
     var name: String
     var category: String
     var cadence: Cadence
@@ -30,7 +36,8 @@ struct ConfirmDraft: Equatable, Sendable, CustomStringConvertible, CustomDebugSt
     var minimumText: String
     var maximumText: String
     /// An observed amount the server sent could not be read exactly: Confirm stays disabled and no
-    /// amount is pre-filled from it.
+    /// amount is pre-filled from it. Never set when editing: an unreadable saved amount is left empty
+    /// and simply has to be entered.
     let observedUnsafe: Bool
 
     var description: String { "ConfirmDraft(redacted)" }
@@ -43,7 +50,7 @@ struct ConfirmDraft: Equatable, Sendable, CustomStringConvertible, CustomDebugSt
             : (candidate.minimum.money == nil || candidate.maximum.money == nil)
         func text(_ money: CommitmentMoney) -> String { money.money?.text ?? "" }
         return ConfirmDraft(
-            fingerprint: candidate.fingerprint, name: candidate.name, category: candidate.category, cadence: cadence,
+            target: .candidate(fingerprint: candidate.fingerprint), name: candidate.name, category: candidate.category, cadence: cadence,
             weekday: weekdays.contains(candidate.timing.dayOfWeek ?? "") ? candidate.timing.dayOfWeek! : "monday",
             monthlyTiming: candidate.timing.kind == "monthend" ? .monthend : .dayofmonth,
             monthText: candidate.timing.month.map(String.init) ?? "",
@@ -53,6 +60,31 @@ struct ConfirmDraft: Equatable, Sendable, CustomStringConvertible, CustomDebugSt
             amountMode: candidate.observedFixed ? .fixed : .range,
             expectedText: candidate.observedFixed ? text(candidate.median) : "",
             minimumText: text(candidate.minimum), maximumText: text(candidate.maximum), observedUnsafe: unsafe)
+    }
+
+    /// Editing a saved recurring expense: everything prefilled from it, each amount only when exact.
+    /// An amount that is unavailable or not exact is left empty and has to be entered (a candidate
+    /// confirm blocks instead).
+    static func initial(for commitment: RecurringCommitment) -> ConfirmDraft {
+        let timing = commitment.timing
+        var mode = AmountMode.fixed
+        var expected = "", minimum = "", maximum = ""
+        switch commitment.amount {
+        case .fixed(let value): expected = value.money?.text ?? ""
+        case .range(let low, let high):
+            mode = .range
+            minimum = low.money?.text ?? ""
+            maximum = high.money?.text ?? ""
+        case .unavailable: break
+        }
+        return ConfirmDraft(
+            target: .commitment(id: commitment.id), name: commitment.name, category: commitment.category,
+            cadence: Cadence(rawValue: timing.cadence) ?? .monthly,
+            weekday: weekdays.contains(timing.dayOfWeek ?? "") ? timing.dayOfWeek! : "monday",
+            monthlyTiming: timing.kind == "monthend" ? .monthend : .dayofmonth,
+            monthText: timing.month.map(String.init) ?? "", dayText: timing.day.map(String.init) ?? "",
+            beforeText: String(timing.windowBeforeDays ?? 0), afterText: String(timing.windowAfterDays ?? 0),
+            amountMode: mode, expectedText: expected, minimumText: minimum, maximumText: maximum, observedUnsafe: false)
     }
 
     /// Changing the cadence resets the timing exactly as the web's `updateCadence`.

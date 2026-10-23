@@ -197,6 +197,7 @@ struct RecurringPresenter {
         case .dismissed: .commitmentsFeedbackNoticesDismissed
         case .reconsidered: .commitmentsFeedbackNoticesReconsidered
         case .lifecycle: .commitmentsFeedbackNoticesLifecycle
+        case .updated: .commitmentsFeedbackNoticesUpdated
         case .amountAccepted: .commitmentsFeedbackNoticesAmountAccepted
         case .timingAccepted: .commitmentsFeedbackNoticesTimingAccepted
         case .markedEnded: .commitmentsFeedbackNoticesMarkedEnded
@@ -211,7 +212,7 @@ struct RecurringPresenter {
 
     static func noticeTone(_ notice: RecurringViewModel.Notice) -> StatusTone {
         switch notice {
-        case .confirmed, .dismissed, .reconsidered, .lifecycle, .amountAccepted, .timingAccepted, .markedEnded,
+        case .confirmed, .dismissed, .reconsidered, .lifecycle, .updated, .amountAccepted, .timingAccepted, .markedEnded,
              .keptActive, .keptCurrent, .changeReconsidered: .success
         case .checked, .refreshFailedAfterWrite: .warning
         case .error: .danger
@@ -220,7 +221,7 @@ struct RecurringPresenter {
 
     static func noticeIcon(_ notice: RecurringViewModel.Notice) -> String {
         switch notice {
-        case .confirmed, .dismissed, .reconsidered, .lifecycle, .amountAccepted, .timingAccepted, .markedEnded,
+        case .confirmed, .dismissed, .reconsidered, .lifecycle, .updated, .amountAccepted, .timingAccepted, .markedEnded,
              .keptActive, .keptCurrent, .changeReconsidered: "checkmark.circle"
         case .checked, .refreshFailedAfterWrite, .error: "exclamationmark.triangle"
         }

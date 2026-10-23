@@ -14,6 +14,7 @@ private struct CommitmentHarness {
     func dismiss() async throws { try await api.dismissCandidate(accessToken: "access-1", body: body) }
     func reconsider() async throws { try await api.reconsiderCandidate(accessToken: "access-1", body: body) }
     func confirm(_ data: Data? = nil) async throws { try await api.confirmCandidate(accessToken: "access-1", body: data ?? body) }
+    func update(_ data: Data) async throws { try await api.updateCommitment(accessToken: "access-1", id: gid, body: data) }
     func lifecycle() async throws {
         try await api.updateCommitmentLifecycle(accessToken: "access-1", id: gid, body: CommitmentRequestBody.lifecycle(.paused))
     }
@@ -171,5 +172,39 @@ private struct CommitmentHarness {
             try CommitmentRequestBody.confirm(fingerprint: print1, values(expected: "0.10"))
         }
         #expect(Set(bodies).count == 1 && text(bodies[0]).contains(#""expectedAmount":0.10,"#))
+    }
+
+    @Test func updateIsAPutWithTheConfirmBytesMinusTheFingerprint() async throws {
+        let h = CommitmentHarness()
+        let path = "/api/commitments/\(gid)"
+        h.transport.route(path) { _ in StubResponse(200, json: #"{"unexpected":"shape"}"#) }
+        let body = try CommitmentRequestBody.update(values())
+        try await h.update(body)
+        let request = try #require(h.transport.requests(path).first)
+        #expect(request.httpMethod == "PUT" && request.httpBody == body && request.value(forHTTPHeaderField: "Idempotency-Key") == nil)
+        #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer access-1")
+        #expect(text(body) == #"{"amountMode":"fixed","cadence":"monthly","category":"bills","expectedAmount":12.34,"expectedDay":15,"expectedDayOfWeek":null,"expectedMaximumAmount":null,"expectedMinimumAmount":null,"expectedMonth":null,"name":"Synthetic Streaming","timingKind":"dayofmonth","windowAfterDays":2,"windowBeforeDays":1}"#)
+        let confirm = try CommitmentRequestBody.confirm(fingerprint: print1, values())
+        #expect(text(confirm).replacingOccurrences(of: #""fingerprint":"\#(print1)","#, with: "") == text(body))
+    }
+
+    @Test(arguments: [200, 201, 204]) func updateSuccessDoesNotNeedTheResponseBody(status: Int) async throws {
+        let h = CommitmentHarness()
+        h.transport.route("/api/commitments/\(gid)") { _ in StubResponse(status, json: "not json") }
+        try await h.update(try CommitmentRequestBody.update(values()))
+    }
+
+    @Test func updateMapsRefusalsAndUnknownOutcomes() async throws {
+        let h = CommitmentHarness()
+        let path = "/api/commitments/\(gid)"
+        let body = try CommitmentRequestBody.update(values())
+        for (status, error): (Int, APIError) in [(400, .commitmentRejected("amount_invalid")), (422, .commitmentRejected(nil)),
+                                                  (404, .commitmentNotFound), (409, .commitmentConflict("amount_invalid")),
+                                                  (401, .unauthorized), (500, .server(500))] {
+            h.transport.route(path) { _ in StubResponse(status, json: #"{"code":"amount_invalid"}"#) }
+            await #expect(throws: error) { try await h.update(body) }
+        }
+        h.transport.route(path) { _ in throw URLError(.timedOut) }
+        await #expect(throws: APIError.offline) { try await h.update(body) }
     }
 }
