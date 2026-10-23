@@ -9,12 +9,22 @@ enum KeychainError: Error, Equatable { case unexpectedStatus(OSStatus) }
 /// credential on the next launch, which the server treats as reuse and ends the session.
 struct KeychainCredentialStore: CredentialStore {
     static let account = "device-session"
+    static let privateGroupKey = "OrdoKeychainPrivateGroup"
     let service: String
+    /// The app's private access group. Only `SecItemAdd` names it, so a new credential can never
+    /// land in the shared group the widget reads. Reads, updates and deletes do not name a group,
+    /// so an existing item is always found even if this value were wrong.
+    let addAccessGroup: String?
 
-    init(service: String) { self.service = service }
+    init(service: String, addAccessGroup: String? = nil) {
+        self.service = service
+        self.addAccessGroup = addAccessGroup
+    }
 
     init(bundle: Bundle = .main) {
-        self.init(service: "\(bundle.bundleIdentifier ?? "ordo").device-session")
+        let group = (bundle.object(forInfoDictionaryKey: Self.privateGroupKey) as? String)
+            .flatMap { $0.isEmpty || $0.contains("$(") ? nil : $0 }
+        self.init(service: "\(bundle.bundleIdentifier ?? "ordo").device-session", addAccessGroup: group)
     }
 
     private var identity: [String: Any] {
@@ -44,6 +54,7 @@ struct KeychainCredentialStore: CredentialStore {
         if status == errSecSuccess { return }
         guard status == errSecItemNotFound else { throw KeychainError.unexpectedStatus(status) }
         var add = identity
+        if let addAccessGroup { add[kSecAttrAccessGroup as String] = addAccessGroup }
         add[kSecValueData as String] = data
         add[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
         let addStatus = SecItemAdd(add as CFDictionary, nil)

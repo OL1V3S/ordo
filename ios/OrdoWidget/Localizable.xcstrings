@@ -18,8 +18,22 @@
     "widget.description" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Add an expense or a deposit." } },
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Agrega un gasto o un depósito." } }
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "See this month's spending and add an expense or a deposit." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Mira tus gastos del mes y agrega un gasto o un depósito." } }
+      }
+    },
+    "widget.empty" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "No spending yet this month" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Aún no hay gastos este mes" } }
+      }
+    },
+    "widget.monthToDate" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Month to date" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "En lo que va del mes" } }
       }
     },
     "widget.name" : {
@@ -29,11 +43,53 @@
         "es" : { "stringUnit" : { "state" : "translated", "value" : "Ordo" } }
       }
     },
-    "widget.placeholder" : {
+    "widget.needsUpdate" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Open Ordo to see spending" } },
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Abre Ordo para ver tus gastos" } }
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Open Ordo to update" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Abre Ordo para actualizar" } }
+      }
+    },
+    "widget.notConfigured" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Ordo isn't set up" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Ordo no está configurado" } }
+      }
+    },
+    "widget.signedOut" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Sign in to Ordo" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Inicia sesión en Ordo" } }
+      }
+    },
+    "widget.spentThisMonth" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Spent this month" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Gastos de este mes" } }
+      }
+    },
+    "widget.summary %@ %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Spent this month, month to date: %1$@. Last six months: %2$@." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Gastos de este mes, en lo que va del mes: %1$@. Últimos seis meses: %2$@." } }
+      }
+    },
+    "widget.unavailable" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Couldn't update spending" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "No pudimos actualizar tus gastos" } }
+      }
+    },
+    "widget.updated %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Updated %@" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Actualizado %@" } }
       }
     }
   },

@@ -7,6 +7,9 @@ import os
 actor SessionManager {
     private let api: OrdoAPI
     private let store: CredentialStore
+    /// The widget's copy of the access token only. The refresh credential never goes here.
+    private let widgetAccess: WidgetAccessStore
+    private let now: @Sendable () -> Date
     private let logger = Logger(subsystem: "app.ordo", category: "session")
 
     private(set) var state: SessionState = .restoring
@@ -21,9 +24,12 @@ actor SessionManager {
     nonisolated let states: AsyncStream<SessionState>
     private let stateContinuation: AsyncStream<SessionState>.Continuation
 
-    init(api: OrdoAPI, store: CredentialStore) {
+    init(api: OrdoAPI, store: CredentialStore, widgetAccess: WidgetAccessStore = DisabledWidgetAccessStore(),
+         now: @escaping @Sendable () -> Date = { Date() }) {
         self.api = api
         self.store = store
+        self.widgetAccess = widgetAccess
+        self.now = now
         (states, stateContinuation) = AsyncStream.makeStream(of: SessionState.self, bufferingPolicy: .bufferingNewest(1))
         stateContinuation.yield(.restoring)
     }
@@ -75,6 +81,7 @@ actor SessionManager {
         }
         credential = DeviceCredential(refreshToken: response.refreshToken)
         accessToken = AccessToken(value: response.accessToken)
+        publishToWidget(response.accessToken)
         setState(.signedIn)
     }
 
@@ -147,6 +154,7 @@ actor SessionManager {
         credential = DeviceCredential(refreshToken: response.refreshToken)
         let token = AccessToken(value: response.accessToken)
         accessToken = token
+        publishToWidget(response.accessToken)
         refreshTask = nil
         if state != .signedIn { setState(.signedIn) }
         return token
@@ -173,5 +181,21 @@ actor SessionManager {
         do { try store.delete() } catch { logger.error("Keychain delete failed") }
         credential = nil
         accessToken = nil
+        do { try widgetAccess.delete() } catch {
+            logger.error("Widget item delete failed")
+            do { try widgetAccess.overwriteWithEmpty() } catch { logger.error("Widget item overwrite failed") }
+        }
+        widgetAccess.reloadWidget()
+    }
+
+    // MARK: Widget
+
+    /// Copies the 2-hour access token to the widget's shared item. A failure is logged (never the
+    /// token) and is not fatal: the widget then shows "Open Ordo to update".
+    private func publishToWidget(_ token: String) {
+        do { try widgetAccess.save(WidgetAccess(accessToken: token, savedAt: now())) } catch {
+            logger.error("Widget item save failed")
+        }
+        widgetAccess.reloadWidget()
     }
 }
