@@ -1,0 +1,41 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "widget.addDeposit" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Add deposit" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Agregar depósito" } }
+      }
+    },
+    "widget.addExpense" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Add expense" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Agregar gasto" } }
+      }
+    },
+    "widget.description" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Add an expense or a deposit." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Agrega un gasto o un depósito." } }
+      }
+    },
+    "widget.name" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Ordo" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Ordo" } }
+      }
+    },
+    "widget.placeholder" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Open Ordo to see spending" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Abre Ordo para ver tus gastos" } }
+      }
+    }
+  },
+  "version" : "1.0"
+}

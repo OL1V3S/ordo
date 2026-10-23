@@ -34,7 +34,9 @@ struct OrdoApp: App {
             if isTestHost {
                 Color.clear
             } else if let model {
-                RootView(model: model).task { await model.start() }
+                RootView(model: model)
+                    .onOpenURL { model.handle($0) }
+                    .task { await model.start() }
             } else if let settings {
                 NotConfiguredView(l10n: settings.l10n)
                     .appearance(settings)

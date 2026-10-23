@@ -8,7 +8,6 @@ struct ImportStatementView: View {
     let l10n: L10n
     @Environment(\.dismiss) private var dismiss
     @State private var picking = false
-    @State private var editing: ImportRow?
 
     private var presenter: ImportPresenter { ImportPresenter(l10n: l10n) }
 
@@ -31,7 +30,7 @@ struct ImportStatementView: View {
                 .fileImporter(isPresented: $picking, allowedContentTypes: [.pdf]) { result in
                     if case .success(let url) = result { model.chooseFile(url) }
                 }
-                .sheet(item: $editing) { row in ImportRowEditSheet(model: model, row: row, presenter: presenter, l10n: l10n) }
+                .sheet(item: Bindable(model).editingRow) { row in ImportRowEditSheet(model: model, row: row, presenter: presenter, l10n: l10n) }
                 .safeAreaInset(edge: .bottom, spacing: 0) { if model.phase == .review { confirmBar } }
         }
         .interactiveDismissDisabled()
@@ -127,7 +126,7 @@ struct ImportStatementView: View {
                     Text(verbatim: presenter.showing(shown: model.visibleRows.count, total: model.reviewRows.count))
                         .font(Theme.Typography.meta.font).foregroundStyle(ThemeColor.textMuted.color)
                     ForEach(model.visibleRows) { row in
-                        ImportRowView(model: model, row: row, presenter: presenter) { editing = row }
+                        ImportRowView(model: model, row: row, presenter: presenter) { model.editingRow = row }
                     }
                 }
                 if model.unreadableCount > 0 {

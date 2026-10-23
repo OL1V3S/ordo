@@ -8,8 +8,6 @@ struct TransactionsView: View {
     let mutation: TransactionMutationViewModel
     let importModel: ImportViewModel
     let l10n: L10n
-    @State private var showingFilters = false
-    @State private var showingImport = false
 
     private var presenter: TransactionsPresenter { TransactionsPresenter(l10n: l10n) }
 
@@ -21,12 +19,12 @@ struct TransactionsView: View {
                 .searchable(text: searchBinding, prompt: Text(verbatim: l10n.string(.timelineFiltersSearchPlaceholder)))
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) {
-                        Button { showingImport = true } label: {
+                        Button { importModel.isPresented = true } label: {
                             Label(l10n.string(.activityPageImportStatement), systemImage: "doc.badge.plus")
                         }
                     }
                     ToolbarItem(placement: .topBarTrailing) {
-                        Button { showingFilters = true } label: {
+                        Button { model.isFiltersPresented = true } label: {
                             Label(l10n.string(.timelineFiltersToggle),
                                   systemImage: model.isFilterActive ? "line.3.horizontal.decrease.circle.fill"
                                                                     : "line.3.horizontal.decrease.circle")
@@ -34,8 +32,8 @@ struct TransactionsView: View {
                     }
                 }
                 .safeAreaInset(edge: .bottom, spacing: 0) { statusInset }
-                .fullScreenCover(isPresented: $showingImport) { ImportStatementView(model: importModel, l10n: l10n) }
-                .sheet(isPresented: $showingFilters) { TransactionFiltersSheet(model: model, l10n: l10n) }
+                .fullScreenCover(isPresented: Bindable(importModel).isPresented) { ImportStatementView(model: importModel, l10n: l10n) }
+                .sheet(isPresented: Bindable(model).isFiltersPresented) { TransactionFiltersSheet(model: model, l10n: l10n) }
                 .sheet(isPresented: Binding(get: { mutation.isSheetPresented },
                                             set: { if !$0 { mutation.sheetDismissed() } })) {
                     EditTransactionSheet(model: mutation, l10n: l10n)

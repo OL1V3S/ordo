@@ -57,6 +57,10 @@ final class ImportViewModel {
     /// The selection or the duplicate check could not be confirmed: Confirm waits for Reload.
     private(set) var needsReload = false
     private(set) var isReloading = false
+    /// The full-screen import and its row editor are open. Lifted out of the views so the widget
+    /// router can see them.
+    var isPresented = false
+    var editingRow: ImportRow?
 
     @ObservationIgnored private let service: ImportService
     @ObservationIgnored private let readFile: @Sendable (URL) throws -> Data
@@ -412,6 +416,8 @@ final class ImportViewModel {
         confirmOutcomeUnknown = false
         needsReload = false
         isReloading = false
+        isPresented = false
+        editingRow = nil
     }
 
     func settled() async { await task?.value }

@@ -42,6 +42,8 @@ final class TransactionsViewModel {
     private(set) var refreshFailed = false
     private(set) var isLoadingMore = false
     private(set) var loadMoreFailed = false
+    /// The filters sheet is open. Lifted out of the view so the widget router can see it.
+    var isFiltersPresented = false
 
     /// What the controls show. An invalid draft is never applied.
     private(set) var draft = TimelineFilter()
@@ -108,6 +110,7 @@ final class TransactionsViewModel {
         draft = TimelineFilter()
         applied = TimelineFilter()
         period = .all
+        isFiltersPresented = false
     }
 
     // MARK: Reading
