@@ -240,9 +240,24 @@ longer matches the one captured at sign-in. The API contract is **one refresher
 per credential at a time**: a client that shares a credential across processes
 (for example an app and a widget) must serialize refreshes, and must treat a
 `401` as signed out, because a concurrent or retried refresh with an old
-credential is indistinguishable from reuse and ends the session. The web
-application does not use device sessions, and web login, access-token
-validation and lockout behavior are unchanged.
+credential is indistinguishable from reuse and ends the session. Web login
+(`/api/auth/login`), access-token validation and lockout behavior are unchanged.
+
+The backend also exposes web-session endpoints (#292, backend only so far; the
+web app does not call them yet): `POST /api/auth/web-session`, `/refresh` and
+`/sign-out`. They reuse `DeviceSessionService` and the `DeviceSessions` table
+(shared 20-session cap, same lifetimes and strict reuse), but the credential
+lives only in the HttpOnly, Secure, `SameSite=Strict` cookie
+`__Secure-ordo-web-session` (Path `/api/auth/web-session`, no Domain, Max-Age =
+idle timeout) and never in a body. The body is ignored on refresh, and the
+device-session endpoints never read the cookie. Every web-session action runs
+behind `WebSessionGuardFilter`, a resource filter that runs before model
+validation and returns `403` unless the `X-Ordo-Web-Session: 1` header is
+present and `Origin` equals `Frontend:BaseUrl` by parsed scheme, host and port.
+CORS is unchanged and has no `AllowCredentials`; responses are `no-store`. Any
+refresh failure returns `401 {"code":"session_invalid"}` and clears the cookie.
+The cookie is first-party only when requests reach the backend through a
+same-origin proxy (planned Vercel rewrite); it is not sent cross-site.
 
 Approved financial meaning and future authoritative validation destinations
 are defined in
