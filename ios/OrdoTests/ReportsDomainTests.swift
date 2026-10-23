@@ -41,12 +41,15 @@ import Testing
     }
 
     @Test func approximateDollarsIsUsedOnlyByTheChart() throws {
-        let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
-            .appendingPathComponent("Ordo", isDirectory: true)
-        let enumerator = try #require(FileManager.default.enumerator(at: root, includingPropertiesForKeys: nil))
+        let ios = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
         var users: [String] = []
-        for case let url as URL in enumerator where url.pathExtension == "swift" {
-            if try String(contentsOf: url, encoding: .utf8).contains("approximateDollars") { users.append(url.lastPathComponent) }
+        // The app, the code it shares with the widget, and the widget.
+        for folder in ["Ordo", "Shared", "OrdoWidget"] {
+            let root = ios.appendingPathComponent(folder, isDirectory: true)
+            let enumerator = try #require(FileManager.default.enumerator(at: root, includingPropertiesForKeys: nil))
+            for case let url as URL in enumerator where url.pathExtension == "swift" {
+                if try String(contentsOf: url, encoding: .utf8).contains("approximateDollars") { users.append(url.lastPathComponent) }
+            }
         }
         #expect(users.sorted() == ["CashAmount.swift", "CashFlowTrendSection.swift"])
     }

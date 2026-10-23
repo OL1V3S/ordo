@@ -1,4 +1,5 @@
 import SwiftUI
+import WidgetKit
 
 @main
 struct OrdoApp: App {
@@ -7,6 +8,7 @@ struct OrdoApp: App {
     private let isTestHost: Bool
     /// Theme and language, saved on the device (`ordo.theme`, `ordo.language`).
     private let settings: AppSettings?
+    @Environment(\.scenePhase) private var scenePhase
 
     init() {
         isTestHost = ProcessInfo.processInfo.environment["ORDO_TEST_HOST"] == "1"
@@ -18,9 +20,12 @@ struct OrdoApp: App {
             let settings = AppSettings(defaults: .standard)
             self.settings = settings
             let store = KeychainCredentialStore()
-            FreshInstallGuard.apply(defaults: .standard, store: store)
+            // The widget's access-token copy. Without a shared group in the Info.plist nothing is written.
+            let widgetAccess: WidgetAccessStore = WidgetAccessLocation.load()
+                .map { KeychainWidgetAccessStore(location: $0) } ?? DisabledWidgetAccessStore()
+            FreshInstallGuard.apply(defaults: .standard, store: store, widgetAccess: widgetAccess)
             let api = OrdoAPI(baseURL: configuration.baseURL, transport: URLSessionTransport())
-            model = AppModel(session: SessionManager(api: api, store: store), api: api,
+            model = AppModel(session: SessionManager(api: api, store: store, widgetAccess: widgetAccess), api: api,
                              pendingStore: FilePendingSaveStore(directory: FilePendingSaveStore.defaultDirectory),
                              settings: settings)
         } else {
@@ -41,6 +46,10 @@ struct OrdoApp: App {
                 NotConfiguredView(l10n: settings.l10n)
                     .appearance(settings)
             }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            // Saved captures, edits and deletes change spending: redraw the widget when leaving the app.
+            if phase == .background, model != nil { WidgetCenter.shared.reloadAllTimelines() }
         }
     }
 }

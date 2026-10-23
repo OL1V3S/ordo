@@ -255,20 +255,14 @@ struct OrdoAPI: Sendable {
     /// The cash-flow report for one month. Returns the raw body; validation happens in
     /// `CashFlowValidation`. Both query values are exact strings and the owner comes from the token.
     func cashFlow(accessToken: String, month: BudgetMonth, throughDate: CalendarDate) async throws -> Data {
-        var components = URLComponents(url: baseURL.appending(path: "api/analytics/cash-flow"), resolvingAgainstBaseURL: false)
-        components?.percentEncodedQueryItems = [URLQueryItem(name: "month", value: month.key),
-                                                URLQueryItem(name: "throughDate", value: throughDate.isoString)]
-        guard let url = components?.url else { throw APIError.invalidResponse }
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-        request.timeoutInterval = 30
+        // Built by the shared `CashFlowRequest`, which the widget also uses.
+        guard let request = CashFlowRequest.make(baseURL: baseURL, accessToken: accessToken, month: month,
+                                                 throughDate: throughDate) else { throw APIError.invalidResponse }
         let (data, status) = try await send(request)
-        switch status {
-        case 200: return data
-        case 401: throw APIError.unauthorized
-        default: throw APIError.server(status)
+        switch CashFlowRequest.outcome(status: status) {
+        case .ok: return data
+        case .unauthorized: throw APIError.unauthorized
+        case .server(let code): throw APIError.server(code)
         }
     }
 

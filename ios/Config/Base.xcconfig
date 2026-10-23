@@ -9,6 +9,12 @@ ORDO_BUNDLE_ID_PREFIX = com.ol1v3s
 PRODUCT_BUNDLE_IDENTIFIER = $(ORDO_BUNDLE_ID_PREFIX).ordo
 INFOPLIST_KEY_CFBundleDisplayName = Ordo
 
+// Keychain access groups. The app's private group holds the refresh credential (listed first,
+// so it stays the default). The shared group holds only the widget's copy of the 2-hour access
+// token. Used by both entitlements files and both Info.plist files.
+ORDO_KEYCHAIN_PRIVATE_GROUP = $(AppIdentifierPrefix)$(PRODUCT_BUNDLE_IDENTIFIER)
+ORDO_KEYCHAIN_SHARED_GROUP = $(AppIdentifierPrefix)$(ORDO_BUNDLE_ID_PREFIX).ordo.shared
+
 IPHONEOS_DEPLOYMENT_TARGET = 18.0
 
 // Set your own team in Local.xcconfig to run on a device.
