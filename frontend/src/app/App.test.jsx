@@ -448,6 +448,7 @@ describe('application routes and shell', () => {
     act(() => {
       // A suspended tab can observe the replacement before queued logout events.
       localStorage.setItem('token', 'second-session')
+      localStorage.setItem('sessionId', 'second-sign-in')
       localStorage.setItem('email', 'second@example.invalid')
       window.dispatchEvent(new StorageEvent('storage', { key: 'token', storageArea: localStorage }))
     })

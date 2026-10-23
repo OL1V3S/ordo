@@ -59,7 +59,7 @@ export function useActivityTimeline({ enabled = true, filter = EMPTY_TIMELINE_FI
   }, []);
 
   const readFirst = useCallback(async (readSession) => {
-    if (!enabled || !readSession?.token || readSession !== getSessionSnapshot()) return { stale: true };
+    if (!enabled || !readSession?.signedIn || readSession !== getSessionSnapshot()) return { stale: true };
 
     const { controller, current } = begin(readSession);
     const previous = stateRef.current?.session === readSession && stateRef.current.filterKey === filterKey
@@ -122,7 +122,7 @@ export function useActivityTimeline({ enabled = true, filter = EMPTY_TIMELINE_FI
   const loadMore = useCallback(async () => {
     const readSession = sessionRef.current;
     const base = stateRef.current;
-    if (!enabled || !readSession?.token || readSession !== getSessionSnapshot() || base?.session !== readSession
+    if (!enabled || !readSession?.signedIn || readSession !== getSessionSnapshot() || base?.session !== readSession
         || base.filterKey !== filterKeyRef.current || !base.hasMore || !base.nextCursor || base.loading || base.loadingMore) return { stale: true };
 
     const { controller, current } = begin(readSession);
@@ -169,7 +169,7 @@ export function useActivityTimeline({ enabled = true, filter = EMPTY_TIMELINE_FI
   }, [begin, commit, enabled]);
 
   useEffect(() => {
-    if (!enabled || !session.token) {
+    if (!enabled || !session.signedIn) {
       invalidate();
       commit(null);
       return undefined;
@@ -185,7 +185,7 @@ export function useActivityTimeline({ enabled = true, filter = EMPTY_TIMELINE_FI
   return {
     items: matches ? state.items : NO_ITEMS,
     hasMore: matches ? state.hasMore : false,
-    loading: enabled ? (matches ? state.loading : Boolean(session.token)) : false,
+    loading: enabled ? (matches ? state.loading : Boolean(session.signedIn)) : false,
     error: matches ? state.error : false,
     refreshFailed: matches ? state.refreshFailed : false,
     malformed: matches ? state.malformed : false,

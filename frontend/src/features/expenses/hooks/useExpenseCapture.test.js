@@ -96,6 +96,19 @@ describe("expense capture controller", () => {
     expect(result.current.feedback).toBeNull();
   });
 
+  it("keeps completing a create when the access token is refreshed mid-flight", async () => {
+    const write = deferred();
+    const { result } = setup({ createExpense: vi.fn(() => write.promise) });
+    await fill(result);
+    let outcome;
+    act(() => { outcome = result.current.submitCreate(); });
+    act(() => { localStorage.setItem("token", "owner-a-refreshed"); });
+    await act(() => write.resolve({ refreshFailed: false }));
+    await outcome;
+    expect(result.current.open).toBe(false);
+    expect(result.current.feedback).toMatchObject({ outcome: "completed", kind: "create" });
+  });
+
   describe("missing records", () => {
     const notFound = () => Object.assign(new Error("not found"), { response: { status: 404 } });
 

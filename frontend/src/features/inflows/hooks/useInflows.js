@@ -42,11 +42,11 @@ export function useInflows() {
     setState((previous) => ({
       session: readSession,
       inflows: previous?.session === readSession ? previous.inflows : [],
-      loading: Boolean(readSession.token),
+      loading: Boolean(readSession.signedIn),
       error: null,
     }));
 
-    if (!readSession.token) return { stale: true };
+    if (!readSession.signedIn) return { stale: true };
 
     const controller = new AbortController();
     activeController.current = controller;
@@ -83,7 +83,7 @@ export function useInflows() {
   const perform = useCallback(async (operation) => {
     if (writeInFlight.current) throw new Error("An inflow write is already in progress.");
     const writeSession = getSessionSnapshot();
-    if (!mounted.current || !writeSession.token || writeSession !== sessionRef.current) {
+    if (!mounted.current || !writeSession.signedIn || writeSession !== sessionRef.current) {
       return { refreshFailed: false, stale: true };
     }
 

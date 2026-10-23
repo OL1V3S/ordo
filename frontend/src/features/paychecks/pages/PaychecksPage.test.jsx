@@ -686,7 +686,7 @@ describe("Paychecks page", () => {
 describe("Paycheck match suggestions", () => {
   const b64 = (value) => btoa(JSON.stringify(value)).replace(/=+$/, "");
   const token = `${b64({ alg: "HS256" })}.${b64({ "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier": "user-suggest" })}.sig`;
-  const session = { token, email: "owner@example.com" };
+  const session = { signedIn: true, id: "test-sign-in", email: "owner@example.com" };
   const deposit = (id, overrides = {}) => ({ id, description: `Payroll deposit ${id}`, amount: 2500, date: "2026-08-10", ...overrides });
   const paycheck = () => makePaycheck({ evidence: [] });
   const suggestionRegion = () => screen.getByRole("region", { name: "Deposits that may match a pay schedule" });
