@@ -24,12 +24,13 @@ the permanent, complete archive.
 
 ## History
 
-### 2026-10-23 — Web session endpoints (backend)
+### 2026-10-23 — Web sessions: stay signed in on the web
 
-[PR #295](https://github.com/OL1V3S/ordo/pull/295) · [Issue #292](https://github.com/OL1V3S/ordo/issues/292)
+[PR #295](https://github.com/OL1V3S/ordo/pull/295) · [PR #296](https://github.com/OL1V3S/ordo/pull/296) · PR 3 (this change) · [Issue #292](https://github.com/OL1V3S/ordo/issues/292)
 
-- New `POST /api/auth/web-session`, `/refresh` and `/sign-out` keep a long-lived web session in an HttpOnly, Secure, SameSite=Strict cookie. They reuse device sessions and are guarded by an Origin and custom-header check.
-- Additive and not used by the web app yet: login, device sessions, schema and CORS are unchanged.
+- Backend: `POST /api/auth/web-session`, `/refresh` and `/sign-out` keep a long-lived session in an HttpOnly, Secure, SameSite=Strict cookie, guarded by an Origin and custom-header check.
+- Web app: signs in through a same-origin Vercel rewrite, refreshes the 2-hour access token before expiry and after a `401`, coordinates tabs with a Web Lock, and signs out on the server and in every tab.
+- Session identity no longer changes when the access token is refreshed. Older 2-hour sessions run out normally; `/api/auth/login` and iOS are unchanged.
 
 ### 2026-10-23 — iPhone Home Screen widget: Add expense and Add deposit
 
