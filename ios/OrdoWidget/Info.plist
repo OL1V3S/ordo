@@ -2,6 +2,12 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>ORDO_API_BASE_URL</key>
+	<string>$(ORDO_API_BASE_URL)</string>
+	<key>OrdoKeychainSharedGroup</key>
+	<string>$(ORDO_KEYCHAIN_SHARED_GROUP)</string>
+	<key>OrdoWidgetAccessService</key>
+	<string>$(ORDO_BUNDLE_ID_PREFIX).ordo.widget</string>
 	<key>CFBundleLocalizations</key>
 	<array>
 		<string>en</string>

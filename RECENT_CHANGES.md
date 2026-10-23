@@ -24,9 +24,16 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-23 — iPhone widget: this month's spending
+
+[PR #297](https://github.com/OL1V3S/ordo/pull/297) · [Issue #291](https://github.com/OL1V3S/ordo/issues/291)
+
+- The Home Screen widget now shows this month's exact spending and a six-month graph from the existing cash-flow report, labelled "Updated …"; it asks you to open Ordo when its copy is old.
+- The app shares only the 2-hour access token with the widget through a shared Keychain item, removed at sign-out; the refresh credential never leaves the app. iPhone app only, so backend, API and schema are unchanged.
+
 ### 2026-10-23 — Web sessions: stay signed in on the web
 
-[PR #295](https://github.com/OL1V3S/ordo/pull/295) · [PR #296](https://github.com/OL1V3S/ordo/pull/296) · PR 3 (this change) · [Issue #292](https://github.com/OL1V3S/ordo/issues/292)
+[PR #295](https://github.com/OL1V3S/ordo/pull/295) · [PR #296](https://github.com/OL1V3S/ordo/pull/296) · [PR #298](https://github.com/OL1V3S/ordo/pull/298) · [Issue #292](https://github.com/OL1V3S/ordo/issues/292)
 
 - Backend: `POST /api/auth/web-session`, `/refresh` and `/sign-out` keep a long-lived session in an HttpOnly, Secure, SameSite=Strict cookie, guarded by an Origin and custom-header check.
 - Web app: signs in through a same-origin Vercel rewrite, refreshes the 2-hour access token before expiry and after a `401`, coordinates tabs with a Web Lock, and signs out on the server and in every tab.
@@ -159,11 +166,3 @@ the permanent, complete archive.
 
 - The backend can now sign in a native client with a long-lived, revocable device session: `POST /api/auth/device-sessions` (email and password), `/refresh` (rotates the credential and returns a new 2-hour access token) and `/sign-out`. A session expires after 60 days without use or 180 days in total, a reused credential ends the whole session, and a completed password reset ends every session of that account.
 - Web login, the access-token lifetime, the frontend and existing endpoint responses are unchanged (a completed password reset now also ends device sessions). Adds the `DeviceSessions` table (migration `AddDeviceSessions`), which must be applied to production before this backend is deployed.
-
-### 2026-10-16 — Deposit rows read from whitespace-free statements
-
-[PR #251](https://github.com/OL1V3S/ordo/pull/251) · [Issue #250](https://github.com/OL1V3S/ordo/issues/250)
-
-- Statement deposits that the PDF text layer runs together without spaces are now read as individual rows in import review. Before, they collapsed into one unreadable line and the deposits were missing. Deposits stay unselected by default and nothing is saved automatically.
-- When a deposits line cannot be read with confidence, the review shows one unreadable line per dated entry instead of any amount, and a header-only page that continues a Deposits section is shown as unreadable lines instead of being skipped.
-- The Sunflower parser rule version is now `sunflower-v4`, so a statement previewed or confirmed under `v3` can be previewed again; row-level duplicate flags remain the protection against saving it twice. Backend only: no schema, API shape, frontend, or dependency change.

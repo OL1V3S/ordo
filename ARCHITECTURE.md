@@ -240,7 +240,10 @@ longer matches the one captured at sign-in. The API contract is **one refresher
 per credential at a time**: a client that shares a credential across processes
 (for example an app and a widget) must serialize refreshes, and must treat a
 `401` as signed out, because a concurrent or retried refresh with an old
-credential is indistinguishable from reuse and ends the session. Web login
+credential is indistinguishable from reuse and ends the session. The iOS widget
+(#291) follows this by never holding the credential: the app copies only the
+2-hour access token to a shared Keychain item the widget reads, so the access
+token is no longer memory-only on iOS; the widget never refreshes. Web login
 (`/api/auth/login`), access-token validation and lockout behavior are unchanged.
 
 The backend also exposes web-session endpoints (#292), used by the web app: `POST /api/auth/web-session`, `/refresh` and
