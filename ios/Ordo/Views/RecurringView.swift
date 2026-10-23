@@ -46,14 +46,14 @@ struct RecurringView: View {
                 }
                 .sensoryFeedback(.success, trigger: model.notice) { _, notice in
                     switch notice {
-                    case .confirmed?, .dismissed?, .reconsidered?, .lifecycle?, .amountAccepted?, .timingAccepted?,
+                    case .confirmed?, .dismissed?, .reconsidered?, .lifecycle?, .updated?, .amountAccepted?, .timingAccepted?,
                          .markedEnded?, .keptActive?, .keptCurrent?, .changeReconsidered?: true
                     default: false
                     }
                 }
         }
         .sheet(isPresented: Binding(get: { model.isSheetPresented }, set: { if !$0 { model.sheetDismissed() } })) {
-            ConfirmCommitmentSheet(model: model, presenter: presenter)
+            CommitmentFormSheet(model: model, presenter: presenter)
         }
     }
 

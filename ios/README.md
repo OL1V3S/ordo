@@ -16,9 +16,9 @@ lifecycle, and linking or removing a received paycheck, using `GET /api/paycheck
 `PATCH /api/paychecks/{id}/lifecycle`, `POST /api/paychecks/{id}/receipts`,
 `DELETE /api/paychecks/{id}/receipts/{accountInflowId}` and `GET /api/inflows`. Slice 6
 ([#274](https://github.com/OL1V3S/ordo/issues/274)) adds a **Recurring** tab (Recurring expenses): confirmed
-recurring expenses and detected possible ones, with confirm, dismiss, review again, pause, reactivate and
-end, using `GET /api/commitment-candidates`, `GET /api/commitments`, `POST /api/commitment-candidates/confirm`,
-`/dismiss` and `/reconsider`, and `PATCH /api/commitments/{id}/lifecycle`. Slice 7
+recurring expenses and detected possible ones, with confirm, dismiss, review again, pause, reactivate,
+edit and end, using `GET /api/commitment-candidates`, `GET /api/commitments`, `POST /api/commitment-candidates/confirm`,
+`/dismiss` and `/reconsider`, `PATCH /api/commitments/{id}/lifecycle` and `PUT /api/commitments/{id}`. Slice 7
 ([#276](https://github.com/OL1V3S/ordo/issues/276)) adds **Reports**,
 using `GET /api/analytics/cash-flow`. Slice 8
 ([#281](https://github.com/OL1V3S/ordo/issues/281)) adds **Statement import**, opened from a Transactions toolbar
@@ -362,7 +362,16 @@ Try again button), `GET /api/commitment-changes` (see Changes to review), `POST 
   items exist than the two shown) when there are recurring-expense items, and also when attention is unavailable
   or malformed. It opens Plan, Recurring expenses and scrolls to Changes. It is off while a write is in flight,
   like the Plan switcher. Tab and Plan section selection live in `AppModel`.
-- **Out of scope:** editing a recurring expense (`PUT /api/commitments/{id}`), a next-expected date, quick
+- **Edit.** An Edit action in the row menu and on the detail screen for active, paused and ended recurring
+  expenses opens the Review and confirm form (title "Edit", button "Save changes"), prefilled from the saved
+  details. A saved amount is prefilled only when it is exact; otherwise the field is empty and has to be
+  entered (confirm blocks instead). Same validation as confirm. `PUT /api/commitments/{id}` sends the confirm
+  body without the fingerprint (same sorted keys and exact amount text). It is an absolute set, so Retry sends
+  identical bytes; a `409` on Retry forces Check. `200` is success and its body is not used: both lists and Home
+  are re-read. `400` and `422` keep the form and your changes open with the error; only `404` closes it and
+  re-reads. An edit can make a pending change stale; the next read shows that, and a stale decision answers
+  `409 change_proposal_changed`.
+- **Out of scope:** a next-expected date, quick
   decisions on list rows, links from individual attention rows, totals of expected money and an offline cache.
 - **Nothing persisted;** names, categories, amounts, dates, ids and fingerprints are never logged, and server
   error text is never shown.
@@ -452,7 +461,7 @@ Reduce Motion and Increase Contrast.
 
 Add expense and Add deposit on the Transactions tab, bulk edit or delete, undo, an offline queue
 or cache, a concurrency token or conflict detection, automatic infinite scrolling, persisted
-filters, category management, creating or editing pay schedules, possible-paycheck suggestions, editing a recurring expense, paycheck linking after an import, Reports' "More spending detail",
+filters, category management, creating or editing pay schedules, possible-paycheck suggestions, paycheck linking after an import, Reports' "More spending detail",
 widget, push notifications, TestFlight or App Store distribution, iPad
 layout, confirming an email or resetting a password inside the app (Universal Links, URL schemes,
 a paste-the-link field), and links into other web workflows.

@@ -123,5 +123,61 @@ import Testing
         #expect(b.timingKind == "monthandday" && b.month == 2 && b.day == 29 && b.dayOfWeek == nil)
     }
 
+    // MARK: Editing a saved recurring expense
+
+    private func editDraft(_ commitment: RecurringCommitment = RecurringFixtures.commitment()) -> ConfirmDraft {
+        ConfirmDraft.initial(for: commitment)
+    }
+
+    @Test func editPrefillsASavedFixedAmountExactly() {
+        let d = editDraft()
+        #expect(d.target == .commitment(id: RecurringFixtures.id1))
+        #expect(d.name == "Synthetic Rent" && d.category == "bills" && d.cadence == .monthly && d.dayText == "15")
+        #expect(d.amountMode == .fixed && d.expectedText == "1200.25" && !d.observedUnsafe && fields(d).isEmpty)
+    }
+
+    @Test func editPrefillsASavedRangeOnlyWhereExact() {
+        let range = editDraft(RecurringFixtures.commitment(amount: .range(minimum: RecurringFixtures.money("10.00"),
+                                                                          maximum: RecurringFixtures.money("14.50"))))
+        #expect(range.amountMode == .range && range.minimumText == "10.00" && range.maximumText == "14.50" && fields(range).isEmpty)
+        let partial = editDraft(RecurringFixtures.commitment(amount: .range(minimum: RecurringFixtures.money("10.00"), maximum: .needsReview)))
+        #expect(partial.minimumText == "10.00" && partial.maximumText == "" && fields(partial) == [.amount])
+    }
+
+    @Test func editWithAnUnavailableAmountLeavesItEmptyAndRequiresEntryWithoutBlocking() {
+        for amount in [CommitmentAmount.unavailable, .fixed(.needsReview)] {
+            var d = editDraft(RecurringFixtures.commitment(amount: amount))
+            #expect(d.expectedText == "" && !d.observedUnsafe)
+            #expect(fields(d) == [.amount])
+            d.expectedText = "5.00"
+            #expect(fields(d).isEmpty)
+        }
+    }
+
+    @Test func editValidatesLikeConfirm() {
+        var d = editDraft()
+        d.name = ""; #expect(fields(d) == [.name])
+        d.name = String(repeating: "x", count: 501); #expect(fields(d) == [.name])
+        d = editDraft()
+        d.category = String(repeating: "x", count: 101); #expect(fields(d) == [.category])
+        d = editDraft()
+        d.dayText = "32"; #expect(fields(d) == [.timing])
+        var yearly = editDraft(); yearly.setCadence(.yearly)
+        yearly.monthText = "2"; yearly.dayText = "30"; #expect(fields(yearly) == [.timing])
+        yearly.dayText = "29"; #expect(fields(yearly).isEmpty)
+        var range = editDraft(RecurringFixtures.commitment(amount: .range(minimum: RecurringFixtures.money("10.00"),
+                                                                          maximum: RecurringFixtures.money("14.50"))))
+        range.minimumText = "20.00"; #expect(fields(range) == [.amount])
+    }
+
+    @Test func editBodyHasNoFingerprintAndExactMoney() throws {
+        var d = editDraft()
+        d.expectedText = "0.10"
+        guard case .success(let values) = d.validate(language: .en, deviceLocale: en) else { throw ConfirmError.invalid }
+        let body = String(decoding: try CommitmentRequestBody.update(values.body), as: UTF8.self)
+        #expect(!body.contains("fingerprint") && body.contains(#""expectedAmount":0.10,"#))
+        #expect(body.hasPrefix(#"{"amountMode":"fixed","cadence":"monthly","category":"bills""#) && body.hasSuffix(#""windowBeforeDays":1}"#))
+    }
+
     private enum ConfirmError: Error { case invalid }
 }

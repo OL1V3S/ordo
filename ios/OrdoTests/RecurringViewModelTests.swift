@@ -17,7 +17,7 @@ import Testing
     private func bodyText(_ write: CommitmentWrite) -> String {
         switch write.operation {
         case .confirm(_, let body), .dismiss(_, let body), .reconsider(_, let body), .lifecycle(_, _, let body),
-             .change(_, _, _, _, let body):
+             .update(_, let body), .change(_, _, _, _, let body):
             String(decoding: body, as: UTF8.self)
         }
     }
@@ -263,7 +263,7 @@ import Testing
         #expect(model.writePhase == .uncertain && model.isSheetPresented && model.showsConfirmForm)
         service.setLoads([{ throw APIError.offline }])
         await model.check()
-        #expect(model.confirmCandidate == nil)
+        #expect(!model.isFormTargetListed)
         #expect(model.writePhase == .uncertain && model.confirm != nil && model.isSheetPresented)
         #expect(model.showsConfirmForm && !model.isChecking)
         #expect(model.canRetry)
@@ -330,6 +330,160 @@ import Testing
         #expect(model.snapshot == nil && model.listState == .idle)
     }
 
+    // MARK: Edit
+
+    private func editWrite(_ write: CommitmentWrite) -> (id: String, body: String)? {
+        if case .update(let id, let body) = write.operation { return (id, String(decoding: body, as: UTF8.self)) }
+        return nil
+    }
+
+    @Test func editSendsAPutWithoutAFingerprintThenReadsAgain() async {
+        let home = Counter()
+        let (model, service) = await setup(home: home)
+        let loads = service.loadCount
+        for entry in [active, RecurringFixtures.commitment(lifecycle: .paused), RecurringFixtures.commitment(lifecycle: .ended)] {
+            model.beginEdit(entry)
+            #expect(model.isSheetPresented && model.isEditing && model.showsConfirmForm)
+            model.editConfirm { $0.name = "Renamed" }
+            model.submitConfirm()
+            await model.settled()
+            #expect(model.notice == .updated && model.confirm == nil && !model.isSheetPresented && model.writePhase == .idle)
+        }
+        #expect(service.writes.count == 3 && service.loadCount == loads + 3 && home.next() == 4)
+        let sent = editWrite(service.writes[0])
+        #expect(sent?.id == RecurringFixtures.id1 && sent?.body.contains(#""name":"Renamed""#) == true
+                && sent?.body.contains("fingerprint") == false && sent?.body.contains(#""expectedAmount":1200.25,"#) == true)
+    }
+
+    @Test func editWithAnUnavailableAmountSendsNothingUntilEntered() async {
+        let unavailable = RecurringFixtures.commitment(amount: .unavailable)
+        let (model, service) = await setup(loads: [{ RecurringFixtures.snapshot(commitments: [unavailable]) }])
+        model.beginEdit(unavailable)
+        model.submitConfirm()
+        #expect(service.writes.isEmpty && model.confirm?.fieldErrors == [.amount])
+        model.editConfirm { $0.expectedText = "75.50" }
+        model.submitConfirm()
+        await model.settled()
+        #expect(service.writes.count == 1 && editWrite(service.writes[0])?.body.contains(#""expectedAmount":75.50,"#) == true)
+    }
+
+    @Test func editRefusals400And422KeepTheFormAndTheDraft() async {
+        for error in [APIError.commitmentRejected("name_invalid"), .commitmentRejected(nil)] {
+            let (model, service) = await setup(performs: [{ _ in throw error }])
+            let loads = service.loadCount
+            model.beginEdit(active)
+            model.editConfirm { $0.name = "My draft" }
+            model.submitConfirm()
+            await model.settled()
+            let code: String? = if case .commitmentRejected(let value) = error { value } else { nil }
+            #expect(model.writePhase == .idle && model.isSheetPresented && model.confirm?.draft.name == "My draft")
+            #expect(model.confirm?.errorCode == (code ?? "request_failed") && model.notice == nil && service.loadCount == loads)
+            model.editConfirm { $0.name = "Fixed" }
+            #expect(model.confirm?.errorCode == nil)
+        }
+    }
+
+    @Test func aRefusedRetryReopensTheEditSheetWithTheDraft() async {
+        let (model, _) = await setup(performs: [{ _ in throw APIError.offline }, { _ in throw APIError.commitmentRejected("amount_invalid") }])
+        model.beginEdit(active)
+        model.editConfirm { $0.name = "My draft" }
+        model.submitConfirm()
+        await model.settled()
+        model.sheetDismissed()
+        #expect(model.writePhase == .uncertain && model.confirm != nil && !model.isSheetPresented)
+        model.retry()
+        await model.settled()
+        #expect(model.writePhase == .idle && model.isSheetPresented && model.confirm?.draft.name == "My draft")
+        #expect(model.confirm?.errorCode == "amount_invalid" && model.notice == nil)
+    }
+
+    @Test func edit404ClosesAndReadsAgain() async {
+        let (model, service) = await setup(performs: [{ _ in throw APIError.commitmentNotFound }],
+                                           loads: [{ RecurringFixtures.snapshot() }, { RecurringFixtures.snapshot(commitments: []) }])
+        let loads = service.loadCount
+        model.beginEdit(active)
+        model.submitConfirm()
+        await model.settled()
+        #expect(model.confirm == nil && !model.isSheetPresented && model.notice == .error("commitment_not_found"))
+        #expect(service.loadCount == loads + 1 && model.commitment(id: active.id) == nil && model.writePhase == .idle)
+    }
+
+    @Test func anUncertainEditRetriesTheIdenticalBytes() async {
+        let (model, service) = await setup(performs: [{ _ in throw APIError.server(503) }, { _ in }])
+        model.beginEdit(active)
+        model.editConfirm { $0.category = "housing" }
+        model.submitConfirm()
+        await model.settled()
+        #expect(model.writePhase == .uncertain && model.isSheetPresented && model.showsConfirmForm && !model.canWrite)
+        model.editConfirm { $0.category = "other" }
+        #expect(model.confirm?.draft.category == "housing")
+        model.retry()
+        await model.settled()
+        #expect(service.writes.count == 2 && service.writes[0] == service.writes[1])
+        #expect(model.writePhase == .idle && model.notice == .updated && model.confirm == nil)
+    }
+
+    @Test func anUncertainEditCanBeChecked() async {
+        let (model, service) = await setup(performs: [{ _ in throw APIError.offline }])
+        model.beginEdit(active)
+        model.submitConfirm()
+        await model.settled()
+        service.setLoads([{ throw APIError.offline }])
+        await model.check()
+        #expect(model.writePhase == .uncertain && model.confirm != nil && model.draftSurvives)
+        service.setLoads([{ RecurringFixtures.snapshot() }])
+        await model.check()
+        #expect(model.writePhase == .idle && model.notice == .checked && model.confirm == nil)
+    }
+
+    @Test func a409OnAnEditRetryForcesACheck() async {
+        let (model, service) = await setup(performs: [{ _ in throw APIError.offline }, { _ in throw APIError.commitmentConflict("amount_invalid") }])
+        model.beginEdit(active)
+        model.submitConfirm()
+        await model.settled()
+        model.retry()
+        await model.settled()
+        #expect(model.writePhase == .uncertain && model.retryConflictCode == "amount_invalid" && !model.canRetry)
+        model.retry()
+        #expect(service.writes.count == 2)
+        await model.check()
+        #expect(model.writePhase == .idle && model.notice == .checked)
+    }
+
+    @Test func editWritesAreBlockedWhileAnotherWriteIsInFlightOrUnresolved() async {
+        let flag = Flag()
+        let (model, service) = await setup(performs: [{ _ in throw APIError.offline }], other: { flag.on })
+        flag.on = true
+        model.beginEdit(active)
+        #expect(model.confirm == nil && service.writes.isEmpty)
+        flag.on = false
+        model.perform(.pause, on: active)
+        await model.settled()
+        #expect(model.writePhase == .uncertain)
+        model.beginEdit(active)
+        #expect(model.confirm == nil)
+        let gate = Gate()
+        let (busy, busyService) = await setup(performs: [{ _ in await gate.wait() }])
+        busy.beginEdit(active)
+        busy.submitConfirm()
+        busy.submitConfirm()
+        busy.beginEdit(active)
+        #expect(await waitUntil { busyService.writes.count == 1 })
+        #expect(busy.writePhase == .submitting && busyService.writes.count == 1)
+        await gate.release()
+        await busy.settled()
+        #expect(busy.notice == .updated)
+    }
+
+    @Test func anEditDraftSurvivesAFailedReadWhileIdle() async {
+        let (model, service) = await setup()
+        model.beginEdit(active)
+        model.editConfirm { $0.name = "Keep me" }
+        service.setLoads([{ throw APIError.offline }])
+        await model.refresh()
+        #expect(model.confirm?.draft.name == "Keep me" && model.isSheetPresented)
+    }
+
     @Test func groupsToggle() async {
         let (model, _) = await setup()
         model.toggleGroup(.paused)
@@ -340,3 +494,7 @@ import Testing
 }
 
 @MainActor private final class Flag { var on = false }
+
+private extension RecurringViewModel {
+    var draftSurvives: Bool { confirm?.draft.name.isEmpty == false }
+}

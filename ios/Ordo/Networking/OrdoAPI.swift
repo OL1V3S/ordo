@@ -388,6 +388,12 @@ struct OrdoAPI: Sendable {
         try await commitmentWrite(method: "PATCH", path: "api/commitments/\(id)/lifecycle", accessToken: accessToken, body: body)
     }
 
+    /// `PUT` sets every field, so repeating the identical bytes is safe. `200` carries the saved
+    /// commitment, which is not needed: the lists are read again.
+    func updateCommitment(accessToken: String, id: String, body: Data) async throws {
+        try await commitmentWrite(method: "PUT", path: "api/commitments/\(id)", accessToken: accessToken, body: body)
+    }
+
     /// `200`, `201` and `204` are applied (the body is not needed: the lists are read again). `400`,
     /// `404`, `409` and `422` are definitive refusals (the server rolled back); everything else
     /// (a `5xx` included) is an unknown outcome left to the caller.

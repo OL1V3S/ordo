@@ -24,6 +24,13 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-22 — Edit a recurring expense in the iPhone app
+
+[Issue #288](https://github.com/OL1V3S/ordo/issues/288)
+
+- Active, paused and ended recurring expenses now have an Edit action (row menu and detail screen) with the same form as Review and confirm; "Save changes" updates it.
+- A saved amount that cannot be read exactly is left empty and has to be entered. A refused save keeps the form and your changes. English and Spanish; iPhone app only, so backend, API and schema are unchanged.
+
 ### 2026-10-22 — Review recurring expense changes in the iPhone app
 
 [PR #289](https://github.com/OL1V3S/ordo/pull/289) · [Issue #288](https://github.com/OL1V3S/ordo/issues/288)
@@ -159,11 +166,3 @@ the permanent, complete archive.
 
 - Deposit rows in the statement review now show "May match {name}" when they fit an open slot of an active pay schedule (same `paycheck-match-v1` rules as the Paychecks page; ambiguous or possible-duplicate rows get none). English and Spanish.
 - "Link to {name} when saved" is off by default; ticking it also selects the deposit. After saving, the deposit is linked through the existing receipt write. Saving and linking are two requests, so a failed link leaves the deposit saved and unlinked, and the results list says which were linked. Frontend only: no schema, API, parser, or dependency change.
-
-### 2026-10-14 — Account emails follow the selected language
-
-[PR #246](https://github.com/OL1V3S/ordo/pull/246) ·
-[Issue #245](https://github.com/OL1V3S/ordo/issues/245)
-
-- The confirmation and password-reset emails are now sent in English or Spanish, following the language selected in the app when you register, resend a confirmation, or request a reset. The wording says "Ordo" in both languages.
-- A missing or unrecognized language falls back to English, and the English emails are unchanged. The account does not store a language, and responses and limits are unchanged. Adds an optional `language` field to those three requests; no schema or dependency change.

@@ -18,7 +18,7 @@ import os
 /// server looks up the owner's commitment by its origin fingerprint first, inside a serializable
 /// transaction, and answers a repeat with `200 alreadyConfirmed` without writing, and no endpoint can
 /// delete a commitment. Dismiss and review again answer `204` when already in the target state; the
-/// lifecycle `PATCH` sets an absolute value. While a result is unknown every recurring-expense write
+/// lifecycle `PATCH` and the edit `PUT` set absolute values (a repeated edit is safe). While a result is unknown every recurring-expense write
 /// is blocked. Residual risks: (1) a Retry that arrives while the first request still runs can answer
 /// `409 confirmation_conflict` even though the first then commits; (2) a dismiss or review again
 /// Retry answers `409 candidate_changed` when the matching expenses changed in between, whether or
@@ -42,7 +42,7 @@ final class RecurringViewModel {
     }
 
     enum Notice: Equatable {
-        case confirmed, dismissed, reconsidered, lifecycle
+        case confirmed, dismissed, reconsidered, lifecycle, updated
         case amountAccepted, timingAccepted, markedEnded, keptActive, keptCurrent, changeReconsidered
         /// The unknown outcome was resolved by reading the server.
         case checked
@@ -50,8 +50,9 @@ final class RecurringViewModel {
         case error(String?)
     }
 
+    /// The form session: reviewing a possible recurring expense or editing a saved one.
     struct ConfirmSession: Equatable {
-        let fingerprint: String
+        let target: CommitmentFormTarget
         var draft: ConfirmDraft
         var fieldErrors: Set<ConfirmField> = []
         /// A server refusal (`code`), shown in the sheet.
@@ -133,12 +134,24 @@ final class RecurringViewModel {
         }
     }
 
-    var confirmCandidate: RecurringCandidate? { confirm.flatMap { candidate(fingerprint: $0.fingerprint) } }
+    /// Whether the session's possible or saved recurring expense is still in the lists just read.
+    var isFormTargetListed: Bool {
+        guard let target = confirm?.target else { return false }
+        switch target {
+        case .candidate(let fingerprint): return snapshot?.candidates.contains { $0.fingerprint == fingerprint } == true
+        case .commitment(let id): return commitment(id: id) != nil
+        }
+    }
 
-    /// The confirm sheet shows its form (and, while a write is unresolved, the shared Retry/Check panel)
-    /// whenever the candidate is present or a write is submitting/uncertain; only an idle session whose
-    /// candidate is gone shows the "changed" placeholder, so a failed read never hides Retry/Check.
-    var showsConfirmForm: Bool { confirm != nil && (confirmCandidate != nil || writePhase != .idle) }
+    var isEditing: Bool {
+        if case .commitment? = confirm?.target { return true }
+        return false
+    }
+
+    /// The form sheet shows its form (and, while a write is unresolved, the shared Retry/Check panel)
+    /// whenever its target is present or a write is submitting/uncertain; only an idle session whose
+    /// target is gone shows the "changed" placeholder, so a failed read never hides Retry/Check.
+    var showsConfirmForm: Bool { confirm != nil && (isFormTargetListed || writePhase != .idle) }
 
     // MARK: Reading
 
@@ -223,8 +236,13 @@ final class RecurringViewModel {
             if pending?.decision != .pending { changeEndTarget = nil }
         }
         if writePhase == .idle, let session = confirm {
-            let listed = snapshot?.candidates.contains { $0.fingerprint == session.fingerprint } == true
-            if !listed {
+            // An edit keeps the user's draft unless the lists were read and the expense is truly gone.
+            let gone: Bool
+            switch session.target {
+            case .candidate: gone = !isFormTargetListed
+            case .commitment: gone = snapshot != nil && !isFormTargetListed
+            }
+            if gone {
                 if let code = session.errorCode { notice = .error(code) }
                 closeTask()
             }
@@ -315,7 +333,15 @@ final class RecurringViewModel {
     func beginConfirm(_ candidate: RecurringCandidate) {
         guard canWrite, confirm == nil, snapshot?.candidates.contains(where: { $0.fingerprint == candidate.fingerprint }) == true else { return }
         notice = nil
-        confirm = ConfirmSession(fingerprint: candidate.fingerprint, draft: ConfirmDraft.initial(for: candidate))
+        confirm = ConfirmSession(target: .candidate(fingerprint: candidate.fingerprint), draft: ConfirmDraft.initial(for: candidate))
+        isSheetPresented = true
+    }
+
+    /// Opens the same form for a saved recurring expense (active, paused or ended).
+    func beginEdit(_ commitment: RecurringCommitment) {
+        guard canWrite, confirm == nil, self.commitment(id: commitment.id) != nil else { return }
+        notice = nil
+        confirm = ConfirmSession(target: .commitment(id: commitment.id), draft: ConfirmDraft.initial(for: commitment))
         isSheetPresented = true
     }
 
@@ -354,14 +380,20 @@ final class RecurringViewModel {
 
     /// Validates, freezes and sends; synchronous up to the send, so a second tap is refused.
     func submitConfirm() {
-        guard canWrite, var session = confirm, confirmCandidate != nil else { return }
+        guard canWrite, var session = confirm, isFormTargetListed else { return }
         switch session.draft.validate(language: language, deviceLocale: deviceLocale) {
         case .failure(let failure):
             session.fieldErrors = failure.fields
             confirm = session
         case .success(let values):
-            guard let body = try? CommitmentRequestBody.confirm(fingerprint: session.fingerprint, values.body) else { return }
-            start(CommitmentWrite(operation: .confirm(fingerprint: session.fingerprint, body: body)), isRetry: false)
+            switch session.target {
+            case .candidate(let fingerprint):
+                guard let body = try? CommitmentRequestBody.confirm(fingerprint: fingerprint, values.body) else { return }
+                start(CommitmentWrite(operation: .confirm(fingerprint: fingerprint, body: body)), isRetry: false)
+            case .commitment(let id):
+                guard let body = try? CommitmentRequestBody.update(values.body) else { return }
+                start(CommitmentWrite(operation: .update(id: id, body: body)), isRetry: false)
+            }
         }
     }
 
@@ -422,7 +454,7 @@ final class RecurringViewModel {
             case .change(_, _, let decision, _, _):
                 if decision == .keep { expanded.insert(.reviewedChanges) }
                 if decision == .markEnded { expanded.insert(.ended) }
-            case .confirm, .reconsider: break
+            case .confirm, .reconsider, .update: break
             }
             await finish(Self.successNotice(write), requireChanges: write.operation.isChangeDecision, generation: started)
         case .refused(let code):
@@ -463,6 +495,7 @@ final class RecurringViewModel {
         case .dismiss: .dismissed
         case .reconsider: .reconsidered
         case .lifecycle: .lifecycle
+        case .update: .updated
         case .change(_, let dimension, let decision, _, _):
             switch decision {
             case .accept: dimension == .amount ? .amountAccepted : .timingAccepted
@@ -473,12 +506,17 @@ final class RecurringViewModel {
         }
     }
 
-    /// A definitive error goes to the open confirm sheet; when the sheet is not presented (it was
-    /// swiped away after an unknown outcome) or the write was not a confirm, the confirm state is
-    /// cleared and the error is shown as the visible notice, so the outcome is never dropped and
-    /// Review and confirm works again.
+    /// A definitive error goes to the open form sheet; the draft stays. An edit whose sheet was swiped
+    /// away after an unknown outcome opens it again with the error, so the user's changes are never
+    /// lost. When a confirm's sheet is not presented, or the write was not a form write, the confirm
+    /// state is cleared and the error is shown as the visible notice, so the outcome is never dropped
+    /// and Review and confirm works again.
     private func show(error code: String?, for write: CommitmentWrite) {
-        if case .confirm = write.operation, var session = confirm, isSheetPresented {
+        if case .update = write.operation, var session = confirm {
+            session.errorCode = code ?? "request_failed"
+            confirm = session
+            isSheetPresented = true
+        } else if case .confirm = write.operation, var session = confirm, isSheetPresented {
             session.errorCode = code ?? "request_failed"
             confirm = session
         } else {

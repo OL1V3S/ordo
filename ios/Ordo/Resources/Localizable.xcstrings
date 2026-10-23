@@ -6682,6 +6682,23 @@
         }
       }
     },
+    "commitments.feedback.notices.updated": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recurring expense updated."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gasto recurrente actualizado."
+          }
+        }
+      }
+    },
     "commitments.feedback.outOfDate": {
       "extractionState": "manual",
       "localizations": {
@@ -7600,6 +7617,40 @@
         }
       }
     },
+    "commitments.saved.edit": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Editar"
+          }
+        }
+      }
+    },
+    "commitments.saved.editLabel": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit %1$@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Editar %1$@"
+          }
+        }
+      }
+    },
     "commitments.saved.emptyNoActive": {
       "extractionState": "manual",
       "localizations": {
@@ -7834,6 +7885,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Gastos que coinciden"
+          }
+        }
+      }
+    },
+    "commitments.saved.saveChanges": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save changes"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guardar cambios"
           }
         }
       }

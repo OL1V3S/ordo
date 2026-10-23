@@ -30,6 +30,16 @@ enum CommitmentRequestBody {
     }
 
     static func confirm(fingerprint: String, _ values: Confirm) throws -> Data {
+        try body(values, fingerprint: fingerprint)
+    }
+
+    /// `PUT /api/commitments/{id}`: the confirm body without the fingerprint, same sorted keys and
+    /// nulls. Amounts are the exact `Money.text`, never a Double. An absolute set, so a repeat is safe.
+    static func update(_ values: Confirm) throws -> Data {
+        try body(values, fingerprint: nil)
+    }
+
+    private static func body(_ values: Confirm, fingerprint: String?) throws -> Data {
         func text(_ value: String?) throws -> String {
             guard let value else { return "null" }
             return String(decoding: try JSONEncoder().encode(value), as: UTF8.self)
@@ -41,7 +51,8 @@ enum CommitmentRequestBody {
             + ",\"expectedDay\":\(int(values.day)),\"expectedDayOfWeek\":\(try text(values.dayOfWeek))"
             + ",\"expectedMaximumAmount\":\(money(values.maximumAmount))"
             + ",\"expectedMinimumAmount\":\(money(values.minimumAmount)),\"expectedMonth\":\(int(values.month))"
-            + ",\"fingerprint\":\(try text(fingerprint)),\"name\":\(try text(values.name))"
+            + (try fingerprint.map { ",\"fingerprint\":\(try text($0))" } ?? "")
+            + ",\"name\":\(try text(values.name))"
             + ",\"timingKind\":\(try text(values.timingKind)),\"windowAfterDays\":\(values.windowAfterDays)"
             + ",\"windowBeforeDays\":\(values.windowBeforeDays)}"
         return Data(json.utf8)

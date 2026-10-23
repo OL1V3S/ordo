@@ -51,6 +51,7 @@ struct SessionRecurringService: RecurringService {
             case .reconsider(_, let body): try await api.reconsiderCandidate(accessToken: token.value, body: body)
             case .change(_, _, _, let path, let body):
                 try await api.decideCommitmentChange(accessToken: token.value, path: path, body: body)
+            case .update(let id, let body): try await api.updateCommitment(accessToken: token.value, id: id, body: body)
             case .lifecycle(let id, _, let body):
                 try await api.updateCommitmentLifecycle(accessToken: token.value, id: id, body: body)
             }

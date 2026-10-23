@@ -86,6 +86,7 @@ struct CommitmentWrite: Equatable, Sendable, CustomStringConvertible, CustomDebu
         case dismiss(fingerprint: String, body: Data)
         case reconsider(fingerprint: String, body: Data)
         case lifecycle(id: String, value: CommitmentLifecycle, body: Data)
+        case update(id: String, body: Data)
         case change(commitmentId: String, dimension: ChangeDimension, decision: ChangeDecision, path: String, body: Data)
 
         var isChangeDecision: Bool {
