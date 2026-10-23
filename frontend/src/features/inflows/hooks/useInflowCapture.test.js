@@ -108,4 +108,17 @@ describe("cash-in capture controller", () => {
     expect(result.current.task.draft.description).toBe("  Refund  From Store  ");
     expect(result.current.feedback).toBeNull();
   });
+
+  it("keeps completing a create when the access token is refreshed mid-flight", async () => {
+    const write = deferred();
+    const { result } = setup({ createInflow: vi.fn(() => write.promise) });
+    fill(result);
+    let outcome;
+    act(() => { outcome = result.current.submitTask(); });
+    act(() => { localStorage.setItem("token", "owner-a-refreshed"); });
+    await act(() => write.resolve({ refreshFailed: false }));
+    await outcome;
+    expect(result.current.task).toBeNull();
+    expect(result.current.feedback).toMatchObject({ outcome: "completed" });
+  });
 });

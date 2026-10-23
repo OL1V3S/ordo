@@ -1,5 +1,5 @@
 import axios from "axios";
-import { getSessionSnapshot, invalidateSession } from "../auth/session";
+import { getAccessToken, getSessionSnapshot, invalidateSession } from "../auth/session";
 
 const client = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
@@ -9,10 +9,11 @@ const requestSessions = new WeakMap();
 
 client.interceptors.request.use((config) => {
   const session = getSessionSnapshot();
+  const token = getAccessToken();
 
-  if (session.token) {
-    config.headers.Authorization = `Bearer ${session.token}`;
-    if (!config.skipSessionInvalidation) requestSessions.set(config, session);
+  if (session.signedIn && token) {
+    config.headers.Authorization = `Bearer ${token}`;
+    if (!config.skipSessionInvalidation) requestSessions.set(config, { session, token });
   }
 
   return config;
@@ -24,9 +25,9 @@ client.interceptors.response.use(
     return response;
   },
   (error) => {
-    const session = requestSessions.get(error.config);
+    const request = requestSessions.get(error.config);
     requestSessions.delete(error.config);
-    if (error.response?.status === 401 && session) invalidateSession(session);
+    if (error.response?.status === 401 && request) invalidateSession(request.session, request.token);
     return Promise.reject(error);
   },
 );

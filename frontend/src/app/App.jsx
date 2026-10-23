@@ -21,7 +21,7 @@ import MorePage from "./pages/MorePage";
 
 export default function App() {
   const session = useSyncExternalStore(subscribeToSession, getSessionSnapshot);
-  const isLoggedIn = Boolean(session.token);
+  const isLoggedIn = session.signedIn;
 
   return (
     <Routes>

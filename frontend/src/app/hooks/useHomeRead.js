@@ -18,7 +18,7 @@ export function useHomeRead(load, key = null) {
 
     setState({ ...identity, loading: true, data: null, error: false });
 
-    if (!session.token) {
+    if (!session.signedIn) {
       setState({ ...identity, loading: false, data: null, error: false });
       return () => { latest.current += 1; };
     }

@@ -22,7 +22,7 @@ export function useCashFlow(month) {
       availableMonths: previous?.session === session ? previous.availableMonths : [],
     }));
 
-    if (!session.token) {
+    if (!session.signedIn) {
       setState({ month, session, attempt, loading: false, data: null, availableMonths: [], error: "cashFlow.errors.signIn" });
       return () => { latest.current += 1; controller.abort(); };
     }

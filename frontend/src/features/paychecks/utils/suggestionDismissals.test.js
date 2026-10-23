@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { clearSession, establishSession } from "../../../shared/auth/session";
+import { clearSession, establishSession, getSessionSnapshot } from "../../../shared/auth/session";
 import {
   dismissSuggestion, MAX_DISMISSALS, pruneDismissals, readDismissals, resetDismissalsForTests, restoreSuggestion,
 } from "./suggestionDismissals";
@@ -8,7 +8,7 @@ const b64 = (value) => btoa(JSON.stringify(value)).replace(/\+/g, "-").replace(/
 const tokenFor = (id) => `${b64({ alg: "HS256" })}.${b64({ "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier": id })}.sig`;
 const sessionFor = (id, email = "person@example.com") => {
   establishSession(tokenFor(id), email);
-  return JSON.parse(JSON.stringify({ token: localStorage.getItem("token"), email }));
+  return getSessionSnapshot();
 };
 const keyFor = (n) => `profile-${n}|2026-08-10|${n}`;
 const storageKeys = () => Array.from({ length: localStorage.length }, (_, index) => localStorage.key(index)).filter((key) => key.startsWith("ordo-paycheck-suggestion-dismissals:"));
@@ -59,7 +59,7 @@ describe("suggestionDismissals", () => {
 
   it("keeps dismissals in memory only when the token has no account identifier", () => {
     establishSession("opaque-token-without-claims", "x@example.com");
-    const session = { token: "opaque-token-without-claims", email: "x@example.com" };
+    const session = getSessionSnapshot();
     dismissSuggestion(session, keyFor(3));
     expect(readDismissals(session).has(keyFor(3))).toBe(true);
     expect(storageKeys()).toEqual([]);

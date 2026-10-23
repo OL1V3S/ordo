@@ -1,5 +1,5 @@
 import { useCallback, useSyncExternalStore } from "react";
-import { getSessionSnapshot, subscribeToSession } from "../../../shared/auth/session";
+import { getAccessToken, getSessionSnapshot, subscribeToSession } from "../../../shared/auth/session";
 
 // Device-local "dismissed match" memory for paycheck suggestions. Nothing here reaches the server.
 // Stored values are `<scheduleId>|<slotAnchor>|<depositId>` only. The storage key uses the opaque
@@ -30,12 +30,13 @@ function decodeAccountId(token) {
 }
 
 // A persistent key needs an opaque account id. Without one the dismissals stay in memory only,
-// scoped to the exact token, and are never written to storage.
+// scoped to the sign-in, and are never written to storage.
 function accountScope(session) {
-  if (!session?.token) return null;
-  const id = decodeAccountId(session.token);
+  if (!session?.signedIn) return null;
+  const token = getAccessToken();
+  const id = token ? decodeAccountId(token) : null;
   return id ? { key: `${PREFIX}${encodeURIComponent(id)}`, persistent: true }
-    : { key: `volatile:${session.token}`, persistent: false };
+    : { key: `volatile:${session.id}`, persistent: false };
 }
 
 function emit() { listeners.forEach((listener) => listener()); }
