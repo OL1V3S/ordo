@@ -427,9 +427,8 @@ Slice 291a ([#291](https://github.com/OL1V3S/ordo/issues/291)) adds a medium Hom
 widget, the `OrdoWidgetExtension` target (bundle ID `$(ORDO_BUNDLE_ID_PREFIX).ordo.widget`,
 embedded in Ordo, same xcconfigs).
 
-- It shows "Open Ordo to see spending" and two buttons, **Add expense** and **Add deposit**.
-  It reads no account data, makes no network call and never writes money. It has no
-  entitlements, no App Group and no Keychain access. The spending graph comes in 291b.
+- It shows this month's spending (month to date, exact text) with a six-month spending graph,
+  and two buttons, **Add expense** and **Add deposit**. It never writes money.
 - The buttons are `Link`s to `ordo-widget://capture/expense` and
   `ordo-widget://capture/deposit` (`ios/Shared/WidgetDeepLink.swift`, built into both
   targets). The app's `onOpenURL` calls `AppModel.handle(_:)`. Only those two exact URLs are
@@ -446,6 +445,42 @@ embedded in Ordo, same xcconfigs).
 - English and Spanish (`ios/OrdoWidget/Localizable.xcstrings`, device language).
 - Add the widget on a device or simulator by long-pressing the Home Screen, then **Ordo**.
   Run on a device with your own team: the extension needs the same signing as the app.
+
+### Spending graph (291b)
+
+- **Shared Keychain item, access token only.** After sign-in and every refresh the app copies
+  the 2-hour access token to one Keychain item (service `<prefix>.ordo.widget`, account
+  `widget-access`, value `{accessToken, savedAt}`, `AfterFirstUnlockThisDeviceOnly`, not
+  synchronizable) in the shared group `$(AppIdentifierPrefix)<prefix>.ordo.shared`. A failed
+  write is logged and not fatal. Sign-out, an ended session and the fresh-install check delete
+  it (if the delete fails it is overwritten with empty bytes) and reload the widget.
+- **The refresh credential never leaves the app.** The app's entitlements list its private group
+  first, then the shared group; the widget lists only the shared group. Only the credential's
+  `SecItemAdd` names the private group; its reads, updates and deletes do not, so existing items
+  are always found. The widget never refreshes, writes or deletes.
+- **Group names come from build settings** (`ORDO_KEYCHAIN_PRIVATE_GROUP`,
+  `ORDO_KEYCHAIN_SHARED_GROUP` in `Base.xcconfig`), used by both entitlements files and both
+  Info.plist files. Simulator "Sign to Run Locally" builds need no team.
+- **Data.** The widget calls the existing `GET /api/analytics/cash-flow` for the device month
+  through today (`ios/Shared/CashFlowRequest.swift`, `CashFlowValidation`), with an ephemeral
+  URL session and no cache. Amounts are exact `CashAmount` text; bar heights only use
+  `ReportsFormatter.barFraction`. Nothing is summed. Any malformed field or wrong period fails
+  the whole read.
+- **No snapshot.** Figures exist only in the timeline entry from a fresh read, labelled
+  "Updated <relative time>". Entries every 15 minutes; the next read is in 45 minutes or at
+  local midnight. Last month's figures are never shown as the new month.
+- **States.** Sign in to Ordo (no item); Open Ordo to update (token saved over 2 hours ago,
+  expired, or `401`; the network is skipped when stale); Couldn't update spending (offline,
+  server error, malformed); exact zero with "No spending yet this month"; not set up.
+- **Races.** After a read the widget re-reads the item: gone means signed out; a new token
+  drops the result and reads once more.
+- **Privacy.** Amounts and the graph are `.privacySensitive()`. The gallery and placeholder use
+  made-up redacted figures and never fetch. No email or account id. Tokens and amounts are
+  never logged. The graph is hidden from VoiceOver behind an exact-amount summary label.
+- **Freshness.** There is no background refresh: figures appear only if the app ran in the
+  last ~2 hours. After sign-out a token already read stays valid server-side for up to ~2 hours.
+- Code shared with the widget lives in `ios/Shared/` (also built into the app, so `OrdoTests`
+  reaches it).
 
 ## Look and theme
 
@@ -471,9 +506,10 @@ Reduce Motion and Increase Contrast.
 
 ## Security notes
 
-- Only the refresh credential is stored, in the Keychain
-  (`AfterFirstUnlockThisDeviceOnly`, not synchronizable). The access token lives in
-  memory only. The password is never stored.
+- The refresh credential is stored in the Keychain, in the app's private group
+  (`AfterFirstUnlockThisDeviceOnly`, not synchronizable). The 2-hour access token is kept in
+  memory and copied to one shared Keychain item for the widget (see Home Screen widget). The
+  password is never stored.
 - Exactly one refresh runs at a time (reusing a rotated credential
   ends the session). A refresh from an old session cannot affect a newer one.
 - The app logs only static messages and status codes, never tokens, emails, bodies, amounts,
@@ -488,6 +524,6 @@ Reduce Motion and Increase Contrast.
 Add expense and Add deposit on the Transactions tab, bulk edit or delete, undo, an offline queue
 or cache, a concurrency token or conflict detection, automatic infinite scrolling, persisted
 filters, category management, creating or editing pay schedules, possible-paycheck suggestions, paycheck linking after an import, Reports' "More spending detail",
-widget, push notifications, TestFlight or App Store distribution, iPad
+widget writes, Lock Screen or small widgets, widget background refresh, push notifications, TestFlight or App Store distribution, iPad
 layout, confirming an email or resetting a password inside the app (Universal Links, URL schemes,
 a paste-the-link field), and links into other web workflows.
