@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Trans, useTranslation } from "react-i18next";
 import { authApi } from "../../../shared/api/authApi";
-import { establishSession } from "../../../shared/auth/session";
+import { signIn } from "../../../shared/auth/webSession";
 import { useLocale } from "../../../shared/localization/useLocale";
 import StatusMessage from "../../../shared/ui/StatusMessage";
 import AuthShell from "./AuthShell";
@@ -55,9 +55,7 @@ export default function AuthPage({ onLogin }) {
         return;
       }
 
-      const res = await authApi.login({ email, password });
-
-      establishSession(res.data.token, res.data.email);
+      await signIn({ email, password });
 
       onLogin?.();
     } catch (err) {

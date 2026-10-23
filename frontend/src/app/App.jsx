@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
-import { clearSession, getSessionSnapshot, subscribeToSession } from "../shared/auth/session";
+import { getSessionSnapshot, subscribeToSession } from "../shared/auth/session";
+import { isBootRefreshPending, signOut, subscribeToBootRefresh } from "../shared/auth/webSession";
 
 import TransactionsPage from "../features/transactions/pages/TransactionsPage";
 import BudgetsPage from "../features/budgetLimits/pages/BudgetsPage";
@@ -22,6 +23,9 @@ import MorePage from "./pages/MorePage";
 export default function App() {
   const session = useSyncExternalStore(subscribeToSession, getSessionSnapshot);
   const isLoggedIn = session.signedIn;
+  // While the boot refresh may still restore a session, show nothing rather than
+  // flashing the sign-in page (capped in webSession.js).
+  const awaitingSession = useSyncExternalStore(subscribeToBootRefresh, isBootRefreshPending) && !isLoggedIn;
 
   return (
     <Routes>
@@ -30,7 +34,7 @@ export default function App() {
         element={
           isLoggedIn ? (
             <Navigate to="/overview" replace />
-          ) : (
+          ) : awaitingSession ? null : (
             <AuthPage />
           )
         }
@@ -40,8 +44,8 @@ export default function App() {
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
 
-      <Route element={<ProtectedRoute key={session.generation} isAuthenticated={isLoggedIn} />}>
-        <Route element={<AppShell email={session.email} onLogout={clearSession} />}>
+      <Route element={<ProtectedRoute key={session.generation} isAuthenticated={isLoggedIn} isPending={awaitingSession} />}>
+        <Route element={<AppShell email={session.email} onLogout={signOut} />}>
           <Route path="/overview" element={<OverviewPage />} />
           <Route path="/transactions" element={<TransactionsPage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />

@@ -1,6 +1,10 @@
 {
     "rewrites": [
       {
+        "source": "/api/auth/web-session/:path*",
+        "destination": "https://budget-planner-nupw.onrender.com/api/auth/web-session/:path*"
+      },
+      {
         "source": "/(.*)",
         "destination": "/"
       }

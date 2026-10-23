@@ -83,6 +83,21 @@ export function establishSession(token, email) {
   notifyListeners();
 }
 
+// A refreshed access token for the current sign-in: identity and generation stay
+// the same, so snapshots, hooks and capture recovery do not see a new session.
+export function replaceAccessToken(token, email) {
+  localStorage.setItem("token", token);
+  if (email) localStorage.setItem("email", email);
+  getSessionSnapshot();
+  notifyListeners();
+}
+
+// Re-read storage and notify, e.g. after another tab signed out.
+export function syncSessionFromStorage() {
+  getSessionSnapshot();
+  notifyListeners();
+}
+
 export function clearSession() {
   getSessionSnapshot();
   localStorage.removeItem("token");
