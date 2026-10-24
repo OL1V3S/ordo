@@ -36,6 +36,8 @@ internal sealed class TestApplication : WebApplicationFactory<Program>
     private readonly TimeProvider? _timeProvider;
     private readonly Action<DeviceSessionOptions>? _configureDeviceSessions;
     private readonly ILoggerProvider? _loggerProvider;
+    private readonly RegistrationLimiterTestSettings? _registrationLimiterSettings;
+    private readonly Action<IServiceCollection>? _configureServices;
 
     private TestApplication(
         EmailFailureMode emailFailureMode,
@@ -46,7 +48,9 @@ internal sealed class TestApplication : WebApplicationFactory<Program>
         TimeSpan? tokenLifespan,
         TimeProvider? timeProvider,
         Action<DeviceSessionOptions>? configureDeviceSessions,
-        ILoggerProvider? loggerProvider)
+        ILoggerProvider? loggerProvider,
+        RegistrationLimiterTestSettings? registrationLimiterSettings,
+        Action<IServiceCollection>? configureServices)
     {
         EmailSender = new FakeEmailService(emailFailureMode);
         _limiterSettings = limiterSettings;
@@ -57,6 +61,8 @@ internal sealed class TestApplication : WebApplicationFactory<Program>
         _timeProvider = timeProvider;
         _configureDeviceSessions = configureDeviceSessions;
         _loggerProvider = loggerProvider;
+        _registrationLimiterSettings = registrationLimiterSettings;
+        _configureServices = configureServices;
     }
 
     public HttpClient Client { get; private set; } = null!;
@@ -71,7 +77,9 @@ internal sealed class TestApplication : WebApplicationFactory<Program>
         TimeSpan? tokenLifespan = null,
         TimeProvider? timeProvider = null,
         Action<DeviceSessionOptions>? configureDeviceSessions = null,
-        ILoggerProvider? loggerProvider = null)
+        ILoggerProvider? loggerProvider = null,
+        RegistrationLimiterTestSettings? registrationLimiterSettings = null,
+        Action<IServiceCollection>? configureServices = null)
     {
         var application = new TestApplication(
             emailFailureMode,
@@ -82,7 +90,9 @@ internal sealed class TestApplication : WebApplicationFactory<Program>
             tokenLifespan,
             timeProvider,
             configureDeviceSessions,
-            loggerProvider);
+            loggerProvider,
+            registrationLimiterSettings,
+            configureServices);
         lock (HostStartupLock)
         {
             var originalEnvironment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
@@ -153,6 +163,15 @@ internal sealed class TestApplication : WebApplicationFactory<Program>
                 services.AddSingleton(_forgotPasswordLimiterOverride);
             }
 
+            if (_registrationLimiterSettings != null)
+            {
+                services.Configure<RegistrationLimiterOptions>(options =>
+                {
+                    options.GlobalPermitLimit = _registrationLimiterSettings.GlobalPermitLimit;
+                    options.RecipientPermitLimit = _registrationLimiterSettings.RecipientPermitLimit;
+                });
+            }
+
             if (_timeProvider != null)
             {
                 services.RemoveAll<TimeProvider>();
@@ -161,6 +180,8 @@ internal sealed class TestApplication : WebApplicationFactory<Program>
 
             if (_configureDeviceSessions != null)
                 services.Configure(_configureDeviceSessions);
+
+            _configureServices?.Invoke(services);
         });
 
         if (_loggerProvider != null)
@@ -256,6 +277,10 @@ internal sealed record LimiterTestSettings(
 internal sealed record ForgotPasswordLimiterTestSettings(
     int GlobalPermitLimit,
     int RecipientPermitLimit = ForgotPasswordLimiterOptions.DefaultRecipientPermitLimit);
+
+internal sealed record RegistrationLimiterTestSettings(
+    int GlobalPermitLimit = RegistrationLimiterOptions.DefaultGlobalPermitLimit,
+    int RecipientPermitLimit = RegistrationLimiterOptions.DefaultRecipientPermitLimit);
 
 internal sealed class RecordingConfirmationResendLimiter(
     bool acquireGlobal,

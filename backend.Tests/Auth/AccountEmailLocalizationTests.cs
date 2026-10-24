@@ -91,6 +91,64 @@ public sealed class AccountEmailTemplatesTests
             content.HtmlBody.Split('\n').Length);
     }
 
+    [Theory]
+    [InlineData(EmailLanguage.English,
+        "Someone tried to create an Ordo account with your email",
+        "Someone tried to create a new Ordo account with this email. You already have an account, so nothing was changed.",
+        "If this was you, sign in or reset your password.",
+        "Sign in",
+        "Reset password",
+        "If this wasn’t you, you can safely ignore this email.")]
+    [InlineData(EmailLanguage.Spanish,
+        "Alguien intentó crear una cuenta de Ordo con tu correo",
+        "Alguien intentó crear una cuenta nueva de Ordo con este correo. Ya tienes una cuenta, así que no cambiamos nada.",
+        "Si fuiste tú, inicia sesión o restablece tu contraseña.",
+        "Iniciar sesión",
+        "Restablecer contraseña",
+        "Si no fuiste tú, puedes ignorar este correo sin problema.")]
+    public void Existing_account_email_uses_approved_copy_and_plain_links(
+        EmailLanguage language,
+        string subject,
+        string intro,
+        string action,
+        string signIn,
+        string reset,
+        string footer)
+    {
+        const string signInUrl = "https://frontend.test/";
+        const string forgotUrl = "https://frontend.test/forgot-password";
+
+        var content = AccountEmailTemplates.ExistingAccountEmail(language, signInUrl, forgotUrl);
+
+        Assert.Equal(subject, content.Subject);
+        Assert.Contains(">Ordo</h2>", content.HtmlBody);
+        foreach (var text in new[] { intro, action, footer })
+            Assert.Contains(text, content.HtmlBody);
+        Assert.Contains($"<a href=\"{signInUrl}\" style=\"color:#93c5fd;\">{signIn}</a>", content.HtmlBody);
+        Assert.Contains($"<a href=\"{forgotUrl}\" style=\"color:#93c5fd;\">{reset}</a>", content.HtmlBody);
+        Assert.Equal(2, content.HtmlBody.Split("href=").Length - 1);
+        Assert.DoesNotContain("token", content.HtmlBody, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Budget Planner", content.Subject + content.HtmlBody);
+    }
+
+    [Fact]
+    public void Existing_account_email_has_the_same_structure_in_both_languages()
+    {
+        var english = AccountEmailTemplates.ExistingAccountEmail(EmailLanguage.English, "S", "F");
+        var spanish = AccountEmailTemplates.ExistingAccountEmail(EmailLanguage.Spanish, "S", "F");
+
+        var englishLines = english.HtmlBody.Split('\n');
+        var spanishLines = spanish.HtmlBody.Split('\n');
+        Assert.Equal(englishLines.Length, spanishLines.Length);
+        for (var i = 0; i < englishLines.Length; i++)
+        {
+            var englishTag = englishLines[i].TrimStart();
+            var spanishTag = spanishLines[i].TrimStart();
+            if (englishTag.StartsWith('<') || spanishTag.StartsWith('<'))
+                Assert.Equal(englishTag.Split('>')[0], spanishTag.Split('>')[0]);
+        }
+    }
+
     [Fact]
     public async Task Spanish_subject_and_body_survive_mime_encoding()
     {

@@ -42,6 +42,15 @@ describe("mapSubmitError", () => {
     expect(mapped).toEqual({ kind: "deliveryFailed", message: { key: "errors.registration.deliveryFailed" } });
   });
 
+  it("maps a registration 429 to the localized rate-limit message", () => {
+    expect(mapSubmitError(registerErr("", 429), { mode: "register", email })).toEqual({
+      kind: "error",
+      messages: [{ key: "resend.rateLimited" }],
+    });
+    expect(mapSubmitError(registerErr([{ code: "DuplicateEmail" }], 429), { mode: "register", email }).messages)
+      .toEqual([{ key: "resend.rateLimited" }]);
+  });
+
   it("maps the two exact login 401 literals", () => {
     const bad = mapSubmitError(registerErr("Invalid email or password", 401), { mode: "login", email });
     const unconfirmed = mapSubmitError(registerErr("Please confirm your email before logging in.", 401), { mode: "login", email });

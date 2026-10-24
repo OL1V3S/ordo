@@ -70,6 +70,7 @@ struct OrdoAPI: Sendable {
         switch status {
         case 200...299: return
         case 400: throw APIError.registrationRejected(Self.identityCodes(in: data))
+        case 429: throw APIError.rateLimited
         case 503 where Self.errorCode(in: data) == "confirmation_email_delivery_failed":
             throw APIError.confirmationDeliveryFailed
         default: throw APIError.server(status)

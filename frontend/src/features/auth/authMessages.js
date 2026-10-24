@@ -38,6 +38,12 @@ export function mapSubmitError(err, { mode, email }) {
     return { kind: "deliveryFailed", message: { key: "errors.registration.deliveryFailed" } };
   }
 
+  // #300: the registration limiter answers a bare 429 for every email.
+  // Reuses the generic rate-limit copy ("Too many requests...").
+  if (mode === "register" && status === 429) {
+    return { kind: "error", messages: [{ key: "resend.rateLimited" }] };
+  }
+
   if (mode === "register" && Array.isArray(data)) {
     const messages = [];
     let hasUnknown = false;
