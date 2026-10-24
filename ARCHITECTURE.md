@@ -353,6 +353,10 @@ builds and tests source changes but does not authorize production changes or
 apply production migrations. Backup, restore, and rollback reference:
 [`docs/operations-runbook.md`](docs/operations-runbook.md).
 
+Vercel sends the web app's security headers (CSP, `nosniff`, `X-Frame-Options`,
+`Referrer-Policy`, `Permissions-Policy`) from `frontend/vercel.json`; a guard test
+keeps the CSP in sync with the inline theme script and the API origin.
+
 The iOS app is not deployed anywhere: it is built and installed from source on the
 owner's own devices. Its CI job (`iOS build and tests`) is not a required check.
 

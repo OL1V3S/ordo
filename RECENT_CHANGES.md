@@ -24,6 +24,13 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-23 — Web security headers
+
+[PR #315](https://github.com/OL1V3S/ordo/pull/315) · [Issue #307](https://github.com/OL1V3S/ordo/issues/307)
+
+- The web app now sends a Content Security Policy (own scripts plus one hashed inline theme script; API calls only to the app and the Render backend) and `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy` and `Permissions-Policy` headers, set in `frontend/vercel.json`.
+- A frontend test fails if the inline script changes without its hash, if the API origin and CSP drift apart, or if unsafe CSP sources are added. Backend, API and iOS are unchanged.
+
 ### 2026-10-23 — Safe server errors and a /health check
 
 [PR #314](https://github.com/OL1V3S/ordo/pull/314) · [Issue #304](https://github.com/OL1V3S/ordo/issues/304)
@@ -159,10 +166,3 @@ the permanent, complete archive.
 
 - The iPhone app can add an expense or a deposit from Home, in English and Spanish, using the existing create endpoints. Each save sends one `Idempotency-Key` and reuses it for every retry, so a lost response cannot record it twice; an unconfirmed save is kept on the device until it is retried or discarded, and Home is re-read from the server afterwards.
 - Backend, API, schema, web app and required checks are unchanged; the app is still not distributed.
-
-### 2026-10-17 — Native iOS app with sign-in and a read-only Home
-
-[PR #257](https://github.com/OL1V3S/ordo/pull/257) · [Issue #256](https://github.com/OL1V3S/ordo/issues/256)
-
-- New SwiftUI iPhone app in `ios/` (iOS 18+): signs in with the device-session API, keeps the session in the Keychain, and shows a read-only Home (attention, recent transactions, upcoming paychecks) in English and Spanish.
-- Adds a non-required macOS workflow, "iOS build and tests". Backend, API, schema, web app and existing workflows are unchanged; the app is not distributed.
