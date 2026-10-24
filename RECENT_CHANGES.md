@@ -26,7 +26,7 @@ the permanent, complete archive.
 
 ### 2026-10-24 — Registration no longer reveals existing accounts
 
-[PR #PRNUM](https://github.com/OL1V3S/ordo/pull/PRNUM) · [Issue #300](https://github.com/OL1V3S/ordo/issues/300)
+[PR #317](https://github.com/OL1V3S/ordo/pull/317) · [Issue #300](https://github.com/OL1V3S/ordo/issues/300)
 
 - Registering with an email that already has an account returns the same `200` (or `503` when email fails) as a new registration. The owner gets a fixed "someone tried to create an account" email (English/Spanish, plain sign-in and forgot-password links, no token); the account is never changed. Weak-password `400` errors are unchanged.
 - New in-memory registration limiter (global and per email, code defaults, no new settings) runs before the account check and returns the same `429` for everyone. Web and iOS now show "Too many requests" for it.
