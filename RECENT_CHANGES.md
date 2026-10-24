@@ -26,7 +26,7 @@ the permanent, complete archive.
 
 ### 2026-10-23 — Safe server errors and a /health check
 
-[Issue #304](https://github.com/OL1V3S/ordo/issues/304)
+[PR #314](https://github.com/OL1V3S/ordo/pull/314) · [Issue #304](https://github.com/OL1V3S/ordo/issues/304)
 
 - An unexpected server error now returns a fixed `500` (`code: internal_error`, plus a `traceId`) with no exception text. The server logs one line with the error type, method, route template and trace id, and never the message, stack, request data or amounts.
 - New anonymous `GET /health` returns `200 Healthy` without touching the database. Existing error responses, the web app and iOS are unchanged; no new settings.
