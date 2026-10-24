@@ -14,6 +14,8 @@ WORKDIR /app
 
 COPY --from=build /app/publish .
 
+USER $APP_UID
+
 ENV ASPNETCORE_URLS=http://+:8080
 EXPOSE 8080
 

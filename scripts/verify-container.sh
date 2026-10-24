@@ -32,8 +32,11 @@ docker build --file backend/Dockerfile --tag ordo-backend:ci .
 docker image inspect ordo-backend:ci \
   --format '{{json .Config.Entrypoint}}' \
   | grep -Fx '["dotnet","backend.dll"]'
+docker image inspect ordo-backend:ci --format '{{.Config.User}}' | grep -Fx 1654
 
-docker run --rm --entrypoint sh ordo-backend:ci -c '
+docker run --rm --entrypoint sh ordo-backend:ci -ec '
+  test "$(id -u)" = 1654
+  test ! -w /app/backend.dll
   test -f /app/backend.dll
   test -x /app/PdfWorker/backend.PdfWorker
   test -f /app/PdfWorker/backend.PdfWorker.deps.json
@@ -68,5 +71,7 @@ for attempt in {1..10}; do
 done
 
 test "$started" = true
+test "$(docker exec "$container_id" id -u)" = 1654
+docker exec "$container_id" awk '/^Uid:/{exit !($2==1654 && $3==1654)}' /proc/1/status
 docker exec "$container_id" sh -c \
   'tr "\000" " " </proc/1/cmdline | grep -Fx "dotnet backend.dll "'
