@@ -263,6 +263,14 @@ wrong password and locked out return the same response; the confirm-email answer
 comes only after a valid password on an unlocked account. A success resets the
 count. Refresh does not check lockout and reset-password does not unlock.
 
+Registration (#300) answers a taken email exactly like a new one (same `200`, or
+the same `503 confirmation_email_delivery_failed`); the stored owner gets a fixed
+existing-account email with plain sign-in and forgot-password links (no token)
+and the account is not changed. Password-rule `400` errors are unchanged. An
+in-memory `RegistrationLimiter` (global and per normalized email, code defaults)
+runs before the account check and returns the same `429` for every email. Sign-in
+can still reveal an unconfirmed account (accepted risk, follow-up issue).
+
 The backend also exposes web-session endpoints (#292), used by the web app: `POST /api/auth/web-session`, `/refresh` and
 `/sign-out`. They reuse `DeviceSessionService` and the `DeviceSessions` table
 (shared 20-session cap, same lifetimes and strict reuse), but the credential

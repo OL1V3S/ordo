@@ -50,7 +50,7 @@ enum APIError: Error, Equatable, Sendable {
     case confirmationDeliveryFailed
     /// A registration timed out or lost its connection: the account may or may not exist.
     case registrationOutcomeUnknown
-    /// `429` from the resend or forgot-password limiter.
+    /// `429` from the resend, forgot-password or registration limiter.
     case rateLimited
 }
 

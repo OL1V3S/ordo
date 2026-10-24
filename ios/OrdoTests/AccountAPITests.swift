@@ -88,5 +88,6 @@ private func registerError(_ response: StubResponse) async -> Error? {
         await #expect(throws: APIError.rateLimited) { try await api(transport).resendConfirmation(email: "a@example.test", language: .es) }
         await #expect(throws: APIError.server(500)) { try await api(transport).forgotPassword(email: "a@example.test", language: .es) }
         #expect(await registerError(StubResponse(500)) as? APIError == .server(500))
+        #expect(await registerError(StubResponse(429)) as? APIError == .rateLimited)
     }
 }

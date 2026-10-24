@@ -88,6 +88,8 @@ enum AccountErrorMapping {
         case APIError.registrationOutcomeUnknown: .checkEmail(.outcomeUnknown)
         case APIError.registrationRejected(let codes): .errors(identityMessages(codes, email: email))
         case APIError.offline: .errors([AccountMessage(key: .appOffline)])
+        // #300: the registration limiter's 429; same copy as the web.
+        case APIError.rateLimited: .errors([AccountMessage(key: .authResendRateLimited)])
         default: .errors([AccountMessage(key: .authErrorsGeneric)])
         }
     }

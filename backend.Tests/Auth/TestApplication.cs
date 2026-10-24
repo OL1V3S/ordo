@@ -36,6 +36,7 @@ internal sealed class TestApplication : WebApplicationFactory<Program>
     private readonly TimeProvider? _timeProvider;
     private readonly Action<DeviceSessionOptions>? _configureDeviceSessions;
     private readonly ILoggerProvider? _loggerProvider;
+    private readonly RegistrationLimiterTestSettings? _registrationLimiterSettings;
     private readonly string _environment;
     private readonly Action<IServiceCollection>? _configureServices;
 
@@ -49,6 +50,7 @@ internal sealed class TestApplication : WebApplicationFactory<Program>
         TimeProvider? timeProvider,
         Action<DeviceSessionOptions>? configureDeviceSessions,
         ILoggerProvider? loggerProvider,
+        RegistrationLimiterTestSettings? registrationLimiterSettings,
         string environment,
         Action<IServiceCollection>? configureServices)
     {
@@ -63,6 +65,7 @@ internal sealed class TestApplication : WebApplicationFactory<Program>
         _timeProvider = timeProvider;
         _configureDeviceSessions = configureDeviceSessions;
         _loggerProvider = loggerProvider;
+        _registrationLimiterSettings = registrationLimiterSettings;
     }
 
     public HttpClient Client { get; private set; } = null!;
@@ -78,6 +81,7 @@ internal sealed class TestApplication : WebApplicationFactory<Program>
         TimeProvider? timeProvider = null,
         Action<DeviceSessionOptions>? configureDeviceSessions = null,
         ILoggerProvider? loggerProvider = null,
+        RegistrationLimiterTestSettings? registrationLimiterSettings = null,
         string environment = "Testing",
         Action<IServiceCollection>? configureServices = null)
     {
@@ -91,6 +95,7 @@ internal sealed class TestApplication : WebApplicationFactory<Program>
             timeProvider,
             configureDeviceSessions,
             loggerProvider,
+            registrationLimiterSettings,
             environment,
             configureServices);
         lock (HostStartupLock)
@@ -161,6 +166,15 @@ internal sealed class TestApplication : WebApplicationFactory<Program>
             {
                 services.RemoveAll<IForgotPasswordLimiter>();
                 services.AddSingleton(_forgotPasswordLimiterOverride);
+            }
+
+            if (_registrationLimiterSettings != null)
+            {
+                services.Configure<RegistrationLimiterOptions>(options =>
+                {
+                    options.GlobalPermitLimit = _registrationLimiterSettings.GlobalPermitLimit;
+                    options.RecipientPermitLimit = _registrationLimiterSettings.RecipientPermitLimit;
+                });
             }
 
             if (_timeProvider != null)
@@ -268,6 +282,10 @@ internal sealed record LimiterTestSettings(
 internal sealed record ForgotPasswordLimiterTestSettings(
     int GlobalPermitLimit,
     int RecipientPermitLimit = ForgotPasswordLimiterOptions.DefaultRecipientPermitLimit);
+
+internal sealed record RegistrationLimiterTestSettings(
+    int GlobalPermitLimit = RegistrationLimiterOptions.DefaultGlobalPermitLimit,
+    int RecipientPermitLimit = RegistrationLimiterOptions.DefaultRecipientPermitLimit);
 
 internal sealed class RecordingConfirmationResendLimiter(
     bool acquireGlobal,

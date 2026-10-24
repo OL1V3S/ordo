@@ -89,6 +89,7 @@ import Testing
     @Test func offlineAndOtherFailuresStayOnTheForm() {
         #expect(AccountErrorMapping.registerOutcome(for: APIError.offline, email: "x") == .errors([AccountMessage(key: .appOffline)]))
         #expect(AccountErrorMapping.registerOutcome(for: APIError.server(500), email: "x") == .errors([AccountMessage(key: .authErrorsGeneric)]))
+        #expect(AccountErrorMapping.registerOutcome(for: APIError.rateLimited, email: "x") == .errors([AccountMessage(key: .authResendRateLimited)]))
         #expect(AccountErrorMapping.registerOutcome(for: APIError.invalidResponse, email: "x") == .errors([AccountMessage(key: .authErrorsGeneric)]))
     }
 

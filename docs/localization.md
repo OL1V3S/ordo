@@ -51,7 +51,9 @@ request. The copy is a fixed closed set in `AccountEmailTemplates`; request inpu
 only selects the language, never a template. The account stores no language, so a
 resend or reset uses the language of the request that triggered it. API response
 messages (including the 503, 202, and 200 bodies) stay English and are mapped by the
-frontend from status and code. Both emails say "Ordo" in both languages.
+frontend from status and code. All account emails say "Ordo" in both languages.
+The existing-account email (#300, sent when someone registers with a taken email)
+uses the register request's language, tú in Spanish, and only plain links.
 
 ## Runtime boundary
 
