@@ -17,6 +17,8 @@ const directive = (name) =>
 const webSessionRewriteIndex = vercel.rewrites.findIndex((r) => r.source.startsWith('/api/auth/web-session/'))
 const catchAllIndex = vercel.rewrites.findIndex((r) => r.source === '/(.*)')
 
+const inlineScriptPattern = /<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g
+
 describe('vercel.json security headers', () => {
   it('applies one header rule to every path', () => {
     expect(vercel.headers).toHaveLength(1)
@@ -40,8 +42,13 @@ describe('vercel.json security headers', () => {
     expect(csp).not.toContain("'unsafe-eval'")
   })
 
+  it('detects inline scripts that carry attributes but not external ones', () => {
+    const html = '<script type="module">a()</script><script src="/x.js"></script><script>b()</script>'
+    expect([...html.matchAll(inlineScriptPattern)].map((m) => m[1])).toEqual(['a()', 'b()'])
+  })
+
   it('allows the inline theme script by the hash of its exact bytes', () => {
-    const scripts = [...indexHtml.matchAll(/<script>([\s\S]*?)<\/script>/g)]
+    const scripts = [...indexHtml.matchAll(inlineScriptPattern)]
     expect(scripts).toHaveLength(1)
     const hash = createHash('sha256').update(scripts[0][1], 'utf8').digest('base64')
     expect(directive('script-src')).toContain(`'sha256-${hash}'`)
