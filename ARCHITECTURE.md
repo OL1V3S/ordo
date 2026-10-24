@@ -228,6 +228,12 @@ request identity, and protected controllers authorize access. Financial data
 ownership comes from the authenticated identity, not from a client-selected
 user. Cross-user isolation is a mandatory backend responsibility.
 
+Access tokens carry `iss = ordo-api` and `aud = ordo-clients` (#301), fixed in
+`backend/Authentication/AccessTokenClaims.cs` (constants, not configuration).
+Phase 1 only issues these claims; the validator still ignores them. Phase 2 turns
+on issuer and audience validation, and is merged only after every older token
+has expired (at least 2h15m after the phase-1 deploy is live).
+
 Native clients can hold a long-lived, revocable device session instead of
 re-entering a password every two hours. `AuthController` exposes
 `/api/auth/device-sessions` (create from email and password), `/refresh` and

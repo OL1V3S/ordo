@@ -32,6 +32,13 @@ the permanent, complete archive.
 - New in-memory registration limiter (global and per email, code defaults, no new settings) runs before the account check and returns the same `429` for everyone. Web and iOS now show "Too many requests" for it.
 - Remaining known risk: signing in can still reveal whether an account is unconfirmed (follow-up issue).
 
+### 2026-10-24 — Access tokens: issuer and audience claims (phase 1)
+
+[Issue #301](https://github.com/OL1V3S/ordo/issues/301)
+
+- Every access token now carries `iss = ordo-api` and `aud = ordo-clients`; claims, lifetime and algorithm are otherwise unchanged.
+- Validation stays off in this phase, so existing tokens keep working; phase 2 enables it after older tokens expire. No client, config or schema change.
+
 ### 2026-10-23 — Web security headers
 
 [PR #315](https://github.com/OL1V3S/ordo/pull/315) · [Issue #307](https://github.com/OL1V3S/ordo/issues/307)
@@ -160,10 +167,3 @@ the permanent, complete archive.
 
 - The iPhone app has a Transactions tab: browse your expenses and deposits newest first, search and filter by type and dates, and edit or delete a record, in English and Spanish. A delete asks first and names the record; an edit uses the same fields and checks as Add.
 - A change that times out or loses its connection is shown as unconfirmed, and you can retry the same request or check the list. After every change the list and Home are re-read from the server, so no amount is changed on the phone first. Backend, API, schema, web app and required checks are unchanged; the app is still not distributed.
-
-### 2026-10-17 — Ordo look for the iPhone app
-
-[PR #261](https://github.com/OL1V3S/ordo/pull/261) · [Issue #260](https://github.com/OL1V3S/ordo/issues/260)
-
-- The iPhone app now has the web's colors and flat style through one theme layer: light and dark pairs (with Increase Contrast variants), the web's periwinkle accent, buttons that keep readable labels in dark mode, status messages with an icon and text, and money in monospaced digits with cash in shown in green. Navigation, sheets, Dynamic Type and VoiceOver stay native, and three small haptics confirm a save, an uncertain save and a form error.
-- Presentation only: no change to data, networking, saving, sessions, copy, the web app, backend or required checks. New tests check every color in all four appearances, text contrast for the pairs used, and that views use only the theme.
