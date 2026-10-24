@@ -228,6 +228,10 @@ or backward-incompatible migrations require extra review and a verified Neon
 backup, branch, or other recovery plan appropriate to the active Neon plan before
 execution.
 
+For restore and rollback steps, see
+[`docs/operations-runbook.md`](docs/operations-runbook.md). It authorizes no
+production action.
+
 ## Data Protection key persistence
 
 ASP.NET Core Identity confirmation and password-reset tokens depend on the
