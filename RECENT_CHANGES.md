@@ -31,6 +31,13 @@ the permanent, complete archive.
 - An unexpected server error now returns a fixed `500` (`code: internal_error`, plus a `traceId`) with no exception text. The server logs one line with the error type, method, route template and trace id, and never the message, stack, request data or amounts. EF Core's own error logs and responses that had already started can still log exception details (see `docs/debugging.md`).
 - New anonymous `GET /health` returns `200 Healthy` without touching the database. Existing error responses, the web app and iOS are unchanged; no new settings.
 
+### 2026-10-23 — Sign-in: account lockout enforced
+
+[Issue #299](https://github.com/OL1V3S/ordo/issues/299)
+
+- Login, device-session and web-session sign-in now lock an account for 10 minutes after 5 wrong passwords; a success resets the count.
+- Attempts are reserved atomically before hashing on PostgreSQL, so parallel guesses stay within the budget. Locked, wrong-password and unknown-email responses are identical; no API, schema or config change.
+
 ### 2026-10-23 — iPhone widget: this month's spending
 
 [PR #297](https://github.com/OL1V3S/ordo/pull/297) · [Issue #291](https://github.com/OL1V3S/ordo/issues/291)
@@ -159,10 +166,3 @@ the permanent, complete archive.
 
 - New SwiftUI iPhone app in `ios/` (iOS 18+): signs in with the device-session API, keeps the session in the Keychain, and shows a read-only Home (attention, recent transactions, upcoming paychecks) in English and Spanish.
 - Adds a non-required macOS workflow, "iOS build and tests". Backend, API, schema, web app and existing workflows are unchanged; the app is not distributed.
-
-### 2026-10-17 — Duplicate-safe expense and cash-in creation
-
-[PR #255](https://github.com/OL1V3S/ordo/pull/255) · [Issue #253](https://github.com/OL1V3S/ordo/issues/253)
-
-- `POST /api/expenses` and `POST /api/inflows` accept an optional `Idempotency-Key` header (one UUID). A retry with the same key and details returns `200` with the same record instead of creating a duplicate; the same key with different details returns `422`, and a key whose record was deleted returns `409` without recreating it. Keys are per user and shared by both endpoints.
-- Requests without the header, the web app, the frontend and existing responses are unchanged. Adds the `CreateRequestReceipts` table (migration `AddCreateRequestReceipts`), which must be applied to production before this backend is deployed.
