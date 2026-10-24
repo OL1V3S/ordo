@@ -286,10 +286,11 @@ public sealed class ForgotPasswordFlowTests
         await using var app = await TestApplication.StartAsync(EmailFailureMode.UnexpectedFailure);
         await app.CreateUserAsync(ExistingEmail, confirmed: true);
 
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            PostForgotPasswordAsync(app, ExistingEmail));
+        var response = await PostForgotPasswordAsync(app, ExistingEmail);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
 
-        Assert.Equal("Simulated programming failure.", exception.Message);
+        Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+        Assert.Equal("internal_error", body.GetProperty("code").GetString());
         Assert.Equal(1, app.EmailSender.AttemptCount);
     }
 
@@ -300,12 +301,13 @@ public sealed class ForgotPasswordFlowTests
         await app.CreateUserAsync(ExistingEmail, confirmed: true);
         using var cancellation = new CancellationTokenSource();
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            app.Client.PostAsJsonAsync(
-                "/api/auth/forgot-password",
-                new { email = ExistingEmail },
-                cancellation.Token));
+        var response = await app.Client.PostAsJsonAsync(
+            "/api/auth/forgot-password",
+            new { email = ExistingEmail },
+            cancellation.Token);
 
+        // Not swallowed: the global handler answers 500 for the unrequested cancellation.
+        Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
         Assert.Equal(1, app.EmailSender.AttemptCount);
         Assert.True(app.EmailSender.ReceivedCancellableToken);
     }
