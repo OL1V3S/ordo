@@ -1,4 +1,5 @@
 using System.IdentityModel.Tokens.Jwt;
+using System.Net;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json.Serialization;
@@ -25,6 +26,7 @@ public class AuthController : ControllerBase
     private readonly IAccountConfirmationService _accountConfirmationService;
     private readonly IConfirmationResendLimiter _confirmationResendLimiter;
     private readonly IForgotPasswordLimiter _forgotPasswordLimiter;
+    private readonly IRegistrationLimiter _registrationLimiter;
     private readonly IDeviceSessionService _deviceSessions;
     private readonly BudgetContext _context;
     private readonly ILogger<AuthController> _logger;
@@ -36,6 +38,7 @@ public class AuthController : ControllerBase
         IAccountConfirmationService accountConfirmationService,
         IConfirmationResendLimiter confirmationResendLimiter,
         IForgotPasswordLimiter forgotPasswordLimiter,
+        IRegistrationLimiter registrationLimiter,
         IDeviceSessionService deviceSessions,
         BudgetContext context,
         ILogger<AuthController> logger)
@@ -46,6 +49,7 @@ public class AuthController : ControllerBase
         _accountConfirmationService = accountConfirmationService;
         _confirmationResendLimiter = confirmationResendLimiter;
         _forgotPasswordLimiter = forgotPasswordLimiter;
+        _registrationLimiter = registrationLimiter;
         _deviceSessions = deviceSessions;
         _context = context;
         _logger = logger;
@@ -56,6 +60,14 @@ public class AuthController : ControllerBase
         RegisterRequest request,
         CancellationToken cancellationToken)
     {
+        // #300: one limiter for every registration, checked before the account
+        // check, so the same 429 applies whether or not the email is taken.
+        if (!_registrationLimiter.TryAcquireGlobal())
+            return StatusCode(StatusCodes.Status429TooManyRequests);
+
+        if (!_registrationLimiter.TryAcquireRecipient(request.Email ?? string.Empty))
+            return StatusCode(StatusCodes.Status429TooManyRequests);
+
         var user = new ApplicationUser
         {
             UserName = request.Email,
@@ -65,7 +77,15 @@ public class AuthController : ControllerBase
         var result = await _userManager.CreateAsync(user, request.Password);
 
         if (!result.Succeeded)
-            return BadRequest(result.Errors);
+        {
+            var errors = result.Errors.ToList();
+
+            // A taken email answers exactly like a new registration (#300).
+            if (errors.Count > 0 && errors.All(IsDuplicateAccountError))
+                return await NotifyExistingAccountAsync(request, cancellationToken);
+
+            return BadRequest(errors.Where(error => !IsDuplicateAccountError(error)).ToList());
+        }
 
         try
         {
@@ -77,17 +97,78 @@ public class AuthController : ControllerBase
         }
         catch (EmailDeliveryException)
         {
-            return StatusCode(StatusCodes.Status503ServiceUnavailable, new
-            {
-                code = "confirmation_email_delivery_failed",
-                message = "Your account was created, but we couldn't send the confirmation email. Please request a new confirmation email."
-            });
+            return RegistrationDeliveryFailed();
         }
 
-        return Ok(new
+        return RegistrationAccepted();
+    }
+
+    private static bool IsDuplicateAccountError(IdentityError error) =>
+        error.Code is nameof(IdentityErrorDescriber.DuplicateUserName)
+            or nameof(IdentityErrorDescriber.DuplicateEmail);
+
+    private ObjectResult RegistrationAccepted() => Ok(new
+    {
+        message = "User registered successfully. Please check your email to confirm your account."
+    });
+
+    private ObjectResult RegistrationDeliveryFailed() => StatusCode(
+        StatusCodes.Status503ServiceUnavailable,
+        new
         {
-            message = "User registered successfully. Please check your email to confirm your account."
+            code = "confirmation_email_delivery_failed",
+            message = "Your account was created, but we couldn't send the confirmation email. Please request a new confirmation email."
         });
+
+    /// <summary>
+    /// Emails the existing owner (stored address, no token, record unchanged)
+    /// and returns the same response as a new registration. Logs the user ID
+    /// only, never the email.
+    /// </summary>
+    private async Task<IActionResult> NotifyExistingAccountAsync(
+        RegisterRequest request,
+        CancellationToken cancellationToken)
+    {
+        var existingUser = await _userManager.FindByEmailAsync(request.Email);
+
+        if (existingUser?.Email == null)
+        {
+            _logger.LogInformation("Registration matched a taken email but no account was found; no email sent.");
+            return RegistrationAccepted();
+        }
+
+        var frontendBaseUrl = (_configuration["Frontend:BaseUrl"] ?? string.Empty).TrimEnd('/');
+        var content = AccountEmailTemplates.ExistingAccountEmail(
+            EmailLanguageParser.Parse(request.Language),
+            WebUtility.HtmlEncode($"{frontendBaseUrl}/"),
+            WebUtility.HtmlEncode($"{frontendBaseUrl}/forgot-password"));
+
+        _logger.LogInformation(
+            "Attempting existing-account email delivery for user {UserId}",
+            existingUser.Id);
+
+        try
+        {
+            await _emailService.SendEmailAsync(
+                existingUser.Email,
+                content.Subject,
+                content.HtmlBody,
+                cancellationToken);
+
+            _logger.LogInformation(
+                "Existing-account email accepted by the email provider for user {UserId}",
+                existingUser.Id);
+        }
+        catch (EmailDeliveryException exception)
+        {
+            _logger.LogError(
+                exception,
+                "Existing-account email delivery failed for user {UserId}",
+                existingUser.Id);
+            return RegistrationDeliveryFailed();
+        }
+
+        return RegistrationAccepted();
     }
 
     [HttpPost("resend-confirmation")]
