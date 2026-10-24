@@ -155,9 +155,24 @@ verification authority. Those actions require their existing explicit
 authorization. When authorized, production smoke remains minimal and read-only
 by default, and sensitive state stays private.
 
+## Unhandled errors and health
+
+- An unhandled exception returns a fixed `500` problem body with
+  `code: internal_error` and a `traceId`. It never contains exception text.
+- The server logs one Error line: exception type name, method, route template
+  and trace id. It never logs the message, stack, inner exceptions, headers,
+  cookies, tokens, bodies, amounts, emails or user ids. Match a client report to
+  the log with the `traceId`.
+- The framework's own full-exception log for this path is turned off in code.
+  Some other sources (for example EF Core command errors, or a response that had
+  already started) can still log exception details.
+- `GET /health` is anonymous and returns `200 Healthy`. It runs no checks and
+  does not touch the database.
+
 ## Deferred operational capabilities
 
-This guide does not add health/readiness endpoints, request correlation,
-centralized exception handling, logging or telemetry, alerts, automated browser
-or deployment smoke, rollback/incident runbooks, deployment workflows, or
-runtime configuration. Those remain the separately scoped ROADMAP D2/D3 work.
+This guide does not add readiness or database health checks, request
+correlation, metrics or telemetry, alerts, automated browser or deployment
+smoke, rollback/incident runbooks, deployment workflows, or runtime
+configuration. ROADMAP E1 and E4 are related; E2 (health) now has its basic
+endpoint, and the rest remain separately scoped work.

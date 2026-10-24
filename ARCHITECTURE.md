@@ -116,8 +116,9 @@ authoritative for token validity; the frontend does not refresh or extend tokens
 
 `backend/Program.cs` is the composition root. It configures controllers,
 PostgreSQL EF Core persistence, ASP.NET Core Identity, JWT bearer
-authentication, Data Protection key persistence, CORS, and application
-services.
+authentication, Data Protection key persistence, CORS, a global
+unhandled-exception handler (`backend/Diagnostics/`), an anonymous `/health`
+endpoint, and application services.
 
 Controllers under `backend/Controllers/` are the HTTP boundary. Authentication
 and email concerns have supporting components under `backend/Authentication/`,
