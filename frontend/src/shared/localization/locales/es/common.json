@@ -1,4 +1,9 @@
 {
+  "errorBoundary": {
+    "title": "Algo salió mal",
+    "body": "Ordo tuvo un problema inesperado. Vuelve a cargar la página para intentarlo de nuevo.",
+    "reload": "Recargar"
+  },
   "shell": {
     "skipToMainContent": "Saltar al contenido principal",
     "signedIn": "Sesión iniciada",
