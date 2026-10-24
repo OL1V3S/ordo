@@ -38,6 +38,8 @@ sources relevant to the task:
   fallbacks, and review-ready criteria;
 - [`docs/debugging.md`](docs/debugging.md) — privacy-safe diagnostic sequence and supplemental
   smoke-check guidance;
+- [`docs/operations-runbook.md`](docs/operations-runbook.md) — backup, restore, and rollback
+  reference; authorizes no production action;
 - the applicable GitHub Issue — task-specific scope and acceptance criteria.
 
 Do not treat planned roadmap behavior as current architecture or executable

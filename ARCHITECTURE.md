@@ -339,7 +339,8 @@ human-authorized operation described in [`README.md`](README.md).
 The frontend is deployed to Vercel, the containerized backend to Render, and
 PostgreSQL to Neon. These are separate deployment boundaries. Repository CI
 builds and tests source changes but does not authorize production changes or
-apply production migrations.
+apply production migrations. Backup, restore, and rollback reference:
+[`docs/operations-runbook.md`](docs/operations-runbook.md).
 
 Vercel sends the web app's security headers (CSP, `nosniff`, `X-Frame-Options`,
 `Referrer-Policy`, `Permissions-Policy`) from `frontend/vercel.json`; a guard test

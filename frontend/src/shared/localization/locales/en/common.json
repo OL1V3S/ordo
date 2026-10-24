@@ -1,4 +1,9 @@
 {
+  "errorBoundary": {
+    "title": "Something went wrong",
+    "body": "Ordo hit an unexpected problem. Reload the page to try again.",
+    "reload": "Reload"
+  },
   "shell": {
     "skipToMainContent": "Skip to main content",
     "signedIn": "Signed in",
