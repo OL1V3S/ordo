@@ -24,6 +24,13 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-23 — Web security headers
+
+[Issue #307](https://github.com/OL1V3S/ordo/issues/307)
+
+- The web app now sends a Content Security Policy (own scripts plus one hashed inline theme script; API calls only to the app and the Render backend) and `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy` and `Permissions-Policy` headers, set in `frontend/vercel.json`.
+- A frontend test fails if the inline script changes without its hash, if the API origin and CSP drift apart, or if unsafe CSP sources are added. Backend, API and iOS are unchanged.
+
 ### 2026-10-23 — iPhone widget: this month's spending
 
 [PR #297](https://github.com/OL1V3S/ordo/pull/297) · [Issue #291](https://github.com/OL1V3S/ordo/issues/291)
@@ -159,10 +166,3 @@ the permanent, complete archive.
 
 - `POST /api/expenses` and `POST /api/inflows` accept an optional `Idempotency-Key` header (one UUID). A retry with the same key and details returns `200` with the same record instead of creating a duplicate; the same key with different details returns `422`, and a key whose record was deleted returns `409` without recreating it. Keys are per user and shared by both endpoints.
 - Requests without the header, the web app, the frontend and existing responses are unchanged. Adds the `CreateRequestReceipts` table (migration `AddCreateRequestReceipts`), which must be applied to production before this backend is deployed.
-
-### 2026-10-16 — Revocable device sessions for native clients
-
-[PR #254](https://github.com/OL1V3S/ordo/pull/254) · [Issue #252](https://github.com/OL1V3S/ordo/issues/252)
-
-- The backend can now sign in a native client with a long-lived, revocable device session: `POST /api/auth/device-sessions` (email and password), `/refresh` (rotates the credential and returns a new 2-hour access token) and `/sign-out`. A session expires after 60 days without use or 180 days in total, a reused credential ends the whole session, and a completed password reset ends every session of that account.
-- Web login, the access-token lifetime, the frontend and existing endpoint responses are unchanged (a completed password reset now also ends device sessions). Adds the `DeviceSessions` table (migration `AddDeviceSessions`), which must be applied to production before this backend is deployed.
