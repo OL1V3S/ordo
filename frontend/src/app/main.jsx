@@ -4,6 +4,7 @@ import { BrowserRouter } from "react-router-dom";
 import favicon from "../assets/images/ordo_favicon.svg";
 import "../index.css";        
 import App from "./App.jsx"; 
+import AppErrorBoundary from "./AppErrorBoundary.jsx";
 import { LocaleProvider } from "../shared/localization/LocaleProvider.jsx";
 import { ThemeProvider } from "../shared/theme/ThemeProvider.jsx";
 import { startWebSession } from "../shared/auth/webSession";
@@ -21,7 +22,9 @@ createRoot(document.getElementById("root")).render(
     <BrowserRouter>
       <ThemeProvider>
         <LocaleProvider>
-          <App />
+          <AppErrorBoundary>
+            <App />
+          </AppErrorBoundary>
         </LocaleProvider>
       </ThemeProvider>
     </BrowserRouter>

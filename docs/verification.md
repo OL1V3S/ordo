@@ -111,6 +111,8 @@ are available through:
 ./scripts/verify.sh container
 ```
 
+The image runs as the non-root `app` user (UID 1654); the check asserts this.
+
 Docker verification is intentionally excluded from the default local lane due
 to its capability and runtime cost. **Backend build and tests** CI runs it on
 every pull request.
