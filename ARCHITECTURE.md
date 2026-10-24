@@ -339,7 +339,8 @@ human-authorized operation described in [`README.md`](README.md).
 The frontend is deployed to Vercel, the containerized backend to Render, and
 PostgreSQL to Neon. These are separate deployment boundaries. Repository CI
 builds and tests source changes but does not authorize production changes or
-apply production migrations.
+apply production migrations. Backup, restore, and rollback reference:
+[`docs/operations-runbook.md`](docs/operations-runbook.md).
 
 The iOS app is not deployed anywhere: it is built and installed from source on the
 owner's own devices. Its CI job (`iOS build and tests`) is not a required check.
