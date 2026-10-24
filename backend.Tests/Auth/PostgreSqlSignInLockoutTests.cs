@@ -4,6 +4,7 @@ using System.Text.Json;
 using BudgetPlanner.Models;
 using BudgetPlanner.Tests.Financial;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
@@ -148,6 +149,28 @@ public sealed class PostgreSqlSignInLockoutTests
         Assert.Equal(HttpStatusCode.OK, refresh.StatusCode);
     }
 
+    [PostgreSqlFact]
+    public async Task A_row_stuck_at_the_max_count_without_a_lock_heals_into_a_timed_lock()
+    {
+        await using var app = new CountingApplication();
+        using var user = await app.CreateAuthenticatedUserAsync("pg-stuck@example.com");
+        await SeedStuckCountAsync(app, user.Id, MaxAttempts);
+        app.Counter.Reset();
+
+        var unknown = await SnapshotAsync(app, Login, "pg-nobody@example.com", Password);
+        var first = await SnapshotAsync(app, Login, "pg-stuck@example.com", Password);
+        Assert.Equal(0, app.Counter.Value);
+        Assert.Equal(HttpStatusCode.Unauthorized, first.Status);
+        Assert.Equal(unknown, first);
+
+        var healed = await FindAsync(app, user.Id);
+        Assert.Equal(0, healed.AccessFailedCount);
+        Assert.True(healed.LockoutEnd > DateTimeOffset.UtcNow.AddMinutes(9));
+
+        await SetLockoutEndAsync(app, user.Id, DateTimeOffset.UtcNow.AddMinutes(-1));
+        Assert.Equal(HttpStatusCode.OK, await StatusAsync(app, Login, "pg-stuck@example.com", Password));
+    }
+
     private sealed class CountingApplication : PostgreSqlFinancialApiTestApplication
     {
         public PasswordCheckCounter Counter { get; } = new();
@@ -242,6 +265,18 @@ public sealed class PostgreSqlSignInLockoutTests
         using var scope = app.Services.CreateScope();
         var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         Assert.True((await users.SetLockoutEndDateAsync((await users.FindByIdAsync(userId))!, end)).Succeeded);
+    }
+
+    private static async Task SeedStuckCountAsync(PostgreSqlFinancialApiTestApplication app, string userId, int count)
+    {
+        using var scope = app.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<BudgetPlanner.Data.BudgetContext>();
+        var updated = await context.Users
+            .Where(value => value.Id == userId)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(value => value.AccessFailedCount, count)
+                .SetProperty(value => value.LockoutEnd, (DateTimeOffset?)null));
+        Assert.Equal(1, updated);
     }
 
     private static async Task<int> CountSessionsAsync(PostgreSqlFinancialApiTestApplication app, string ownerId)

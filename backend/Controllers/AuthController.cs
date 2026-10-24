@@ -424,7 +424,20 @@ public class AuthController : ControllerBase
 
         // Locked out or out of attempts: reject without checking the password.
         if (reserved == 0)
+        {
+            // Self-heal: a row left at the max count with no active lock (e.g. a failure
+            // between the reservation and the lock update) becomes a normal timed lock.
+            var healedUntil = now.Add(lockout.DefaultLockoutTimeSpan);
+            await _context.Users
+                .Where(value => value.Id == userId
+                    && value.LockoutEnabled
+                    && (value.LockoutEnd == null || value.LockoutEnd <= now)
+                    && value.AccessFailedCount >= lockout.MaxFailedAccessAttempts)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(value => value.LockoutEnd, healedUntil)
+                    .SetProperty(value => value.AccessFailedCount, 0));
             return null;
+        }
 
         if (!await _userManager.CheckPasswordAsync(user, password))
         {
