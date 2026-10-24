@@ -154,6 +154,8 @@ public sealed class AccountConfirmationFlowTests
 
         // Not swallowed as a delivery failure: the global handler answers 500.
         Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+        var cancelBody = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("internal_error", cancelBody.GetProperty("code").GetString());
         Assert.Equal(1, app.EmailSender.AttemptCount);
     }
 

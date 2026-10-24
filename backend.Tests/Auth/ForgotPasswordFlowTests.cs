@@ -308,6 +308,8 @@ public sealed class ForgotPasswordFlowTests
 
         // Not swallowed: the global handler answers 500 for the unrequested cancellation.
         Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+        var cancelBody = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("internal_error", cancelBody.GetProperty("code").GetString());
         Assert.Equal(1, app.EmailSender.AttemptCount);
         Assert.True(app.EmailSender.ReceivedCancellableToken);
     }

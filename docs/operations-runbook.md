@@ -173,8 +173,8 @@ connection strings, emails, user IDs, amounts, dates, or statement content.
 
 ## Not covered
 
-- Health endpoints, alerts, telemetry, automated smoke, and deployment
-  workflows remain separate ROADMAP E2/E1/E4 work. A /health endpoint is being
-  added separately.
+- A basic anonymous `/health` liveness endpoint is done (PR #304). Readiness and
+  database checks, alerts, telemetry, automated smoke, and deployment workflows
+  remain separate ROADMAP E2/E1/E4 work.
 - Restore drills have not been run. A drill needs its own owner authorization
   and issue.
