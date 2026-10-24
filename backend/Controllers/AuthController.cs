@@ -525,6 +525,8 @@ public class AuthController : ControllerBase
         );
 
         var token = new JwtSecurityToken(
+            issuer: AccessTokenClaims.Issuer,
+            audience: AccessTokenClaims.Audience,
             claims: claims,
             expires: DateTime.UtcNow.AddHours(2),
             signingCredentials: credentials
