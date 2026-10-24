@@ -24,12 +24,19 @@ the permanent, complete archive.
 
 ## History
 
-### 2026-10-23 — Access tokens: issuer and audience claims (phase 1)
+### 2026-10-24 — Access tokens: issuer and audience claims (phase 1)
 
 [Issue #301](https://github.com/OL1V3S/ordo/issues/301)
 
 - Every access token now carries `iss = ordo-api` and `aud = ordo-clients`; claims, lifetime and algorithm are otherwise unchanged.
 - Validation stays off in this phase, so existing tokens keep working; phase 2 enables it after older tokens expire. No client, config or schema change.
+
+### 2026-10-23 — Safe server errors and a /health check
+
+[PR #314](https://github.com/OL1V3S/ordo/pull/314) · [Issue #304](https://github.com/OL1V3S/ordo/issues/304)
+
+- An unexpected server error now returns a fixed `500` (`code: internal_error`, plus a `traceId`) with no exception text. The server logs one line with the error type, method, route template and trace id, and never the message, stack, request data or amounts. EF Core's own error logs and responses that had already started can still log exception details (see `docs/debugging.md`).
+- New anonymous `GET /health` returns `200 Healthy` without touching the database. Existing error responses, the web app and iOS are unchanged; no new settings.
 
 ### 2026-10-23 — Sign-in: account lockout enforced
 
@@ -159,10 +166,3 @@ the permanent, complete archive.
 
 - The iPhone app can add an expense or a deposit from Home, in English and Spanish, using the existing create endpoints. Each save sends one `Idempotency-Key` and reuses it for every retry, so a lost response cannot record it twice; an unconfirmed save is kept on the device until it is retried or discarded, and Home is re-read from the server afterwards.
 - Backend, API, schema, web app and required checks are unchanged; the app is still not distributed.
-
-### 2026-10-17 — Native iOS app with sign-in and a read-only Home
-
-[PR #257](https://github.com/OL1V3S/ordo/pull/257) · [Issue #256](https://github.com/OL1V3S/ordo/issues/256)
-
-- New SwiftUI iPhone app in `ios/` (iOS 18+): signs in with the device-session API, keeps the session in the Keychain, and shows a read-only Home (attention, recent transactions, upcoming paychecks) in English and Spanish.
-- Adds a non-required macOS workflow, "iOS build and tests". Backend, API, schema, web app and existing workflows are unchanged; the app is not distributed.
