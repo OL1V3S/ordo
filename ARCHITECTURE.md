@@ -116,8 +116,9 @@ authoritative for token validity; the frontend does not refresh or extend tokens
 
 `backend/Program.cs` is the composition root. It configures controllers,
 PostgreSQL EF Core persistence, ASP.NET Core Identity, JWT bearer
-authentication, Data Protection key persistence, CORS, and application
-services.
+authentication, Data Protection key persistence, CORS, a global
+unhandled-exception handler (`backend/Diagnostics/`), an anonymous `/health`
+endpoint, and application services.
 
 Controllers under `backend/Controllers/` are the HTTP boundary. Authentication
 and email concerns have supporting components under `backend/Authentication/`,
@@ -351,6 +352,10 @@ PostgreSQL to Neon. These are separate deployment boundaries. Repository CI
 builds and tests source changes but does not authorize production changes or
 apply production migrations. Backup, restore, and rollback reference:
 [`docs/operations-runbook.md`](docs/operations-runbook.md).
+
+Vercel sends the web app's security headers (CSP, `nosniff`, `X-Frame-Options`,
+`Referrer-Policy`, `Permissions-Policy`) from `frontend/vercel.json`; a guard test
+keeps the CSP in sync with the inline theme script and the API origin.
 
 The iOS app is not deployed anywhere: it is built and installed from source on the
 owner's own devices. Its CI job (`iOS build and tests`) is not a required check.

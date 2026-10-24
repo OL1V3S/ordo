@@ -37,6 +37,7 @@ internal sealed class TestApplication : WebApplicationFactory<Program>
     private readonly Action<DeviceSessionOptions>? _configureDeviceSessions;
     private readonly ILoggerProvider? _loggerProvider;
     private readonly RegistrationLimiterTestSettings? _registrationLimiterSettings;
+    private readonly string _environment;
     private readonly Action<IServiceCollection>? _configureServices;
 
     private TestApplication(
@@ -50,8 +51,11 @@ internal sealed class TestApplication : WebApplicationFactory<Program>
         Action<DeviceSessionOptions>? configureDeviceSessions,
         ILoggerProvider? loggerProvider,
         RegistrationLimiterTestSettings? registrationLimiterSettings,
+        string environment,
         Action<IServiceCollection>? configureServices)
     {
+        _environment = environment;
+        _configureServices = configureServices;
         EmailSender = new FakeEmailService(emailFailureMode);
         _limiterSettings = limiterSettings;
         _limiterOverride = limiterOverride;
@@ -62,7 +66,6 @@ internal sealed class TestApplication : WebApplicationFactory<Program>
         _configureDeviceSessions = configureDeviceSessions;
         _loggerProvider = loggerProvider;
         _registrationLimiterSettings = registrationLimiterSettings;
-        _configureServices = configureServices;
     }
 
     public HttpClient Client { get; private set; } = null!;
@@ -79,6 +82,7 @@ internal sealed class TestApplication : WebApplicationFactory<Program>
         Action<DeviceSessionOptions>? configureDeviceSessions = null,
         ILoggerProvider? loggerProvider = null,
         RegistrationLimiterTestSettings? registrationLimiterSettings = null,
+        string environment = "Testing",
         Action<IServiceCollection>? configureServices = null)
     {
         var application = new TestApplication(
@@ -92,6 +96,7 @@ internal sealed class TestApplication : WebApplicationFactory<Program>
             configureDeviceSessions,
             loggerProvider,
             registrationLimiterSettings,
+            environment,
             configureServices);
         lock (HostStartupLock)
         {
@@ -99,7 +104,7 @@ internal sealed class TestApplication : WebApplicationFactory<Program>
             var originalJwtKey = Environment.GetEnvironmentVariable("Jwt__Key");
             try
             {
-                Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Testing");
+                Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", environment);
                 Environment.SetEnvironmentVariable(
                     "Jwt__Key",
                     "test-only-signing-key-that-is-at-least-thirty-two-bytes-long");
@@ -116,7 +121,7 @@ internal sealed class TestApplication : WebApplicationFactory<Program>
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        builder.UseEnvironment("Testing");
+        builder.UseEnvironment(_environment);
         builder.ConfigureServices(services =>
         {
             services.RemoveAll<DbContextOptions<BudgetContext>>();
@@ -385,13 +390,20 @@ internal sealed class CapturingLoggerProvider : ILoggerProvider
 {
     private readonly ConcurrentQueue<string> _messages = new();
 
-    public IReadOnlyCollection<string> Messages => _messages.ToArray();
+    private readonly ConcurrentQueue<CapturedLog> _entries = new();
 
-    public ILogger CreateLogger(string categoryName) => new CapturingLogger(categoryName, _messages);
+    public IReadOnlyCollection<string> Messages => _messages.ToArray();
+    public IReadOnlyCollection<CapturedLog> Entries => _entries.ToArray();
+
+    public ILogger CreateLogger(string categoryName) =>
+        new CapturingLogger(categoryName, _messages, _entries);
 
     public void Dispose() { }
 
-    private sealed class CapturingLogger(string category, ConcurrentQueue<string> messages) : ILogger
+    private sealed class CapturingLogger(
+        string category,
+        ConcurrentQueue<string> messages,
+        ConcurrentQueue<CapturedLog> entries) : ILogger
     {
         public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
 
@@ -403,6 +415,19 @@ internal sealed class CapturingLoggerProvider : ILoggerProvider
             TState state,
             Exception? exception,
             Func<TState, Exception?, string> formatter) =>
-            messages.Enqueue($"{category}: {formatter(state, exception)} {exception}");
+            Record(logLevel, state, exception, formatter);
+
+        private void Record<TState>(
+            LogLevel logLevel,
+            TState state,
+            Exception? exception,
+            Func<TState, Exception?, string> formatter)
+        {
+            var text = $"{category}: {formatter(state, exception)} {exception}";
+            messages.Enqueue(text);
+            entries.Enqueue(new CapturedLog(category, logLevel, text, exception is not null));
+        }
     }
 }
+
+internal sealed record CapturedLog(string Category, LogLevel Level, string Text, bool HadException);

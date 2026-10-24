@@ -19,8 +19,13 @@ using BudgetPlanner.Analytics;
 using BudgetPlanner.ActivityTimeline;
 using BudgetPlanner.Home;
 using BudgetPlanner.CreateRequests;
+using BudgetPlanner.Diagnostics;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// The handler logs one privacy-safe line; drop the framework's duplicate full-exception log.
+builder.Logging.AddFilter(
+    "Microsoft.AspNetCore.Diagnostics.ExceptionHandlerMiddleware", LogLevel.None);
 
 builder.Services.AddCors(options =>
 {
@@ -36,6 +41,8 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddControllers();
+builder.Services.AddExceptionHandler<UnhandledExceptionHandler>();
+builder.Services.AddHealthChecks();
 builder.Services.AddSingleton(new PdfExtractionOptions());
 builder.Services.AddSingleton<IPdfTextExtractor, ContainedPdfTextExtractor>();
 builder.Services.AddSingleton<ISunflowerStatementParser, SunflowerStatementParser>();
@@ -167,6 +174,9 @@ builder.Services.AddScoped<WebSessionGuardFilter>();
 
 var app = builder.Build();
 
+// The handler writes the response itself; the no-op satisfies the .NET 9 startup check.
+app.UseExceptionHandler(_ => { });
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -181,6 +191,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHealthChecks("/health").AllowAnonymous();
 
 app.Run();
 
