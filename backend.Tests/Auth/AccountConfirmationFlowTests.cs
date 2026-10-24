@@ -132,12 +132,14 @@ public sealed class AccountConfirmationFlowTests
     {
         await using var app = await TestApplication.StartAsync(EmailFailureMode.UnexpectedFailure);
 
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            app.Client.PostAsJsonAsync(
-                "/api/auth/register",
-                new { email = "unexpected@example.com", password = Password }));
+        var response = await app.Client.PostAsJsonAsync(
+            "/api/auth/register",
+            new { email = "unexpected@example.com", password = Password });
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
 
-        Assert.Equal("Simulated programming failure.", exception.Message);
+        // The global handler answers 500 internal_error, not the 503 delivery failure.
+        Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+        Assert.Equal("internal_error", body.GetProperty("code").GetString());
         Assert.Equal(1, app.EmailSender.AttemptCount);
     }
 
@@ -146,11 +148,14 @@ public sealed class AccountConfirmationFlowTests
     {
         await using var app = await TestApplication.StartAsync(EmailFailureMode.Cancellation);
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            app.Client.PostAsJsonAsync(
-                "/api/auth/register",
-                new { email = "cancelled@example.com", password = Password }));
+        var response = await app.Client.PostAsJsonAsync(
+            "/api/auth/register",
+            new { email = "cancelled@example.com", password = Password });
 
+        // Not swallowed as a delivery failure: the global handler answers 500.
+        Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+        var cancelBody = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("internal_error", cancelBody.GetProperty("code").GetString());
         Assert.Equal(1, app.EmailSender.AttemptCount);
     }
 

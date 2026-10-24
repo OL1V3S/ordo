@@ -116,8 +116,9 @@ authoritative for token validity; the frontend does not refresh or extend tokens
 
 `backend/Program.cs` is the composition root. It configures controllers,
 PostgreSQL EF Core persistence, ASP.NET Core Identity, JWT bearer
-authentication, Data Protection key persistence, CORS, and application
-services.
+authentication, Data Protection key persistence, CORS, a global
+unhandled-exception handler (`backend/Diagnostics/`), an anonymous `/health`
+endpoint, and application services.
 
 Controllers under `backend/Controllers/` are the HTTP boundary. Authentication
 and email concerns have supporting components under `backend/Authentication/`,
@@ -244,7 +245,17 @@ credential is indistinguishable from reuse and ends the session. The iOS widget
 (#291) follows this by never holding the credential: the app copies only the
 2-hour access token to a shared Keychain item the widget reads, so the access
 token is no longer memory-only on iOS; the widget never refreshes. Web login
-(`/api/auth/login`), access-token validation and lockout behavior are unchanged.
+(`/api/auth/login`) and access-token validation are unchanged.
+
+Account lockout (#299) is enforced on the three password sign-in endpoints
+(`/api/auth/login`, `/api/auth/device-sessions`, `/api/auth/web-session`), using
+the configured Identity options (5 failures, 10 minutes). On PostgreSQL each
+attempt is reserved atomically before the password is hashed (conditional
+`UPDATE` of `AccessFailedCount`), so parallel guesses cannot exceed the budget;
+the in-memory test provider uses the Identity primitives instead. Unknown email,
+wrong password and locked out return the same response; the confirm-email answer
+comes only after a valid password on an unlocked account. A success resets the
+count. Refresh does not check lockout and reset-password does not unlock.
 
 The backend also exposes web-session endpoints (#292), used by the web app: `POST /api/auth/web-session`, `/refresh` and
 `/sign-out`. They reuse `DeviceSessionService` and the `DeviceSessions` table

@@ -43,7 +43,7 @@ A full-stack personal finance application for tracking expenses, setting monthly
 - Spending summaries by category
 - Charts comparing spending with budget limits
 - Monthly spending trends and comparisons
-- Interactive frontend visualizations built with Chart.js/Recharts
+- Interactive frontend visualizations built with Chart.js
 
 ## Tech Stack
 
@@ -54,7 +54,6 @@ A full-stack personal finance application for tracking expenses, setting monthly
 - React Router
 - Axios
 - Chart.js / react-chartjs-2
-- Recharts
 
 ### Backend
 
