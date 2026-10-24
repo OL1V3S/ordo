@@ -24,6 +24,14 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-10-24 — Registration no longer reveals existing accounts
+
+[PR #PRNUM](https://github.com/OL1V3S/ordo/pull/PRNUM) · [Issue #300](https://github.com/OL1V3S/ordo/issues/300)
+
+- Registering with an email that already has an account returns the same `200` (or `503` when email fails) as a new registration. The owner gets a fixed "someone tried to create an account" email (English/Spanish, plain sign-in and forgot-password links, no token); the account is never changed. Weak-password `400` errors are unchanged.
+- New in-memory registration limiter (global and per email, code defaults, no new settings) runs before the account check and returns the same `429` for everyone. Web and iOS now show "Too many requests" for it.
+- Remaining known risk: signing in can still reveal whether an account is unconfirmed (follow-up issue).
+
 ### 2026-10-23 — Web security headers
 
 [PR #315](https://github.com/OL1V3S/ordo/pull/315) · [Issue #307](https://github.com/OL1V3S/ordo/issues/307)
@@ -159,10 +167,3 @@ the permanent, complete archive.
 
 - The iPhone app now has the web's colors and flat style through one theme layer: light and dark pairs (with Increase Contrast variants), the web's periwinkle accent, buttons that keep readable labels in dark mode, status messages with an icon and text, and money in monospaced digits with cash in shown in green. Navigation, sheets, Dynamic Type and VoiceOver stay native, and three small haptics confirm a save, an uncertain save and a form error.
 - Presentation only: no change to data, networking, saving, sessions, copy, the web app, backend or required checks. New tests check every color in all four appearances, text contrast for the pairs used, and that views use only the theme.
-
-### 2026-10-17 — Add expense and Add deposit in the iPhone app
-
-[PR #259](https://github.com/OL1V3S/ordo/pull/259) · [Issue #258](https://github.com/OL1V3S/ordo/issues/258)
-
-- The iPhone app can add an expense or a deposit from Home, in English and Spanish, using the existing create endpoints. Each save sends one `Idempotency-Key` and reuses it for every retry, so a lost response cannot record it twice; an unconfirmed save is kept on the device until it is retried or discarded, and Home is re-read from the server afterwards.
-- Backend, API, schema, web app and required checks are unchanged; the app is still not distributed.
