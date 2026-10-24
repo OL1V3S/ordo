@@ -3,12 +3,14 @@ using System.Security.Claims;
 using System.Text;
 using System.Text.Json.Serialization;
 using System.ComponentModel.DataAnnotations;
+using BudgetPlanner.Data;
 using BudgetPlanner.Models;
 using BudgetPlanner.Services;
 using BudgetPlanner.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
 namespace BudgetPlanner.Controllers;
@@ -24,6 +26,8 @@ public class AuthController : ControllerBase
     private readonly IConfirmationResendLimiter _confirmationResendLimiter;
     private readonly IForgotPasswordLimiter _forgotPasswordLimiter;
     private readonly IDeviceSessionService _deviceSessions;
+    private readonly BudgetContext _context;
+    private readonly ILogger<AuthController> _logger;
 
     public AuthController(
         UserManager<ApplicationUser> userManager,
@@ -32,7 +36,9 @@ public class AuthController : ControllerBase
         IAccountConfirmationService accountConfirmationService,
         IConfirmationResendLimiter confirmationResendLimiter,
         IForgotPasswordLimiter forgotPasswordLimiter,
-        IDeviceSessionService deviceSessions)
+        IDeviceSessionService deviceSessions,
+        BudgetContext context,
+        ILogger<AuthController> logger)
     {
         _userManager = userManager;
         _configuration = configuration;
@@ -41,6 +47,8 @@ public class AuthController : ControllerBase
         _confirmationResendLimiter = confirmationResendLimiter;
         _forgotPasswordLimiter = forgotPasswordLimiter;
         _deviceSessions = deviceSessions;
+        _context = context;
+        _logger = logger;
     }
 
     [HttpPost("register")]
@@ -121,16 +129,14 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> Login(LoginRequest request)
     {
-        // Keep the sign-in checks below in step with CreateDeviceSession (same order).
-        var user = await _userManager.FindByEmailAsync(request.Email);
+        // Shared sign-in checks (#299): unknown email, wrong password and locked
+        // out all return the same response.
+        var signIn = await CheckPasswordWithLockoutAsync(request.Email, request.Password);
 
-        if (user == null)
+        if (signIn == null)
             return Unauthorized("Invalid email or password");
 
-        var passwordValid = await _userManager.CheckPasswordAsync(user, request.Password);
-
-        if (!passwordValid)
-            return Unauthorized("Invalid email or password");
+        var user = signIn.User;
 
         if (!await _userManager.IsEmailConfirmedAsync(user))
             return Unauthorized("Please confirm your email before logging in.");
@@ -151,20 +157,14 @@ public class AuthController : ControllerBase
         CreateDeviceSessionRequest request,
         CancellationToken cancellationToken)
     {
-        // Keep the sign-in checks below in step with Login (same order).
-        var user = await _userManager.FindByEmailAsync(request.Email!);
+        // Same shared sign-in checks as Login (#299).
+        var signIn = await CheckPasswordWithLockoutAsync(request.Email!, request.Password!);
 
-        if (user == null)
+        if (signIn == null)
             return Unauthorized(new { code = "invalid_credentials" });
 
-        var passwordValid = await _userManager.CheckPasswordAsync(user, request.Password!);
-
-        if (!passwordValid)
-            return Unauthorized(new { code = "invalid_credentials" });
-
-        // Read from the same tracked user right after the password check, so a password
-        // re-hash during this sign-in cannot end the session being created.
-        var securityStamp = user.SecurityStamp;
+        var user = signIn.User;
+        var securityStamp = signIn.SecurityStamp;
 
         if (!await _userManager.IsEmailConfirmedAsync(user))
             return Unauthorized(new { code = "email_not_confirmed" });
@@ -217,18 +217,14 @@ public class AuthController : ControllerBase
         LoginRequest request,
         CancellationToken cancellationToken)
     {
-        // Same checks, order and error bodies as Login; stamp read as in CreateDeviceSession.
-        var user = await _userManager.FindByEmailAsync(request.Email);
+        // Same shared sign-in checks and error bodies as Login (#299).
+        var signIn = await CheckPasswordWithLockoutAsync(request.Email, request.Password);
 
-        if (user == null)
+        if (signIn == null)
             return Unauthorized("Invalid email or password");
 
-        var passwordValid = await _userManager.CheckPasswordAsync(user, request.Password);
-
-        if (!passwordValid)
-            return Unauthorized("Invalid email or password");
-
-        var securityStamp = user.SecurityStamp;
+        var user = signIn.User;
+        var securityStamp = signIn.SecurityStamp;
 
         if (!await _userManager.IsEmailConfirmedAsync(user))
             return Unauthorized("Please confirm your email before logging in.");
@@ -376,6 +372,122 @@ public class AuthController : ControllerBase
         await _deviceSessions.RevokeAllAsync(user.Id, CancellationToken.None);
 
         return Ok(new { message = "Password reset successfully" });
+    }
+
+    private sealed record PasswordSignIn(ApplicationUser User, string? SecurityStamp);
+
+    /// <summary>
+    /// Password sign-in with account lockout (#299), shared by Login, CreateDeviceSession
+    /// and CreateWebSession. Returns null for an unknown email, a wrong password or a
+    /// locked account, so callers return one identical response for all three. The
+    /// confirmed-email check stays with the caller and runs only after this succeeds.
+    /// </summary>
+    private async Task<PasswordSignIn?> CheckPasswordWithLockoutAsync(string email, string password)
+    {
+        var user = await _userManager.FindByEmailAsync(email);
+
+        if (user == null)
+            return null;
+
+        if (!await _userManager.GetLockoutEnabledAsync(user))
+        {
+            // Lockout disabled for this account: never count failures or write LockoutEnd.
+            if (!await _userManager.CheckPasswordAsync(user, password))
+                return null;
+
+            return new PasswordSignIn(user, user.SecurityStamp);
+        }
+
+        return _context.Database.IsRelational()
+            ? await CheckPasswordWithAtomicLockoutAsync(user, password)
+            : await CheckPasswordWithIdentityLockoutAsync(user, password);
+    }
+
+    // Relational providers: reserve the attempt atomically BEFORE hashing, so parallel
+    // guesses cannot exceed MaxFailedAccessAttempts password checks per lockout window.
+    // ConcurrencyStamp is left untouched on purpose, so a password re-hash during a
+    // successful sign-in still saves (and keeps the security stamp read below).
+    private async Task<PasswordSignIn?> CheckPasswordWithAtomicLockoutAsync(ApplicationUser user, string password)
+    {
+        var lockout = _userManager.Options.Lockout;
+        var userId = user.Id;
+        var now = DateTimeOffset.UtcNow;
+
+        var reserved = await _context.Users
+            .Where(value => value.Id == userId
+                && value.LockoutEnabled
+                && (value.LockoutEnd == null || value.LockoutEnd <= now)
+                && value.AccessFailedCount < lockout.MaxFailedAccessAttempts)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(
+                value => value.AccessFailedCount,
+                value => value.AccessFailedCount + 1));
+
+        // Locked out or out of attempts: reject without checking the password.
+        if (reserved == 0)
+        {
+            // Self-heal: a row left at the max count with no active lock (e.g. a failure
+            // between the reservation and the lock update) becomes a normal timed lock.
+            var healedUntil = now.Add(lockout.DefaultLockoutTimeSpan);
+            await _context.Users
+                .Where(value => value.Id == userId
+                    && value.LockoutEnabled
+                    && (value.LockoutEnd == null || value.LockoutEnd <= now)
+                    && value.AccessFailedCount >= lockout.MaxFailedAccessAttempts)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(value => value.LockoutEnd, healedUntil)
+                    .SetProperty(value => value.AccessFailedCount, 0));
+            return null;
+        }
+
+        if (!await _userManager.CheckPasswordAsync(user, password))
+        {
+            // The reservation already counted this failure; lock once the budget is used.
+            var lockedUntil = DateTimeOffset.UtcNow.Add(lockout.DefaultLockoutTimeSpan);
+            await _context.Users
+                .Where(value => value.Id == userId
+                    && value.LockoutEnabled
+                    && value.AccessFailedCount >= lockout.MaxFailedAccessAttempts)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(value => value.LockoutEnd, lockedUntil)
+                    .SetProperty(value => value.AccessFailedCount, 0));
+            return null;
+        }
+
+        // Read from the same tracked user right after the password check, so a password
+        // re-hash during this sign-in cannot end the session being created.
+        var securityStamp = user.SecurityStamp;
+
+        var reset = await _context.Users
+            .Where(value => value.Id == userId)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(value => value.AccessFailedCount, 0));
+        if (reset == 0)
+            _logger.LogWarning("Could not reset the failed sign-in count for user {UserId}.", userId);
+
+        return new PasswordSignIn(user, securityStamp);
+    }
+
+    // In-memory provider (tests): ExecuteUpdate is unavailable, so use the Identity
+    // primitives in the same order. Not atomic under parallel requests.
+    private async Task<PasswordSignIn?> CheckPasswordWithIdentityLockoutAsync(ApplicationUser user, string password)
+    {
+        if (await _userManager.IsLockedOutAsync(user))
+            return null;
+
+        if (!await _userManager.CheckPasswordAsync(user, password))
+        {
+            var failed = await _userManager.AccessFailedAsync(user);
+            if (!failed.Succeeded)
+                _logger.LogWarning("Could not record a failed sign-in for user {UserId}.", user.Id);
+            return null;
+        }
+
+        var securityStamp = user.SecurityStamp;
+
+        var reset = await _userManager.ResetAccessFailedCountAsync(user);
+        if (!reset.Succeeded)
+            _logger.LogWarning("Could not reset the failed sign-in count for user {UserId}.", user.Id);
+
+        return new PasswordSignIn(user, securityStamp);
     }
 
     private static bool TryDecodeIdentityToken(string encodedToken, out string decodedToken)
