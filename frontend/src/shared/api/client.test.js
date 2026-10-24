@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AxiosError, CanceledError } from 'axios'
 import client from './client'
-import { clearSession, establishSession, getSessionSnapshot, subscribeToSession } from '../auth/session'
+import { clearSession, establishSession, getSessionSnapshot, replaceAccessToken, subscribeToSession } from '../auth/session'
+import { refreshWebSession } from '../auth/webSession'
 
 function httpError(config, status = 401) {
   return new AxiosError('Request failed', 'ERR_BAD_REQUEST', config, undefined, {
@@ -9,14 +10,20 @@ function httpError(config, status = 401) {
   })
 }
 
+vi.mock('../auth/webSession', () => ({ refreshWebSession: vi.fn(async () => false) }))
+
 function pendingRequest() {
   let fail
   let entered
   const started = new Promise((resolve) => { entered = resolve })
-  const adapter = vi.fn((config) => new Promise((_resolve, reject) => {
-    fail = () => reject(httpError(config))
-    entered()
-  }))
+  const adapter = vi.fn((config) => {
+    // A retry after a web-session refresh succeeds.
+    if (config.webSessionRetried) return Promise.resolve({ data: [], status: 200, statusText: 'OK', headers: {}, config })
+    return new Promise((_resolve, reject) => {
+      fail = () => reject(httpError(config))
+      entered()
+    })
+  })
   const result = client.get('/api/expenses', { adapter }).catch((error) => error)
   return { started, result, adapter, reject: () => fail() }
 }
@@ -219,5 +226,65 @@ describe('authenticated response recovery', () => {
     expect(response.data).toBe(data)
     expect(response.status).toBe(201)
     expect(getSessionSnapshot()).toBe(current)
+  })
+
+  it('refreshes once on a 401 and retries once with the new token of the same sign-in', async () => {
+    const before = getSessionSnapshot()
+    refreshWebSession.mockImplementationOnce(async () => {
+      replaceAccessToken('refreshed-token', 'person@example.com')
+      return true
+    })
+    const seen = []
+    const adapter = vi.fn(async (config) => {
+      seen.push(config.headers.Authorization)
+      if (seen.length === 1) throw httpError(config)
+      return { data: { ok: true }, status: 201, statusText: 'Created', headers: {}, config }
+    })
+
+    const response = await client.post('/api/expenses', { amount: 10 }, { adapter })
+
+    expect(response.status).toBe(201)
+    expect(refreshWebSession).toHaveBeenCalledOnce()
+    expect(refreshWebSession).toHaveBeenCalledWith({ triggerToken: 'current-token', reason: 'unauthorized' })
+    expect(seen).toEqual(['Bearer current-token', 'Bearer refreshed-token'])
+    expect(getSessionSnapshot()).toBe(before)
+  })
+
+  it('does not refresh again when the retry also returns 401, and clears the session', async () => {
+    refreshWebSession.mockImplementationOnce(async () => {
+      replaceAccessToken('refreshed-token', 'person@example.com')
+      return true
+    })
+    const adapter = vi.fn(async (config) => { throw httpError(config) })
+
+    const error = await client.get('/api/expenses', { adapter }).catch((failure) => failure)
+
+    expect(error.response.status).toBe(401)
+    expect(adapter).toHaveBeenCalledTimes(2)
+    expect(refreshWebSession).toHaveBeenCalledOnce()
+    expect(localStorage.getItem('token')).toBeNull()
+  })
+
+  it('does not retry when the refresh fails', async () => {
+    const adapter = vi.fn(async (config) => { throw httpError(config) })
+
+    await client.get('/api/expenses', { adapter }).catch(() => {})
+
+    expect(refreshWebSession).toHaveBeenCalledOnce()
+    expect(adapter).toHaveBeenCalledOnce()
+    expect(localStorage.getItem('token')).toBeNull()
+  })
+
+  it('does not refresh for a 401 from an earlier sign-in', async () => {
+    const request = pendingRequest()
+    await request.started
+    clearSession()
+    establishSession('new-token', 'new@example.com')
+
+    request.reject()
+    await request.result
+
+    expect(refreshWebSession).not.toHaveBeenCalled()
+    expect(localStorage.getItem('token')).toBe('new-token')
   })
 })

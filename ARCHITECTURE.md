@@ -246,8 +246,7 @@ credential is indistinguishable from reuse and ends the session. The iOS widget
 token is no longer memory-only on iOS; the widget never refreshes. Web login
 (`/api/auth/login`), access-token validation and lockout behavior are unchanged.
 
-The backend also exposes web-session endpoints (#292, backend only so far; the
-web app does not call them yet): `POST /api/auth/web-session`, `/refresh` and
+The backend also exposes web-session endpoints (#292), used by the web app: `POST /api/auth/web-session`, `/refresh` and
 `/sign-out`. They reuse `DeviceSessionService` and the `DeviceSessions` table
 (shared 20-session cap, same lifetimes and strict reuse), but the credential
 lives only in the HttpOnly, Secure, `SameSite=Strict` cookie
@@ -259,8 +258,26 @@ validation and returns `403` unless the `X-Ordo-Web-Session: 1` header is
 present and `Origin` equals `Frontend:BaseUrl` by parsed scheme, host and port.
 CORS is unchanged and has no `AllowCredentials`; responses are `no-store`. Any
 refresh failure returns `401 {"code":"session_invalid"}` and clears the cookie.
-The cookie is first-party only when requests reach the backend through a
-same-origin proxy (planned Vercel rewrite); it is not sent cross-site.
+The cookie is first-party because the web app calls these endpoints at
+relative URLs: a Vercel rewrite in `frontend/vercel.json` (before the SPA
+catch-all) forwards `/api/auth/web-session/*` to the Render host, and the Vite
+dev server proxies the same path. All other API calls still go directly to
+Render with the bearer token.
+
+In the web app, `shared/api/webSessionClient.js` makes these same-origin calls
+(header `X-Ordo-Web-Session: 1`, no timeout or abort) and
+`shared/auth/webSession.js` orchestrates them. The 2-hour access token stays in
+`localStorage`. A refresh runs on boot without a valid token, about 5 minutes
+before the JWT `exp`, and once after an authenticated `401` (then the request is
+retried once). Refreshes are single-flight per tab and serialized across tabs
+with the Web Lock `ordo-web-session-refresh`; inside the lock a tab skips if
+another tab already stored a new token. A refresh keeps the session identity.
+A refresh `401` clears the session in every tab; a network error or `5xx` never
+keeps an expired token. Sign-out calls `/sign-out`, clears storage and signs out
+other tabs (storage event plus `BroadcastChannel("ordo-session")`); if the call
+fails, a `pending-sign-out` flag blocks auto-refresh and the sign-out is retried
+on the next boot. Older 2-hour sessions from `/api/auth/login` keep working
+until their next refresh fails; the backend login endpoint is unchanged.
 
 Approved financial meaning and future authoritative validation destinations
 are defined in

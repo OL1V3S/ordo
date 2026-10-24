@@ -6,12 +6,15 @@ import "../index.css";
 import App from "./App.jsx"; 
 import { LocaleProvider } from "../shared/localization/LocaleProvider.jsx";
 import { ThemeProvider } from "../shared/theme/ThemeProvider.jsx";
+import { startWebSession } from "../shared/auth/webSession";
 
 const link = document.createElement("link");
 link.rel = "icon";
 link.type = "image/svg+xml";
 link.href = favicon;
 document.head.appendChild(link);
+
+startWebSession();
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>

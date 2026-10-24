@@ -272,6 +272,11 @@ Create `frontend/.env.local`:
 VITE_API_BASE_URL=http://localhost:5298
 ```
 
+Web sign-in uses same-origin web-session calls (#292). The Vite dev server
+proxies `/api/auth/web-session` to `VITE_API_BASE_URL`, so the backend's
+`Frontend:BaseUrl` must match the dev origin (for example
+`http://localhost:5173`) or those calls return `403`.
+
 Then run:
 
 ```bash

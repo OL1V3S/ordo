@@ -8,11 +8,16 @@ import ResetPasswordPage from './ResetPasswordPage'
 import ForgotPasswordPage from './ForgotPasswordPage'
 import i18n from '../../../shared/localization/i18n'
 import { authApi } from '../../../shared/api/authApi'
+import { webSessionClient } from '../../../shared/api/webSessionClient'
+
+// Sign-in goes through the same-origin web-session client (#292).
+vi.mock('../../../shared/api/webSessionClient', () => ({
+  webSessionClient: { signIn: vi.fn(), refresh: vi.fn(), signOut: vi.fn() },
+}))
 
 vi.mock('../../../shared/api/authApi', () => ({
   authApi: {
     register: vi.fn(),
-    login: vi.fn(),
     resendConfirmation: vi.fn(),
     confirmEmail: vi.fn(),
     forgotPassword: vi.fn(),
@@ -34,7 +39,7 @@ describe('existing authentication flows', () => {
   it('stores the login token and email using the existing keys', async () => {
     const user = userEvent.setup()
     const onLogin = vi.fn()
-    authApi.login.mockResolvedValue({ data: { token: 'jwt-value', email: 'person@example.com' } })
+    webSessionClient.signIn.mockResolvedValue({ data: { token: 'jwt-value', email: 'person@example.com' } })
     renderAt(<AuthPage onLogin={onLogin} />)
 
     expect(screen.getByRole('heading', { name: 'Sign in', level: 1 })).toHaveFocus()
@@ -48,6 +53,7 @@ describe('existing authentication flows', () => {
     await user.click(screen.getByRole('button', { name: 'Sign in' }))
 
     await waitFor(() => expect(onLogin).toHaveBeenCalledOnce())
+    expect(webSessionClient.signIn).toHaveBeenCalledWith({ email: 'person@example.com', password: 'Secret1!' })
     expect(localStorage.getItem('token')).toBe('jwt-value')
     expect(localStorage.getItem('email')).toBe('person@example.com')
   })
@@ -55,7 +61,7 @@ describe('existing authentication flows', () => {
   it('establishes the session without requiring an App callback', async () => {
     const user = userEvent.setup()
     const alert = vi.spyOn(window, 'alert').mockImplementation(() => {})
-    authApi.login.mockResolvedValue({ data: { token: 'new-synthetic-session', email: 'person@example.invalid' } })
+    webSessionClient.signIn.mockResolvedValue({ data: { token: 'new-synthetic-session', email: 'person@example.invalid' } })
     renderAt(<AuthPage />)
     await user.type(screen.getByLabelText('Email'), 'person@example.invalid')
     await user.type(screen.getByLabelText('Password'), 'Synthetic1!')
@@ -71,7 +77,7 @@ describe('existing authentication flows', () => {
     const onLogin = vi.fn()
     const alert = vi.spyOn(window, 'alert').mockImplementation(() => {})
     const log = vi.spyOn(console, 'log').mockImplementation(() => {})
-    authApi.login.mockRejectedValue({ response: { status: 401, data: 'Invalid email or password' } })
+    webSessionClient.signIn.mockRejectedValue({ response: { status: 401, data: 'Invalid email or password' } })
     renderAt(<AuthPage onLogin={onLogin} />)
     await user.type(screen.getByLabelText('Email'), 'person@example.invalid')
     await user.type(screen.getByLabelText('Password'), 'Synthetic1!')
@@ -90,7 +96,7 @@ describe('existing authentication flows', () => {
   it('shows a fixed localized message for an unmapped login 401 body', async () => {
     const user = userEvent.setup()
     const log = vi.spyOn(console, 'log').mockImplementation(() => {})
-    authApi.login.mockRejectedValue({ response: { status: 401, data: 'invalid email or password ' } })
+    webSessionClient.signIn.mockRejectedValue({ response: { status: 401, data: 'invalid email or password ' } })
     renderAt(<AuthPage onLogin={vi.fn()} />)
     await user.type(screen.getByLabelText('Email'), 'person@example.invalid')
     await user.type(screen.getByLabelText('Password'), 'Synthetic1!')
@@ -300,13 +306,13 @@ describe('existing authentication flows', () => {
     expect(password).toBeRequired()
 
     await user.click(screen.getByRole('button', { name: 'Sign in' }))
-    expect(authApi.login).not.toHaveBeenCalled()
+    expect(webSessionClient.signIn).not.toHaveBeenCalled()
 
     await user.type(email, 'not-an-email')
     await user.type(password, 'Secret1!')
     expect(email).toBeInvalid()
     await user.click(screen.getByRole('button', { name: 'Sign in' }))
-    expect(authApi.login).not.toHaveBeenCalled()
+    expect(webSessionClient.signIn).not.toHaveBeenCalled()
   })
 
   it('registers with the existing payload and moves to check-email without establishing a session', async () => {
@@ -413,7 +419,7 @@ describe('authentication pages in Spanish', () => {
 
   it('maps login 401 literals to Spanish and never shows the server English', async () => {
     const user = userEvent.setup()
-    authApi.login.mockRejectedValueOnce({ response: { status: 401, data: 'Invalid email or password' } })
+    webSessionClient.signIn.mockRejectedValueOnce({ response: { status: 401, data: 'Invalid email or password' } })
     renderAt(<AuthPage onLogin={vi.fn()} />)
     await fillLogin(user)
     await user.click(screen.getByRole('button', { name: 'Iniciar sesión' }))
@@ -421,7 +427,7 @@ describe('authentication pages in Spanish', () => {
     expect(error).toHaveTextContent('Correo o contraseña incorrectos')
     expect(error).not.toHaveTextContent('Invalid')
 
-    authApi.login.mockRejectedValueOnce({ response: { status: 401, data: 'Please confirm your email before logging in.' } })
+    webSessionClient.signIn.mockRejectedValueOnce({ response: { status: 401, data: 'Please confirm your email before logging in.' } })
     await user.click(screen.getByRole('button', { name: 'Iniciar sesión' }))
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Confirma tu correo antes de iniciar sesión.'))
   })
@@ -449,7 +455,7 @@ describe('authentication pages in Spanish', () => {
 
   it('falls back to the Spanish generic message for unknown failures', async () => {
     const user = userEvent.setup()
-    authApi.login.mockRejectedValue(new Error('Network Error'))
+    webSessionClient.signIn.mockRejectedValue(new Error('Network Error'))
     renderAt(<AuthPage onLogin={vi.fn()} />)
     await fillLogin(user)
     await user.click(screen.getByRole('button', { name: 'Iniciar sesión' }))
@@ -540,7 +546,7 @@ describe('authentication pages in Spanish', () => {
 
   it('offers a language selector that keeps focus and re-renders an on-screen error', async () => {
     const user = userEvent.setup()
-    authApi.login.mockRejectedValue({ response: { status: 401, data: 'Invalid email or password' } })
+    webSessionClient.signIn.mockRejectedValue({ response: { status: 401, data: 'Invalid email or password' } })
     renderAt(<AuthPage onLogin={vi.fn()} />)
     await fillLogin(user)
     await user.click(screen.getByRole('button', { name: 'Iniciar sesión' }))
