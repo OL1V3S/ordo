@@ -103,9 +103,9 @@ Remaining oracles, tracked in #319 (HIGH, not started):
 - Algorithm HS256 (`SecurityAlgorithms.HmacSha256`), symmetric key from `Jwt:Key`. The app refuses to start if the key is missing.
 - Claims: `NameIdentifier` (user id), `Email`, `Name`, `iss`, `aud`, `exp`.
 - `iss` = `ordo-api`, `aud` = `ordo-clients`. Constants in `backend/Authentication/AccessTokenClaims.cs`, not configuration.
-- **Issuing: done** (#301 phase 1). All token paths issue them: login, device session create and refresh, web session create and refresh.
-- **Validation: off.** `ValidateIssuer` and `ValidateAudience` are `false`; a token without them is still accepted. Only signature (`ValidateIssuerSigningKey`) and the default lifetime check apply.
-- **Pending: #301 phase 2** turns validation on. It is gated: it may merge only after every older token has expired, at least 2h15m after the phase-1 backend deploy is live on Render. Do not describe it as done before then.
+- **Issuing** (#301 phase 1): all token paths issue them: login, device session create and refresh, web session create and refresh.
+- **Validation: on** (#301 phase 2). `ValidateIssuer` and `ValidateAudience` are `true` with `ValidIssuer = ordo-api` and `ValidAudience = ordo-clients`, alongside the signature (`ValidateIssuerSigningKey`) and default lifetime checks. An `aud` array is accepted if it contains `ordo-clients`.
+- A token with a missing or wrong `iss` or `aud` gets `401`. Older tokens issued before phase 1 carry neither claim and are rejected; clients recover by refreshing their session or signing in again.
 
 ## Email confirmation and password reset
 
@@ -160,7 +160,7 @@ All are in-memory fixed-window limiters with code defaults. State is per process
 | Uniform sign-in | `AuthController` login, device-session and web-session create | `SignInEnumerationTests.cs`, `DeviceSessionFlowTests.cs`, `WebSessionFlowTests.cs` |
 | Uniform register | `AuthController.Register`, `RegistrationLimiter.cs` | `RegisterEnumerationTests.cs` |
 | Resend and forgot password | `ConfirmationResendLimiter.cs`, `ForgotPasswordLimiter.cs`, `AuthController` | `AccountConfirmationFlowTests.cs`, `ForgotPasswordFlowTests.cs` |
-| JWT claims and parameters | `AccessTokenClaims.cs`, `AuthController.GenerateJwtToken`, `Program.cs` | `AccessTokenClaimsTests.cs` (including "still accepted in phase 1") |
+| JWT claims and parameters | `AccessTokenClaims.cs`, `AuthController.GenerateJwtToken`, `Program.cs` | `AccessTokenClaimsTests.cs` (issued claims and rejection matrix) |
 | Data Protection key persistence | `Program.cs` | `DataProtectionPersistenceTests.cs` |
 | Safe errors and health | `backend/Diagnostics/UnhandledExceptionHandler.cs`, `Program.cs` | `backend.Tests/Diagnostics/ExceptionHandlingAndHealthTests.cs` |
 | Security headers and CSP | `frontend/vercel.json` | `frontend/src/test/securityHeaders.test.js` |

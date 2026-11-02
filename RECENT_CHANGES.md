@@ -24,6 +24,13 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-11-02 — Access tokens must carry Ordo issuer and audience
+
+[PR #TBD](https://github.com/OL1V3S/ordo/pull/TBD) · [Issue #301](https://github.com/OL1V3S/ordo/issues/301)
+
+- The API now rejects access tokens whose `iss` is not `ordo-api` or whose `aud` does not include `ordo-clients` (phase 2 of #301). Tokens from before phase 1 carry neither and get `401`; web and iOS refresh or sign in again.
+- Signature, lifetime and clock-skew checks are unchanged. No config, schema, web or iOS change.
+
 ### 2026-11-02 — Sign-in no longer reveals unconfirmed accounts
 
 [PR #320](https://github.com/OL1V3S/ordo/pull/320) · [Issue #318](https://github.com/OL1V3S/ordo/issues/318)
@@ -159,10 +166,3 @@ the permanent, complete archive.
 
 - Deleting an expense or a deposit in the iPhone app now confirms the row the dialog showed, so the delete no longer depends on the order in which the dialog closes and its button runs. The same single delete request is sent after the same confirmation; a double tap or a change already in flight is still ignored.
 - Mirrors the Budgets correction from #269. Backend, API, schema, web app and required checks are unchanged; the app is still not distributed.
-
-### 2026-10-19 — Budgets in the iPhone app
-
-[PR #269](https://github.com/OL1V3S/ordo/pull/269) · [Issue #268](https://github.com/OL1V3S/ordo/issues/268)
-
-- The iPhone app has a Budgets tab: pick a month, see each category's limit against the spending recorded for it (a status, the used amount, and a progress bar and percent), and add a category budget, change a limit or delete one, in English and Spanish. A delete asks first and names the category.
-- A budget change that times out or loses its connection is shown as unconfirmed, and further changes wait until the limits are read again from the server; after every change the limits and Home are re-read, so no amount is changed on the phone first. Backend, API, schema, web app and required checks are unchanged; the app is still not distributed.
