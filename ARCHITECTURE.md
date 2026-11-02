@@ -259,17 +259,19 @@ the configured Identity options (5 failures, 10 minutes). On PostgreSQL each
 attempt is reserved atomically before the password is hashed (conditional
 `UPDATE` of `AccessFailedCount`), so parallel guesses cannot exceed the budget;
 the in-memory test provider uses the Identity primitives instead. Unknown email,
-wrong password and locked out return the same response; the confirm-email answer
-comes only after a valid password on an unlocked account. A success resets the
-count. Refresh does not check lockout and reset-password does not unlock.
+wrong password, locked out and unconfirmed (even with the right password, #318)
+return the same response, with no token, session, cookie or email. A valid
+password resets the count, also on an unconfirmed account. Refresh does not check lockout and reset-password does not unlock.
 
 Registration (#300) answers a taken email exactly like a new one (same `200`, or
 the same `503 confirmation_email_delivery_failed`); the stored owner gets a fixed
 existing-account email with plain sign-in and forgot-password links (no token)
 and the account is not changed. Password-rule `400` errors are unchanged. An
 in-memory `RegistrationLimiter` (global and per normalized email, code defaults)
-runs before the account check and returns the same `429` for every email. Sign-in
-can still reveal an unconfirmed account (accepted risk, follow-up issue).
+runs before the account check and returns the same `429` for every email. Web and
+iOS show a neutral "Just created an account?" hint and an inline resend after
+any invalid-credentials sign-in failure; resend answers the same `202` for every
+email. Existing timing and reset-password oracles are tracked in #319.
 
 The backend also exposes web-session endpoints (#292), used by the web app: `POST /api/auth/web-session`, `/refresh` and
 `/sign-out`. They reuse `DeviceSessionService` and the `DeviceSessions` table

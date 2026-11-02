@@ -24,13 +24,19 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-11-02 — Sign-in no longer reveals unconfirmed accounts
+
+[Issue #318](https://github.com/OL1V3S/ordo/issues/318)
+
+- A correct password on an unconfirmed account now gets the same "incorrect email or password" answer as a wrong password, on all three sign-in endpoints. No email is sent from sign-in.
+- Web and iOS show a neutral "Just created an account? Confirm your email first." hint with an inline "Resend confirmation email" button after any such failure.
+
 ### 2026-10-24 — Registration no longer reveals existing accounts
 
 [PR #317](https://github.com/OL1V3S/ordo/pull/317) · [Issue #300](https://github.com/OL1V3S/ordo/issues/300)
 
 - Registering with an email that already has an account returns the same `200` (or `503` when email fails) as a new registration. The owner gets a fixed "someone tried to create an account" email (English/Spanish, plain sign-in and forgot-password links, no token); the account is never changed. Weak-password `400` errors are unchanged.
 - New in-memory registration limiter (global and per email, code defaults, no new settings) runs before the account check and returns the same `429` for everyone. Web and iOS now show "Too many requests" for it.
-- Remaining known risk: signing in can still reveal whether an account is unconfirmed (follow-up issue).
 
 ### 2026-10-24 — Access tokens: issuer and audience claims (phase 1)
 
@@ -160,10 +166,3 @@ the permanent, complete archive.
 
 - The iPhone app has a Budgets tab: pick a month, see each category's limit against the spending recorded for it (a status, the used amount, and a progress bar and percent), and add a category budget, change a limit or delete one, in English and Spanish. A delete asks first and names the category.
 - A budget change that times out or loses its connection is shown as unconfirmed, and further changes wait until the limits are read again from the server; after every change the limits and Home are re-read, so no amount is changed on the phone first. Backend, API, schema, web app and required checks are unchanged; the app is still not distributed.
-
-### 2026-10-17 — Transactions in the iPhone app
-
-[PR #263](https://github.com/OL1V3S/ordo/pull/263) · [Issue #262](https://github.com/OL1V3S/ordo/issues/262)
-
-- The iPhone app has a Transactions tab: browse your expenses and deposits newest first, search and filter by type and dates, and edit or delete a record, in English and Spanish. A delete asks first and names the record; an edit uses the same fields and checks as Add.
-- A change that times out or loses its connection is shown as unconfirmed, and you can retry the same request or check the list. After every change the list and Home are re-read from the server, so no amount is changed on the phone first. Backend, API, schema, web app and required checks are unchanged; the app is still not distributed.

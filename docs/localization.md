@@ -105,10 +105,12 @@ import/export them, but the runtime must not depend on a translation service.
   fallback line. Password-length numbers in those messages are fixed to the project's
   default Identity options. Resend and forgot-password results are chosen by HTTP
   status, not by the response message.
-  **Documented exception:** the login endpoint returns its two 401 results as plain
-  text with no code, so `authMessages.js` matches the exact whole strings
-  `Invalid email or password` and `Please confirm your email before logging in.` (see
-  `AuthController.cs` login action). This is the only place a raw server sentence is
+  **Documented exception:** the login and web-session endpoints return their 401
+  result as plain text with no code, so `authMessages.js` matches the exact whole
+  string `Invalid email or password` (see `AuthController.cs` sign-in actions). Since
+  #318 the backend never sends `Please confirm your email before logging in.`; that
+  string is matched only for an older backend (legacy, to be removed later). Both
+  show the neutral `login.confirmHint` and an inline resend. This is the only place a raw server sentence is
   matched; any other 401 body shows the localized `errors.login.failed`. If the backend
   rewording changes those strings, users see that fallback until the literals are
   updated; a stable backend error code is the preferred future replacement.
