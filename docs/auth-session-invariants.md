@@ -80,7 +80,7 @@ Both are the same session: one `DeviceSessions` row, owned by
 
 ## Enumeration policy
 
-Uniform today (same status, body and side effects for every case):
+Uniform today (same client-visible response for every case: same status and body):
 
 - **Sign-in** (all three endpoints): unknown email, wrong password, locked out, and unconfirmed (even with the right password, #318) all return `401`. The body is the plain text `Invalid email or password` on `/login` and `/web-session`, and `{"code":"invalid_credentials"}` on `/device-sessions`. No token, session, cookie or email is produced.
 - **Register** (#300): a taken email gets the same `200` (or the same `503 confirmation_email_delivery_failed`) as a new one. The stored owner gets a fixed existing-account email (sign-in and forgot-password links, no token); the account is unchanged. Password-rule `400` errors are unchanged and never contain duplicate-account errors.
@@ -95,6 +95,7 @@ Remaining oracles, tracked in #319 (HIGH, not started):
 - Timing differs for unknown, locked-out and real accounts at sign-in.
 - Timing differs for resend-confirmation and forgot-password between existing and missing accounts (existing accounts do token and email work).
 - `reset-password` returns `400 "Invalid request"` for an unknown email but Identity token errors for a known one.
+- The sign-in failure-count side effect is not client-visible and is not considered an oracle: an unconfirmed account with the right password resets the count, a wrong password increments it (see the lockout section).
 - Also observed, not listed in #319: `confirm-email` returns `400 "Invalid user"` for an unknown user id.
 
 ## JWT parameters
