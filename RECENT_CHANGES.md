@@ -26,7 +26,7 @@ the permanent, complete archive.
 
 ### 2026-11-02 — Sign-in no longer reveals unconfirmed accounts
 
-[Issue #318](https://github.com/OL1V3S/ordo/issues/318)
+[PR #320](https://github.com/OL1V3S/ordo/pull/320) · [Issue #318](https://github.com/OL1V3S/ordo/issues/318)
 
 - A correct password on an unconfirmed account now gets the same "incorrect email or password" answer as a wrong password, on all three sign-in endpoints. No email is sent from sign-in.
 - Web and iOS show a neutral "Just created an account? Confirm your email first." hint with an inline "Resend confirmation email" button after any such failure.
