@@ -233,9 +233,9 @@ The full rule list for sessions, lockout, enumeration policy and JWT parameters 
 
 Access tokens carry `iss = ordo-api` and `aud = ordo-clients` (#301), fixed in
 `backend/Authentication/AccessTokenClaims.cs` (constants, not configuration).
-Phase 1 only issues these claims; the validator still ignores them. Phase 2 turns
-on issuer and audience validation, and is merged only after every older token
-has expired (at least 2h15m after the phase-1 deploy is live).
+The JWT bearer validator requires both (`ValidateIssuer` and `ValidateAudience`
+on, #301 phase 2), alongside the signature and lifetime checks. A token without
+them, or with other values, gets `401`.
 
 Native clients can hold a long-lived, revocable device session instead of
 re-entering a password every two hours. `AuthController` exposes

@@ -149,8 +149,11 @@ builder.Services.AddAuthentication(options =>
 {
     options.TokenValidationParameters = new TokenValidationParameters
     {
-        ValidateIssuer = false,
-        ValidateAudience = false,
+        // #301 phase 2: access tokens must carry the fixed iss/aud from AccessTokenClaims.
+        ValidateIssuer = true,
+        ValidIssuer = AccessTokenClaims.Issuer,
+        ValidateAudience = true,
+        ValidAudience = AccessTokenClaims.Audience,
         ValidateIssuerSigningKey = true,
         IssuerSigningKey = new SymmetricSecurityKey(
             Encoding.UTF8.GetBytes(jwtKey)
