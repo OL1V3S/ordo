@@ -3,7 +3,7 @@ namespace BudgetPlanner.Authentication;
 /// <summary>
 /// Fixed <c>iss</c> and <c>aud</c> values for Ordo access tokens (#301).
 /// Constants on purpose: not secret, one deployment, and not bound to configuration.
-/// Phase 1 only issues them; validation is turned on in phase 2.
+/// Issued by <c>AuthController.GenerateJwtToken</c> and required by the JWT bearer validator.
 /// </summary>
 public static class AccessTokenClaims
 {
