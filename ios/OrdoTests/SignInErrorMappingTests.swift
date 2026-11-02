@@ -22,6 +22,12 @@ import Testing
         #expect(en.string(.authErrorsLoginFailed) == "We couldn’t sign you in. Try again.")
     }
 
+    /// #318: the neutral hint matches the web copy and never says the account exists.
+    @Test func confirmHintMatchesTheWebCopy() {
+        #expect(L10n(language: .en).string(.authLoginConfirmHint) == "Just created an account? Confirm your email first.")
+        #expect(L10n(language: .es).string(.authLoginConfirmHint) == "¿Acabas de crear una cuenta? Confirma tu correo primero.")
+    }
+
     @Test func apiMapsTheBackendCodes() async throws {
         for (fixture, expected) in [("auth-invalid-credentials", APIError.invalidCredentials),
                                     ("auth-email-not-confirmed", APIError.emailNotConfirmed)] {
