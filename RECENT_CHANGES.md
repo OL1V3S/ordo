@@ -26,7 +26,7 @@ the permanent, complete archive.
 
 ### 2026-11-02 — Access tokens must carry Ordo issuer and audience
 
-[PR #TBD](https://github.com/OL1V3S/ordo/pull/TBD) · [Issue #301](https://github.com/OL1V3S/ordo/issues/301)
+[PR #322](https://github.com/OL1V3S/ordo/pull/322) · [Issue #301](https://github.com/OL1V3S/ordo/issues/301)
 
 - The API now rejects access tokens whose `iss` is not `ordo-api` or whose `aud` does not include `ordo-clients` (phase 2 of #301). Tokens from before phase 1 carry neither and get `401`; web and iOS refresh or sign in again.
 - Signature, lifetime and clock-skew checks are unchanged. No config, schema, web or iOS change.
