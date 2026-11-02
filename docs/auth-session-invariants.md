@@ -1,0 +1,170 @@
+# Auth and Session Invariants
+
+This document states how authentication and sessions behave **today** (verified
+against `main` at f1f7e0c). It describes current behavior; it does not approve
+changes. Any change to a rule below needs its own approved issue (see
+[`AGENTS.md`](../AGENTS.md)). Narrative design lives in
+[`ARCHITECTURE.md`](../ARCHITECTURE.md); this file is the rule list.
+
+"Pending" means designed and tracked but not shipped. "Not done" means
+intentionally absent today.
+
+## Credentials and lifetimes
+
+| Credential | Lifetime | Where it lives |
+| --- | --- | --- |
+| Access token (JWT) | 2 hours, fixed | Web: `localStorage`. iOS app: held in `SessionManager`; a copy goes to the shared Keychain item for the widget |
+| Device session credential (native) | Idle 60 days, absolute 180 days | iOS Keychain (`AfterFirstUnlockThisDeviceOnly`, not synchronizable) |
+| Web session credential | Same as above (same table and service) | HttpOnly cookie only, never in a body |
+| Email confirmation / password reset token | ASP.NET Identity default token provider; no lifespan configured in this repo | Emailed link |
+
+- Idle timeout counts from the last successful refresh (or creation).
+- Absolute lifetime counts from creation. Refresh never extends it.
+- Defaults are code defaults in `DeviceSessionOptions`; nothing overrides them in `Program.cs`.
+- The access token lifetime is hard-coded in `AuthController.GenerateJwtToken`.
+- Unknown: the actual Identity default token lifespan is framework behavior and is not asserted by any repo test.
+
+## Device sessions and web sessions
+
+Both are the same session: one `DeviceSessions` row, owned by
+`DeviceSessionService`. Only the transport differs.
+
+- The row stores only a SHA-256 hash of the secret and a hash of the user's security stamp.
+- Credential format: `base64url(16-byte id) "." base64url(32-byte secret)`. The id locates the row; the secret proves possession.
+- Per-account cap: 20 sessions, shared by native and web. Creating a session evicts the least recently used one over the cap.
+- Creating a session also deletes at most one batch (100) of expired rows.
+- Native endpoints: `POST /api/auth/device-sessions`, `/refresh`, `/sign-out`. The credential travels in the request body (`refreshToken`); no cookie is read.
+- Web endpoints: `POST /api/auth/web-session`, `/refresh`, `/sign-out`. The credential travels only in the cookie; a body credential is ignored.
+- `/api/auth/login` is the older 2-hour sign-in: it issues only an access token and no session.
+- Refresh is not covered by lockout (see below).
+
+### Rotation and reuse
+
+- Every refresh rotates the secret and returns a new access token.
+- Presenting a rotated or forged secret for a real session id ends that whole session, including the newest credential.
+- There is **no grace window** for retries or concurrent refreshes.
+- Contract: **one refresher per credential at a time.** A client sharing a credential across processes must serialize refreshes and treat `401` as signed out.
+- The iOS widget never holds the credential and never refreshes. It reads only the access token copy.
+- Refresh runs in a Read Committed transaction that takes a row lock (`FOR UPDATE` on PostgreSQL). The loser of a race sees the committed rotation and gets `401`, not a `500`.
+- A refresh also ends the session if it is expired, the user is gone, or the stored security-stamp hash no longer matches the user's stamp.
+- Every refresh failure is the same `401 {"code":"session_invalid"}`. Sign-out never reveals whether the session existed and returns `204` for any well-formed body.
+- A completed password reset deletes every session of that user (native and web).
+- Web sign-in first signs out the session named by an existing cookie, so replaced sessions do not use up the cap.
+
+### Web session cookie and CSRF
+
+- Cookie `__Secure-ordo-web-session`: `HttpOnly`, `Secure`, `SameSite=Strict`, `Path=/api/auth/web-session`, no `Domain`, `Max-Age` = idle timeout.
+- Any refresh failure clears the cookie. Sign-out clears it even when the server call finds no session.
+- The cookie alone never authenticates a protected API; those still need the bearer access token.
+- Every web-session action runs behind `WebSessionGuardFilter`, a resource filter that runs before model validation:
+  - header `X-Ordo-Web-Session: 1` is required;
+  - `Origin` must equal `Frontend:BaseUrl` by parsed scheme, host and port (no path, query, fragment or userinfo);
+  - otherwise `403`, nothing changes, and responses are `no-store`.
+- CORS (`Program.cs`) allows two fixed origins, any header and method, and **no credentials**.
+- The cookie is first-party because the browser calls `/api/auth/web-session/*` at a relative URL. `frontend/vercel.json` rewrites that path to the Render API; the Vite dev server proxies it. All other API calls go straight to Render with the bearer token.
+- Web client behavior (`shared/auth/webSession.js`): refresh on boot, about 5 minutes before the JWT `exp`, and once after an authenticated `401` (then the request is retried once). Refresh is single-flight per tab and serialized across tabs with the Web Lock `ordo-web-session-refresh`. A refresh `401` signs out every tab; a network error or `5xx` never keeps an expired token.
+- Sign-out failure sets a `pending-sign-out` flag that blocks auto-refresh and retries sign-out on next boot.
+
+## Lockout (#299)
+
+- Applies to the three password sign-in endpoints: `/api/auth/login`, `/api/auth/device-sessions`, `/api/auth/web-session`. Failures count across all three.
+- Identity options in `Program.cs`: 5 failed attempts, then a 10 minute lockout, enabled for new users.
+- A user with lockout disabled is never counted or locked.
+- On PostgreSQL each attempt is **reserved atomically before the password is hashed** (conditional `UPDATE` of `AccessFailedCount`). Parallel guesses cannot exceed the budget. The 5th failure sets `LockoutEnd` and resets the count to 0.
+- Self-heal: a row at the max count with no active lock becomes a normal timed lock on the next attempt.
+- A locked account is rejected without checking the password.
+- The in-memory test provider uses the Identity primitives in the same order. It is **not atomic** under parallel requests; it exists for tests only.
+- A valid password resets the count, also for an unconfirmed account. The reset does not change the security stamp, so sessions keep refreshing.
+- Guard-rejected web sign-ins (`403`) do not count.
+- Refresh does not check lockout. Reset-password does not unlock.
+
+## Enumeration policy
+
+Uniform today (same status, body and side effects for every case):
+
+- **Sign-in** (all three endpoints): unknown email, wrong password, locked out, and unconfirmed (even with the right password, #318) all return `401`. The body is the plain text `Invalid email or password` on `/login` and `/web-session`, and `{"code":"invalid_credentials"}` on `/device-sessions`. No token, session, cookie or email is produced.
+- **Register** (#300): a taken email gets the same `200` (or the same `503 confirmation_email_delivery_failed`) as a new one. The stored owner gets a fixed existing-account email (sign-in and forgot-password links, no token); the account is unchanged. Password-rule `400` errors are unchanged and never contain duplicate-account errors.
+- **Registration limiter**: runs before the account check, so the same `429` applies to every email.
+- **Resend confirmation**: `202` with one message for unknown, confirmed, unconfirmed and delivery-failed (apart from `429` and request validation `400`).
+- **Forgot password**: `200` with one message for unknown and delivery-failed (apart from `429` and request validation `400`).
+- **Clients**: web and iOS show a neutral hint and an inline resend after any invalid-credentials failure, never "unconfirmed".
+- Logs use user IDs only, never emails or credentials.
+
+Remaining oracles, tracked in #319 (HIGH, not started):
+
+- Timing differs for unknown, locked-out and real accounts at sign-in.
+- Timing differs for resend-confirmation and forgot-password between existing and missing accounts (existing accounts do token and email work).
+- `reset-password` returns `400 "Invalid request"` for an unknown email but Identity token errors for a known one.
+- Also observed, not listed in #319: `confirm-email` returns `400 "Invalid user"` for an unknown user id.
+
+## JWT parameters
+
+- Algorithm HS256 (`SecurityAlgorithms.HmacSha256`), symmetric key from `Jwt:Key`. The app refuses to start if the key is missing.
+- Claims: `NameIdentifier` (user id), `Email`, `Name`, `iss`, `aud`, `exp`.
+- `iss` = `ordo-api`, `aud` = `ordo-clients`. Constants in `backend/Authentication/AccessTokenClaims.cs`, not configuration.
+- **Issuing: done** (#301 phase 1). All token paths issue them: login, device session create and refresh, web session create and refresh.
+- **Validation: off.** `ValidateIssuer` and `ValidateAudience` are `false`; a token without them is still accepted. Only signature (`ValidateIssuerSigningKey`) and the default lifetime check apply.
+- **Pending: #301 phase 2** turns validation on. It is gated: it may merge only after every older token has expired, at least 2h15m after the phase-1 backend deploy is live on Render. Do not describe it as done before then.
+
+## Email confirmation and password reset
+
+- Both use ASP.NET Identity data-protection tokens, sent as Base64Url-encoded links built from `Frontend:BaseUrl`. Tokens are single purpose and not stored in Ordo tables.
+- `RequireConfirmedEmail` is on; sign-in checks confirmation after the password and lockout checks.
+- Data Protection keys persist in the database (`PersistKeysToDbContext`), so tokens survive restarts and redeploys. Restoring a database from before a key existed can invalidate outstanding tokens (see [`operations-runbook.md`](operations-runbook.md)).
+- Reset-password changes the security stamp (Identity) and revokes all sessions, but does not revoke an already issued access token.
+
+## Rate limiters
+
+All are in-memory fixed-window limiters with code defaults. State is per process and resets on restart; they are not shared across instances.
+
+| Endpoint | Global per minute | Per normalized email per minute |
+| --- | --- | --- |
+| `register` | 120 | 3 |
+| `resend-confirmation` | 60 | 3 |
+| `forgot-password` | 60 | 3 |
+
+- Over limit returns `429` with no body detail.
+- There is no per-IP limit and no rate limit on sign-in beyond account lockout.
+
+## Security headers and CSP
+
+- Production headers come from `frontend/vercel.json` and apply to the web app: CSP, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy`.
+- CSP: `default-src 'self'`, one hash-pinned inline script, `connect-src` limited to self plus the Render API, `object-src 'none'`, `base-uri 'none'`, `frame-ancestors 'none'`. It restricts where a stolen `localStorage` token could be sent, but does not make `localStorage` safe against XSS.
+- The API itself sets no security headers; it relies on HTTPS redirection.
+- Server errors: unhandled exceptions return a safe `500` problem body with a code and trace id and one privacy-safe log line. `GET /health` is anonymous.
+
+## Intentionally not done
+
+- **No security-stamp check on access tokens.** Tokens carry no stamp claim. After a password reset or session revocation, an issued access token works until its 2 hour `exp`.
+- **No access-token revocation list** and no forced sign-out of existing access tokens.
+- **No JWT key rotation.** One key in `Jwt:Key`; no `kid`, no overlap period.
+- **`ValidAlgorithms` is not pinned.** The handler default applies.
+- **No clock-skew override.** The default lifetime validation applies, so a token is accepted for a few minutes past `exp`.
+- **No refresh grace window** and no multi-refresher support (see Rotation and reuse).
+- **No refresh lockout check.** A locked account's existing sessions still refresh.
+- **No MFA, passkeys or social sign-in endpoints** exist in `AuthController`.
+- **No endpoint to list sessions or sign out everywhere.** Sign-out ends only the named session; only a password reset revokes all.
+- **No iOS universal links.** No associated-domains configuration was found under `ios/`; confirm and reset links are web links.
+- **No distributed rate limiting** and no per-IP limits.
+- **No password policy beyond ASP.NET Identity defaults** (`Program.cs` does not customize it).
+- **Web access token stays in `localStorage`** (readable by script); only the long-lived credential is HttpOnly.
+
+## Where each rule is enforced and tested
+
+| Rule | Enforced in | Tested in |
+| --- | --- | --- |
+| Lifetimes, rotation, reuse, cap, expiry | `backend/Authentication/DeviceSessionService.cs`, `DeviceSessionCredential.cs` | `backend.Tests/Auth/DeviceSessionFlowTests.cs`, `DeviceSessionCredentialTests.cs`, `PostgreSqlDeviceSessionTests.cs` |
+| Web cookie and CSRF guard | `backend/Authentication/WebSession.cs`, `AuthController` web-session actions | `backend.Tests/Auth/WebSessionFlowTests.cs` |
+| Lockout | `AuthController.CheckPasswordWithLockoutAsync`, `Program.cs` Identity options | `SignInLockoutTests.cs`, `PostgreSqlSignInLockoutTests.cs` |
+| Uniform sign-in | `AuthController` login, device-session and web-session create | `SignInEnumerationTests.cs`, `DeviceSessionFlowTests.cs`, `WebSessionFlowTests.cs` |
+| Uniform register | `AuthController.Register`, `RegistrationLimiter.cs` | `RegisterEnumerationTests.cs` |
+| Resend and forgot password | `ConfirmationResendLimiter.cs`, `ForgotPasswordLimiter.cs`, `AuthController` | `AccountConfirmationFlowTests.cs`, `ForgotPasswordFlowTests.cs` |
+| JWT claims and parameters | `AccessTokenClaims.cs`, `AuthController.GenerateJwtToken`, `Program.cs` | `AccessTokenClaimsTests.cs` (including "still accepted in phase 1") |
+| Data Protection key persistence | `Program.cs` | `DataProtectionPersistenceTests.cs` |
+| Safe errors and health | `backend/Diagnostics/UnhandledExceptionHandler.cs`, `Program.cs` | `backend.Tests/Diagnostics/ExceptionHandlingAndHealthTests.cs` |
+| Security headers and CSP | `frontend/vercel.json` | `frontend/src/test/securityHeaders.test.js` |
+| Web session client | `frontend/src/shared/auth/webSession.js`, `shared/api/webSessionClient.js` | `webSession.test.js`, `webSessionClient.test.js` |
+| iOS credential storage | `ios/Ordo/Session/KeychainCredentialStore.swift`, `WidgetAccessStore.swift` | `ios/OrdoTests` (not re-verified here) |
+
+Sign-in error literals are matched by the web client; see
+[`localization.md`](localization.md) before changing any of them.
