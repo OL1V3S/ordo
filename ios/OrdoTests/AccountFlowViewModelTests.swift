@@ -154,9 +154,11 @@ import Testing
 }
 
 @MainActor @Suite struct SignInResendTests {
-    @Test func resendIsOfferedOnlyForAnUnconfirmedEmail() async {
+    /// #318: invalid credentials (and the legacy unconfirmed response) offer the hint and resend.
+    @Test(arguments: [APIError.invalidCredentials, APIError.emailNotConfirmed])
+    func resendIsOfferedAfterInvalidCredentialsAndTheLegacyUnconfirmedResponse(error: APIError) async {
         let calls = Cell<[String]>([])
-        let model = SignInViewModel(signIn: { _, _ in throw APIError.emailNotConfirmed },
+        let model = SignInViewModel(signIn: { _, _ in throw error },
                                     resend: { email in calls.value.append(email) })
         #expect(!model.offersResend)
         model.email = " a@example.test "
@@ -165,10 +167,32 @@ import Testing
         #expect(model.offersResend && model.canResend)
         await model.resendConfirmation()
         #expect(model.resendResult == .sent && calls.value == ["a@example.test"])
-        let other = SignInViewModel(signIn: { _, _ in throw APIError.invalidCredentials }, resend: { _ in })
-        other.email = "a@example.test"; other.password = "x"
-        await other.submit()
-        #expect(!other.offersResend)
+    }
+
+    @Test func otherFailuresDoNotOfferResend() async {
+        for error: Error in [APIError.server(500), APIError.offline, APIError.unauthorized, APIError.rateLimited] {
+            let model = SignInViewModel(signIn: { _, _ in throw error }, resend: { _ in })
+            model.email = "a@example.test"; model.password = "x"
+            await model.submit()
+            #expect(model.errorKey != nil && !model.offersResend)
+        }
+        let noResend = SignInViewModel(signIn: { _, _ in throw APIError.invalidCredentials })
+        noResend.email = "a@example.test"; noResend.password = "x"
+        await noResend.submit()
+        #expect(!noResend.offersResend)
+    }
+
+    /// Unknown email, wrong password and unconfirmed + right password all reach the app as
+    /// `invalid_credentials`, so the screen state is identical.
+    @Test func everyInvalidCredentialsFailureLooksTheSame() async {
+        var states: [String] = []
+        for _ in ["unknown email", "wrong password", "unconfirmed with the right password"] {
+            let model = SignInViewModel(signIn: { _, _ in throw APIError.invalidCredentials }, resend: { _ in })
+            model.email = "a@example.test"; model.password = "x"
+            await model.submit()
+            states.append("\(String(describing: model.errorKey))|\(model.offersResend)|\(model.canResend)")
+        }
+        #expect(Set(states).count == 1)
     }
 
     @Test func aRateLimitedResendSaysSo() async {

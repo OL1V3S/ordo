@@ -38,8 +38,13 @@ final class SignInViewModel {
         !trimmedEmail.isEmpty && !password.isEmpty && !isSigningIn
     }
 
-    /// An unconfirmed email can ask for another confirmation link (same endpoint and messages as the web).
-    var offersResend: Bool { errorKey == .authErrorsLoginEmailNotConfirmed && resend != nil }
+    /// After any invalid-credentials failure (and the legacy unconfirmed response), offer a neutral
+    /// hint and another confirmation link (same endpoint and messages as the web). Since #318 the
+    /// backend answers an unconfirmed account like a wrong password, so this never reveals which.
+    var offersResend: Bool {
+        (errorKey == .authErrorsLoginInvalidCredentials || errorKey == .authErrorsLoginEmailNotConfirmed)
+            && resend != nil
+    }
     var canResend: Bool { offersResend && !trimmedEmail.isEmpty && !isResending && !isSigningIn }
 
     func resendConfirmation() async {

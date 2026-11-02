@@ -58,6 +58,18 @@ describe("mapSubmitError", () => {
     expect(unconfirmed.messages).toEqual([{ key: "errors.login.emailNotConfirmed" }]);
   });
 
+  it("offers the resend hint after the invalid-credentials and legacy confirm 401s only (#318)", () => {
+    const bad = mapSubmitError(registerErr("Invalid email or password", 401), { mode: "login", email });
+    const legacy = mapSubmitError(registerErr("Please confirm your email before logging in.", 401), { mode: "login", email });
+    expect(bad.offerResend).toBe(true);
+    expect(legacy.offerResend).toBe(true);
+    for (const body of ["Invalid credentials", "", null, { code: "invalid_credentials" }]) {
+      expect(mapSubmitError(registerErr(body, 401), { mode: "login", email }).offerResend).toBeUndefined();
+    }
+    expect(mapSubmitError(registerErr("Invalid email or password", 400), { mode: "login", email }).offerResend).toBeUndefined();
+    expect(mapSubmitError(registerErr("Invalid email or password", 401), { mode: "register", email }).offerResend).toBeUndefined();
+  });
+
   it.each(["invalid email or password", "Invalid email or password ", " Invalid email or password", "Invalid credentials", "", null])(
     "falls back for near-miss login 401 body %j",
     (body) => {

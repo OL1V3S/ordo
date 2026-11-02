@@ -219,8 +219,11 @@ public class AuthController : ControllerBase
 
         var user = signIn.User;
 
+        // An unconfirmed account gets exactly the invalid-credentials response,
+        // even with the right password, so sign-in never reveals that the
+        // account exists or is unconfirmed (#318). Clients offer a resend.
         if (!await _userManager.IsEmailConfirmedAsync(user))
-            return Unauthorized("Please confirm your email before logging in.");
+            return Unauthorized("Invalid email or password");
 
         var token = GenerateJwtToken(user);
 
@@ -247,8 +250,9 @@ public class AuthController : ControllerBase
         var user = signIn.User;
         var securityStamp = signIn.SecurityStamp;
 
+        // Unconfirmed: same response as invalid credentials (#318).
         if (!await _userManager.IsEmailConfirmedAsync(user))
-            return Unauthorized(new { code = "email_not_confirmed" });
+            return Unauthorized(new { code = "invalid_credentials" });
 
         var credential = await _deviceSessions.CreateAsync(user.Id, securityStamp, cancellationToken);
 
@@ -307,8 +311,10 @@ public class AuthController : ControllerBase
         var user = signIn.User;
         var securityStamp = signIn.SecurityStamp;
 
+        // Unconfirmed: same response as invalid credentials (#318). Checked
+        // before the existing-cookie sign-out so the current session survives.
         if (!await _userManager.IsEmailConfirmedAsync(user))
-            return Unauthorized("Please confirm your email before logging in.");
+            return Unauthorized("Invalid email or password");
 
         // End the session of a cookie being replaced, so orphaned rows cannot
         // use up the shared per-account session cap.
@@ -461,7 +467,8 @@ public class AuthController : ControllerBase
     /// Password sign-in with account lockout (#299), shared by Login, CreateDeviceSession
     /// and CreateWebSession. Returns null for an unknown email, a wrong password or a
     /// locked account, so callers return one identical response for all three. The
-    /// confirmed-email check stays with the caller and runs only after this succeeds.
+    /// confirmed-email check stays with the caller and runs only after this succeeds;
+    /// an unconfirmed account then gets the same response too (#318).
     /// </summary>
     private async Task<PasswordSignIn?> CheckPasswordWithLockoutAsync(string email, string password)
     {

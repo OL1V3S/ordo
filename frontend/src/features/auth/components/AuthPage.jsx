@@ -23,6 +23,7 @@ export default function AuthPage({ onLogin }) {
   const [resendMessage, setResendMessage] = useState(null);
   const [resendTone, setResendTone] = useState("info");
   const [formError, setFormError] = useState(null);
+  const [offerResend, setOfferResend] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const emailId = useId();
   const passwordId = useId();
@@ -38,6 +39,8 @@ export default function AuthPage({ onLogin }) {
   async function handleSubmit(e) {
     e.preventDefault();
     setFormError(null);
+    setOfferResend(false);
+    setResendMessage(null);
 
     if (mode === "register" && password !== confirmPassword) {
       setFormError([{ key: "register.passwordMismatch" }]);
@@ -73,6 +76,7 @@ export default function AuthPage({ onLogin }) {
       }
 
       setFormError(mapped.messages);
+      setOfferResend(mapped.offerResend === true);
     }
   }
 
@@ -99,6 +103,7 @@ export default function AuthPage({ onLogin }) {
     setConfirmationMessage(null);
     setResendMessage(null);
     setFormError(null);
+    setOfferResend(false);
     setPassword("");
     setConfirmPassword("");
   }
@@ -108,6 +113,7 @@ export default function AuthPage({ onLogin }) {
     setConfirmationMessage(null);
     setResendMessage(null);
     setFormError(null);
+    setOfferResend(false);
   }
 
   if (mode === "check-email") {
@@ -226,6 +232,25 @@ export default function AuthPage({ onLogin }) {
           <StatusMessage ref={formErrorRef} tone="danger" tabIndex="-1">
             {translateDescriptors(t, formError)}
           </StatusMessage>
+        )}
+
+        {isLogin && offerResend && (
+          <div className="auth-help">
+            <p>{t("login.confirmHint")}</p>
+            <button
+              type="button"
+              className="button-ghost auth-text-action"
+              onClick={handleResendConfirmation}
+              disabled={!email || isResending}
+            >
+              {isResending ? t("resend.requesting") : t("resend.action")}
+            </button>
+            {resendMessage && (
+              <StatusMessage tone={resendTone}>
+                {t(resendMessage.key)}
+              </StatusMessage>
+            )}
+          </div>
         )}
 
         <button type="submit" className="auth-primary-action">

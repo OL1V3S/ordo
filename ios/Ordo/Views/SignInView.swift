@@ -71,6 +71,10 @@ struct SignInView: View {
                     .accessibilityAddTraits(.isStaticText)
             }
             if model.offersResend {
+                Text(verbatim: l10n.string(.authLoginConfirmHint))
+                    .font(Theme.Typography.meta.font)
+                    .foregroundStyle(ThemeColor.textMuted.color)
+                    .fixedSize(horizontal: false, vertical: true)
                 ResendContent(isSending: model.isResending, canResend: model.canResend, result: model.resendResult,
                               l10n: l10n) { Task { await model.resendConfirmation() } }
             }

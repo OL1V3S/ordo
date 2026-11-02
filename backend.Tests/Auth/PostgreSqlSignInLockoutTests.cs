@@ -97,7 +97,7 @@ public sealed class PostgreSqlSignInLockoutTests
     }
 
     [PostgreSqlFact]
-    public async Task Lockout_disabled_users_are_never_locked_and_unconfirmed_users_see_confirmation_only_when_unlocked()
+    public async Task Lockout_disabled_users_are_never_locked_and_unconfirmed_users_never_see_confirmation_even_after_unlock()
     {
         await using var app = new CountingApplication();
         using var noLock = await app.CreateAuthenticatedUserAsync("pg-nolock@example.com");
@@ -123,9 +123,13 @@ public sealed class PostgreSqlSignInLockoutTests
 
         var pendingId = (await FindByEmailAsync(app, "pg-pending@example.com")).Id;
         await SetLockoutEndAsync(app, pendingId, DateTimeOffset.UtcNow.AddMinutes(-1));
-        var confirm = await SnapshotAsync(app, DeviceSession, "pg-pending@example.com", Password);
-        Assert.Equal("{\"code\":\"email_not_confirmed\"}", confirm.Body);
+        await StatusAsync(app, DeviceSession, "pg-pending@example.com", WrongPassword);
+        Assert.Equal(1, (await FindAsync(app, pendingId)).AccessFailedCount);
+        // #318: the right password after unlock still gets the wrong-password
+        // response, but resets the failure count.
+        Assert.Equal(wrong, await SnapshotAsync(app, DeviceSession, "pg-pending@example.com", Password));
         Assert.Equal(0, (await FindAsync(app, pendingId)).AccessFailedCount);
+        Assert.Equal(0, await CountSessionsAsync(app, pendingId));
     }
 
     [PostgreSqlFact]

@@ -20,11 +20,12 @@ const IDENTITY_KEYS = {
 // default Identity options (minimum length 6, one unique character); they are
 // not parsed from server text.
 
-// Documented narrow exception (docs/localization.md): the login endpoint returns
-// these two 401s as plain text without a code. Exact whole-string match only.
-// Must stay identical to backend/Controllers/AuthController.cs lines 121, 126
-// ("Invalid email or password") and 129 ("Please confirm your email before
-// logging in."). A reworded backend message falls back to errors.login.failed.
+// Documented narrow exception (docs/localization.md): the sign-in endpoints
+// return these 401s as plain text without a code. Exact whole-string match only.
+// Must stay identical to backend/Controllers/AuthController.cs lines 218, 226,
+// 309 and 317 ("Invalid email or password"). Since #318 the backend never sends
+// "Please confirm your email before logging in."; it is kept only for an older
+// backend. A reworded backend message falls back to errors.login.failed.
 const LOGIN_INVALID_CREDENTIALS = "Invalid email or password";
 const LOGIN_EMAIL_NOT_CONFIRMED = "Please confirm your email before logging in.";
 
@@ -60,12 +61,15 @@ export function mapSubmitError(err, { mode, email }) {
     return { kind: "error", messages };
   }
 
+  // #318: every invalid-credentials 401 (and the legacy confirm text) offers
+  // the same neutral hint and resend, so the UI never shows whether the
+  // account exists or is unconfirmed.
   if (mode === "login" && status === 401) {
     if (data === LOGIN_INVALID_CREDENTIALS) {
-      return { kind: "error", messages: [{ key: "errors.login.invalidCredentials" }] };
+      return { kind: "error", messages: [{ key: "errors.login.invalidCredentials" }], offerResend: true };
     }
     if (data === LOGIN_EMAIL_NOT_CONFIRMED) {
-      return { kind: "error", messages: [{ key: "errors.login.emailNotConfirmed" }] };
+      return { kind: "error", messages: [{ key: "errors.login.emailNotConfirmed" }], offerResend: true };
     }
     return { kind: "error", messages: [{ key: "errors.login.failed" }] };
   }

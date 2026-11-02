@@ -93,6 +93,70 @@ describe('existing authentication flows', () => {
     alert.mockRestore()
   })
 
+  it('offers a neutral hint and inline resend after an invalid-credentials 401 (#318)', async () => {
+    const user = userEvent.setup()
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {})
+    webSessionClient.signIn.mockRejectedValue({ response: { status: 401, data: 'Invalid email or password' } })
+    authApi.resendConfirmation.mockResolvedValue({ data: { message: 'English' } })
+    renderAt(<AuthPage onLogin={vi.fn()} />)
+    await user.type(screen.getByLabelText('Email'), 'person@example.invalid')
+    await user.type(screen.getByLabelText('Password'), 'Synthetic1!')
+    await user.click(screen.getByRole('button', { name: 'Sign in' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Incorrect email or password')
+    expect(screen.getByText('Just created an account? Confirm your email first.')).toBeVisible()
+    expect(screen.queryByText(/unconfirmed|not confirmed|exists/i)).toBeNull()
+    await user.click(screen.getByRole('button', { name: 'Resend confirmation email' }))
+    await waitFor(() => expect(authApi.resendConfirmation).toHaveBeenCalledWith({
+      email: 'person@example.invalid',
+      language: 'en',
+    }))
+    expect(await screen.findByText('If an unconfirmed account exists for that email, we sent a confirmation link.')).toBeVisible()
+    expect(webSessionClient.signIn).toHaveBeenCalledOnce()
+    log.mockRestore()
+  })
+
+  it('renders the same UI for unknown email, wrong password and unconfirmed account (#318)', async () => {
+    const user = userEvent.setup()
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {})
+    // The backend answers all three with the same bytes; the UI must not differ.
+    const scenarios = ['unknown email', 'wrong password', 'unconfirmed with the right password']
+    const rendered = []
+    for (const scenario of scenarios) {
+      webSessionClient.signIn.mockRejectedValueOnce({ response: { status: 401, data: 'Invalid email or password' } })
+      const { container, unmount } = renderAt(<AuthPage onLogin={vi.fn()} />)
+      await user.type(screen.getByLabelText('Email'), 'person@example.invalid')
+      await user.type(screen.getByLabelText('Password'), 'Synthetic1!')
+      await user.click(screen.getByRole('button', { name: 'Sign in' }))
+      await screen.findByText('Just created an account? Confirm your email first.')
+      // useId values differ per render root; every other byte must match.
+      rendered.push({ scenario, html: container.innerHTML.replace(/(id|for|aria-[a-z]+)="[^"]*"/g, '$1=""') })
+      unmount()
+    }
+    expect(rendered[1].html).toBe(rendered[0].html)
+    expect(rendered[2].html).toBe(rendered[0].html)
+    log.mockRestore()
+  })
+
+  it('shows the same hint and resend for the legacy confirm 401 but not for other 401s', async () => {
+    const user = userEvent.setup()
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {})
+    webSessionClient.signIn.mockRejectedValueOnce({ response: { status: 401, data: 'Please confirm your email before logging in.' } })
+    renderAt(<AuthPage onLogin={vi.fn()} />)
+    await user.type(screen.getByLabelText('Email'), 'person@example.invalid')
+    await user.type(screen.getByLabelText('Password'), 'Synthetic1!')
+    await user.click(screen.getByRole('button', { name: 'Sign in' }))
+    expect(await screen.findByText('Just created an account? Confirm your email first.')).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Resend confirmation email' })).toBeVisible()
+
+    webSessionClient.signIn.mockRejectedValueOnce({ response: { status: 401, data: 'Something else' } })
+    await user.click(screen.getByRole('button', { name: 'Sign in' }))
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('We couldn’t sign you in. Try again.'))
+    expect(screen.queryByText('Just created an account? Confirm your email first.')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Resend confirmation email' })).toBeNull()
+    log.mockRestore()
+  })
+
   it('shows a fixed localized message for an unmapped login 401 body', async () => {
     const user = userEvent.setup()
     const log = vi.spyOn(console, 'log').mockImplementation(() => {})
@@ -426,10 +490,29 @@ describe('authentication pages in Spanish', () => {
     const error = await screen.findByRole('alert')
     expect(error).toHaveTextContent('Correo o contraseña incorrectos')
     expect(error).not.toHaveTextContent('Invalid')
+    expect(screen.getByText('¿Acabas de crear una cuenta? Confirma tu correo primero.')).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Reenviar correo de confirmación' })).toBeVisible()
 
     webSessionClient.signIn.mockRejectedValueOnce({ response: { status: 401, data: 'Please confirm your email before logging in.' } })
     await user.click(screen.getByRole('button', { name: 'Iniciar sesión' }))
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Confirma tu correo antes de iniciar sesión.'))
+    expect(screen.getByText('¿Acabas de crear una cuenta? Confirma tu correo primero.')).toBeVisible()
+  })
+
+  it('resends confirmation from the Spanish sign-in hint (#318)', async () => {
+    const user = userEvent.setup()
+    webSessionClient.signIn.mockRejectedValueOnce({ response: { status: 401, data: 'Invalid email or password' } })
+    authApi.resendConfirmation.mockResolvedValue({ data: { message: 'Server English text' } })
+    renderAt(<AuthPage onLogin={vi.fn()} />)
+    await fillLogin(user)
+    await user.click(screen.getByRole('button', { name: 'Iniciar sesión' }))
+    await user.click(await screen.findByRole('button', { name: 'Reenviar correo de confirmación' }))
+    await waitFor(() => expect(authApi.resendConfirmation).toHaveBeenCalledWith({
+      email: 'person@example.com',
+      language: 'es',
+    }))
+    expect(await screen.findByText('Si existe una cuenta sin confirmar para ese correo, enviamos un enlace de confirmación.')).toBeVisible()
+    expect(screen.queryByText(/Server English text/)).toBeNull()
   })
 
   it('maps Identity registration errors to Spanish and falls back for unknown codes', async () => {

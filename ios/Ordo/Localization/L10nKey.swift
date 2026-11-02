@@ -128,6 +128,7 @@ enum L10nKey: String, CaseIterable, Sendable {
     case authForgotPasswordSubmit = "auth.forgotPassword.submit"
     case authForgotPasswordTitle = "auth.forgotPassword.title"
     case authIosLinkOpensInBrowser = "auth.ios.linkOpensInBrowser"
+    case authLoginConfirmHint = "auth.login.confirmHint"
     case authLoginForgotPassword = "auth.login.forgotPassword"
     case authLoginSubmit = "auth.login.submit"
     case authLoginSwitchToRegister = "auth.login.switchToRegister"
