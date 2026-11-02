@@ -34,6 +34,8 @@ sources relevant to the task:
 - [`ROADMAP.md`](ROADMAP.md) — engineering priorities, sequencing, and dependencies;
 - [`docs/financial-domain-invariants.md`](docs/financial-domain-invariants.md) — approved financial semantics and
   decisions that require explicit human approval to change;
+- [`docs/auth-session-invariants.md`](docs/auth-session-invariants.md) — current authentication and session
+  rules: lifetimes, rotation, lockout, enumeration policy, JWT parameters, and what is not done;
 - [`docs/verification.md`](docs/verification.md) — canonical commands, required evidence, environment
   fallbacks, and review-ready criteria;
 - [`docs/debugging.md`](docs/debugging.md) — privacy-safe diagnostic sequence and supplemental

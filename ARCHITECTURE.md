@@ -228,6 +228,9 @@ request identity, and protected controllers authorize access. Financial data
 ownership comes from the authenticated identity, not from a client-selected
 user. Cross-user isolation is a mandatory backend responsibility.
 
+The full rule list for sessions, lockout, enumeration policy and JWT parameters is in
+[`docs/auth-session-invariants.md`](docs/auth-session-invariants.md).
+
 Access tokens carry `iss = ordo-api` and `aud = ordo-clients` (#301), fixed in
 `backend/Authentication/AccessTokenClaims.cs` (constants, not configuration).
 Phase 1 only issues these claims; the validator still ignores them. Phase 2 turns
