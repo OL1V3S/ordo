@@ -53,7 +53,7 @@ public sealed class LoginCharacterizationTests
     }
 
     [Fact]
-    public async Task Unconfirmed_account_with_the_right_password_returns_the_confirmation_text()
+    public async Task Unconfirmed_account_with_the_right_password_returns_the_invalid_credentials_text()
     {
         await using var app = await TestApplication.StartAsync();
         await app.CreateUserAsync("unconfirmed-login@example.com", confirmed: false);
@@ -63,9 +63,7 @@ public sealed class LoginCharacterizationTests
             new { email = "unconfirmed-login@example.com", password = Password });
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
-        Assert.Equal(
-            "Please confirm your email before logging in.",
-            await response.Content.ReadAsStringAsync());
+        Assert.Equal("Invalid email or password", await response.Content.ReadAsStringAsync());
     }
 
     [Fact]
@@ -166,7 +164,7 @@ public sealed class DeviceSessionFlowTests
     }
 
     [Fact]
-    public async Task Unconfirmed_account_is_told_so_only_after_a_valid_password()
+    public async Task Unconfirmed_account_is_never_told_so_even_with_a_valid_password()
     {
         await using var app = await TestApplication.StartAsync();
         await app.CreateUserAsync("unconfirmed-device@example.com", confirmed: false);
@@ -178,7 +176,7 @@ public sealed class DeviceSessionFlowTests
 
         Assert.Equal("invalid_credentials", await CodeAsync(wrong));
         Assert.Equal(HttpStatusCode.Unauthorized, right.StatusCode);
-        Assert.Equal("email_not_confirmed", await CodeAsync(right));
+        Assert.Equal("invalid_credentials", await CodeAsync(right));
         Assert.Equal(0, await app.CountDeviceSessionsAsync());
     }
 

@@ -110,10 +110,8 @@ public sealed class SignInLockoutTests
     }
 
     [Theory]
-    [InlineData(Login, "Please confirm your email before logging in.")]
-    [InlineData(DeviceSession, "{\"code\":\"email_not_confirmed\"}")]
-    [InlineData(WebSession, "Please confirm your email before logging in.")]
-    public async Task An_unconfirmed_account_locks_and_only_reveals_confirmation_after_unlock(string endpoint, string confirmBody)
+    [MemberData(nameof(Endpoints))]
+    public async Task An_unconfirmed_account_locks_and_never_reveals_confirmation_even_after_unlock(string endpoint)
     {
         await using var app = await TestApplication.StartAsync();
         await app.CreateUserAsync("unconfirmed@example.com", confirmed: false);
@@ -128,10 +126,11 @@ public sealed class SignInLockoutTests
         await SignInAsync(app, endpoint, "unconfirmed@example.com", WrongPassword);
         Assert.Equal(1, (await app.FindUserByEmailAsync("unconfirmed@example.com"))!.AccessFailedCount);
 
-        var confirm = await SignInAsync(app, endpoint, "unconfirmed@example.com", Password);
-        Assert.Equal(HttpStatusCode.Unauthorized, confirm.StatusCode);
-        Assert.Equal(confirmBody, await confirm.Content.ReadAsStringAsync());
+        // #318: the right password after unlock still gets the wrong-password
+        // response, but resets the failure count.
+        Assert.Equal(wrong, await Snapshot(await SignInAsync(app, endpoint, "unconfirmed@example.com", Password)));
         Assert.Equal(0, (await app.FindUserByEmailAsync("unconfirmed@example.com"))!.AccessFailedCount);
+        Assert.Equal(0, await app.CountDeviceSessionsAsync());
     }
 
     [Fact]

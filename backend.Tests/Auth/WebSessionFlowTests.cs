@@ -74,7 +74,7 @@ public sealed class WebSessionFlowTests
         }
         Assert.Equal("Invalid email or password", await unknown.Content.ReadAsStringAsync());
         Assert.Equal("Invalid email or password", await wrong.Content.ReadAsStringAsync());
-        Assert.Equal("Please confirm your email before logging in.", await unconfirmed.Content.ReadAsStringAsync());
+        Assert.Equal("Invalid email or password", await unconfirmed.Content.ReadAsStringAsync());
         Assert.Equal(0, await app.CountDeviceSessionsAsync());
     }
 
