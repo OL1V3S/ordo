@@ -502,8 +502,10 @@ and iOS signs out after two 401s in a row.
 1. Generate a new key locally (for example `openssl rand -base64 48`).
 2. Deploy 1: `Jwt__Key` = old key, `Jwt__PreviousKey` = new key. Every
    instance now accepts the new key. Signing is still with the old key.
-3. Deploy 2: `Jwt__Key` = new key, `Jwt__PreviousKey` = old key. Run the smoke
-   script, then one private sign-in or refresh on web and iOS.
+3. Deploy 2: `Jwt__Key` = new key, `Jwt__PreviousKey` = old key. Start it
+   only after Deploy 1 is fully live and the pre-Deploy-1 instance has stopped
+   serving. Run the smoke script, then one private sign-in or refresh on web
+   and iOS.
 4. Wait at least 2 h 5 min counted from when the old instance stops serving
    (not from "live"). Prefer 24 h. Do not start another rotation before step 5.
 5. Deploy 3: delete `Jwt__PreviousKey`. Run the smoke script again. Record the
@@ -513,9 +515,10 @@ and iOS signs out after two 401s in a row.
 
 1. Set `Jwt__Key` to a new key and delete `Jwt__PreviousKey`. Never put the
    leaked key in `Jwt__PreviousKey`. Deploy.
-2. Every existing access token, forged ones included, now gets 401. Web
-   refreshes once through its cookie and retries. iOS refreshes once and signs
-   out on a second 401.
+2. Once the new instance serves, every existing access token, forged ones
+   included, gets 401. Web refreshes once through its cookie and retries. iOS
+   refreshes once and signs out on a second 401. The old instance keeps
+   accepting leaked-key tokens until it stops serving.
 3. A key swap alone does not sign anyone out: sessions survive and refresh
    silently. To sign everyone out, also run the optional step below.
 4. Run the smoke script. Record the date.
@@ -535,12 +538,15 @@ recovery point first (Neon branch, see the ordering rules).
   ```sql
   BEGIN;
   DELETE FROM "DeviceSessions";
-  UPDATE "AspNetUsers" SET "SecurityStamp" = replace(gen_random_uuid()::text, '-', '');
+  UPDATE "AspNetUsers" SET
+    "SecurityStamp" = replace(gen_random_uuid()::text, '-', ''),
+    "ConcurrencyStamp" = gen_random_uuid()::text;
   COMMIT;
   ```
 
 - Verified only on a disposable local PostgreSQL 16 with synthetic data (3
-  sessions, 2 users): 0 sessions left, 2 users kept, both stamps replaced.
+  sessions, 2 users): 0 sessions left, 2 users kept, both security and
+  concurrency stamps replaced.
   Not run against the API or any hosted database.
 
 ### If a deploy will not start after an env change
