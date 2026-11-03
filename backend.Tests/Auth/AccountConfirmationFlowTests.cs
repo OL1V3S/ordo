@@ -87,6 +87,7 @@ public sealed class AccountConfirmationFlowTests
 
         Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
         Assert.Equal(TestApplication.GenericResendMessage, body.GetProperty("message").GetString());
+        await app.WaitForEmailQueueIdleAsync();
         Assert.Single(app.EmailSender.Messages);
     }
 
@@ -108,6 +109,7 @@ public sealed class AccountConfirmationFlowTests
 
         Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
         Assert.Equal(TestApplication.GenericResendMessage, body.GetProperty("message").GetString());
+        await app.WaitForEmailQueueIdleAsync();
         Assert.Empty(app.EmailSender.Messages);
     }
 
@@ -124,6 +126,7 @@ public sealed class AccountConfirmationFlowTests
 
         Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
         Assert.Equal(TestApplication.GenericResendMessage, body.GetProperty("message").GetString());
+        await app.WaitForEmailQueueIdleAsync();
         Assert.Equal(1, app.EmailSender.AttemptCount);
     }
 
@@ -391,6 +394,7 @@ public sealed class AccountConfirmationFlowTests
             new { email });
 
         Assert.Equal(HttpStatusCode.TooManyRequests, limited.StatusCode);
+        await app.WaitForEmailQueueIdleAsync();
         Assert.Equal(expectedDeliveryAttempts, app.EmailSender.AttemptCount);
     }
 
@@ -433,6 +437,7 @@ public sealed class AccountConfirmationFlowTests
             new { email = "global-final@example.com" });
 
         Assert.Equal(HttpStatusCode.TooManyRequests, limited.StatusCode);
+        await app.WaitForEmailQueueIdleAsync();
         Assert.Empty(app.EmailSender.Messages);
     }
 

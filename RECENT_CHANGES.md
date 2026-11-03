@@ -24,6 +24,13 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-11-02 — Resend and forgot-password emails send in the background
+
+[PR #324](https://github.com/OL1V3S/ordo/pull/324) · [Issue #319](https://github.com/OL1V3S/ordo/issues/319)
+
+- Resend-confirmation and forgot-password now queue the email for an in-process worker, so response time no longer shows whether an account exists. Queued emails are lost on restart; the user can ask again.
+- A non-delivery error or cancellation during the send now returns the normal `200`/`202` instead of `500` for existing accounts. Forgot-password sends to the stored address. No config, schema, web or iOS change.
+
 ### 2026-11-02 — Sign-in timing and reset-password no longer reveal accounts
 
 [PR #323](https://github.com/OL1V3S/ordo/pull/323) · [Issue #319](https://github.com/OL1V3S/ordo/issues/319)
@@ -159,10 +166,3 @@ the permanent, complete archive.
 
 - The iPhone app has a Recurring tab: your confirmed recurring expenses (Active, with collapsible Paused and Ended groups) and the possible recurring expenses the server detected, with their expected timing and expected or observed amounts, in English and Spanish. You can review and confirm a possible one, dismiss it or review it again, and pause, reactivate or end (ending asks first) a confirmed one.
 - A decision that times out or loses its connection is shown as unconfirmed; you can retry the same request or check the lists, and further recurring-expense changes wait until then. After every decision both lists and Home are re-read from the server, so nothing is changed on the phone first. Expected amounts are never counted as money spent. Reviewing detected changes and editing a recurring expense are not in the app yet. Backend, API, schema, web app and required checks are unchanged; the app is still not distributed.
-
-### 2026-10-20 — Paychecks in the iPhone app
-
-[PR #273](https://github.com/OL1V3S/ordo/pull/273) · [Issue #272](https://github.com/OL1V3S/ordo/issues/272)
-
-- The iPhone app has a Paychecks tab: your pay schedules with their cadence, expected amount, next expected window ("Expected, not guaranteed.") and number of linked deposits, in English and Spanish. You can pause, reactivate or end a schedule (ending asks first), link a received paycheck to an active schedule's current or previous date as a new deposit or a saved one, and remove a link you made (the deposit stays in Transactions).
-- A change that times out or loses its connection is shown as unconfirmed; you can retry the same request or check the schedules, and further paycheck changes wait until then. After every change the schedules, Home and Transactions are re-read from the server, so nothing is changed on the phone first. Expected paychecks are never counted as money received. Backend, API, schema, web app and required checks are unchanged; the app is still not distributed.

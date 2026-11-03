@@ -87,18 +87,24 @@ Uniform today (same client-visible response for every case: same status and body
 - **Registration limiter**: runs before the account check, so the same `429` applies to every email.
 - **Sign-in timing** (#319): unknown email and locked account (both lockout branches) each verify one dummy password hash through the request's hasher, so they cost about the same as a wrong password. `PasswordTimingEqualizer` builds the dummy hash once at startup from the registered hasher, so it has the configured cost. It reads no account data. The stored hash of a locked account is never checked, so the lockout cap is unchanged. Every sign-in request now costs one hash; the sign-in endpoints have no rate limiter.
 - **Reset password** (#319): an unknown email gets `400` with the same `InvalidToken` error array as a known email with a bad or malformed token (same status, content type and body). A weak new password with a bad token also gets `InvalidToken`; policy errors only appear once the token is valid.
-- **Resend confirmation**: `202` with one message for unknown, confirmed, unconfirmed and delivery-failed (apart from `429` and request validation `400`).
-- **Forgot password**: `200` with one message for unknown and delivery-failed (apart from `429` and request validation `400`).
+- **Resend confirmation**: `202` with one message for unknown, confirmed, unconfirmed, delivery-failed and any other send error (apart from `429` and request validation `400`).
+- **Forgot password**: `200` with one message for unknown, delivery-failed and any other send error (apart from `429` and request validation `400`).
+- **Background email** (#319): for a matching account only, the request queues `{userId, language}` on an in-process queue (`IBackgroundEmailQueue`: bounded channel, capacity 256, single reader, `TryWrite` so a request never waits) and returns the generic response. `BackgroundEmailWorker` reloads the user (skips a deleted one), then runs the confirmed-state check (resend: send only if still unconfirmed), token, link and send with the host stopping token, not the request token. Response time and status no longer depend on the account.
+  - The worker wraps everything per item in a catch-all so the host never stops. Delivery failures log a warning by user ID; other errors log the exception type and user ID. The email is never logged. Shutdown cancellation is a normal stop.
+  - A full queue drops the item and logs a warning by user ID; the response is unchanged. Queued emails are lost if the process restarts; the user can request again.
+  - Intended change: a non-delivery exception or request cancellation on the send used to give `500` for existing accounts only. It now gives the same `200`/`202` as an unknown email.
+  - Forgot-password now sends to and links the stored `user.Email`, as resend and register do. It differs from the submitted address only in letter case.
+  - Registration is not moved: it must report delivery failure (`503`).
 - **Clients**: web and iOS show a neutral hint and an inline resend after any invalid-credentials failure, never "unconfirmed".
 - Logs use user IDs only, never emails or credentials.
 
-Remaining oracles, tracked in #319 (HIGH; sign-in timing and reset-password are done, resend and forgot-password follow in a second PR):
+Remaining oracles and residuals (#319 is done: sign-in timing, reset-password, resend and forgot-password timing are removed):
 
-- Timing differs for resend-confirmation and forgot-password between existing and missing accounts (existing accounts do token and email work).
+- Residual resend and forgot-password timing: only the in-request queue write for a matching account (microseconds).
 - Residual sign-in timing: the relational path does 2 `ExecuteUpdate` round trips for a wrong password, 2 for a locked account, 3 for a success and 0 for an unknown email. That is a few ms against about 100 ms for the hash; accepted, no no-op updates added.
 - Residual reset-password timing: a known email with a decodable bad token runs a Data Protection unprotect (microseconds).
 - The sign-in failure-count side effect is not client-visible and is not considered an oracle: an unconfirmed account with the right password resets the count, a wrong password increments it (see the lockout section).
-- Also observed, not listed in #319: `confirm-email` returns `400 "Invalid user"` for an unknown user id.
+- Out of scope for #319: `confirm-email` returns `400 "Invalid user"` for an unknown user id (the key is a GUID); there is no sign-in rate limiter; registration timing (#300, #317).
 
 ## JWT parameters
 
@@ -161,6 +167,7 @@ All are in-memory fixed-window limiters with code defaults. State is per process
 | Lockout | `AuthController.CheckPasswordWithLockoutAsync`, `Program.cs` Identity options | `SignInLockoutTests.cs`, `PostgreSqlSignInLockoutTests.cs` |
 | Uniform sign-in | `AuthController` login, device-session and web-session create | `SignInEnumerationTests.cs`, `DeviceSessionFlowTests.cs`, `WebSessionFlowTests.cs` |
 | Uniform register | `AuthController.Register`, `RegistrationLimiter.cs` | `RegisterEnumerationTests.cs` |
+| Background email (resend, forgot password) | `BackgroundEmailQueue.cs`, `BackgroundEmailWorker.cs`, `AuthController` | `BackgroundEmailTests.cs` |
 | Resend and forgot password | `ConfirmationResendLimiter.cs`, `ForgotPasswordLimiter.cs`, `AuthController` | `AccountConfirmationFlowTests.cs`, `ForgotPasswordFlowTests.cs` |
 | JWT claims and parameters | `AccessTokenClaims.cs`, `AuthController.GenerateJwtToken`, `Program.cs` | `AccessTokenClaimsTests.cs` (issued claims and rejection matrix) |
 | Data Protection key persistence | `Program.cs` | `DataProtectionPersistenceTests.cs` |
