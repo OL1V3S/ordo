@@ -24,6 +24,13 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-11-03 — Budget limit save binds a request DTO
+
+[PR #PRNUM](https://github.com/OL1V3S/ordo/pull/PRNUM) · [Issue #331](https://github.com/OL1V3S/ordo/issues/331)
+
+- `POST /api/BudgetLimits` now binds a request type with `category`, `limitAmount` and `monthYear`, and returns a response type. Status codes and error texts are unchanged.
+- The response no longer includes the always-null `user` key. No schema, web or iOS change.
+
 ### 2026-11-02 — Resend and forgot-password emails send in the background
 
 [PR #324](https://github.com/OL1V3S/ordo/pull/324) · [Issue #319](https://github.com/OL1V3S/ordo/issues/319)
@@ -159,10 +166,3 @@ the permanent, complete archive.
 
 - The iPhone app has Reports, opened from Home: the selected month's deposits, spending, confirmed paychecks vs other deposits and deposits minus spending, spending by category, and a six-month trend chart with an exact list, in English and Spanish. You can move between months that have records.
 - Figures come from the server and are shown exactly; the phone does no money maths. Reports re-reads after saves, edits, deletes and paycheck changes. The web's "More spending detail" is not in the app yet. Backend, API, schema, web app and required checks are unchanged.
-
-### 2026-10-20 — Recurring expenses in the iPhone app
-
-[PR #275](https://github.com/OL1V3S/ordo/pull/275) · [Issue #274](https://github.com/OL1V3S/ordo/issues/274)
-
-- The iPhone app has a Recurring tab: your confirmed recurring expenses (Active, with collapsible Paused and Ended groups) and the possible recurring expenses the server detected, with their expected timing and expected or observed amounts, in English and Spanish. You can review and confirm a possible one, dismiss it or review it again, and pause, reactivate or end (ending asks first) a confirmed one.
-- A decision that times out or loses its connection is shown as unconfirmed; you can retry the same request or check the lists, and further recurring-expense changes wait until then. After every decision both lists and Home are re-read from the server, so nothing is changed on the phone first. Expected amounts are never counted as money spent. Reviewing detected changes and editing a recurring expense are not in the app yet. Backend, API, schema, web app and required checks are unchanged; the app is still not distributed.

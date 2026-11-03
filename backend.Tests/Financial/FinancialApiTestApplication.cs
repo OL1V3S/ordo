@@ -259,6 +259,13 @@ internal abstract class FinancialApiTestApplicationBase : WebApplicationFactory<
             .ToListAsync();
     }
 
+    public async Task<int> CountUsersAsync()
+    {
+        using var scope = Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<BudgetContext>();
+        return await context.Users.CountAsync();
+    }
+
     public async Task<IReadOnlyList<BudgetLimit>> FindBudgetLimitsAsync(
         string userId,
         string category)
