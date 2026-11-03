@@ -321,7 +321,6 @@ describe('server error support reference (#340)', () => {
     for (const status of [404, 422, 429]) await failWith(status, { headers: { 'x-request-id': 'aaaaaaaa11111111' } })
     await failWith(500, { data: { requestId: 'not valid!' } })
     expect(getRequestReference()).toBeNull()
-    localStorage.setItem('token', 'jwt-value')
     await failWith(401, { headers: { 'x-request-id': 'aaaaaaaa11111111' } })
     expect(getRequestReference()).toBeNull()
   })
