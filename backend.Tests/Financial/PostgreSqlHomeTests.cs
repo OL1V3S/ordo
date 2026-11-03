@@ -167,6 +167,8 @@ public sealed class PostgreSqlHomeTests
         };
         var missed = Weekly(owner.Id, "PostgreSQL missed", today.AddDays(-3));
         var expected = Weekly(owner.Id, "PostgreSQL expected", today);
+        // Earlier weekly slots predate this profile, so only today's window flags.
+        expected.CreatedAt = expected.UpdatedAt = DateTime.UtcNow;
         var recorded = Weekly(owner.Id, "PostgreSQL recorded", today.AddDays(-2));
         var foreign = Weekly(other.Id, "PostgreSQL foreign", today.AddDays(-1));
         var inflow = await app.SeedInflowAsync(owner.Id, "PostgreSQL receipt", 1000m, today.AddDays(-2));
