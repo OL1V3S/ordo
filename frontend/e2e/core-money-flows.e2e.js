@@ -13,6 +13,7 @@ const labels = {
   signIn: 'Sign in',
   description: 'Description',
   amount: 'Amount',
+  date: 'Date',
   category: 'Category',
   food: 'Food',
   addExpense: 'Add expense',
@@ -76,14 +77,16 @@ test('adds an expense', async ({ page, request }) => {
   await page.getByRole('button', { name: labels.addExpense, exact: true }).click()
   await page.getByLabel(labels.description, { exact: true }).fill(description)
   await page.getByLabel(labels.amount, { exact: true }).fill('12.34')
-  await page.getByLabel(labels.category, { exact: true }).selectOption({ label: labels.food })
+  await page.getByLabel(labels.date, { exact: true }).fill(new Date().toISOString().slice(0, 10)) // browser runs in UTC
+  await page.getByRole('combobox', { name: labels.category, exact: true }).selectOption({ label: labels.food })
   await page.getByRole('button', { name: labels.saveExpense }).click()
 
   await expect(page.getByText(labels.expenseSaved)).toBeVisible()
   await expect(page.getByRole('listitem').filter({ hasText: description })).toContainText('$12.34')
 
   const expenses = await apiGet(request, token, '/api/expenses')
-  const saved = expenses.filter((expense) => expense.description === description)
+  // The API stores expense descriptions lower-cased.
+  const saved = expenses.filter((expense) => expense.description.toLowerCase() === description.toLowerCase())
   expect(saved).toHaveLength(1)
   expect(Number(saved[0].amount)).toBe(12.34)
 })
@@ -118,7 +121,7 @@ test('sets a budget limit', async ({ page, request }) => {
   const monthYear = new URL((await limitsRequest).url()).searchParams.get('monthYear')
 
   await page.getByRole('button', { name: labels.addBudget, exact: true }).click()
-  await page.getByLabel(labels.category, { exact: true }).selectOption({ label: labels.food })
+  await page.getByRole('combobox', { name: labels.category, exact: true }).selectOption({ label: labels.food })
   await page.getByLabel(labels.monthlyLimit, { exact: true }).fill('200.00')
   await page.getByRole('button', { name: labels.saveLimit, exact: true }).click()
 

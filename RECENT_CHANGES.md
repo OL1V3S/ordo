@@ -26,7 +26,7 @@ the permanent, complete archive.
 
 ### 2026-11-03 — Browser smoke tests for core money flows
 
-[Issue #336](https://github.com/OL1V3S/ordo/issues/336) · [PR #TBD](https://github.com/OL1V3S/ordo/pull/TBD)
+[Issue #336](https://github.com/OL1V3S/ordo/issues/336) · [PR #350](https://github.com/OL1V3S/ordo/pull/350)
 
 - Playwright tests run the web app against a local API and a disposable PostgreSQL database: sign in, add an expense, add a deposit, set a budget limit, link a paycheck deposit. Test tooling and a new non-required CI job only; no app change.
 - A guard allows only local `budget_planner_test_e2e` and ignores any inherited production connection string. See `docs/verification.md`.
