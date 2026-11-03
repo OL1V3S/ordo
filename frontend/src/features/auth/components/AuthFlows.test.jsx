@@ -9,6 +9,7 @@ import ForgotPasswordPage from './ForgotPasswordPage'
 import i18n from '../../../shared/localization/i18n'
 import { authApi } from '../../../shared/api/authApi'
 import { webSessionClient } from '../../../shared/api/webSessionClient'
+import { clearSession, getAccessToken } from '../../../shared/auth/session'
 
 // Sign-in goes through the same-origin web-session client (#292).
 vi.mock('../../../shared/api/webSessionClient', () => ({
@@ -31,12 +32,13 @@ function renderAt(ui, initialEntry = '/') {
 
 describe('existing authentication flows', () => {
   beforeEach(() => {
+    clearSession()
     localStorage.clear()
     vi.clearAllMocks()
   })
   afterEach(() => i18n.changeLanguage('en'))
 
-  it('stores the login token and email using the existing keys', async () => {
+  it('keeps the login token in memory and stores only the identity', async () => {
     const user = userEvent.setup()
     const onLogin = vi.fn()
     webSessionClient.signIn.mockResolvedValue({ data: { token: 'jwt-value', email: 'person@example.com' } })
@@ -54,7 +56,9 @@ describe('existing authentication flows', () => {
 
     await waitFor(() => expect(onLogin).toHaveBeenCalledOnce())
     expect(webSessionClient.signIn).toHaveBeenCalledWith({ email: 'person@example.com', password: 'Secret1!' })
-    expect(localStorage.getItem('token')).toBe('jwt-value')
+    expect(getAccessToken()).toBe('jwt-value')
+    expect(localStorage.getItem('token')).toBeNull()
+    expect(sessionStorage.getItem('token')).toBeNull()
     expect(localStorage.getItem('email')).toBe('person@example.com')
   })
 
@@ -66,7 +70,7 @@ describe('existing authentication flows', () => {
     await user.type(screen.getByLabelText('Email'), 'person@example.invalid')
     await user.type(screen.getByLabelText('Password'), 'Synthetic1!')
     await user.click(screen.getByRole('button', { name: 'Sign in' }))
-    await waitFor(() => expect(localStorage.getItem('token')).toBe('new-synthetic-session'))
+    await waitFor(() => expect(getAccessToken()).toBe('new-synthetic-session'))
     expect(localStorage.getItem('email')).toBe('person@example.invalid')
     expect(alert).not.toHaveBeenCalled()
     alert.mockRestore()
@@ -87,7 +91,7 @@ describe('existing authentication flows', () => {
     expect(error).toHaveFocus()
     expect(alert).not.toHaveBeenCalled()
     expect(onLogin).not.toHaveBeenCalled()
-    expect(localStorage.getItem('token')).toBeNull()
+    expect(getAccessToken()).toBeNull()
     expect(localStorage.getItem('email')).toBeNull()
     log.mockRestore()
     alert.mockRestore()
@@ -400,7 +404,7 @@ describe('existing authentication flows', () => {
     expect(screen.getByRole('status')).toHaveTextContent('A confirmation link was sent to person@example.com.')
     expect(screen.getByText('person@example.com', { selector: 'strong' })).toBeVisible()
     expect(onLogin).not.toHaveBeenCalled()
-    expect(localStorage.getItem('token')).toBeNull()
+    expect(getAccessToken()).toBeNull()
     expect(localStorage.getItem('email')).toBeNull()
   })
 

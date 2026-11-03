@@ -1,9 +1,10 @@
 # Auth and Session Invariants
 
 This document states how authentication and sessions behave **today** (verified
-against `main` at f1f7e0c; the access-token session check, #337, was added on
-65a72d7). It describes current behavior; it does not approve
-changes. Any change to a rule below needs its own approved issue (see
+against `main` at ce87bcf plus PR #354, which moves the web access token to tab
+memory, #337 PR B; the access-token session check, #337 PR A, landed in PR #351).
+It describes current behavior; it does not approve changes. Any change to a rule
+below needs its own approved issue (see
 [`AGENTS.md`](../AGENTS.md)). Narrative design lives in
 [`ARCHITECTURE.md`](../ARCHITECTURE.md); this file is the rule list.
 
@@ -14,7 +15,7 @@ intentionally absent today.
 
 | Credential | Lifetime | Where it lives |
 | --- | --- | --- |
-| Access token (JWT) | 2 hours, fixed; ends earlier when its session ends (see below) | Web: `localStorage`. iOS app: held in `SessionManager`; a copy goes to the shared Keychain item for the widget |
+| Access token (JWT) | 2 hours, fixed; ends earlier when its session ends (see below) | Web: this tab's memory only, never `localStorage` or `sessionStorage`; a new one comes from a cookie refresh on every page load. iOS app: held in `SessionManager`; a copy goes to the shared Keychain item for the widget |
 | Device session credential (native) | Idle 60 days, absolute 180 days | iOS Keychain (`AfterFirstUnlockThisDeviceOnly`, not synchronizable) |
 | Web session credential | Same as above (same table and service) | HttpOnly cookie only, never in a body |
 | Email confirmation / password reset token | ASP.NET Identity default token provider; no lifespan configured in this repo | Emailed link |
@@ -64,7 +65,12 @@ Both are the same session: one `DeviceSessions` row, owned by
   - otherwise `403`, nothing changes, and responses are `no-store`.
 - CORS (`Program.cs`) allows two fixed origins, any header and method, and **no credentials**. It exposes one response header, `X-Request-Id` (#340), to those origins so the browser can read the support reference. This is a read-only support value, not a credential.
 - The cookie is first-party because the browser calls `/api/auth/web-session/*` at a relative URL. `frontend/vercel.json` rewrites that path to the Render API; the Vite dev server proxies it. All other API calls go straight to Render with the bearer token.
-- Web client behavior (`shared/auth/webSession.js`): refresh on boot, about 5 minutes before the JWT `exp`, and once after an authenticated `401` (then the request is retried once). Refresh is single-flight per tab and serialized across tabs with the Web Lock `ordo-web-session-refresh`. A refresh `401` signs out every tab; a network error or `5xx` never keeps an expired token.
+- Web client behavior (`shared/auth/session.js`, `shared/auth/webSession.js`, #337):
+  - **Memory-only token**: the access token is a per-tab module variable. It is never written to `localStorage` or `sessionStorage`. Only the non-secret identity (`sessionId`, `email`) is stored, for capture recovery and the stale-`401` guard. The legacy `token` key is deleted on boot and ignored in storage events.
+  - **Refresh**: on every page load (also when the cookie outlived the stored identity), about 5 minutes before the JWT `exp`, and once after an authenticated `401` (then the request is retried once). Refresh is single-flight per tab and serialized across tabs with the Web Lock `ordo-web-session-refresh`. Each tab refreshes its own token; no token is shared between tabs.
+  - **Boot with a stored identity**: the refresh adopts it with no storage write, so reloading one tab does not disturb others. While the tab has no token, the app shows a loading view and never sign-in, however slow the refresh is; a "taking longer than usual" line appears after 4 seconds (English and Spanish). A network error or `5xx` keeps the loading view (with a "cannot reach the server" line) and retries after 5 seconds, doubling up to 30 seconds. A refresh `401`, or another refusal that retrying cannot fix, ends the stored sign-in and shows sign-in. With no stored identity the loading view ends after 4 seconds and a late refresh still signs in.
+  - **Other tabs**: a sign-in in another tab (new `sessionId`) ends this tab's session on the server, so this tab drops its token and refreshes through the new cookie. A sign-out clears every tab (storage event plus `BroadcastChannel`); the server also `401`s any leftover token. A stale `401` never removes an identity a newer sign-in stored. A refresh `401` signs out every tab; a network error or `5xx` never keeps an expired token.
+  - **Limits**: a reload during a cold-start refresh can lose the rotated cookie, and reuse detection then ends the session. With cookies blocked, sign-in works until the next reload. An active XSS can still call refresh and get a token: the memory token removes passive theft from storage, not XSS.
 - Sign-out failure sets a `pending-sign-out` flag that blocks auto-refresh and retries sign-out on next boot.
 
 ## Lockout (#299)
@@ -136,7 +142,7 @@ Remaining oracles and residuals (#319 is done: sign-in timing, reset-password, r
 - **Failure handling**: a database error is not turned into `401`. It reaches the safe `500` (fails closed), so an outage never signs clients out. A Data Protection failure that is not an invalid payload or unknown key (for example a database error while loading keys) is rethrown the same way. Logging: the bearer handler logs the exception once (type, message and stack; no token), then the exception handler writes its one privacy-safe line, so there is one line more than the single line described under Security headers and CSP.
 - **Rollout**: tokens issued before #337 carry neither claim, so each client gets one `401` and then refreshes and retries (web and iOS already do). The iOS widget shows its "needs update" state until the app runs.
 - Out of scope: sign-out-everywhere and a session list, a revocation table, caching, lockout changes, changing native sign-out or refresh secret checks.
-- **Pending (#337 PR B)**: the web client still keeps the access token in `localStorage`; moving it to memory is a separate change.
+- Web token storage: see the web client bullets under the web session cookie section. The browser holds the token in tab memory only.
 
 ## Email confirmation and password reset
 
@@ -178,7 +184,7 @@ All are in-memory fixed-window limiters with code defaults. State is per process
 ## Security headers and CSP
 
 - Production headers come from `frontend/vercel.json` and apply to the web app: CSP, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy`.
-- CSP: `default-src 'self'`, one hash-pinned inline script, `connect-src` limited to self plus the Render API, `object-src 'none'`, `base-uri 'none'`, `frame-ancestors 'none'`. It restricts where a stolen `localStorage` token could be sent, but does not make `localStorage` safe against XSS.
+- CSP: `default-src 'self'`, one hash-pinned inline script, `connect-src` limited to self plus the Render API, `object-src 'none'`, `base-uri 'none'`, `frame-ancestors 'none'`. It limits where script can send data. The web access token is memory-only (#337), so there is no stored token to read from storage; it does not make an active XSS harmless, because script can still call the refresh endpoint.
 - The API itself sets no security headers; it relies on HTTPS redirection.
 - Server errors: unhandled exceptions return a safe `500` problem body with a code and trace id and one privacy-safe log line (one more line from the bearer handler when the failure happens in the session check, see above). `GET /health` and `GET /health/ready` are anonymous; readiness returns only a fixed up/down body.
 
@@ -195,7 +201,7 @@ All are in-memory fixed-window limiters with code defaults. State is per process
 - **No iOS universal links.** No associated-domains configuration was found under `ios/`; confirm and reset links are web links.
 - **No distributed rate limiting.** Per-IP limits exist (#332) but are per process.
 - **No password policy beyond ASP.NET Identity defaults** (`Program.cs` does not customize it).
-- **Web access token stays in `localStorage`** (readable by script); only the long-lived credential is HttpOnly.
+- **No cookie-only (BFF) API auth.** The access token is still a bearer header value held in tab memory; only the long-lived credential is HttpOnly.
 
 ## Where each rule is enforced and tested
 
@@ -215,7 +221,7 @@ All are in-memory fixed-window limiters with code defaults. State is per process
 | Data Protection key persistence | `Program.cs` | `DataProtectionPersistenceTests.cs` |
 | Safe errors and health | `backend/Diagnostics/UnhandledExceptionHandler.cs`, `Program.cs` | `backend.Tests/Diagnostics/ExceptionHandlingAndHealthTests.cs` |
 | Security headers and CSP | `frontend/vercel.json` | `frontend/src/test/securityHeaders.test.js` |
-| Web session client | `frontend/src/shared/auth/webSession.js`, `shared/api/webSessionClient.js` | `webSession.test.js`, `webSessionClient.test.js` |
+| Web session client and memory-only token (#337) | `frontend/src/shared/auth/session.js`, `shared/auth/webSession.js`, `shared/api/webSessionClient.js`, `app/BootScreen.jsx` | `session.test.js`, `webSession.test.js`, `webSessionClient.test.js`, `client.test.js`, `app/AppBoot.test.jsx` |
 | iOS credential storage | `ios/Ordo/Session/KeychainCredentialStore.swift`, `WidgetAccessStore.swift` | `ios/OrdoTests` (not re-verified here) |
 
 Sign-in error literals are matched by the web client; see

@@ -24,6 +24,13 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-11-03 — Web: access token kept in memory only
+
+[Issue #337](https://github.com/OL1V3S/ordo/issues/337) · [PR #354](https://github.com/OL1V3S/ordo/pull/354)
+
+- The web app no longer stores the access token in the browser. It lives in the tab's memory and is fetched through the HttpOnly session cookie on every page load, so script cannot read it from storage. A token left by an older version is deleted.
+- Page load now waits for that refresh: a loading view (with a "taking longer than usual" note after 4 seconds) replaces sign-in, and it retries if the server cannot be reached. Reloading with cookies blocked signs you out. English and Spanish; no backend, API or iOS change.
+
 ### 2026-11-03 — JWT signing-key rotation
 
 [Issue #338](https://github.com/OL1V3S/ordo/issues/338) · [PR #352](https://github.com/OL1V3S/ordo/pull/352)
@@ -156,11 +163,3 @@ the permanent, complete archive.
 
 - The Home Screen widget now shows this month's exact spending and a six-month graph from the existing cash-flow report, labelled "Updated …"; it asks you to open Ordo when its copy is old.
 - The app shares only the 2-hour access token with the widget through a shared Keychain item, removed at sign-out; the refresh credential never leaves the app. iPhone app only, so backend, API and schema are unchanged.
-
-### 2026-10-23 — Web sessions: stay signed in on the web
-
-[PR #295](https://github.com/OL1V3S/ordo/pull/295) · [PR #296](https://github.com/OL1V3S/ordo/pull/296) · [PR #298](https://github.com/OL1V3S/ordo/pull/298) · [Issue #292](https://github.com/OL1V3S/ordo/issues/292)
-
-- Backend: `POST /api/auth/web-session`, `/refresh` and `/sign-out` keep a long-lived session in an HttpOnly, Secure, SameSite=Strict cookie, guarded by an Origin and custom-header check.
-- Web app: signs in through a same-origin Vercel rewrite, refreshes the 2-hour access token before expiry and after a `401`, coordinates tabs with a Web Lock, and signs out on the server and in every tab.
-- Session identity no longer changes when the access token is refreshed. Older 2-hour sessions run out normally; `/api/auth/login` and iOS are unchanged.

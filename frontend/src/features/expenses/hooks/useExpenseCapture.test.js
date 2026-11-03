@@ -1,6 +1,6 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { clearSession, establishSession } from "../../../shared/auth/session";
+import { clearSession, establishSession, replaceAccessToken } from "../../../shared/auth/session";
 import { useExpenseCapture } from "./useExpenseCapture";
 
 function deferred() {
@@ -102,7 +102,7 @@ describe("expense capture controller", () => {
     await fill(result);
     let outcome;
     act(() => { outcome = result.current.submitCreate(); });
-    act(() => { localStorage.setItem("token", "owner-a-refreshed"); });
+    act(() => { replaceAccessToken("owner-a-refreshed"); });
     await act(() => write.resolve({ refreshFailed: false }));
     await outcome;
     expect(result.current.open).toBe(false);

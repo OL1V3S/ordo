@@ -1,7 +1,9 @@
 // Same-origin client for the web-session endpoints (#292). Requests use relative
 // URLs (Vercel rewrite in production, Vite proxy in dev) so the HttpOnly session
-// cookie is first-party. No timeout or abort: a refresh whose response is lost
-// after the server rotated the credential would end the session.
+// cookie is first-party. The access token these calls return is kept in tab
+// memory only (#337, shared/auth/session.js), never in storage. No timeout or
+// abort: a refresh whose response is lost after the server rotated the
+// credential would end the session.
 import { reportServerError } from "./requestReference";
 
 const BASE_PATH = "/api/auth/web-session";

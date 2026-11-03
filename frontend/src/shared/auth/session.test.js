@@ -1,5 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { clearSession, establishSession, getAccessToken, getSessionSnapshot, invalidateSession, subscribeToSession } from './session'
+import { clearRequestReference, getRequestReference, reportServerError } from '../api/requestReference'
+import {
+  adoptAccessToken,
+  clearSession,
+  establishSession,
+  getAccessToken,
+  getSessionSnapshot,
+  getStoredSessionId,
+  invalidateSession,
+  removeLegacyAccessToken,
+  replaceAccessToken,
+  subscribeToSession,
+} from './session'
 
 const subscriptions = []
 
@@ -13,24 +25,55 @@ function storageEvent(key, storageArea = localStorage, newValue = null) {
   window.dispatchEvent(new StorageEvent('storage', { key, storageArea, newValue }))
 }
 
+function storageHolds(secret) {
+  return [localStorage, sessionStorage].some((area) =>
+    Array.from({ length: area.length }, (_, index) => area.key(index)).some((key) => key.includes(secret) || area.getItem(key).includes(secret)))
+}
+
 describe('shared authentication session', () => {
   beforeEach(() => {
+    clearSession()
     localStorage.clear()
+    sessionStorage.clear()
     getSessionSnapshot()
+    clearRequestReference()
   })
 
-  afterEach(() => subscriptions.splice(0).forEach((unsubscribe) => unsubscribe()))
+  afterEach(() => {
+    subscriptions.splice(0).forEach((unsubscribe) => unsubscribe())
+    vi.restoreAllMocks()
+  })
 
-  it('reads existing keys and returns the same snapshot while values are unchanged', () => {
-    localStorage.setItem('token', 'stored-token')
-    localStorage.setItem('email', 'person@example.com')
+  it('holds the access token in memory only, never in storage', () => {
+    establishSession('secret-access-token', 'person@example.com')
     const session = getSessionSnapshot()
 
     expect(session).toMatchObject({ signedIn: true, email: 'person@example.com' })
     expect(session).not.toHaveProperty('token')
-    expect(getAccessToken()).toBe('stored-token')
+    expect(getAccessToken()).toBe('secret-access-token')
     expect(session.id).toBe(localStorage.getItem('sessionId'))
     expect(getSessionSnapshot()).toBe(session)
+    expect(localStorage.getItem('token')).toBeNull()
+    expect(storageHolds('secret-access-token')).toBe(false)
+
+    replaceAccessToken('secret-refreshed-token', 'person@example.com')
+    expect(getAccessToken()).toBe('secret-refreshed-token')
+    expect(storageHolds('secret-refreshed-token')).toBe(false)
+    expect(Object.keys(localStorage).sort()).toEqual(['email', 'sessionId'])
+    expect(sessionStorage.length).toBe(0)
+  })
+
+  it('never reads a legacy stored token as a credential and removes it on request', () => {
+    localStorage.setItem('token', 'legacy-stored-token')
+    localStorage.setItem('email', 'person@example.com')
+    localStorage.setItem('sessionId', 'stored-sign-in')
+
+    expect(getAccessToken()).toBeNull()
+    expect(getSessionSnapshot()).toMatchObject({ signedIn: false, id: null })
+
+    removeLegacyAccessToken()
+    expect(localStorage.getItem('token')).toBeNull()
+    expect(localStorage.getItem('sessionId')).toBe('stored-sign-in')
   })
 
   it('establishes and clears a session without changing unrelated storage', () => {
@@ -39,18 +82,28 @@ describe('shared authentication session', () => {
     establishSession('new-token', 'person@example.com')
 
     expect(getSessionSnapshot()).toMatchObject({ signedIn: true, email: 'person@example.com' })
-    expect(localStorage.getItem('token')).toBe('new-token')
     expect(localStorage.getItem('email')).toBe('person@example.com')
     expect(listener).toHaveBeenCalledTimes(1)
 
     clearSession()
 
     expect(getSessionSnapshot()).toMatchObject({ signedIn: false, id: null, email: null })
-    expect(localStorage.getItem('token')).toBeNull()
+    expect(getAccessToken()).toBeNull()
+    expect(localStorage.getItem('sessionId')).toBeNull()
     expect(localStorage.getItem('email')).toBeNull()
     expect(localStorage.getItem('budget-planner-theme')).toBe('dark')
     expect(listener).toHaveBeenCalledTimes(2)
     expect(listener.mock.calls).toEqual([[], []])
+  })
+
+  it('removes a legacy token key when establishing or clearing', () => {
+    localStorage.setItem('token', 'legacy-stored-token')
+    establishSession('new-token', 'person@example.com')
+    expect(localStorage.getItem('token')).toBeNull()
+
+    localStorage.setItem('token', 'legacy-stored-token')
+    clearSession()
+    expect(localStorage.getItem('token')).toBeNull()
   })
 
   it('invalidates the matching session only once', () => {
@@ -70,21 +123,24 @@ describe('shared authentication session', () => {
 
     expect(getSessionSnapshot().generation).not.toBe(oldSession.generation)
     expect(invalidateSession(oldSession, 'same-token')).toBe(false)
-    expect(localStorage.getItem('token')).toBe('same-token')
+    expect(getAccessToken()).toBe('same-token')
   })
 
-  it('reconciles a different token before a queued storage event arrives', () => {
+  it('drops its token when another tab signed in, before the storage event arrives', () => {
     establishSession('old-token', 'old@example.com')
     const oldSession = getSessionSnapshot()
-    localStorage.setItem('token', 'other-tab-token')
     localStorage.setItem('email', 'new@example.com')
     localStorage.setItem('sessionId', 'other-tab-sign-in')
 
+    // A stale 401 for the replaced sign-in must not clear the other tab's identity.
     expect(invalidateSession(oldSession, 'old-token')).toBe(false)
-    expect(getSessionSnapshot()).toMatchObject({ signedIn: true, id: 'other-tab-sign-in', email: 'new@example.com' })
+    expect(getAccessToken()).toBeNull()
+    expect(getSessionSnapshot()).toMatchObject({ signedIn: false, id: null, email: 'new@example.com' })
+    expect(localStorage.getItem('sessionId')).toBe('other-tab-sign-in')
+    expect(localStorage.getItem('email')).toBe('new@example.com')
   })
 
-  it('observes other-tab logout and email changes with stable snapshots', () => {
+  it('observes other-tab email changes with stable snapshots and other-tab sign-out', () => {
     establishSession('stored-token', 'old@example.com')
     const { listener } = subscribe()
     const previous = getSessionSnapshot()
@@ -95,19 +151,23 @@ describe('shared authentication session', () => {
     expect(getSessionSnapshot()).not.toBe(previous)
     expect(getSessionSnapshot()).toBe(getSessionSnapshot())
 
-    localStorage.removeItem('token')
+    localStorage.removeItem('sessionId')
     localStorage.removeItem('email')
-    storageEvent('token')
+    storageEvent('sessionId')
     expect(getSessionSnapshot()).toMatchObject({ signedIn: false, id: null, email: null })
+    expect(getAccessToken()).toBeNull()
     expect(listener).toHaveBeenCalledTimes(2)
   })
 
-  it('handles localStorage clear without reacting to unrelated storage events', () => {
+  it('handles localStorage clear and ignores unrelated and legacy-token storage events', () => {
     establishSession('stored-token', 'person@example.com')
     const { listener } = subscribe()
     storageEvent('budget-planner-theme')
-    storageEvent('token', sessionStorage)
+    storageEvent('sessionId', sessionStorage)
+    storageEvent('token')
+    storageEvent('token', localStorage, 'legacy-stored-token')
     expect(listener).not.toHaveBeenCalled()
+    expect(getAccessToken()).toBe('stored-token')
 
     localStorage.clear()
     storageEvent(null)
@@ -117,16 +177,15 @@ describe('shared authentication session', () => {
 
   it('does not replay stale event values or advance an already reconciled generation', () => {
     establishSession('old-token', 'old@example.com')
-    localStorage.setItem('token', 'new-token')
     localStorage.setItem('email', 'new@example.com')
     localStorage.setItem('sessionId', 'new-sign-in')
     const current = getSessionSnapshot()
     const { listener } = subscribe()
-    storageEvent('token', localStorage, 'old-token')
+    storageEvent('sessionId', localStorage, 'old-sign-in')
 
     expect(getSessionSnapshot()).toBe(current)
     expect(listener).toHaveBeenCalledOnce()
-    expect(invalidateSession(current, getAccessToken())).toBe(true)
+    expect(invalidateSession(current, getAccessToken())).toBe(false)
   })
 
   it('cleans up listeners and reads invalidation that happened before subscribing', () => {
@@ -134,7 +193,7 @@ describe('shared authentication session', () => {
     const { listener, unsubscribe } = subscribe()
     unsubscribe()
     clearSession()
-    storageEvent('token')
+    storageEvent('sessionId')
     expect(listener).not.toHaveBeenCalled()
 
     const next = subscribe()
@@ -144,14 +203,15 @@ describe('shared authentication session', () => {
     expect(listener).not.toHaveBeenCalled()
   })
 
-  it('keeps identity and generation when only the access token changes', () => {
+  it('keeps identity and generation, and writes nothing, when only the access token changes', () => {
     establishSession('first-token', 'person@example.com')
     const before = getSessionSnapshot()
     const { listener } = subscribe()
+    const setItem = vi.spyOn(Storage.prototype, 'setItem')
 
-    localStorage.setItem('token', 'refreshed-token')
-    storageEvent('token', localStorage, 'refreshed-token')
+    replaceAccessToken('refreshed-token', 'person@example.com')
 
+    expect(setItem).not.toHaveBeenCalled()
     expect(getSessionSnapshot()).toBe(before)
     expect(getAccessToken()).toBe('refreshed-token')
     expect(listener).toHaveBeenCalledOnce()
@@ -174,43 +234,138 @@ describe('shared authentication session', () => {
     expect(localStorage.getItem('sessionId')).toBeNull()
   })
 
-  it('assigns an id to a legacy token that has none and keeps it stable', () => {
-    localStorage.setItem('token', 'legacy-token')
+  it('adopts a stored identity on reload without any storage write', () => {
+    localStorage.setItem('sessionId', 'stored-sign-in')
+    localStorage.setItem('email', 'person@example.com')
+    const { listener } = subscribe()
+    const before = getSessionSnapshot()
+    const setItem = vi.spyOn(Storage.prototype, 'setItem')
+    const removeItem = vi.spyOn(Storage.prototype, 'removeItem')
+
+    expect(before).toMatchObject({ signedIn: false, id: null })
+    adoptAccessToken('boot-token', 'person@example.com')
+
+    expect(setItem).not.toHaveBeenCalled()
+    expect(removeItem).not.toHaveBeenCalled()
+    expect(getAccessToken()).toBe('boot-token')
+    expect(getSessionSnapshot()).toMatchObject({ signedIn: true, id: 'stored-sign-in', email: 'person@example.com' })
+    expect(getSessionSnapshot().generation).toBeGreaterThan(before.generation)
+    expect(localStorage.getItem('sessionId')).toBe('stored-sign-in')
+    expect(listener).toHaveBeenCalledOnce()
+  })
+
+  it('establishes a new identity when the cookie outlived storage', () => {
+    adoptAccessToken('boot-token', 'person@example.com')
+
     const session = getSessionSnapshot()
+    expect(session).toMatchObject({ signedIn: true, email: 'person@example.com' })
     expect(session.id).toMatch(/^[0-9a-f]{32}$/)
-    expect(getSessionSnapshot()).toBe(session)
-  })
-  it('adopts the id stored by another tab after minting for a legacy token', () => {
-    localStorage.setItem('token', 'legacy')
-    const realSet = Storage.prototype.setItem
-    const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function (key, value) {
-      if (key === 'sessionId') return realSet.call(this, key, 'other-tab-id')
-      return realSet.call(this, key, value)
-    })
-    expect(getSessionSnapshot().id).toBe('other-tab-id')
-    spy.mockRestore()
+    expect(getStoredSessionId()).toBe(session.id)
   })
 
-  it('does not throw and keeps a stable id when storing the id fails', () => {
-    localStorage.setItem('token', 'legacy')
-    const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
-      throw new Error('quota')
-    })
-    const first = getSessionSnapshot()
-    expect(first.id).toMatch(/^[0-9a-f]{32}$/)
-    expect(getSessionSnapshot()).toBe(first)
-    spy.mockRestore()
-  })
-
-  it('writes sessionId before token and email when establishing', () => {
+  it('writes sessionId before email when establishing and never writes a token key', () => {
     const keys = []
     const realSet = Storage.prototype.setItem
-    const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function (key, value) {
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function (key, value) {
       keys.push(key)
       return realSet.call(this, key, value)
     })
     establishSession('t', 'a@b.c')
-    spy.mockRestore()
-    expect(keys).toEqual(['sessionId', 'token', 'email'])
+    expect(keys).toEqual(['sessionId', 'email'])
+  })
+
+  it('stays signed in with a stable id when storage is unavailable', () => {
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('quota')
+    })
+
+    establishSession('memory-token', 'person@example.com')
+
+    const session = getSessionSnapshot()
+    expect(session.signedIn).toBe(true)
+    expect(session.id).toMatch(/^[0-9a-f]{32}$/)
+    expect(getAccessToken()).toBe('memory-token')
+    expect(getSessionSnapshot()).toBe(session)
+  })
+
+  describe('support request reference (#340)', () => {
+    const raise = () => reportServerError({ status: 500, data: { requestId: 'req-1234abcd' } })
+
+    it('clears the reference when another tab signs in as a new session', () => {
+      establishSession('old-token', 'old@example.com')
+      const { listener } = subscribe()
+      raise()
+      expect(getRequestReference()).toBe('req-1234abcd')
+
+      localStorage.setItem('sessionId', 'other-tab-sign-in')
+      storageEvent('sessionId', localStorage, 'other-tab-sign-in')
+
+      expect(getRequestReference()).toBeNull()
+      expect(listener).toHaveBeenCalled()
+    })
+
+    it('clears the reference when another tab signs out', () => {
+      establishSession('old-token', 'old@example.com')
+      subscribe()
+      raise()
+
+      localStorage.removeItem('sessionId')
+      localStorage.removeItem('email')
+      storageEvent('sessionId')
+
+      expect(getRequestReference()).toBeNull()
+    })
+
+    it('does not clear the reference while reading a snapshot, only when the storage event arrives', () => {
+      establishSession('old-token', 'old@example.com')
+      subscribe()
+      raise()
+
+      // Another tab signed in; a render or request reads the snapshot first.
+      localStorage.setItem('sessionId', 'other-tab-sign-in')
+      expect(getSessionSnapshot()).toMatchObject({ signedIn: false })
+      expect(getRequestReference()).toBe('req-1234abcd')
+
+      storageEvent('sessionId', localStorage, 'other-tab-sign-in')
+      expect(getRequestReference()).toBeNull()
+    })
+
+    it('clears the reference when this tab adopts a token before the storage event of another tab sign-in', () => {
+      establishSession('old-token', 'old@example.com')
+      raise()
+      expect(getRequestReference()).toBe('req-1234abcd')
+
+      // Another tab signed in; this tab's storage event has not arrived yet.
+      localStorage.setItem('sessionId', 'other-tab-sign-in')
+      localStorage.setItem('email', 'new@example.com')
+      adoptAccessToken('new-token', 'new@example.com')
+
+      expect(getSessionSnapshot()).toMatchObject({ signedIn: true, id: 'other-tab-sign-in' })
+      expect(getRequestReference()).toBeNull()
+    })
+
+    it('keeps the reference for an email-only change or unrelated storage events', () => {
+      establishSession('old-token', 'old@example.com')
+      subscribe()
+      raise()
+
+      localStorage.setItem('email', 'new@example.com')
+      storageEvent('email', localStorage, 'new@example.com')
+      storageEvent('budget-planner-theme')
+      replaceAccessToken('refreshed-token', 'new@example.com')
+
+      expect(getRequestReference()).toBe('req-1234abcd')
+    })
+
+    it('still clears on this tab signing in or out', () => {
+      establishSession('first', 'a@example.com')
+      raise()
+      establishSession('second', 'a@example.com')
+      expect(getRequestReference()).toBeNull()
+
+      raise()
+      clearSession()
+      expect(getRequestReference()).toBeNull()
+    })
   })
 })
