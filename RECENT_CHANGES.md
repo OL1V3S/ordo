@@ -31,6 +31,13 @@ the permanent, complete archive.
 - Playwright tests run the web app against a local API and a disposable PostgreSQL database: sign in, add an expense, add a deposit, set a budget limit, link a paycheck deposit. Test tooling and a new non-required CI job only; no app change.
 - A guard allows only local `budget_planner_test_e2e` and ignores any inherited production connection string. See `docs/verification.md`.
 
+### 2026-11-03 — Access tokens end with their session
+
+[Issue #337](https://github.com/OL1V3S/ordo/issues/337) · [PR #351](https://github.com/OL1V3S/ordo/pull/351)
+
+- Every request with a bearer token now checks the token still belongs to a live session (or, for `/login` tokens, the user's current security stamp). Sign-out, password reset, reuse detection, eviction and expiry end a token on its next request instead of up to 2 hours later. The session id in the token is protected, never bare.
+- No schema, endpoint or response change. Tokens issued before the deploy get one `401`, then web and iOS refresh and retry. Web memory-only token is a separate PR.
+
 ### 2026-11-03 — Paychecks in Needs your attention
 
 [Issue #346](https://github.com/OL1V3S/ordo/issues/346) · [PR #347](https://github.com/OL1V3S/ordo/pull/347)
@@ -157,10 +164,3 @@ the permanent, complete archive.
 
 - Active, paused and ended recurring expenses now have an Edit action (row menu and detail screen) with the same form as Review and confirm; "Save changes" updates it.
 - A saved amount that cannot be read exactly is left empty and has to be entered. A refused save keeps the form and your changes. English and Spanish; iPhone app only, so backend, API and schema are unchanged.
-
-### 2026-10-22 — Review recurring expense changes in the iPhone app
-
-[PR #289](https://github.com/OL1V3S/ordo/pull/289) · [Issue #288](https://github.com/OL1V3S/ordo/issues/288)
-
-- The Recurring section now lists "Changes to review" (new amount, new dates, or no matching expense lately) with a detail screen. You can use the new details, keep the saved ones, keep an expense active, mark it as ended (with a confirmation) or review a kept change again.
-- Home's "Needs your attention" links to these changes. English and Spanish; iPhone app only, so backend, API and schema are unchanged.
