@@ -307,18 +307,24 @@ Render with the bearer token.
 
 In the web app, `shared/api/webSessionClient.js` makes these same-origin calls
 (header `X-Ordo-Web-Session: 1`, no timeout or abort) and
-`shared/auth/webSession.js` orchestrates them. The 2-hour access token stays in
-`localStorage`. A refresh runs on boot without a valid token, about 5 minutes
-before the JWT `exp`, and once after an authenticated `401` (then the request is
-retried once). Refreshes are single-flight per tab and serialized across tabs
-with the Web Lock `ordo-web-session-refresh`; inside the lock a tab skips if
-another tab already stored a new token. A refresh keeps the session identity.
+`shared/auth/webSession.js` orchestrates them. The 2-hour access token is held
+in a per-tab variable in `shared/auth/session.js`, never in `localStorage` or
+`sessionStorage` (#337); only the non-secret identity (session id, email) is
+stored. A refresh runs on every page load, about 5 minutes before the JWT `exp`,
+and once after an authenticated `401` (then the request is retried once).
+Refreshes are single-flight per tab and serialized across tabs with the Web Lock
+`ordo-web-session-refresh`; each tab refreshes its own token. A refresh keeps the
+session identity, and a page-load refresh adopts the stored identity without a
+storage write. While a stored sign-in waits for that refresh the app shows a
+loading view (with a slow note after 4 seconds), retries after a network error or
+`5xx`, and never falls back to sign-in because of slowness. A sign-in in another
+tab makes this tab drop its token and refresh.
 A refresh `401` clears the session in every tab; a network error or `5xx` never
 keeps an expired token. Sign-out calls `/sign-out`, clears storage and signs out
 other tabs (storage event plus `BroadcastChannel("ordo-session")`); if the call
 fails, a `pending-sign-out` flag blocks auto-refresh and the sign-out is retried
-on the next boot. Older 2-hour sessions from `/api/auth/login` keep working
-until their next refresh fails; the backend login endpoint is unchanged.
+on the next boot. A token left in `localStorage` by an earlier version is deleted
+on boot and never used; the backend login endpoint is unchanged.
 
 Approved financial meaning and future authoritative validation destinations
 are defined in

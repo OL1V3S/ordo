@@ -24,6 +24,13 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-11-03 — Web: access token kept in memory only
+
+[Issue #337](https://github.com/OL1V3S/ordo/issues/337) · PR_PLACEHOLDER
+
+- The web app no longer stores the access token in the browser. It lives in the tab's memory and is fetched through the HttpOnly session cookie on every page load, so script cannot read it from storage. A token left by an older version is deleted.
+- Page load now waits for that refresh: a loading view (with a "taking longer than usual" note after 4 seconds) replaces sign-in, and it retries if the server cannot be reached. Reloading with cookies blocked signs you out. English and Spanish; no backend, API or iOS change.
+
 ### 2026-11-03 — Access tokens end with their session
 
 [Issue #337](https://github.com/OL1V3S/ordo/issues/337) · [PR #351](https://github.com/OL1V3S/ordo/pull/351)
@@ -157,10 +164,3 @@ the permanent, complete archive.
 
 - Active, paused and ended recurring expenses now have an Edit action (row menu and detail screen) with the same form as Review and confirm; "Save changes" updates it.
 - A saved amount that cannot be read exactly is left empty and has to be entered. A refused save keeps the form and your changes. English and Spanish; iPhone app only, so backend, API and schema are unchanged.
-
-### 2026-10-22 — Review recurring expense changes in the iPhone app
-
-[PR #289](https://github.com/OL1V3S/ordo/pull/289) · [Issue #288](https://github.com/OL1V3S/ordo/issues/288)
-
-- The Recurring section now lists "Changes to review" (new amount, new dates, or no matching expense lately) with a detail screen. You can use the new details, keep the saved ones, keep an expense active, mark it as ended (with a confirmation) or review a kept change again.
-- Home's "Needs your attention" links to these changes. English and Spanish; iPhone app only, so backend, API and schema are unchanged.
