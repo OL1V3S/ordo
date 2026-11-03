@@ -72,7 +72,7 @@ Both are the same session: one `DeviceSessions` row, owned by
 - A user with lockout disabled is never counted or locked.
 - On PostgreSQL each attempt is **reserved atomically before the password is hashed** (conditional `UPDATE` of `AccessFailedCount`). Parallel guesses cannot exceed the budget. The 5th failure sets `LockoutEnd` and resets the count to 0.
 - Self-heal: a row at the max count with no active lock becomes a normal timed lock on the next attempt.
-- A locked account is rejected without checking the password.
+- A locked account is rejected without checking its stored hash. A dummy hash is verified instead (see Enumeration policy).
 - The in-memory test provider uses the Identity primitives in the same order. It is **not atomic** under parallel requests; it exists for tests only.
 - A valid password resets the count, also for an unconfirmed account. The reset does not change the security stamp, so sessions keep refreshing.
 - Guard-rejected web sign-ins (`403`) do not count.
@@ -85,16 +85,18 @@ Uniform today (same client-visible response for every case: same status and body
 - **Sign-in** (all three endpoints): unknown email, wrong password, locked out, and unconfirmed (even with the right password, #318) all return `401`. The body is the plain text `Invalid email or password` on `/login` and `/web-session`, and `{"code":"invalid_credentials"}` on `/device-sessions`. No token, session, cookie or email is produced.
 - **Register** (#300): a taken email gets the same `200` (or the same `503 confirmation_email_delivery_failed`) as a new one. The stored owner gets a fixed existing-account email (sign-in and forgot-password links, no token); the account is unchanged. Password-rule `400` errors are unchanged and never contain duplicate-account errors.
 - **Registration limiter**: runs before the account check, so the same `429` applies to every email.
+- **Sign-in timing** (#319): unknown email and locked account (both lockout branches) each verify one dummy password hash through the request's hasher, so they cost about the same as a wrong password. `PasswordTimingEqualizer` builds the dummy hash once at startup from the registered hasher, so it has the configured cost. It reads no account data. The stored hash of a locked account is never checked, so the lockout cap is unchanged. Every sign-in request now costs one hash; the sign-in endpoints have no rate limiter.
+- **Reset password** (#319): an unknown email gets `400` with the same `InvalidToken` error array as a known email with a bad or malformed token (same status, content type and body). A weak new password with a bad token also gets `InvalidToken`; policy errors only appear once the token is valid.
 - **Resend confirmation**: `202` with one message for unknown, confirmed, unconfirmed and delivery-failed (apart from `429` and request validation `400`).
 - **Forgot password**: `200` with one message for unknown and delivery-failed (apart from `429` and request validation `400`).
 - **Clients**: web and iOS show a neutral hint and an inline resend after any invalid-credentials failure, never "unconfirmed".
 - Logs use user IDs only, never emails or credentials.
 
-Remaining oracles, tracked in #319 (HIGH, not started):
+Remaining oracles, tracked in #319 (HIGH; sign-in timing and reset-password are done, resend and forgot-password follow in a second PR):
 
-- Timing differs for unknown, locked-out and real accounts at sign-in.
 - Timing differs for resend-confirmation and forgot-password between existing and missing accounts (existing accounts do token and email work).
-- `reset-password` returns `400 "Invalid request"` for an unknown email but Identity token errors for a known one.
+- Residual sign-in timing: the relational path does 2 `ExecuteUpdate` round trips for a wrong password, 2 for a locked account, 3 for a success and 0 for an unknown email. That is a few ms against about 100 ms for the hash; accepted, no no-op updates added.
+- Residual reset-password timing: a known email with a decodable bad token runs a Data Protection unprotect (microseconds).
 - The sign-in failure-count side effect is not client-visible and is not considered an oracle: an unconfirmed account with the right password resets the count, a wrong password increments it (see the lockout section).
 - Also observed, not listed in #319: `confirm-email` returns `400 "Invalid user"` for an unknown user id.
 

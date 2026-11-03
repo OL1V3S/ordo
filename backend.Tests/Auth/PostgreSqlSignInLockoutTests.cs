@@ -50,6 +50,8 @@ public sealed class PostgreSqlSignInLockoutTests
         var right = await SnapshotAsync(app, Login, "pg-lock@example.com", Password);
         var unknown = await SnapshotAsync(app, Login, "pg-nobody@example.com", Password);
         Assert.Equal(0, app.Counter.Value);
+        // #319: locked-out and unknown requests each verify one dummy hash.
+        Assert.Equal(3, app.Counter.Dummy);
         Assert.Equal(HttpStatusCode.Unauthorized, wrong.Status);
         Assert.Equal(wrong, right);
         Assert.Equal(wrong, unknown);
@@ -70,11 +72,14 @@ public sealed class PostgreSqlSignInLockoutTests
 
         Assert.All(results, status => Assert.Equal(HttpStatusCode.Unauthorized, status));
         Assert.Equal(MaxAttempts, app.Counter.Value);
+        // #319: every request over the budget pays a dummy hash instead.
+        Assert.Equal(parallel - MaxAttempts, app.Counter.Dummy);
         var stored = await FindAsync(app, user.Id);
         Assert.True(stored.LockoutEnd > DateTimeOffset.UtcNow);
 
         Assert.Equal(HttpStatusCode.Unauthorized, await StatusAsync(app, DeviceSession, "pg-race@example.com", Password));
         Assert.Equal(MaxAttempts, app.Counter.Value);
+        Assert.Equal(parallel - MaxAttempts + 1, app.Counter.Dummy);
     }
 
     [PostgreSqlFact]
@@ -93,6 +98,7 @@ public sealed class PostgreSqlSignInLockoutTests
 
         Assert.All(results, status => Assert.Equal(HttpStatusCode.Unauthorized, status));
         Assert.Equal(0, app.Counter.Value);
+        Assert.Equal(20, app.Counter.Dummy);
         Assert.Equal(0, await CountSessionsAsync(app, user.Id));
     }
 
@@ -164,6 +170,7 @@ public sealed class PostgreSqlSignInLockoutTests
         var unknown = await SnapshotAsync(app, Login, "pg-nobody@example.com", Password);
         var first = await SnapshotAsync(app, Login, "pg-stuck@example.com", Password);
         Assert.Equal(0, app.Counter.Value);
+        Assert.Equal(2, app.Counter.Dummy);
         Assert.Equal(HttpStatusCode.Unauthorized, first.Status);
         Assert.Equal(unknown, first);
 
@@ -185,26 +192,6 @@ public sealed class PostgreSqlSignInLockoutTests
             services.AddScoped<IPasswordHasher<ApplicationUser>>(provider => new CountingPasswordHasher(
                 new PasswordHasher<ApplicationUser>(provider.GetRequiredService<IOptions<PasswordHasherOptions>>()),
                 Counter));
-        }
-    }
-
-    internal sealed class PasswordCheckCounter
-    {
-        private int _value;
-        public int Value => Volatile.Read(ref _value);
-        public void Increment() => Interlocked.Increment(ref _value);
-        public void Reset() => Interlocked.Exchange(ref _value, 0);
-    }
-
-    private sealed class CountingPasswordHasher(IPasswordHasher<ApplicationUser> inner, PasswordCheckCounter counter)
-        : IPasswordHasher<ApplicationUser>
-    {
-        public string HashPassword(ApplicationUser user, string password) => inner.HashPassword(user, password);
-
-        public PasswordVerificationResult VerifyHashedPassword(ApplicationUser user, string hashedPassword, string providedPassword)
-        {
-            counter.Increment();
-            return inner.VerifyHashedPassword(user, hashedPassword, providedPassword);
         }
     }
 
