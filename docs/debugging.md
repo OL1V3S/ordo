@@ -167,11 +167,12 @@ by default, and sensitive state stays private.
   Some other sources (for example EF Core command errors, or a response that had
   already started) can still log exception details.
 - `GET /health` is anonymous and returns `200 Healthy`. It runs no checks and
-  does not touch the database.
+  does not touch the database. `GET /health/ready` is the anonymous readiness
+  check: it runs `SELECT 1` and returns `200` or `503` with a fixed body.
 
 ## Deferred operational capabilities
 
-This guide does not add readiness or database health checks, request
+This guide does not add request
 correlation, metrics or telemetry, alerts, automated browser or deployment
 smoke, rollback/incident runbooks, deployment workflows, or runtime
 configuration. ROADMAP E1 and E4 are related; E2 (health) now has its basic
