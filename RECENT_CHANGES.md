@@ -24,6 +24,13 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-11-03 — One budget limit per category and month
+
+[Issue #334](https://github.com/OL1V3S/ordo/issues/334)
+
+- Budget categories are saved in canonical form (`Food` = `food`). Negative, over-precise and out-of-range limits are rejected; zero is allowed. Saving is an atomic upsert backed by a new unique index.
+- The migration deletes nothing and aborts if existing rows are duplicates or non-canonical, so the owner runs a pre-check first. Web and iOS show localized messages for the new rejections.
+
 ### 2026-11-03 — Budget limit save binds a request DTO
 
 [PR #342](https://github.com/OL1V3S/ordo/pull/342) · [Issue #331](https://github.com/OL1V3S/ordo/issues/331)
@@ -160,9 +167,3 @@ the permanent, complete archive.
 - The web Transactions page has one Refresh button that reloads both the expense and deposit lists, replacing "Refresh expenses" and "Refresh deposits". Recovery messages now say "Select Refresh". English and Spanish.
 - Refresh is off while either list loads or a save is running. Each list's recovery checks and write blocks are unchanged. iPhone app, backend, API and schema are unchanged.
 
-### 2026-10-20 — Reports in the iPhone app
-
-[Issue #276](https://github.com/OL1V3S/ordo/issues/276)
-
-- The iPhone app has Reports, opened from Home: the selected month's deposits, spending, confirmed paychecks vs other deposits and deposits minus spending, spending by category, and a six-month trend chart with an exact list, in English and Spanish. You can move between months that have records.
-- Figures come from the server and are shown exactly; the phone does no money maths. Reports re-reads after saves, edits, deletes and paycheck changes. The web's "More spending detail" is not in the app yet. Backend, API, schema, web app and required checks are unchanged.

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using BudgetPlanner.BudgetLimits;
 using BudgetPlanner.Contracts.BudgetLimits;
 using BudgetPlanner.Data;
 using BudgetPlanner.Models;
@@ -78,16 +79,43 @@ public class BudgetLimitsController : ControllerBase
             return BadRequest("MonthYear is required.");
         }
 
+        var category = BudgetLimitRules.NormalizeCategory(limit.Category);
+        foreach (var (field, code) in BudgetLimitRules.Validate(limit.LimitAmount, category))
+        {
+            ModelState.AddModelError(field, code);
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return ValidationProblem(ModelState);
+        }
+
         // Normalize to the first day of the month, UTC.
         var monthYear = DateTime.SpecifyKind(
             new DateTime(limit.MonthYear.Year, limit.MonthYear.Month, 1),
             DateTimeKind.Utc
         );
 
+        if (_context.Database.IsNpgsql())
+        {
+            // One atomic statement: the unique index decides, the last committed write wins.
+            var rows = await _context.BudgetLimits
+                .FromSqlInterpolated($"""
+                    INSERT INTO "BudgetLimits" ("UserId", "Category", "LimitAmount", "MonthYear")
+                    VALUES ({userId}, {category}, {limit.LimitAmount}, {monthYear})
+                    ON CONFLICT ("UserId", "Category", "MonthYear")
+                    DO UPDATE SET "LimitAmount" = EXCLUDED."LimitAmount"
+                    RETURNING "Id", "Category", "LimitAmount", "MonthYear", "UserId"
+                    """)
+                .AsNoTracking()
+                .ToListAsync();
+            return Ok(BudgetLimitResponse.From(rows.Single()));
+        }
+
         var existing = await _context.BudgetLimits
             .FirstOrDefaultAsync(b =>
                 b.UserId == userId &&
-                b.Category == limit.Category &&
+                b.Category == category &&
                 b.MonthYear.Year == monthYear.Year &&
                 b.MonthYear.Month == monthYear.Month);
 
@@ -100,7 +128,7 @@ public class BudgetLimitsController : ControllerBase
 
         var created = new BudgetLimit
         {
-            Category = limit.Category,
+            Category = category,
             LimitAmount = limit.LimitAmount,
             MonthYear = monthYear,
             UserId = userId

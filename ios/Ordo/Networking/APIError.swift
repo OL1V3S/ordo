@@ -30,6 +30,8 @@ enum APIError: Error, Equatable, Sendable {
     case updateRejected
     /// `400` on a budget limit upsert. The body is plain text or a ProblemDetails and is never read.
     case budgetRejected
+    /// A `400` whose body carries one of the known budget validation codes.
+    case budgetRejectedWith(String)
     /// `400` on a paycheck write; only the `code` of the body is read.
     case paycheckRejected(String?)
     /// `404` with an empty body: the schedule is missing (or another owner's).

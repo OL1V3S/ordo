@@ -47,6 +47,13 @@ public class BudgetContext : IdentityDbContext<ApplicationUser>, IDataProtection
             .Property(b => b.LimitAmount)
             .HasColumnType("numeric(18,2)");
 
+        modelBuilder.Entity<BudgetLimit>()
+            .HasIndex(b => b.UserId);
+
+        modelBuilder.Entity<BudgetLimit>()
+            .HasIndex(b => new { b.UserId, b.Category, b.MonthYear })
+            .IsUnique();
+
         modelBuilder.Entity<Expense>()
             .HasOne(e => e.User)
             .WithMany()

@@ -52,6 +52,36 @@ describe('existing budget-limit workflows', () => {
     }))
   })
 
+  it('collapses inner whitespace in a custom category', async () => {
+    const user = userEvent.setup()
+    const upsertLimit = vi.fn().mockResolvedValue(undefined)
+    render(<BudgetLimitsPanel {...baseProps} upsertLimit={upsertLimit} />)
+
+    await user.click(screen.getByRole('button', { name: 'Add category budget' }))
+    await user.selectOptions(screen.getByLabelText('Category'), 'other')
+    await user.type(screen.getByPlaceholderText('Custom category'), 'Home   Repair')
+    await user.type(screen.getByPlaceholderText('Monthly limit'), '80')
+    await user.click(screen.getByRole('button', { name: 'Save limit' }))
+
+    expect(upsertLimit).toHaveBeenCalledWith(expect.objectContaining({ category: 'home repair' }))
+  })
+
+  it('shows a localized message for a server rejection and keeps the form open', async () => {
+    const user = userEvent.setup()
+    const upsertLimit = vi.fn().mockRejectedValue({
+      response: { status: 400, data: { errors: { category: ['category_reserved'] } } },
+    })
+    render(<BudgetLimitsPanel {...baseProps} upsertLimit={upsertLimit} />)
+
+    await user.click(screen.getByRole('button', { name: 'Add category budget' }))
+    await user.selectOptions(screen.getByLabelText('Category'), 'food')
+    await user.type(screen.getByPlaceholderText('Monthly limit'), '5')
+    await user.click(screen.getByRole('button', { name: 'Save limit' }))
+
+    expect(await screen.findByText(/“Other” is reserved/)).toBeVisible()
+    expect(screen.getByPlaceholderText('Monthly limit')).toBeVisible()
+  })
+
   it('updates an existing exact category without changing its key', async () => {
     const user = userEvent.setup()
     const upsertLimit = vi.fn().mockResolvedValue(undefined)

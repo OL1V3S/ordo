@@ -533,6 +533,16 @@ private let november = BudgetMonth(year: 2026, month: 11)!
         #expect(!rig.model.showsValidation || rig.model.invalidFields.isEmpty)
     }
 
+    @Test func aCodedRefusalShowsItsSpecificMessage() async {
+        let rig = await Rig.loaded()
+        rig.service.setPerforms([{ _ in throw APIError.budgetRejectedWith("category_reserved") }])
+        rig.openAdd(.other, amount: "30", custom: "Pets")
+        rig.model.save()
+        await rig.model.settled()
+        #expect(rig.model.showsValidation && rig.model.rejectionKey == .budgetsFormRejectedCategoryReserved)
+        #expect(!rig.model.needsRefresh && rig.model.task == .add)
+    }
+
     @Test func a400OnAnEditFocusesTheLimit() async {
         let rig = await Rig.loaded()
         rig.service.setPerforms([{ _ in throw APIError.budgetRejected }])

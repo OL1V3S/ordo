@@ -155,6 +155,9 @@ namespace backend.Migrations
 
                     b.HasIndex("UserId");
 
+                    b.HasIndex("UserId", "Category", "MonthYear")
+                        .IsUnique();
+
                     b.ToTable("BudgetLimits");
                 });
 

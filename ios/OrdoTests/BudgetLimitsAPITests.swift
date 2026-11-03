@@ -171,6 +171,14 @@ private struct BudgetHarness {
         await #expect(throws: APIError.budgetRejected) { try await h.save() }
     }
 
+    @Test func aKnownValidationCodeIsCarriedWithTheRefusal() async throws {
+        let h = BudgetHarness()
+        h.transport.route(limitsPath) { _ in
+            StubResponse(400, json: #"{"errors":{"limitAmount":["limit_amount_negative"]},"status":400}"#)
+        }
+        await #expect(throws: APIError.budgetRejectedWith("limit_amount_negative")) { try await h.save() }
+    }
+
     @Test func a401IsUnauthorized() async throws {
         let h = BudgetHarness()
         h.transport.route(limitsPath) { _ in StubResponse(401) }

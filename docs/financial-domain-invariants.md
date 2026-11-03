@@ -370,16 +370,24 @@ A configured budget amount:
 A zero-valued budget record and an absent budget record are distinct: zero is
 an intentional no-spend budget, while absence means no budget is configured.
 
-There should eventually be at most one budget per:
+There is at most one budget per:
 
 `(UserId, CanonicalCategory, BudgetMonth)`
 
-That invariant should be database-enforced with an atomic upsert. Last
-committed write may win unless later product requirements justify stronger
-optimistic concurrency. Duplicate cleanup has **not** been authorized. Existing
-duplicates and category-normalization collisions must be inspected and a
-resolution policy separately approved before a uniqueness migration. No row
-may be selected, merged, or deleted automatically.
+- The canonical category is the expense form: trim, collapse inner whitespace,
+  lowercase. `Food`, ` food ` and `FOOD` are one category. Blank, `other` and
+  more than 100 characters are rejected.
+- A unique index on `(UserId, Category, MonthYear)` enforces this. Saving is one
+  atomic `INSERT ... ON CONFLICT DO UPDATE`; the last committed write wins.
+- Amounts are validated on save: zero allowed, negative, more than two decimals
+  or above the supported range rejected (400, nothing written, stable codes
+  `limit_amount_*` and `category_*`).
+- Migration `AddBudgetLimitUniqueness` deletes and rewrites nothing. A guard at
+  the top aborts it if any row has a blank or non-canonical category, a negative
+  amount, a `MonthYear` that is not the first day of a UTC month, or a duplicate
+  canonical (user, category, month). The owner runs the read-only pre-check in
+  the PR and resolves rows separately before deploy. No row is selected,
+  merged, or deleted automatically.
 
 ### Home budget attention
 
@@ -404,7 +412,9 @@ Expense in the evaluated period, a null/blank/whitespace-only category in an
 evaluated budget or Expense row, invalid precision/range, or total overflow
 makes only the budget attention family unavailable. No such row is silently
 omitted, combined, repaired, normalized, deleted, or rewritten. Nonblank
-category strings are still matched exactly. A budget family failure must not
+category strings are still matched exactly. Budgets are now stored in canonical
+form and the read path is unchanged; older non-canonical Expense rows only match
+after a separate normalization decision. A budget family failure must not
 hide valid commitment-change attention, and vice versa.
 The full response contract is documented in [`home-read-model.md`](home-read-model.md).
 

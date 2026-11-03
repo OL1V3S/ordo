@@ -48,27 +48,15 @@ public sealed class PostgreSqlHomeTests
     }
 
     [PostgreSqlFact]
-    public async Task Duplicate_budget_rows_make_only_budget_family_unavailable()
+    public async Task Duplicate_budget_rows_cannot_be_stored()
     {
         await using var app = new PostgreSqlFinancialApiTestApplication();
         using var owner = await app.CreateAuthenticatedUserAsync("postgres-home-budget-duplicate@example.com");
         var month = new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc);
         await app.SeedBudgetLimitAsync(owner.Id, "food", 100m, month);
-        await app.SeedBudgetLimitAsync(owner.Id, "food", 200m, month);
-        await app.SeedExpenseAsync(owner.Id, "Food expense", 150m, new(2026, 9, 22), "food");
 
-        using var response = await owner.Client.GetAsync(Route);
-        response.EnsureSuccessStatusCode();
-        var attention = (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("attention");
-
-        Assert.Equal("available", attention.GetProperty("availability").GetProperty("state").GetString());
-        Assert.Equal("available", attention.GetProperty("familyAvailability")
-            .GetProperty("commitment_change_review").GetProperty("state").GetString());
-        Assert.Equal("unavailable", attention.GetProperty("familyAvailability")
-            .GetProperty("budget_attention").GetProperty("state").GetString());
-        Assert.Equal(new[] { "commitment_change_review" }, attention.GetProperty("kindsEvaluated")
-            .EnumerateArray().Select(value => value.GetString()));
-        Assert.Equal(JsonValueKind.Null, attention.GetProperty("budgetItems").ValueKind);
+        await Assert.ThrowsAsync<DbUpdateException>(
+            () => app.SeedBudgetLimitAsync(owner.Id, "food", 200m, month));
     }
 
     [Theory]

@@ -25,7 +25,7 @@ struct BudgetFormSheet: View {
         // A request in flight cannot be dismissed away; its result needs this screen.
         .interactiveDismissDisabled(model.isPending)
         .onChange(of: model.showsValidation) { _, shows in
-            if shows { AccessibilityNotification.Announcement(l10n.string(.budgetsFormValidation)).post() }
+            if shows { AccessibilityNotification.Announcement(l10n.string(model.rejectionKey ?? .budgetsFormValidation)).post() }
         }
         .onChange(of: model.isPending) { _, pending in
             if pending { AccessibilityNotification.Announcement(l10n.string(.captureSaving)).post() }
@@ -87,7 +87,7 @@ struct BudgetFormSheet: View {
             if model.showsValidation {
                 Section {
                     InlineStatusView(systemImage: "exclamationmark.triangle",
-                                     message: l10n.string(.budgetsFormValidation), tone: .danger)
+                                     message: l10n.string(model.rejectionKey ?? .budgetsFormValidation), tone: .danger)
                 }
                 .themedToneRow(.danger)
             }

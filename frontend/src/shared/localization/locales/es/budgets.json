@@ -27,7 +27,14 @@
     "limitAmountPlaceholder": "Límite mensual",
     "save": "Guardar límite",
     "saving": "Guardando…",
-    "cancel": "Cancelar"
+    "cancel": "Cancelar",
+    "rejected": {
+      "limit_amount_negative": "El límite no puede ser negativo.",
+      "limit_amount_precision_invalid": "Usa como máximo dos decimales en el límite.",
+      "limit_amount_out_of_range": "Ese límite es demasiado grande.",
+      "category_too_long": "Usa 100 caracteres o menos para la categoría.",
+      "category_reserved": "“Otro” está reservado. Ingresa otro nombre de categoría."
+    }
   },
   "categories": {
     "food": "Comida",
