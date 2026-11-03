@@ -39,7 +39,8 @@ function loadAccount() {
 }
 
 const account = loadAccount()
-const unique = (name) => `E2E ${name} ${account.runId}`
+// A retry gets its own data, so a half-finished first attempt cannot cause duplicates.
+const unique = (name, testInfo) => `E2E ${name} ${account.runId}${testInfo.retry ? ` retry ${testInfo.retry}` : ''}`
 
 // Signs in through the real form and returns the access token of that session.
 async function signIn(page) {
@@ -69,9 +70,9 @@ test('signs in and reaches Home', async ({ page }) => {
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
 })
 
-test('adds an expense', async ({ page, request }) => {
+test('adds an expense', async ({ page, request }, testInfo) => {
   const token = await signIn(page)
-  const description = unique('expense')
+  const description = unique('expense', testInfo)
 
   await page.goto('/transactions')
   await page.getByRole('button', { name: labels.addExpense, exact: true }).click()
@@ -91,9 +92,9 @@ test('adds an expense', async ({ page, request }) => {
   expect(Number(saved[0].amount)).toBe(12.34)
 })
 
-test('adds a cash-in deposit', async ({ page, request }) => {
+test('adds a cash-in deposit', async ({ page, request }, testInfo) => {
   const token = await signIn(page)
-  const description = unique('deposit')
+  const description = unique('deposit', testInfo)
 
   await page.goto('/transactions')
   await page.getByRole('button', { name: labels.addDeposit, exact: true }).click()
@@ -133,10 +134,10 @@ test('sets a budget limit', async ({ page, request }) => {
   expect(Number(saved[0].limitAmount)).toBe(200)
 })
 
-test('records a paycheck receipt', async ({ page, request }) => {
+test('records a paycheck receipt', async ({ page, request }, testInfo) => {
   const token = await signIn(page)
-  const name = unique('paycheck')
-  const depositDescription = unique('paycheck deposit')
+  const name = unique('paycheck', testInfo)
+  const depositDescription = unique('paycheck deposit', testInfo)
   // Paycheck slots are UTC. A weekly anchor of UTC today always offers the current
   // and previous slot, so a free slot exists even close to midnight.
   const anchor = new Date().toISOString().slice(0, 10)
