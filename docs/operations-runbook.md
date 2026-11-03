@@ -29,6 +29,7 @@ This document authorizes nothing. It is reference material only.
 | Recovery point objective (RPO): acceptable data loss | OWNER TO FILL IN | OWNER TO FILL IN |
 | Restore drill authorization (link to the durable #339 comment) | OWNER TO FILL IN | OWNER TO FILL IN |
 | Last restore drill: date and result | OWNER TO FILL IN | OWNER TO FILL IN |
+| Last JWT key rotation date (date only, never values) | OWNER TO FILL IN | OWNER TO FILL IN |
 
 - RTO and RPO are owner decisions. No agent sets them. A measured drill time
   informs them; it does not set them.
@@ -472,6 +473,90 @@ user IDs or amounts.
   - The web origin on the same schedule.
   - Each tick wakes Neon, so do not poll faster than 5 minutes.
   - Creating monitors is an owner action; nothing here creates them.
+
+## JWT signing-key rotation
+
+Owner-run. Agents never generate, read or set a production key, never touch
+Render, and never run the end-all-sessions step. Code and design:
+[`auth-session-invariants.md`](auth-session-invariants.md) (JWT parameters).
+
+How it works:
+
+- `Jwt__Key` is the current key: it signs and validates.
+- `Jwt__PreviousKey` is optional and validates only. It never signs. Unset
+  (or empty) means normal single-key behavior.
+- Access tokens last 2 h, plus about 5 min clock skew.
+- Device and web session credentials are opaque database secrets, not JWTs, so
+  rotation does not touch them. A refresh always returns a current-key token.
+- With `Jwt__PreviousKey` set, startup fails if either key is under 32 bytes or
+  the two keys are equal. That is deliberate.
+- Confirm in Render that the variables are named `Jwt__Key` and
+  `Jwt__PreviousKey`: OWNER TO FILL IN.
+- Never put key values in chat, issues, PRs, logs or the repo. Record dates only.
+
+### Planned rotation (no 401s)
+
+Three deploys. One swap can 401 requests split across old and new instances,
+and iOS signs out after two 401s in a row.
+
+1. Generate a new key locally (for example `openssl rand -base64 48`).
+2. Deploy 1: `Jwt__Key` = old key, `Jwt__PreviousKey` = new key. Every
+   instance now accepts the new key. Signing is still with the old key.
+3. Deploy 2: `Jwt__Key` = new key, `Jwt__PreviousKey` = old key. Start it
+   only after Deploy 1 is fully live and the pre-Deploy-1 instance has stopped
+   serving. Run the smoke script, then one private sign-in or refresh on web
+   and iOS.
+4. Wait at least 2 h 5 min counted from when the old instance stops serving
+   (not from "live"). Prefer 24 h. Do not start another rotation before step 5.
+5. Deploy 3: delete `Jwt__PreviousKey`. Run the smoke script again. Record the
+   date in the facts table.
+
+### Emergency rotation (key leaked)
+
+1. Set `Jwt__Key` to a new key and delete `Jwt__PreviousKey`. Never put the
+   leaked key in `Jwt__PreviousKey`. Deploy.
+2. Once the new instance serves, every existing access token, forged ones
+   included, gets 401. Web refreshes once through its cookie and retries. iOS
+   refreshes once and signs out on a second 401. The old instance keeps
+   accepting leaked-key tokens until it stops serving.
+3. A key swap alone does not sign anyone out: sessions survive and refresh
+   silently. To sign everyone out, also run the optional step below.
+4. Run the smoke script. Record the date.
+
+### End all sessions (optional, destructive)
+
+Owner-run only, with fresh explicit owner authorization at the time. Take a
+recovery point first (Neon branch, see the ordering rules).
+
+- Mechanism: delete every `DeviceSessions` row (one table for native and web)
+  and give every user a new security stamp. This is what a completed password
+  reset does for one user. Existing access tokens then get 401 and clients go
+  to sign-in. Outstanding confirm-email and reset-password links stop working
+  too, because they embed the stamp.
+- SQL, run on a production connection only by the owner:
+
+  ```sql
+  BEGIN;
+  DELETE FROM "DeviceSessions";
+  UPDATE "AspNetUsers" SET
+    "SecurityStamp" = replace(gen_random_uuid()::text, '-', ''),
+    "ConcurrencyStamp" = gen_random_uuid()::text;
+  COMMIT;
+  ```
+
+- Verified only on a disposable local PostgreSQL 16 with synthetic data (3
+  sessions, 2 users): 0 sessions left, 2 users kept, both security and
+  concurrency stamps replaced.
+  Not run against the API or any hosted database.
+
+### If a deploy will not start after an env change
+
+- A short, equal or otherwise bad previous key stops the app on purpose.
+  Restore the previous env values at once.
+- Render's behavior on a failed start and on env saves is unverified:
+  OWNER TO FILL IN.
+- Code rollback: revert the PR. Older code ignores `Jwt__PreviousKey`, so
+  previous-key tokens get 401 and clients refresh once.
 
 ## Not covered
 
