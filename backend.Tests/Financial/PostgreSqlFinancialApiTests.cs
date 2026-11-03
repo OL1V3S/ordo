@@ -2369,13 +2369,13 @@ public sealed class PostgreSqlFinancialApiTests
         var createResponse = await owner.Client.PostAsJsonAsync("/api/budgetlimits", new
         {
             category = "food",
-            limitAmount = 125.505m,
+            limitAmount = 125.51m,
             monthYear = "2026-08-23T14:30:00"
         });
         var created = await createResponse.Content.ReadFromJsonAsync<JsonElement>();
 
         Assert.Equal(HttpStatusCode.OK, createResponse.StatusCode);
-        Assert.Equal(125.505m, created.GetProperty("limitAmount").GetDecimal());
+        Assert.Equal(125.51m, created.GetProperty("limitAmount").GetDecimal());
         var id = created.GetProperty("id").GetInt32();
 
         await app.SeedBudgetLimitAsync(other.Id, "hidden", 999m);

@@ -27,7 +27,14 @@
     "limitAmountPlaceholder": "Monthly limit",
     "save": "Save limit",
     "saving": "Saving…",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "rejected": {
+      "limit_amount_negative": "The limit can’t be negative.",
+      "limit_amount_precision_invalid": "Use at most two decimal places for the limit.",
+      "limit_amount_out_of_range": "That limit is too large.",
+      "category_too_long": "Use 100 characters or fewer for the category.",
+      "category_reserved": "“Other” is reserved. Enter a different category name."
+    }
   },
   "categories": {
     "food": "Food",

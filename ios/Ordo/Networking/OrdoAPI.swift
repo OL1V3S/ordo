@@ -271,14 +271,16 @@ struct OrdoAPI: Sendable {
     /// `BudgetUpsert.requestBody`), so identical arguments always produce identical bytes.
     ///
     /// The upsert has its own status switch and does not use `mutate`: any `2xx` is applied, `400`
-    /// is a validation refusal (its body is never read), `401` is unauthorised, and everything else
+    /// is a validation refusal (only a known code is read from its body), `401` is unauthorised, and everything else
     /// (a `404` included) is left to the caller as `.server`, an unknown outcome.
     func upsertBudgetLimit(accessToken: String, _ upsert: BudgetUpsert) async throws -> MutationResult {
         let headers = ["Authorization": "Bearer \(accessToken)"]
-        let (_, status) = try await perform(post: "api/budgetlimits", body: try upsert.requestBody(), headers: headers)
+        let (data, status) = try await perform(post: "api/budgetlimits", body: try upsert.requestBody(), headers: headers)
         switch status {
         case 200..<300: return .applied
-        case 400: throw APIError.budgetRejected
+        case 400:
+            if let code = Self.budgetRejectionCode(in: data) { throw APIError.budgetRejectedWith(code) }
+            throw APIError.budgetRejected
         case 401: throw APIError.unauthorized
         default: throw APIError.server(status)
         }
@@ -581,6 +583,16 @@ struct OrdoAPI: Sendable {
     }
 
     /// Only a string `code` is ever read from an error body.
+    /// The first known budget validation code in a ProblemDetails `errors` body, if any.
+    static func budgetRejectionCode(in data: Data) -> String? {
+        let known = ["limit_amount_negative", "limit_amount_precision_invalid", "limit_amount_out_of_range",
+                     "category_too_long", "category_reserved"]
+        guard let root = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
+              let errors = root["errors"] as? [String: Any] else { return nil }
+        let codes = errors.values.compactMap { $0 as? [String] }.flatMap { $0 }
+        return known.first { codes.contains($0) }
+    }
+
     static func errorCode(in data: Data) -> String? {
         (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["code"] as? String
     }

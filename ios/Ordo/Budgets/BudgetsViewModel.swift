@@ -93,6 +93,8 @@ final class BudgetsViewModel {
     private(set) var needsRefresh = false
     /// The form has an error message (a failed check on the phone, or a `400`).
     private(set) var showsValidation = false
+    /// The server's specific refusal, shown instead of the generic message; nil otherwise.
+    private(set) var rejectionKey: L10nKey?
     private(set) var invalidFields: Set<BudgetField> = []
     private(set) var focusRequest: FocusRequest?
 
@@ -467,7 +469,7 @@ final class BudgetsViewModel {
         if draft.choice != before.choice { invalidFields.remove(.category); invalidFields.remove(.customCategory) }
         if draft.customCategory != before.customCategory { invalidFields.remove(.customCategory) }
         if draft.amountText != before.amountText { invalidFields.remove(.amount) }
-        if invalidFields.isEmpty { showsValidation = false }
+        if invalidFields.isEmpty { showsValidation = false; rejectionKey = nil }
     }
 
     func cancelTask() {
@@ -544,6 +546,7 @@ final class BudgetsViewModel {
         case applied
         case notFound
         case rejected
+        case rejectedWith(String)
         case uncertain
         case sessionEnded
     }
@@ -559,6 +562,7 @@ final class BudgetsViewModel {
         } catch let error as APIError {
             switch error {
             case .budgetRejected: return .rejected
+            case .budgetRejectedWith(let code): return .rejectedWith(code)
             case .sessionEnded: return .sessionEnded
             default: return .uncertain
             }
@@ -576,14 +580,15 @@ final class BudgetsViewModel {
         case .notFound where write.isDelete:
             // Gone, whoever deleted it: the same as a successful delete.
             await finish(write, generation: started)
-        case .rejected where !write.isDelete:
+        case .rejected where !write.isDelete, .rejectedWith where !write.isDelete:
             // The server refused the values: the form is open, unlocked, with the message.
+            if case .rejectedWith(let code) = outcome { rejectionKey = Self.rejectionKey(for: code) } else { rejectionKey = nil }
             isPending = false
             isDeleting = false
             showsValidation = true
             invalidFields = []
             requestFocus(rejectedFocusField)
-        case .rejected, .notFound, .uncertain:
+        case .rejected, .rejectedWith, .notFound, .uncertain:
             logger.error("A budget change could not be confirmed")
             isPending = false
             isDeleting = false
@@ -615,6 +620,17 @@ final class BudgetsViewModel {
         await refreshHome()
     }
 
+    nonisolated static func rejectionKey(for code: String) -> L10nKey? {
+        switch code {
+        case "limit_amount_negative": .budgetsFormRejectedNegative
+        case "limit_amount_precision_invalid": .budgetsFormRejectedPrecision
+        case "limit_amount_out_of_range": .budgetsFormRejectedRange
+        case "category_too_long": .budgetsFormRejectedCategoryTooLong
+        case "category_reserved": .budgetsFormRejectedCategoryReserved
+        default: nil
+        }
+    }
+
     private var rejectedFocusField: BudgetField {
         switch task {
         case .edit: .amount
@@ -631,6 +647,7 @@ final class BudgetsViewModel {
         task = nil
         draft = BudgetDraft()
         showsValidation = false
+        rejectionKey = nil
         invalidFields = []
     }
 }

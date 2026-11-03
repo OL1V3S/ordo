@@ -15028,6 +15028,91 @@
           }
         }
       }
+    },
+    "budgets.form.rejected.negative": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The limit can’t be negative."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El límite no puede ser negativo."
+          }
+        }
+      }
+    },
+    "budgets.form.rejected.precision": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use at most two decimal places for the limit."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usa como máximo dos decimales en el límite."
+          }
+        }
+      }
+    },
+    "budgets.form.rejected.range": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "That limit is too large."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ese límite es demasiado grande."
+          }
+        }
+      }
+    },
+    "budgets.form.rejected.categoryTooLong": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use 100 characters or fewer for the category."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usa 100 caracteres o menos para la categoría."
+          }
+        }
+      }
+    },
+    "budgets.form.rejected.categoryReserved": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“Other” is reserved. Enter a different category name."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“Otro” está reservado. Ingresa otro nombre de categoría."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { formatCalendarDate, formatMonthYear, formatPercentWhole } from "../../../shared/localization/format";
 import { useLocale } from "../../../shared/localization/useLocale";
 import { DEFAULT_CATEGORIES } from "../../../shared/constants/categories";
-import { displayText, normalizeText } from "../../../utils/text";
+import { displayText } from "../../../utils/text";
 import { categoryLabel } from "../../../shared/localization/categoryLabel";
 import FormField from "../../../shared/ui/FormField";
 import ListRow from "../../../shared/ui/ListRow";
@@ -19,6 +19,18 @@ import {
   percentageFromRatio,
 } from "../../expenses/utils/exactMoney";
 
+// Same canonical form as the server: trim, collapse inner whitespace, lowercase.
+const normalizeBudgetCategory = (value) => (value || "").trim().replace(/\s+/g, " ").toLowerCase();
+const REJECTION_CODES = [
+  "limit_amount_negative", "limit_amount_precision_invalid", "limit_amount_out_of_range",
+  "category_too_long", "category_reserved",
+];
+function rejectionCode(error) {
+  if (error?.response?.status !== 400) return null;
+  const errors = error.response.data?.errors;
+  const codes = errors && typeof errors === "object" ? Object.values(errors).flat() : [];
+  return REJECTION_CODES.find((code) => codes.includes(code)) ?? null;
+}
 const roundMoney = (value) => Number(parseFloat(value || 0).toFixed(2));
 const isValidMoney = (value) => /^\d*\.?\d{0,2}$/.test(value);
 function focusAfterRender(target) {
@@ -58,6 +70,7 @@ export default function BudgetLimitsPanel({
   const [pending, setPending] = useState(false);
   const [feedback, setFeedback] = useState(null);
   const [validation, setValidation] = useState(null);
+  const [rejection, setRejection] = useState(null);
   const [outcomeNeedsRefresh, setOutcomeNeedsRefresh] = useState(false);
   const writeInFlight = useRef(false);
   const taskOpener = useRef(null);
@@ -100,6 +113,7 @@ export default function BudgetLimitsPanel({
     writeInFlight.current = true;
     setPending(true);
     setFeedback(null);
+    setRejection(null);
     try {
       const result = await action();
       setTask(null);
@@ -108,9 +122,14 @@ export default function BudgetLimitsPanel({
         tone: result?.refreshFailed ? "warning" : "success",
         key: result?.refreshFailed ? `${successKey}RefreshFailed` : successKey,
       });
-    } catch {
-      setOutcomeNeedsRefresh(true);
-      setFeedback({ tone: "danger", key: "unconfirmed" });
+    } catch (error) {
+      const code = rejectionCode(error);
+      if (code) {
+        setRejection(code);
+      } else {
+        setOutcomeNeedsRefresh(true);
+        setFeedback({ tone: "danger", key: "unconfirmed" });
+      }
     } finally {
       writeInFlight.current = false;
       setPending(false);
@@ -126,8 +145,8 @@ export default function BudgetLimitsPanel({
       return;
     }
     const category = task.type === "edit" ? task.category
-      : task.category === "other" ? normalizeText(task.customCategory || "uncategorized")
-        : normalizeText(task.category);
+      : task.category === "other" ? normalizeBudgetCategory(task.customCategory) || "uncategorized"
+        : normalizeBudgetCategory(task.category);
     const payload = {
       category, limitAmount: roundMoney(task.amount),
       monthYear: new Date(task.month + "-01T00:00:00").toISOString(),
@@ -184,6 +203,7 @@ export default function BudgetLimitsPanel({
         {task && <form className="budget-form" noValidate onSubmit={(event) => { event.preventDefault(); saveTask(); }}>
           <h2>{task.type === "edit" ? t("form.editHeading", { category: categoryLabel(t, task.category, displayText) }) : t("form.addHeading")}</h2>
           <p className="muted">{t("form.forMonth", { month: task.month })}</p>
+          {rejection && <StatusMessage tone="danger">{t(`form.rejected.${rejection}`)}</StatusMessage>}
           {validation && <div id="budget-validation"><StatusMessage tone="danger">{t("form.validation")}</StatusMessage></div>}
           <fieldset disabled={pending}>
             <legend className="sr-only">{t("form.details")}</legend>

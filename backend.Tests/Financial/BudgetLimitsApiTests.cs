@@ -253,13 +253,15 @@ public sealed class BudgetLimitsApiTests
     }
 
     [Fact]
-    public async Task Category_matching_is_case_and_whitespace_sensitive()
+    public async Task Category_variants_resolve_to_one_canonical_row()
     {
         await using var app = new FinancialApiTestApplication();
         using var owner = await app.CreateAuthenticatedUserAsync("owner@example.com");
+        using var other = await app.CreateAuthenticatedUserAsync("other@example.com");
         await app.SeedBudgetLimitAsync(owner.Id, "food", 100m);
+        await app.SeedBudgetLimitAsync(other.Id, "food", 7m);
 
-        foreach (var category in new[] { "Food", " food " })
+        foreach (var category in new[] { "Food", " food ", "FOOD", "fOoD" })
         {
             var response = await owner.Client.PostAsJsonAsync("/api/budgetlimits", new
             {
@@ -267,37 +269,121 @@ public sealed class BudgetLimitsApiTests
                 limitAmount = 200m,
                 monthYear = "2026-08-15"
             });
+            var body = await response.Content.ReadFromJsonAsync<JsonElement>();
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Equal("food", body.GetProperty("category").GetString());
         }
 
-        Assert.Single(await app.FindBudgetLimitsAsync(owner.Id, "food"));
-        Assert.Single(await app.FindBudgetLimitsAsync(owner.Id, "Food"));
-        Assert.Single(await app.FindBudgetLimitsAsync(owner.Id, " food "));
+        Assert.Equal(200m, Assert.Single(await app.FindBudgetLimitsAsync(owner.Id, "food")).LimitAmount);
+        Assert.Empty(await app.FindBudgetLimitsAsync(owner.Id, "Food"));
+        Assert.Empty(await app.FindBudgetLimitsAsync(owner.Id, " food "));
+        Assert.Equal(7m, Assert.Single(await app.FindBudgetLimitsAsync(other.Id, "food")).LimitAmount);
     }
 
-    [Theory]
-    [InlineData("0")]
-    [InlineData("-75.25")]
-    public async Task Create_accepts_current_zero_and_negative_limit_amounts(string amountText)
+    [Fact]
+    public async Task Internal_whitespace_is_collapsed_in_the_stored_category()
     {
         await using var app = new FinancialApiTestApplication();
         using var owner = await app.CreateAuthenticatedUserAsync("owner@example.com");
-        var amount = decimal.Parse(amountText, System.Globalization.CultureInfo.InvariantCulture);
 
         var response = await owner.Client.PostAsJsonAsync("/api/budgetlimits", new
         {
-            category = $"edge-{amountText}",
-            limitAmount = amount,
+            category = "  Eating   OUT ",
+            limitAmount = 10m,
             monthYear = "2026-08-15"
         });
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var limits = await app.FindBudgetLimitsAsync(owner.Id, $"edge-{amountText}");
-        Assert.Equal(amount, Assert.Single(limits).LimitAmount);
+        Assert.Single(await app.FindBudgetLimitsAsync(owner.Id, "eating out"));
     }
 
     [Fact]
-    public async Task Whitespace_only_category_is_rejected_but_other_category_text_is_preserved()
+    public async Task Create_accepts_zero_limit()
+    {
+        await using var app = new FinancialApiTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("owner@example.com");
+
+        var response = await owner.Client.PostAsJsonAsync("/api/budgetlimits", new
+        {
+            category = "edge-zero",
+            limitAmount = 0m,
+            monthYear = "2026-08-15"
+        });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(0m, Assert.Single(await app.FindBudgetLimitsAsync(owner.Id, "edge-zero")).LimitAmount);
+    }
+
+    [Theory]
+    [InlineData("-75.25", "limit_amount_negative")]
+    [InlineData("10.001", "limit_amount_precision_invalid")]
+    [InlineData("10000000000000000.00", "limit_amount_out_of_range")]
+    public async Task Invalid_amounts_are_rejected_with_a_code_and_nothing_is_written(string amountText, string code)
+    {
+        await using var app = new FinancialApiTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("owner@example.com");
+        var existing = await app.SeedBudgetLimitAsync(owner.Id, "food", 100m);
+
+        var response = await owner.Client.PostAsync(
+            "/api/budgetlimits",
+            Json($"{{\"category\":\"food\",\"limitAmount\":{amountText},\"monthYear\":\"2026-08-01\"}}"));
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Contains(
+            code,
+            body.GetProperty("errors").GetProperty("limitAmount").EnumerateArray().Select(e => e.GetString()));
+        Assert.Equal(100m, Assert.Single(await app.FindBudgetLimitsAsync(owner.Id, "food")).LimitAmount);
+        Assert.Equal(existing.Id, (await app.FindBudgetLimitsAsync(owner.Id, "food"))[0].Id);
+    }
+
+    [Theory]
+    [InlineData("OTHER", "category_reserved")]
+    [InlineData(" Other ", "category_reserved")]
+    public async Task Reserved_category_is_rejected(string category, string code)
+    {
+        await using var app = new FinancialApiTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("owner@example.com");
+
+        var response = await owner.Client.PostAsJsonAsync("/api/budgetlimits", new
+        {
+            category,
+            limitAmount = 1m,
+            monthYear = "2026-08-01"
+        });
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Contains(
+            code,
+            body.GetProperty("errors").GetProperty("category").EnumerateArray().Select(e => e.GetString()));
+        Assert.Empty(await app.FindBudgetLimitsAsync(owner.Id, "other"));
+    }
+
+    [Fact]
+    public async Task Category_over_100_characters_is_rejected_and_not_truncated()
+    {
+        await using var app = new FinancialApiTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("owner@example.com");
+
+        var response = await owner.Client.PostAsJsonAsync("/api/budgetlimits", new
+        {
+            category = new string('a', 101),
+            limitAmount = 1m,
+            monthYear = "2026-08-01"
+        });
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Contains(
+            "category_too_long",
+            body.GetProperty("errors").GetProperty("category").EnumerateArray().Select(e => e.GetString()));
+        Assert.Empty(await app.FindBudgetLimitsAsync(owner.Id, new string('a', 101)));
+        Assert.Empty(await app.FindBudgetLimitsAsync(owner.Id, new string('a', 100)));
+    }
+
+    [Fact]
+    public async Task Whitespace_only_category_is_still_rejected()
     {
         await using var app = new FinancialApiTestApplication();
         using var owner = await app.CreateAuthenticatedUserAsync("owner@example.com");
@@ -308,17 +394,9 @@ public sealed class BudgetLimitsApiTests
             limitAmount = 100m,
             monthYear = "2026-08-15"
         });
-        var preserved = await owner.Client.PostAsJsonAsync("/api/budgetlimits", new
-        {
-            category = "  Food  ",
-            limitAmount = 100m,
-            monthYear = "2026-08-15"
-        });
 
         Assert.Equal(HttpStatusCode.BadRequest, rejected.StatusCode);
         Assert.Equal("Category is required.", await rejected.Content.ReadAsStringAsync());
-        Assert.Equal(HttpStatusCode.OK, preserved.StatusCode);
-        Assert.Single(await app.FindBudgetLimitsAsync(owner.Id, "  Food  "));
     }
 
     [Fact]
