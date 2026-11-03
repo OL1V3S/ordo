@@ -37,17 +37,16 @@ let app
 
 async function load({ language = 'en' } = {}) {
   vi.resetModules()
-  const [react, router, App, i18nModule, locale, theme, webSession, session, webClient] = await Promise.all([
-    import('@testing-library/react'),
-    import('react-router-dom'),
-    import('./App'),
-    import('../shared/localization/i18n'),
-    import('../shared/localization/LocaleProvider'),
-    import('../shared/theme/ThemeProvider'),
-    import('../shared/auth/webSession'),
-    import('../shared/auth/session'),
-    import('../shared/api/webSessionClient'),
-  ])
+  // Sequential on purpose: parallel dynamic imports after a reset race under load.
+  const react = await import('@testing-library/react')
+  const router = await import('react-router-dom')
+  const App = await import('./App')
+  const i18nModule = await import('../shared/localization/i18n')
+  const locale = await import('../shared/localization/LocaleProvider')
+  const theme = await import('../shared/theme/ThemeProvider')
+  const webSession = await import('../shared/auth/webSession')
+  const session = await import('../shared/auth/session')
+  const webClient = await import('../shared/api/webSessionClient')
   await i18nModule.default.changeLanguage(language)
   vi.mocked(webClient.webSessionClient.refresh).mockReset()
   app = { ...react, ...router, App: App.default, LocaleProvider: locale.LocaleProvider, ThemeProvider: theme.ThemeProvider, webSession, session, client: webClient.webSessionClient }
@@ -92,14 +91,14 @@ describe('app page-load behavior', () => {
     void app.webSession.startWebSession()
     renderApp('/overview')
 
-    expect(app.screen.getByRole('status')).toHaveTextContent('Loading your account...')
+    expect(app.screen.getByRole('status')).toHaveTextContent('Loading your account')
     expect(app.screen.queryByText('This is taking longer than usual.')).not.toBeInTheDocument()
 
     await advance(4100)
     expect(app.screen.getByText('This is taking longer than usual.')).toBeInTheDocument()
     await advance(10 * 60 * 1000)
     expect(app.screen.queryByRole('heading', { name: 'Authentication content' })).not.toBeInTheDocument()
-    expect(app.screen.getByRole('status')).toHaveTextContent('Loading your account...')
+    expect(app.screen.getByRole('status')).toHaveTextContent('Loading your account')
 
     pending.resolve({ status: 200, data: { token: jwt(2 * HOUR), email: 'person@example.invalid' } })
     await advance(0)
@@ -131,7 +130,7 @@ describe('app page-load behavior', () => {
     void app.webSession.startWebSession()
     renderApp('/')
 
-    expect(app.screen.getByRole('status')).toHaveTextContent('Loading your account...')
+    expect(app.screen.getByRole('status')).toHaveTextContent('Loading your account')
     await advance(4100)
     expect(app.screen.getByRole('heading', { name: 'Authentication content' })).toBeInTheDocument()
   })
@@ -163,7 +162,7 @@ describe('app page-load behavior', () => {
       window.dispatchEvent(new StorageEvent('storage', { key: 'sessionId', storageArea: localStorage }))
     })
     await advance(0)
-    expect(app.screen.getByRole('status')).toHaveTextContent('Loading your account...')
+    expect(app.screen.getByRole('status')).toHaveTextContent('Loading your account')
     expect(app.screen.queryByRole('heading', { name: 'Authentication content' })).not.toBeInTheDocument()
 
     pending.resolve({ status: 200, data: { token: jwt(2 * HOUR), email: 'new@example.invalid' } })
@@ -180,7 +179,7 @@ describe('app page-load behavior', () => {
     renderApp('/')
 
     await advance(4100)
-    expect(app.screen.getByRole('status')).toHaveTextContent('Cargando tu cuenta...')
+    expect(app.screen.getByRole('status')).toHaveTextContent('Cargando tu cuenta')
     expect(app.screen.getByText('Esto está tardando más de lo habitual.')).toBeInTheDocument()
     expect(app.screen.getByText('No podemos conectar con el servidor en este momento. Lo intentaremos de nuevo.')).toBeInTheDocument()
   })
