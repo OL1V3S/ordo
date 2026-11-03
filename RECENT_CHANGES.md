@@ -26,7 +26,7 @@ the permanent, complete archive.
 
 ### 2026-11-03 — Request IDs and support references
 
-[Issue #340](https://github.com/OL1V3S/ordo/issues/340) · [PR #TBD](https://github.com/OL1V3S/ordo/pull/TBD)
+[Issue #340](https://github.com/OL1V3S/ordo/issues/340) · [PR #353](https://github.com/OL1V3S/ordo/pull/353)
 
 - Every API response now has an `X-Request-Id` (server-generated). Error bodies also carry `requestId`, and each request writes one privacy-safe `request_complete` log line, so a reported failure can be found in the host log. Additive; no status, body shape or auth change.
 - The web app shows the ID after a server error as a reference to share (English and Spanish). iPhone display is a separate slice. Runbook adds release and rollback evidence.
