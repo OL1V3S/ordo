@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { getSessionSnapshot, subscribeToSession } from "../shared/auth/session";
-import { isBootRefreshPending, signOut, subscribeToBootRefresh } from "../shared/auth/webSession";
+import { getBootStatus, signOut, subscribeToBootRefresh } from "../shared/auth/webSession";
 
 import TransactionsPage from "../features/transactions/pages/TransactionsPage";
 import BudgetsPage from "../features/budgetLimits/pages/BudgetsPage";
@@ -13,6 +13,7 @@ import ConfirmEmailPage from "../features/auth/components/ConfirmEmailPage";
 import ForgotPasswordPage from "../features/auth/components/ForgotPasswordPage";
 import ResetPasswordPage from "../features/auth/components/ResetPasswordPage";
 import AppShell from "./AppShell";
+import BootScreen from "./BootScreen";
 import ProtectedRoute from "./ProtectedRoute";
 import OverviewPage from "./pages/OverviewPage";
 import InvestingPage from "./pages/InvestingPage";
@@ -23,9 +24,12 @@ import MorePage from "./pages/MorePage";
 export default function App() {
   const session = useSyncExternalStore(subscribeToSession, getSessionSnapshot);
   const isLoggedIn = session.signedIn;
-  // While the boot refresh may still restore a session, show nothing rather than
-  // flashing the sign-in page (capped in webSession.js).
-  const awaitingSession = useSyncExternalStore(subscribeToBootRefresh, isBootRefreshPending) && !isLoggedIn;
+  // While the page-load refresh may still restore a session, show a loading view
+  // rather than the sign-in page. With a stored sign-in it lasts until the refresh
+  // settles, however slow the server is (see webSession.js).
+  const boot = useSyncExternalStore(subscribeToBootRefresh, getBootStatus);
+  const awaitingSession = boot.pending && !isLoggedIn;
+  const loadingView = <BootScreen status={boot} />;
 
   return (
     <Routes>
@@ -34,7 +38,7 @@ export default function App() {
         element={
           isLoggedIn ? (
             <Navigate to="/overview" replace />
-          ) : awaitingSession ? null : (
+          ) : awaitingSession ? loadingView : (
             <AuthPage />
           )
         }
@@ -44,7 +48,7 @@ export default function App() {
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
 
-      <Route element={<ProtectedRoute key={session.generation} isAuthenticated={isLoggedIn} isPending={awaitingSession} />}>
+      <Route element={<ProtectedRoute key={session.generation} isAuthenticated={isLoggedIn} isPending={awaitingSession} pendingElement={loadingView} />}>
         <Route element={<AppShell email={session.email} onLogout={signOut} />}>
           <Route path="/overview" element={<OverviewPage />} />
           <Route path="/transactions" element={<TransactionsPage />} />

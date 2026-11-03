@@ -1,6 +1,6 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { clearSession, establishSession } from "../../../shared/auth/session";
+import { clearSession, establishSession, replaceAccessToken } from "../../../shared/auth/session";
 import { clearCaptureRecovery, getCaptureRecoverySnapshot, getCaptureRecoveryVolatileSnapshot, markCaptureRecovery, useCaptureRecovery } from "./captureRecovery";
 
 beforeEach(() => { sessionStorage.clear(); localStorage.clear(); establishSession("token-a", "a@example.test"); });
@@ -66,8 +66,7 @@ describe("Home capture recovery marker", () => {
     const before = result.current;
     act(() => { markCaptureRecovery("expense"); });
     act(() => {
-      localStorage.setItem("token", "token-a-refreshed");
-      window.dispatchEvent(new StorageEvent("storage", { key: "token", storageArea: localStorage }));
+      replaceAccessToken("token-a-refreshed", "a@example.test");
     });
 
     expect(getCaptureRecoverySnapshot()).toBe("expense");

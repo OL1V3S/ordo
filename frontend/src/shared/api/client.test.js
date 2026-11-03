@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AxiosError, CanceledError } from 'axios'
 import client from './client'
-import { clearSession, establishSession, getSessionSnapshot, replaceAccessToken, subscribeToSession } from '../auth/session'
+import { clearSession, establishSession, getAccessToken, getSessionSnapshot, replaceAccessToken, subscribeToSession } from '../auth/session'
 import { refreshWebSession } from '../auth/webSession'
 
 function httpError(config, status = 401) {
@@ -29,10 +29,13 @@ function pendingRequest() {
 }
 
 describe('API authorization', () => {
-  beforeEach(() => localStorage.clear())
+  beforeEach(() => {
+    clearSession()
+    localStorage.clear()
+  })
 
-  it('adds the stored token using the existing bearer request shape', async () => {
-    localStorage.setItem('token', 'jwt-value')
+  it('adds the in-memory token using the existing bearer request shape', async () => {
+    establishSession('jwt-value', 'person@example.com')
     let requestConfig
 
     await client.get('/api/expenses', {
@@ -75,6 +78,7 @@ describe('authenticated response recovery', () => {
   const subscriptions = []
 
   beforeEach(() => {
+    clearSession()
     localStorage.clear()
     establishSession('current-token', 'person@example.com')
   })
@@ -95,7 +99,7 @@ describe('authenticated response recovery', () => {
 
     expect(error).toBe(originalError)
     expect(adapter).toHaveBeenCalledOnce()
-    expect(localStorage.getItem('token')).toBeNull()
+    expect(getAccessToken()).toBeNull()
     expect(localStorage.getItem('email')).toBeNull()
     expect(localStorage.getItem('budget-planner-theme')).toBe('dark')
     expect(listener).toHaveBeenCalledOnce()
@@ -114,7 +118,7 @@ describe('authenticated response recovery', () => {
 
     results.forEach((error) => expect(error.response.status).toBe(401))
     expect(listener).toHaveBeenCalledOnce()
-    expect(localStorage.getItem('token')).toBeNull()
+    expect(getAccessToken()).toBeNull()
     expect(first.adapter).toHaveBeenCalledOnce()
     expect(second.adapter).toHaveBeenCalledOnce()
   })
@@ -142,34 +146,37 @@ describe('authenticated response recovery', () => {
     const before = getSessionSnapshot()
     const request = pendingRequest()
     await request.started
-    localStorage.setItem('token', 'refreshed-token')
+    replaceAccessToken('refreshed-token', 'person@example.com')
 
     request.reject()
     await request.result
 
-    expect(localStorage.getItem('token')).toBe('refreshed-token')
+    expect(getAccessToken()).toBe('refreshed-token')
     expect(getSessionSnapshot()).toBe(before)
   })
 
   it('invalidates on a 401 for the refreshed token of the same sign-in', async () => {
-    localStorage.setItem('token', 'refreshed-token')
+    replaceAccessToken('refreshed-token', 'person@example.com')
     const adapter = vi.fn(async (config) => { throw httpError(config) })
 
     await client.get('/api/expenses', { adapter }).catch(() => {})
 
-    expect(localStorage.getItem('token')).toBeNull()
+    expect(getAccessToken()).toBeNull()
   })
 
   it('ignores an old 401 when another tab replaces storage before its event arrives', async () => {
     const request = pendingRequest()
     await request.started
-    localStorage.setItem('token', 'other-tab-token')
+    // Another tab signed in: this tab's token belongs to the replaced session.
+    localStorage.setItem('sessionId', 'other-tab-sign-in')
     localStorage.setItem('email', 'new@example.com')
 
     request.reject()
     await request.result
 
-    expect(localStorage.getItem('token')).toBe('other-tab-token')
+    // The stale 401 must not wipe the identity the other tab stored.
+    expect(getAccessToken()).toBeNull()
+    expect(localStorage.getItem('sessionId')).toBe('other-tab-sign-in')
     expect(localStorage.getItem('email')).toBe('new@example.com')
   })
 
@@ -262,7 +269,7 @@ describe('authenticated response recovery', () => {
     expect(error.response.status).toBe(401)
     expect(adapter).toHaveBeenCalledTimes(2)
     expect(refreshWebSession).toHaveBeenCalledOnce()
-    expect(localStorage.getItem('token')).toBeNull()
+    expect(getAccessToken()).toBeNull()
   })
 
   it('does not retry when the refresh fails', async () => {
@@ -272,7 +279,7 @@ describe('authenticated response recovery', () => {
 
     expect(refreshWebSession).toHaveBeenCalledOnce()
     expect(adapter).toHaveBeenCalledOnce()
-    expect(localStorage.getItem('token')).toBeNull()
+    expect(getAccessToken()).toBeNull()
   })
 
   it('does not refresh for a 401 from an earlier sign-in', async () => {
@@ -285,6 +292,6 @@ describe('authenticated response recovery', () => {
     await request.result
 
     expect(refreshWebSession).not.toHaveBeenCalled()
-    expect(localStorage.getItem('token')).toBe('new-token')
+    expect(getAccessToken()).toBe('new-token')
   })
 })
