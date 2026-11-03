@@ -139,10 +139,10 @@ console. Do not rely on any of them before then.
 ## Verifying a restore without touching production
 
 - Restore to a branch (above), never over production, to test a recovery.
-- Connect to the branch only under a durable owner authorization for a
-  [restore drill](#restore-drill-owner-run), read-only. Otherwise stop and
-  report. Never point CI, a CI secret, or the PostgreSQL integration tests at
-  a branch.
+- Connect to the branch only under a durable owner authorization for that
+  restore or a [restore drill](#restore-drill-owner-run), read-only (except the
+  drill's optional app check). Otherwise stop and report. Never point CI, a CI
+  secret, or the PostgreSQL integration tests at a branch.
 - Never use Neon, Render, production, or another hosted database as a
   substitute when a local PostgreSQL is unavailable
   ([`debugging.md`](debugging.md), [`verification.md`](verification.md)).
@@ -199,11 +199,15 @@ schema and data, with production untouched.
 2. Link that comment in the facts table. Fill in the facts: plan, PITR window,
    branch limit and cost, each with where it was confirmed. Confirm T is inside
    the window.
-3. Keep a private notes file outside the repository for timings and per-table
-   counts. The repository is public.
-4. Keep the branch connection string only in the shell session. Enter it with
-   `read -rs DRILL_DATABASE_URL` so it never reaches shell history. Never put
-   it in chat, tickets, screenshots, CI, or a file in the repository.
+3. Keep a private notes directory outside the repository for timings,
+   per-table counts and the migration lists. The repository is public.
+4. Keep the branch connection string only in the shell session. Split off the
+   password so it never appears in `psql` process arguments (visible in process
+   listings). Enter the string without its password with
+   `read -r DRILL_DATABASE_URL`, then the password with
+   `read -rs PGPASSWORD; export PGPASSWORD`. This also keeps both out of shell
+   history. Never put either in chat, tickets, screenshots, CI, or a file in the
+   repository.
 5. If baseline is yes: run `scripts/smoke-deploy.sh --api <url> --web <url>` for a
    pre-state. It is GET-only and needs no credentials.
 
@@ -242,22 +246,23 @@ Record the UTC time at each step with `date -u +%FT%TZ`:
 ### Checks
 
 (a) Every migration of the deployed commit is in `__EFMigrationsHistory`.
-Replace `<deployed-commit>` with the commit Render serves. Extra ids on the
-branch need an explanation (schema is applied before code).
+Replace `<deployed-commit>` with the commit Render serves and `<repo-path>` with
+the path of your clone. Run it from the private notes directory, so both files
+land outside the repository. Extra ids on the branch need an explanation
+(schema is applied before code).
 
 ```bash
 psql -X -At "$DRILL_DATABASE_URL" \
   -c 'SELECT "MigrationId" FROM "__EFMigrationsHistory"' \
   | LC_ALL=C sort > branch-migrations.txt
-git ls-tree --name-only <deployed-commit> backend/Migrations/ \
+git -C <repo-path> ls-tree --name-only <deployed-commit> backend/Migrations/ \
   | grep -E '/[0-9]{14}_[A-Za-z0-9_]+\.cs$' | grep -v '\.Designer\.cs$' \
   | sed -E 's#.*/([0-9]{14}_[A-Za-z0-9_]+)\.cs#\1#' \
   | LC_ALL=C sort > commit-migrations.txt
 diff commit-migrations.txt branch-migrations.txt
 ```
 
-Keep both files outside the repository. A line starting `<` is missing on the
-branch: stop.
+A line starting `<` is missing on the branch: stop.
 
 (b) to (e), run through `psql -X -v ON_ERROR_STOP=1 "$DRILL_DATABASE_URL"`:
 
@@ -308,9 +313,15 @@ app could write to the branch.
 - Run the backend locally in Development. Set in the shell only:
   `ConnectionStrings__DefaultConnection` (the branch, in Npgsql form) and a
   throwaway `Jwt__Key` (for example `openssl rand -base64 48`).
-- Startup validation requires non-empty `EmailSettings`, `GoogleEmail` and
-  `Frontend:BaseUrl` values. Use obvious dummy values. Never use real email
-  credentials.
+- Startup validation requires these shell-only values. Use obvious dummy
+  values and never real email credentials:
+  - `EmailSettings__FromName`: non-empty.
+  - `EmailSettings__FromEmail`: a valid email address, for example
+    `drill@example.invalid`.
+  - `GoogleEmail__ClientId`, `GoogleEmail__ClientSecret` and
+    `GoogleEmail__RefreshToken`: non-empty.
+  - `Frontend__BaseUrl`: an absolute http or https URL with no query or
+    fragment, for example `http://localhost:5173`.
 - Call `GET /health/ready` only and record the HTTP status. No sign-in, no other
   request. Never register, resend a confirmation, or use forgot-password.
 - The branch holds a copy of production data, including the Data Protection
@@ -327,8 +338,9 @@ or rename.
 
 ### After the drill
 
-1. Close psql and stop the app. Unset `DRILL_DATABASE_URL`, `PGOPTIONS`,
-   `ConnectionStrings__DefaultConnection` and `Jwt__Key`.
+1. Close psql and stop the app. Unset `DRILL_DATABASE_URL`, `PGPASSWORD`,
+   `PGOPTIONS`, `ConnectionStrings__DefaultConnection`, `Jwt__Key` and the
+   dummy email and frontend values.
 2. In the console, confirm the branch you are about to delete is the drill
    child and not the primary branch. Confirm no Render or Vercel setting
    references it.
