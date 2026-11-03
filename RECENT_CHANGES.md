@@ -26,7 +26,7 @@ the permanent, complete archive.
 
 ### 2026-11-03 — Budget limit save binds a request DTO
 
-[PR #PRNUM](https://github.com/OL1V3S/ordo/pull/PRNUM) · [Issue #331](https://github.com/OL1V3S/ordo/issues/331)
+[PR #342](https://github.com/OL1V3S/ordo/pull/342) · [Issue #331](https://github.com/OL1V3S/ordo/issues/331)
 
 - `POST /api/BudgetLimits` now binds a request type with `category`, `limitAmount` and `monthYear`, and returns a response type. Status codes and error texts are unchanged.
 - The response no longer includes the always-null `user` key. No schema, web or iOS change.
