@@ -56,6 +56,12 @@ internal abstract class FinancialApiTestApplicationBase : WebApplicationFactory<
 
             services.RemoveAll<IEmailService>();
             services.AddSingleton<IEmailService, NoOpEmailService>();
+            // Per-IP limiter (#332) is covered in ClientIpThrottleTests; other tests send many requests from one IP.
+            services.Configure<BudgetPlanner.Authentication.ClientIpLimiterOptions>(o =>
+            {
+                o.SignInPermitLimit = int.MaxValue;
+                o.EmailPermitLimit = int.MaxValue;
+            });
             ConfigureAdditionalServices(services);
         });
     }
