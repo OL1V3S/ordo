@@ -24,9 +24,13 @@ public interface IHomeActivityReader
         CancellationToken cancellationToken);
 }
 
-public interface IHomeUpcomingReader
+public sealed record HomePaycheckReadResult(
+    HomeUpcomingSectionResponse Upcoming,
+    HomePaycheckAttentionSectionResponse PaycheckAttention);
+
+public interface IHomePaycheckReader
 {
-    Task<HomeUpcomingSectionResponse> ReadAsync(
+    Task<HomePaycheckReadResult> ReadAsync(
         string ownerId,
         DateOnly evaluatedOn,
         CancellationToken cancellationToken);
@@ -44,7 +48,7 @@ public interface IHomeAttentionReader
 public sealed class HomeReadService(
     IHomeAttentionReader attention,
     IHomeActivityReader activity,
-    IHomeUpcomingReader upcoming,
+    IHomePaycheckReader paychecks,
     TimeProvider clock,
     ILogger<HomeReadService> logger) : IHomeReadService
 {
@@ -59,10 +63,11 @@ public sealed class HomeReadService(
         var needsAttention = await ReadAttentionAsync(
             ownerId, upcomingEvaluatedOn, activityThroughDate, cancellationToken);
         var recentActivity = await ReadActivityAsync(ownerId, activityThroughDate, cancellationToken);
-        var comingUp = await ReadUpcomingAsync(ownerId, upcomingEvaluatedOn, cancellationToken);
+        var (comingUp, paycheckAttention) = await ReadPaychecksAsync(ownerId, upcomingEvaluatedOn, cancellationToken);
 
         if (needsAttention.Availability.State == "unavailable"
-            && recentActivity.Items is null && comingUp.Items is null)
+            && recentActivity.Items is null && comingUp.Items is null
+            && paycheckAttention.Items is null)
             return new HomeReadResult(null);
 
         return new HomeReadResult(new HomeResponse(
@@ -71,7 +76,8 @@ public sealed class HomeReadService(
             new HomeEvaluationsResponse(activityThroughDate, upcomingEvaluatedOn),
             needsAttention,
             recentActivity,
-            comingUp));
+            comingUp,
+            paycheckAttention));
     }
 
     private async Task<HomeAttentionSectionResponse> ReadAttentionAsync(
@@ -113,14 +119,15 @@ public sealed class HomeReadService(
         }
     }
 
-    private async Task<HomeUpcomingSectionResponse> ReadUpcomingAsync(
+    private async Task<(HomeUpcomingSectionResponse, HomePaycheckAttentionSectionResponse)> ReadPaychecksAsync(
         string ownerId,
         DateOnly evaluatedOn,
         CancellationToken cancellationToken)
     {
         try
         {
-            return await upcoming.ReadAsync(ownerId, evaluatedOn, cancellationToken);
+            var result = await paychecks.ReadAsync(ownerId, evaluatedOn, cancellationToken);
+            return (result.Upcoming, result.PaycheckAttention);
         }
         catch (Exception exception) when (IsRecoverable(exception))
         {
@@ -128,10 +135,9 @@ public sealed class HomeReadService(
                 "Home section {Section} is unavailable after {FailureType}.",
                 "upcoming",
                 exception.GetType().Name);
-            return new HomeUpcomingSectionResponse(
-                Unavailable(),
-                SafeHorizon(evaluatedOn),
-                null);
+            return (
+                new HomeUpcomingSectionResponse(Unavailable(), SafeHorizon(evaluatedOn), null),
+                HomePaycheckAttentionSectionResponse.Unavailable(evaluatedOn));
         }
     }
 

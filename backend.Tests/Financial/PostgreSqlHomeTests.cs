@@ -149,6 +149,60 @@ public sealed class PostgreSqlHomeTests
         Assert.Equal(before, await StateAsync(app));
     }
 
+    [PostgreSqlFact]
+    public async Task Paycheck_attention_flags_unrecorded_and_expected_owner_scoped_and_read_only()
+    {
+        await using var app = new PostgreSqlFinancialApiTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("postgres-home-pa-owner@example.com");
+        using var other = await app.CreateAuthenticatedUserAsync("postgres-home-pa-other@example.com");
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var longAgo = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        PaycheckProfile Weekly(string ownerId, string name, DateOnly reference) => new()
+        {
+            Id = Guid.NewGuid(), OwnerId = ownerId, DisplayName = name,
+            Lifecycle = PaycheckLifecycle.Active, Cadence = PaycheckCadence.Weekly,
+            ReferenceAnchorDate = reference, WindowBeforeDays = 0, WindowAfterDays = 0,
+            AmountMode = PaycheckAmountMode.Fixed, ExpectedAmount = 1000m,
+            CreatedAt = longAgo, UpdatedAt = longAgo
+        };
+        var missed = Weekly(owner.Id, "PostgreSQL missed", today.AddDays(-3));
+        var expected = Weekly(owner.Id, "PostgreSQL expected", today);
+        var recorded = Weekly(owner.Id, "PostgreSQL recorded", today.AddDays(-2));
+        var foreign = Weekly(other.Id, "PostgreSQL foreign", today.AddDays(-1));
+        var inflow = await app.SeedInflowAsync(owner.Id, "PostgreSQL receipt", 1000m, today.AddDays(-2));
+        using (var scope = app.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<BudgetContext>();
+            db.PaycheckProfiles.AddRange(missed, expected, recorded, foreign);
+            db.PaycheckOccurrences.Add(new PaycheckOccurrence
+            {
+                PaycheckProfileId = recorded.Id, AccountInflowId = inflow.Id, OwnerId = owner.Id,
+                Kind = PaycheckOccurrenceKind.RecordedReceipt,
+                EvidenceRevisionAtAssignment = inflow.PaycheckEvidenceRevision,
+                SlotAnchor = inflow.Date, TimingOffsetDays = 0, LinkedAt = DateTime.UtcNow
+            });
+            await db.SaveChangesAsync();
+        }
+        var before = await StateAsync(app);
+
+        using var response = await owner.Client.GetAsync($"/api/home?activityThroughDate={today:yyyy-MM-dd}");
+        response.EnsureSuccessStatusCode();
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        var section = body.GetProperty("paycheckAttention");
+        var items = section.GetProperty("items").EnumerateArray().ToArray();
+
+        Assert.Equal("available", section.GetProperty("availability").GetProperty("state").GetString());
+        Assert.Equal(["paycheck_unrecorded", "paycheck_expected"],
+            items.Select(value => value.GetProperty("kind").GetString()));
+        Assert.Equal([missed.Id, expected.Id],
+            items.Select(value => value.GetProperty("paycheckProfileId").GetGuid()));
+        var upcoming = body.GetProperty("upcoming").GetProperty("items").EnumerateArray()
+            .Select(value => value.GetProperty("paycheckProfileId").GetGuid()).ToArray();
+        Assert.DoesNotContain(expected.Id, upcoming);
+        Assert.DoesNotContain("PostgreSQL foreign", body.GetRawText(), StringComparison.Ordinal);
+        Assert.Equal(before, await StateAsync(app));
+    }
+
     private static async Task<(int Expenses, int Inflows, int Profiles, int Occurrences, int Budgets)> StateAsync(
         FinancialApiTestApplicationBase app)
     {

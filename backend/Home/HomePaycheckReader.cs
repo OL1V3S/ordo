@@ -8,13 +8,15 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BudgetPlanner.Home;
 
-public sealed class HomeUpcomingReader(
+public sealed class HomePaycheckReader(
     BudgetContext context,
-    PaycheckProjector projector) : IHomeUpcomingReader
+    PaycheckProjector projector) : IHomePaycheckReader
 {
     private const int Limit = 2;
+    private const int AttentionLimit = 3;
+    private const int LookBackDays = 30;
 
-    public async Task<HomeUpcomingSectionResponse> ReadAsync(
+    public async Task<HomePaycheckReadResult> ReadAsync(
         string ownerId,
         DateOnly evaluatedOn,
         CancellationToken cancellationToken)
@@ -84,9 +86,16 @@ public sealed class HomeUpcomingReader(
             }
         }
 
+        var attention = BuildAttention(projected, latestAnchors, evaluatedOn);
+        var shown = attention
+            .Where(value => value.Kind == "paycheck_expected")
+            .Select(value => (value.PaycheckProfileId, value.AnchorDate))
+            .ToHashSet();
+
         var items = projected
             .Where(value => value.Projection.LatestExpectedDate >= horizon.From
                 && value.Projection.EarliestExpectedDate <= horizon.Through)
+            .Where(value => !shown.Contains((value.Profile.Id, value.Projection.Anchor)))
             .OrderBy(value => value.Projection.EarliestExpectedDate)
             .ThenBy(value => value.Projection.LatestExpectedDate)
             .ThenBy(value => value.Profile.Id)
@@ -97,11 +106,82 @@ public sealed class HomeUpcomingReader(
         if (transaction is not null)
             await transaction.CommitAsync(cancellationToken);
 
-        return new HomeUpcomingSectionResponse(
-            new HomeSectionAvailabilityResponse("available", null),
-            horizon,
-            items);
+        return new HomePaycheckReadResult(
+            new HomeUpcomingSectionResponse(
+                new HomeSectionAvailabilityResponse("available", null),
+                horizon,
+                items),
+            new HomePaycheckAttentionSectionResponse(
+                new HomeSectionAvailabilityResponse("available", null),
+                evaluatedOn,
+                attention));
     }
+
+    private static IReadOnlyList<HomePaycheckAttentionItemResponse> BuildAttention(
+        List<(PaycheckProfile Profile, PaycheckProjection Projection)> projected,
+        IReadOnlyDictionary<Guid, DateOnly> latestAnchors,
+        DateOnly evaluatedOn)
+    {
+        var expected = projected
+            .Where(value => value.Projection.EarliestExpectedDate <= evaluatedOn
+                && value.Projection.LatestExpectedDate >= evaluatedOn)
+            .OrderBy(value => value.Projection.LatestExpectedDate)
+            .ThenBy(value => value.Projection.EarliestExpectedDate)
+            .ThenBy(value => value.Profile.Id)
+            .Select(value => ToAttention("paycheck_expected", value.Profile, value.Projection.Anchor,
+                value.Projection.EarliestExpectedDate, value.Projection.LatestExpectedDate, value.Projection.Amount));
+
+        var unrecorded = new List<(DateOnly Anchor, HomePaycheckAttentionItemResponse Item)>();
+        foreach (var (profile, projection) in projected)
+        {
+            try
+            {
+                var after = profile.WindowAfterDays;
+                var createdOn = DateOnly.FromDateTime(profile.CreatedAt);
+                var schedule = PaycheckProfileRules.ReadSchedule(profile);
+                var candidates = PaycheckScheduleEngine.GenerateAnchors(
+                    schedule,
+                    evaluatedOn.AddDays(-LookBackDays - after),
+                    evaluatedOn.AddDays(-1 - after));
+                var latest = latestAnchors.TryGetValue(profile.Id, out var anchor) ? anchor : (DateOnly?)null;
+                var missed = candidates
+                    .Where(value => value >= createdOn && (latest is null || value > latest))
+                    .Cast<DateOnly?>()
+                    .LastOrDefault();
+                if (missed is not { } a) continue;
+                unrecorded.Add((a, ToAttention("paycheck_unrecorded", profile, a,
+                    a.AddDays(-profile.WindowBeforeDays), a.AddDays(after), projection.Amount)));
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                // Legacy profile unrepresentable at this date; skip individually.
+            }
+        }
+
+        return unrecorded
+            .OrderBy(value => value.Anchor)
+            .ThenBy(value => value.Item.PaycheckProfileId)
+            .Select(value => value.Item)
+            .Concat(expected)
+            .Take(AttentionLimit)
+            .ToArray();
+    }
+
+    private static HomePaycheckAttentionItemResponse ToAttention(
+        string kind,
+        PaycheckProfile profile,
+        DateOnly anchor,
+        DateOnly earliest,
+        DateOnly latest,
+        ConfirmedPaycheckAmount amount) => new(
+        kind,
+        profile.Id,
+        profile.DisplayName,
+        profile.Cadence.ToString().ToLowerInvariant(),
+        anchor,
+        earliest,
+        latest,
+        ToAmount(amount));
 
     private static HomeUpcomingItemResponse ToResponse(
         PaycheckProfile profile,
@@ -113,14 +193,16 @@ public sealed class HomeUpcomingReader(
         projection.Anchor,
         projection.EarliestExpectedDate,
         projection.LatestExpectedDate,
-        projection.Amount switch
-        {
-            FixedConfirmedPaycheckAmount fixedAmount => new HomeUpcomingAmountResponse(
-                "fixed", FormatMoney(fixedAmount.Amount), null, null),
-            RangeConfirmedPaycheckAmount range => new HomeUpcomingAmountResponse(
-                "range", null, FormatMoney(range.Minimum), FormatMoney(range.Maximum)),
-            _ => throw new InvalidOperationException("Unsupported confirmed paycheck amount.")
-        });
+        ToAmount(projection.Amount));
+
+    private static HomeUpcomingAmountResponse ToAmount(ConfirmedPaycheckAmount amount) => amount switch
+    {
+        FixedConfirmedPaycheckAmount fixedAmount => new HomeUpcomingAmountResponse(
+            "fixed", FormatMoney(fixedAmount.Amount), null, null),
+        RangeConfirmedPaycheckAmount range => new HomeUpcomingAmountResponse(
+            "range", null, FormatMoney(range.Minimum), FormatMoney(range.Maximum)),
+        _ => throw new InvalidOperationException("Unsupported confirmed paycheck amount.")
+    };
 
     private static string FormatMoney(decimal amount) =>
         amount.ToString("0.00", CultureInfo.InvariantCulture);
