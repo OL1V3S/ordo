@@ -31,6 +31,13 @@ the permanent, complete archive.
 - New optional `Jwt:PreviousKey` validates access tokens signed with the old key; the current `Jwt:Key` still signs. Unset, nothing changes and no new production secret is needed to deploy.
 - Runbook gets a planned (three-deploy) and an emergency rotation procedure, plus an optional owner-run end-all-sessions step. No schema, endpoint or client change.
 
+### 2026-11-03 — Browser smoke tests for core money flows
+
+[Issue #336](https://github.com/OL1V3S/ordo/issues/336) · [PR #350](https://github.com/OL1V3S/ordo/pull/350)
+
+- Playwright tests run the web app against a local API and a disposable PostgreSQL database: sign in, add an expense, add a deposit, set a budget limit, link a paycheck deposit. Test tooling and a new non-required CI job only; no app change.
+- A guard allows only local `budget_planner_test_e2e` and ignores any inherited production connection string. See `docs/verification.md`.
+
 ### 2026-11-03 — Access tokens end with their session
 
 [Issue #337](https://github.com/OL1V3S/ordo/issues/337) · [PR #351](https://github.com/OL1V3S/ordo/pull/351)
@@ -157,10 +164,3 @@ the permanent, complete archive.
 
 - New medium Home Screen widget with two buttons that open Add expense and Add deposit in the app. Nothing is saved from the widget. It shows "Open Ordo to see spending" for now; the spending graph is a later slice.
 - The widget reads no account data and shares no credentials. English and Spanish; iPhone app only, so backend, API and schema are unchanged.
-
-### 2026-10-22 — Edit a recurring expense in the iPhone app
-
-[PR #290](https://github.com/OL1V3S/ordo/pull/290) · [Issue #288](https://github.com/OL1V3S/ordo/issues/288)
-
-- Active, paused and ended recurring expenses now have an Edit action (row menu and detail screen) with the same form as Review and confirm; "Save changes" updates it.
-- A saved amount that cannot be read exactly is left empty and has to be entered. A refused save keeps the form and your changes. English and Spanish; iPhone app only, so backend, API and schema are unchanged.
