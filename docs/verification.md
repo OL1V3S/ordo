@@ -102,6 +102,43 @@ Use successful **PostgreSQL financial integration** CI evidence instead.
 This job runs on every pull request and is required repository evidence; do not
 add path filters that could silently skip persistence-relevant changes.
 
+## Browser end-to-end smoke tests (web)
+
+Playwright (Chromium) drives the real web app against a local API and a
+disposable PostgreSQL database: sign in, add an expense, add a deposit, set a
+budget limit, and link a deposit to a paycheck (#336). It is not part of
+`./scripts/verify.sh`, and the default lanes do not run it.
+
+Prerequisites: Node 22, .NET 9 SDK, a local PostgreSQL server, the `psql`
+client, and Chromium (`npx playwright install chromium`).
+
+```bash
+cd frontend
+npm ci
+npm run test:e2e
+```
+
+- The run drops and recreates the local database `budget_planner_test_e2e`
+  (default `localhost:5432`, user `postgres`, password `postgres`; override with
+  `BUDGETPLANNER_E2E_PG_HOST`, `_PORT`, `_USER`, `_PASSWORD`). It applies the
+  real EF migrations and seeds one synthetic confirmed user.
+- A guard (`frontend/e2e/safety.js`) refuses any host other than `localhost`,
+  `127.0.0.1` or `::1` and any database other than `budget_planner_test_e2e`.
+  It also overwrites an inherited `BUDGETPLANNER_MIGRATION_CONNECTION`, so a
+  production value exported in your shell is never used. Its unit test runs in
+  Frontend CI.
+- The API runs in a dedicated `E2E` environment on port 5298 and Vite on 5173;
+  both must be free. No email is sent and no real credentials are used.
+- CI job **Web end-to-end smoke tests** (`.github/workflows/e2e.yml`) is **not a
+  required check**. It runs on pull requests that touch `frontend/`, `backend/`
+  or the workflow, and on manual dispatch. On failure it uploads the Playwright
+  report and traces for 7 days. The repository is public, so artifacts are
+  public; traces contain the per-run synthetic password and bearer token, never
+  real data.
+- If PostgreSQL, `psql`, .NET or Chromium is missing, report
+  "Not run locally - capability unavailable" and rely on the CI job. Never
+  point the suite at a deployed, preview or production database.
+
 ## Container verification
 
 The production backend publish, contained PDF worker, and Docker artifact checks

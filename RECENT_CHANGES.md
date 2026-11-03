@@ -24,6 +24,13 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-11-03 — Browser smoke tests for core money flows
+
+[Issue #336](https://github.com/OL1V3S/ordo/issues/336) · [PR #TBD](https://github.com/OL1V3S/ordo/pull/TBD)
+
+- Playwright tests run the web app against a local API and a disposable PostgreSQL database: sign in, add an expense, add a deposit, set a budget limit, link a paycheck deposit. Test tooling and a new non-required CI job only; no app change.
+- A guard allows only local `budget_planner_test_e2e` and ignores any inherited production connection string. See `docs/verification.md`.
+
 ### 2026-11-03 — Paychecks in Needs your attention
 
 [Issue #346](https://github.com/OL1V3S/ordo/issues/346) · [PR #347](https://github.com/OL1V3S/ordo/pull/347)
@@ -157,12 +164,3 @@ the permanent, complete archive.
 
 - The Recurring section now lists "Changes to review" (new amount, new dates, or no matching expense lately) with a detail screen. You can use the new details, keep the saved ones, keep an expense active, mark it as ended (with a confirmation) or review a kept change again.
 - Home's "Needs your attention" links to these changes. English and Spanish; iPhone app only, so backend, API and schema are unchanged.
-
-### 2026-10-20 — iPhone app tabs, sign-in "What is Ordo?", password rules
-
-[PR #286](https://github.com/OL1V3S/ordo/pull/286) · [PR #287](https://github.com/OL1V3S/ordo/pull/287) · [Issue #285](https://github.com/OL1V3S/ordo/issues/285)
-
-- The iPhone app now has five tabs: Home, Transactions, Plan (Budgets, Recurring expenses and Paychecks behind a switcher), Reports and Settings. Reports and Settings no longer open from Home.
-- Sign-in is centred and has a "What is Ordo?" sheet. Create account lists the password rules one per line, and Forgot password no longer clips its heading.
-- The web sign-in page has the same "What is Ordo?" dialog, and Create account shows the password rules as a bulleted list.
-- English and Spanish; backend, API and schema are unchanged.
