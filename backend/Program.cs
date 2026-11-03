@@ -171,11 +171,15 @@ builder.Services.AddOptions<ForgotPasswordLimiterOptions>();
 builder.Services.AddSingleton<IForgotPasswordLimiter, ForgotPasswordLimiter>();
 builder.Services.AddOptions<RegistrationLimiterOptions>();
 builder.Services.AddSingleton<IRegistrationLimiter, RegistrationLimiter>();
+builder.Services.AddSingleton(PasswordTimingEqualizer.Create);
 builder.Services.AddOptions<DeviceSessionOptions>();
 builder.Services.AddScoped<IDeviceSessionService, DeviceSessionService>();
 builder.Services.AddScoped<WebSessionGuardFilter>();
 
 var app = builder.Build();
+
+// #319: build the dummy sign-in hash at startup, not on the first request.
+app.Services.GetRequiredService<PasswordTimingEqualizer>();
 
 // The handler writes the response itself; the no-op satisfies the .NET 9 startup check.
 app.UseExceptionHandler(_ => { });

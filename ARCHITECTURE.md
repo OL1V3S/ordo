@@ -274,7 +274,9 @@ in-memory `RegistrationLimiter` (global and per normalized email, code defaults)
 runs before the account check and returns the same `429` for every email. Web and
 iOS show a neutral "Just created an account?" hint and an inline resend after
 any invalid-credentials sign-in failure; resend answers the same `202` for every
-email. Existing timing and reset-password oracles are tracked in #319.
+email. Sign-in verifies a dummy password hash for unknown emails and locked
+accounts, and `reset-password` answers an unknown email like a bad token (#319).
+Resend and forgot-password timing is still tracked in #319.
 
 The backend also exposes web-session endpoints (#292), used by the web app: `POST /api/auth/web-session`, `/refresh` and
 `/sign-out`. They reuse `DeviceSessionService` and the `DeviceSessions` table

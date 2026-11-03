@@ -5,6 +5,8 @@ using System.Text.Json;
 using BudgetPlanner.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using Xunit;
 
 namespace BudgetPlanner.Tests.Auth;
@@ -191,6 +193,47 @@ public sealed class SignInLockoutTests
 
         var refresh = await app.Client.PostAsJsonAsync("/api/auth/device-sessions/refresh", new { refreshToken = credential });
         Assert.Equal(HttpStatusCode.OK, refresh.StatusCode);
+    }
+
+    [Theory]
+    [MemberData(nameof(Endpoints))]
+    public async Task Unknown_and_locked_requests_verify_a_dummy_hash_and_never_the_stored_hash(string endpoint)
+    {
+        var counter = new PasswordCheckCounter();
+        await using var app = await TestApplication.StartAsync(configureServices: services =>
+        {
+            services.RemoveAll<IPasswordHasher<ApplicationUser>>();
+            services.AddScoped<IPasswordHasher<ApplicationUser>>(provider => new CountingPasswordHasher(
+                new PasswordHasher<ApplicationUser>(provider.GetRequiredService<IOptions<PasswordHasherOptions>>()),
+                counter));
+        });
+        await app.CreateUserAsync("dummy@example.com", confirmed: true);
+
+        counter.Reset();
+        await SignInAsync(app, endpoint, "nobody@example.com", Password);
+        Assert.Equal((0, 1), (counter.Value, counter.Dummy));
+
+        counter.Reset();
+        for (var i = 0; i < 6; i++)
+            await SignInAsync(app, endpoint, "dummy@example.com", WrongPassword);
+        // Five real checks, then the locked sixth request pays a dummy hash.
+        Assert.Equal((5, 1), (counter.Value, counter.Dummy));
+
+        counter.Reset();
+        await SignInAsync(app, endpoint, "dummy@example.com", Password);
+        Assert.Equal((0, 1), (counter.Value, counter.Dummy));
+    }
+
+    [Fact]
+    public async Task The_timing_equalizer_resolves_under_development_scope_validation()
+    {
+        // Development turns on scope and build validation; a scoped hasher injected into
+        // the singleton equalizer would fail the start-up or the first sign-in here.
+        await using var app = await TestApplication.StartAsync(environment: "Development");
+
+        var response = await SignInAsync(app, Login, "nobody@example.com", Password);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
     [Fact]

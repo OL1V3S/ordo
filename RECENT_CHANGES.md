@@ -24,6 +24,13 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-11-02 — Sign-in timing and reset-password no longer reveal accounts
+
+[PR #323](https://github.com/OL1V3S/ordo/pull/323) · [Issue #319](https://github.com/OL1V3S/ordo/issues/319)
+
+- Unknown emails and locked accounts now pay one dummy password hash at sign-in, so response time no longer shows whether an account exists. The stored hash of a locked account is still never checked.
+- `reset-password` answers an unknown email with the same `InvalidToken` error as a known email with a bad token. No config, schema, web or iOS change. Resend and forgot-password timing follow in a second PR.
+
 ### 2026-11-02 — Access tokens must carry Ordo issuer and audience
 
 [PR #322](https://github.com/OL1V3S/ordo/pull/322) · [Issue #301](https://github.com/OL1V3S/ordo/issues/301)
@@ -159,10 +166,3 @@ the permanent, complete archive.
 
 - The iPhone app has a Paychecks tab: your pay schedules with their cadence, expected amount, next expected window ("Expected, not guaranteed.") and number of linked deposits, in English and Spanish. You can pause, reactivate or end a schedule (ending asks first), link a received paycheck to an active schedule's current or previous date as a new deposit or a saved one, and remove a link you made (the deposit stays in Transactions).
 - A change that times out or loses its connection is shown as unconfirmed; you can retry the same request or check the schedules, and further paycheck changes wait until then. After every change the schedules, Home and Transactions are re-read from the server, so nothing is changed on the phone first. Expected paychecks are never counted as money received. Backend, API, schema, web app and required checks are unchanged; the app is still not distributed.
-
-### 2026-10-19 — iPhone Transactions delete uses the row you confirmed
-
-[PR #271](https://github.com/OL1V3S/ordo/pull/271) · [Issue #270](https://github.com/OL1V3S/ordo/issues/270)
-
-- Deleting an expense or a deposit in the iPhone app now confirms the row the dialog showed, so the delete no longer depends on the order in which the dialog closes and its button runs. The same single delete request is sent after the same confirmation; a double tap or a change already in flight is still ignored.
-- Mirrors the Budgets correction from #269. Backend, API, schema, web app and required checks are unchanged; the app is still not distributed.

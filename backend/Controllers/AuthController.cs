@@ -28,6 +28,7 @@ public class AuthController : ControllerBase
     private readonly IForgotPasswordLimiter _forgotPasswordLimiter;
     private readonly IRegistrationLimiter _registrationLimiter;
     private readonly IDeviceSessionService _deviceSessions;
+    private readonly PasswordTimingEqualizer _passwordTiming;
     private readonly BudgetContext _context;
     private readonly ILogger<AuthController> _logger;
 
@@ -40,6 +41,7 @@ public class AuthController : ControllerBase
         IForgotPasswordLimiter forgotPasswordLimiter,
         IRegistrationLimiter registrationLimiter,
         IDeviceSessionService deviceSessions,
+        PasswordTimingEqualizer passwordTiming,
         BudgetContext context,
         ILogger<AuthController> logger)
     {
@@ -51,6 +53,7 @@ public class AuthController : ControllerBase
         _forgotPasswordLimiter = forgotPasswordLimiter;
         _registrationLimiter = registrationLimiter;
         _deviceSessions = deviceSessions;
+        _passwordTiming = passwordTiming;
         _context = context;
         _logger = logger;
     }
@@ -439,8 +442,10 @@ public class AuthController : ControllerBase
     {
         var user = await _userManager.FindByEmailAsync(request.Email);
 
+        // #319: an unknown email gets the same response as a known email with a bad
+        // token, so the endpoint does not reveal whether an account exists.
         if (user == null)
-            return BadRequest("Invalid request");
+            return BadRequest(new[] { _userManager.ErrorDescriber.InvalidToken() });
 
         if (!TryDecodeIdentityToken(request.Token, out var decodedToken))
             return BadRequest(new[] { _userManager.ErrorDescriber.InvalidToken() });
@@ -468,14 +473,19 @@ public class AuthController : ControllerBase
     /// and CreateWebSession. Returns null for an unknown email, a wrong password or a
     /// locked account, so callers return one identical response for all three. The
     /// confirmed-email check stays with the caller and runs only after this succeeds;
-    /// an unconfirmed account then gets the same response too (#318).
+    /// an unconfirmed account then gets the same response too (#318). Unknown and locked
+    /// accounts verify a dummy hash first (#319), so response time does not show account
+    /// state; the stored hash of a locked account is never checked.
     /// </summary>
     private async Task<PasswordSignIn?> CheckPasswordWithLockoutAsync(string email, string password)
     {
         var user = await _userManager.FindByEmailAsync(email);
 
         if (user == null)
+        {
+            _passwordTiming.Equalize(_userManager.PasswordHasher);
             return null;
+        }
 
         if (!await _userManager.GetLockoutEnabledAsync(user))
         {
@@ -524,6 +534,7 @@ public class AuthController : ControllerBase
                 .ExecuteUpdateAsync(setters => setters
                     .SetProperty(value => value.LockoutEnd, healedUntil)
                     .SetProperty(value => value.AccessFailedCount, 0));
+            _passwordTiming.Equalize(_userManager.PasswordHasher);
             return null;
         }
 
@@ -559,7 +570,10 @@ public class AuthController : ControllerBase
     private async Task<PasswordSignIn?> CheckPasswordWithIdentityLockoutAsync(ApplicationUser user, string password)
     {
         if (await _userManager.IsLockedOutAsync(user))
+        {
+            _passwordTiming.Equalize(_userManager.PasswordHasher);
             return null;
+        }
 
         if (!await _userManager.CheckPasswordAsync(user, password))
         {
