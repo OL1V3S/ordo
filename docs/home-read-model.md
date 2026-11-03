@@ -141,6 +141,27 @@ Amounts are invariant fixed-two-decimal strings. Dates are ISO calendar dates.
 Descriptions and categories are current saved user content and are not
 translated. Import origin is not exposed.
 
+### Paycheck attention
+
+A separate top-level `paycheckAttention` section sits next to `attention`
+(`availability`, `evaluatedOn`, `items`). Older clients ignore it. Items are
+`paycheck_expected` or `paycheck_unrecorded` with profile ID, display name,
+cadence, anchor, earliest/latest expected dates and amount. Clients skip
+unknown kinds; a malformed section makes only this family unavailable.
+
+- A slot is recorded when its `PaycheckOccurrence` links to an owned
+  AccountInflow. Unlinked inflows do not count.
+- `paycheck_expected`: an active profile's window contains `evaluatedOn` (UTC).
+- `paycheck_unrecorded`: the window ended within the last 30 days, no linked
+  inflow, the anchor is after the latest linked anchor and not before the
+  profile's creation date. At most one per profile (the most recent).
+- Order: unrecorded first (oldest first), then expected by date, then profile
+  ID. Cap 3. Web and iOS show these rows first, then commitment and budget rows.
+- Coming Up drops occurrences shown as `paycheck_expected`, only when this
+  section is available. Its cap of two applies after that.
+- The Home card is hidden when every family is available and empty.
+- Read-only: it never creates money, a missed-pay status or stored state.
+
 ### Coming Up
 
 Coming Up returns at most two active paycheck projections whose expected window
@@ -169,7 +190,7 @@ Known recoverable provider, timeout, or projection-availability failures make
 only that family or section unavailable. Cancellation and programming or
 contract defects propagate. HTTP `200` is returned when either attention
 family or another Home section succeeds; only when both attention families,
-Recent Activity, and Coming Up are unavailable does the endpoint return
+paycheck attention, Recent Activity, and Coming Up are unavailable does the endpoint return
 privacy-safe `503` ProblemDetails with code `home_unavailable`. Authentication
 failures are never converted to partial responses.
 

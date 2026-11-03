@@ -24,6 +24,13 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-11-03 — Paychecks in Needs your attention
+
+[Issue #346](https://github.com/OL1V3S/ordo/issues/346) · [PR #347](https://github.com/OL1V3S/ordo/pull/347)
+
+- Home flags paychecks expected now or not recorded (window passed in the last 30 days, no linked inflow). New `paycheckAttention` section; older apps ignore it. Read-only, no schema change.
+- Needs your attention is hidden when nothing needs attention. Paychecks in that card no longer repeat in Coming Up. Web and iOS, English and Spanish.
+
 ### 2026-11-03 — One budget limit per category and month
 
 [Issue #334](https://github.com/OL1V3S/ordo/issues/334)
@@ -159,10 +166,3 @@ the permanent, complete archive.
 - Sign-in is centred and has a "What is Ordo?" sheet. Create account lists the password rules one per line, and Forgot password no longer clips its heading.
 - The web sign-in page has the same "What is Ordo?" dialog, and Create account shows the password rules as a bulleted list.
 - English and Spanish; backend, API and schema are unchanged.
-
-### 2026-10-20 — Account and Settings in the iPhone app
-
-[Issue #282](https://github.com/OL1V3S/ordo/issues/282)
-
-- The iPhone app can create an account and send confirmation or reset emails, like the web. Email links open the web pages in Safari; the app never handles a token.
-- Settings (gear on Home) has Appearance, Language (English, Español) and Sign out. Only theme and language are stored on the device. Backend, API, schema and web app are unchanged.
