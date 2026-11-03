@@ -8705,6 +8705,40 @@
         }
       }
     },
+    "home.attention.paycheckExpected": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ expected %2$@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@: se espera %2$@"
+          }
+        }
+      }
+    },
+    "home.attention.paycheckUnrecorded": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ not recorded (expected %2$@)"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@: sin registrar (se esperaba %2$@)"
+          }
+        }
+      }
+    },
     "home.attention.partialUnavailable": {
       "extractionState": "manual",
       "localizations": {
