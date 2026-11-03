@@ -1,4 +1,3 @@
-using System.Text;
 using BudgetPlanner.Data;
 using BudgetPlanner.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
