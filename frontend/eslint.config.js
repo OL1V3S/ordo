@@ -4,7 +4,7 @@ import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
 
 export default [
-  { ignores: ['dist'] },
+  { ignores: ['dist', 'playwright-report', 'test-results'] },
   {
     files: ['**/*.{js,jsx}'],
     languageOptions: {
@@ -29,5 +29,10 @@ export default [
         { allowConstantExport: true },
       ],
     },
+  },
+  {
+    // Node-side E2E tooling (#336): runs under Node, not in the browser bundle.
+    files: ['e2e/**/*.js', 'playwright.config.js'],
+    languageOptions: { globals: { ...globals.browser, ...globals.node } },
   },
 ]

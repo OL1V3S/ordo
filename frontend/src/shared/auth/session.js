@@ -4,6 +4,8 @@
 // token by refreshing through it (webSession.js). Non-secret identity (the random
 // session id and the email) is mirrored to localStorage so other tabs, capture
 // recovery and the stale-401 guard can see which sign-in this is.
+import { clearRequestReference } from "../api/requestReference";
+
 let snapshot;
 let generation = 0;
 let accessToken = null;
@@ -11,6 +13,11 @@ let accessToken = null;
 // mirrored to storage (when it could not, storage cannot be compared against).
 let currentId = null;
 let identityMirrored = false;
+// The generation the support request reference (#340) belongs to. When a snapshot
+// read finds a newer one (another tab changed the session), handleStorage clears
+// the reference. It is never cleared inside getSessionSnapshot: React reads that
+// during render.
+let referenceGeneration = 0;
 const listeners = new Set();
 
 const ID_KEY = "sessionId";
@@ -105,6 +112,12 @@ function handleStorage(event) {
 
   // Read the latest values: a queued event may describe an older session.
   getSessionSnapshot();
+  // Another tab signed in or out: a support reference raised in the old session
+  // must not outlive it. Done here, not in getSessionSnapshot (called in render).
+  if (generation !== referenceGeneration) {
+    clearRequestReference();
+    referenceGeneration = generation;
+  }
   notifyListeners();
 }
 
@@ -123,6 +136,9 @@ function publishSignedIn(token, id) {
   currentId = id;
   generation += 1;
   snapshot = Object.freeze({ signedIn: Boolean(accessToken), id, email: readStored(EMAIL_KEY), generation });
+  // A support reference belongs to the sign-in it was raised in (#340).
+  clearRequestReference();
+  referenceGeneration = generation;
   notifyListeners();
 }
 
@@ -157,6 +173,7 @@ function publishAdopted(token, id) {
   accessToken = token;
   currentId = id;
   getSessionSnapshot();
+  referenceGeneration = generation;
   notifyListeners();
 }
 
@@ -186,6 +203,8 @@ export function clearSession() {
   removeLegacyAccessToken();
   generation += 1;
   snapshot = Object.freeze({ signedIn: false, id: null, email: null, generation });
+  clearRequestReference();
+  referenceGeneration = generation;
   notifyListeners();
 }
 

@@ -3,6 +3,7 @@ import { AxiosError, CanceledError } from 'axios'
 import client from './client'
 import { clearSession, establishSession, getAccessToken, getSessionSnapshot, replaceAccessToken, subscribeToSession } from '../auth/session'
 import { refreshWebSession } from '../auth/webSession'
+import { clearRequestReference, getRequestReference } from './requestReference'
 
 function httpError(config, status = 401) {
   return new AxiosError('Request failed', 'ERR_BAD_REQUEST', config, undefined, {
@@ -293,5 +294,35 @@ describe('authenticated response recovery', () => {
 
     expect(refreshWebSession).not.toHaveBeenCalled()
     expect(getAccessToken()).toBe('new-token')
+  })
+})
+
+describe('server error support reference (#340)', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    clearRequestReference()
+  })
+
+  function failWith(status, { data = {}, headers = {} } = {}) {
+    const adapter = (config) => Promise.reject(new AxiosError('Request failed', 'ERR_BAD_RESPONSE', config, undefined, {
+      data, status, statusText: 'Error', headers, config,
+    }))
+    return client.get('/api/expenses', { adapter }).catch((error) => error)
+  }
+
+  it('keeps the request ID of a 500 from the body, else from the header', async () => {
+    await failWith(500, { data: { requestId: 'aaaaaaaa11111111' }, headers: { 'x-request-id': 'bbbbbbbb22222222' } })
+    expect(getRequestReference()).toBe('aaaaaaaa11111111')
+    await failWith(502, { data: '', headers: { 'x-request-id': 'cccccccc33333333' } })
+    expect(getRequestReference()).toBe('cccccccc33333333')
+  })
+
+  it('ignores 404, 422, 401 and invalid IDs', async () => {
+    for (const status of [404, 422, 429]) await failWith(status, { headers: { 'x-request-id': 'aaaaaaaa11111111' } })
+    await failWith(500, { data: { requestId: 'not valid!' } })
+    expect(getRequestReference()).toBeNull()
+    localStorage.setItem('token', 'jwt-value')
+    await failWith(401, { headers: { 'x-request-id': 'aaaaaaaa11111111' } })
+    expect(getRequestReference()).toBeNull()
   })
 })

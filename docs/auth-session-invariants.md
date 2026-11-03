@@ -62,7 +62,7 @@ Both are the same session: one `DeviceSessions` row, owned by
   - header `X-Ordo-Web-Session: 1` is required;
   - `Origin` must equal `Frontend:BaseUrl` by parsed scheme, host and port (no path, query, fragment or userinfo);
   - otherwise `403`, nothing changes, and responses are `no-store`.
-- CORS (`Program.cs`) allows two fixed origins, any header and method, and **no credentials**.
+- CORS (`Program.cs`) allows two fixed origins, any header and method, and **no credentials**. It exposes one response header, `X-Request-Id` (#340), to those origins so the browser can read the support reference. This is a read-only support value, not a credential.
 - The cookie is first-party because the browser calls `/api/auth/web-session/*` at a relative URL. `frontend/vercel.json` rewrites that path to the Render API; the Vite dev server proxies it. All other API calls go straight to Render with the bearer token.
 - Web client behavior (`shared/auth/session.js`, `shared/auth/webSession.js`, #337):
   - **Memory-only token**: the access token is a per-tab module variable. It is never written to `localStorage` or `sessionStorage`. Only the non-secret identity (`sessionId`, `email`) is stored, for capture recovery and the stale-`401` guard. The legacy `token` key is deleted on boot and ignored in storage events.

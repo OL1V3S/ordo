@@ -19,16 +19,19 @@ public sealed class UnhandledExceptionHandler(ILogger<UnhandledExceptionHandler>
     {
         // The middleware clears the endpoint before handlers run, so read it from the feature.
         var endpoint = httpContext.Features.Get<IExceptionHandlerFeature>()?.Endpoint as RouteEndpoint;
-        var routeTemplate = endpoint?.RoutePattern.RawText ?? "unmatched";
+        var routeTemplate = endpoint?.RoutePattern.RawText ?? RequestCorrelationMiddleware.UnmatchedRoute;
+        // The reset above also hides the endpoint from the completion line; hand it the template.
+        httpContext.Items[RequestCorrelationMiddleware.RouteTemplateKey] = routeTemplate;
+        var requestId = RequestCorrelationMiddleware.GetRequestId(httpContext);
 
         // Deliberately not passing the exception object: providers would print message and stack.
         logger.LogError(
-            "Unhandled {ExceptionType} for {Method} {RouteTemplate}; status {StatusCode}; trace {TraceId}",
+            "Unhandled {ExceptionType} for {Method} {RouteTemplate}; status {StatusCode}; request {RequestId}",
             exception.GetType().Name,
-            httpContext.Request.Method,
+            RequestCorrelationMiddleware.SafeMethod(httpContext.Request.Method),
             routeTemplate,
             StatusCodes.Status500InternalServerError,
-            httpContext.TraceIdentifier);
+            requestId);
 
         if (httpContext.Response.HasStarted)
             return true;
@@ -46,6 +49,8 @@ public sealed class UnhandledExceptionHandler(ILogger<UnhandledExceptionHandler>
                 ["traceId"] = httpContext.TraceIdentifier
             }
         };
+        if (requestId is not null)
+            problem.Extensions[RequestIdProblemFilter.ExtensionName] = requestId;
         await httpContext.Response.WriteAsJsonAsync(
             problem, options: null, contentType: "application/problem+json", cancellationToken);
         return true;

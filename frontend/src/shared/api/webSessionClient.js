@@ -4,6 +4,8 @@
 // memory only (#337, shared/auth/session.js), never in storage. No timeout or
 // abort: a refresh whose response is lost after the server rotated the
 // credential would end the session.
+import { reportServerError } from "./requestReference";
+
 const BASE_PATH = "/api/auth/web-session";
 
 async function readBody(response) {
@@ -19,7 +21,7 @@ async function readBody(response) {
   return text;
 }
 
-async function post(path, body) {
+async function post(path, body, { reportServerError: report = false } = {}) {
   const headers = { "X-Ordo-Web-Session": "1" };
   if (body !== undefined) headers["Content-Type"] = "application/json";
 
@@ -36,6 +38,8 @@ async function post(path, body) {
     // Same shape as an axios error, so existing login error mapping applies.
     const error = new Error(`Request failed with status code ${response.status}`);
     error.response = { status: response.status, data };
+    // Sign-in only: a failed refresh retries silently every minute and must not raise a notice.
+    if (report) reportServerError({ status: response.status, data, headers: response.headers });
     throw error;
   }
 
@@ -43,7 +47,7 @@ async function post(path, body) {
 }
 
 export const webSessionClient = {
-  signIn: ({ email, password }) => post("", { email, password }),
+  signIn: ({ email, password }) => post("", { email, password }, { reportServerError: true }),
   refresh: () => post("/refresh"),
   signOut: () => post("/sign-out"),
 };

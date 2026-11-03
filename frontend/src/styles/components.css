@@ -22,6 +22,9 @@ input:disabled, select:disabled, textarea:disabled { color: var(--color-disabled
 .password-toggle:hover { color: var(--color-text); background: var(--color-surface-subtle); }
 summary { min-height: var(--size-touch-target); padding-block: .625rem; cursor: pointer; }
 .status-message, .empty-state { padding: var(--space-3) var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius-md); color: var(--color-text-muted); background: var(--color-surface-subtle); }
+.request-reference-notice { margin: var(--space-3) var(--space-4); overflow-wrap: anywhere; }
+.request-reference-notice code { user-select: all; }
+.request-reference-notice .button-ghost { margin-inline-start: var(--space-2); }
 .status-message--success { color: var(--color-success); border-color: color-mix(in srgb, var(--color-success) 35%, var(--color-border)); background: var(--color-success-soft); }
 .status-message--danger { color: var(--color-danger); border-color: color-mix(in srgb, var(--color-danger) 35%, var(--color-border)); background: var(--color-danger-soft); }
 .status-message--warning { color: var(--color-warning); border-color: var(--color-warning); border-inline-start-width: 4px; background: var(--color-warning-soft); }

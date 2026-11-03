@@ -34,6 +34,11 @@ frontend/node_modules/
 # Vite build output
 frontend/dist/
 
+# Playwright E2E output and the per-run test account (#336)
+frontend/playwright-report/
+frontend/test-results/
+frontend/e2e/.state/
+
 # Environment variables
 frontend/.env
 frontend/.env.local
