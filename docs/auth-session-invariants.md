@@ -1,9 +1,10 @@
 # Auth and Session Invariants
 
 This document states how authentication and sessions behave **today** (verified
-against `main` at bb1a9a8 plus PR #354, which moves the web access token to tab
+against `main` at ce87bcf plus PR #354, which moves the web access token to tab
 memory, #337 PR B; the access-token session check, #337 PR A, landed in PR #351).
-It describes current behavior; it does not approve changes. Any change to a rule below needs its own approved issue (see
+It describes current behavior; it does not approve changes. Any change to a rule
+below needs its own approved issue (see
 [`AGENTS.md`](../AGENTS.md)). Narrative design lives in
 [`ARCHITECTURE.md`](../ARCHITECTURE.md); this file is the rule list.
 
@@ -115,7 +116,9 @@ Remaining oracles and residuals (#319 is done: sign-in timing, reset-password, r
 
 ## JWT parameters
 
-- Algorithm HS256 (`SecurityAlgorithms.HmacSha256`), symmetric key from `Jwt:Key`. The app refuses to start if the key is missing.
+- Algorithm HS256 (`SecurityAlgorithms.HmacSha256`), symmetric key from `Jwt:Key` (the current key: it signs and validates). The app refuses to start if it is missing.
+- **Key rotation** (#338): optional `Jwt:PreviousKey` (Render `Jwt__PreviousKey`) is validation only and never signs. Tokens carry no `kid`, so the handler tries both keys (`IssuerSigningKey` = current, `IssuerSigningKeys` = previous). A previous-key token must still pass every other check (iss, aud, lifetime, session check) and is accepted until its own `exp` plus skew. Issued tokens always use the current key. Procedures: [`operations-runbook.md`](operations-runbook.md).
+- Both keys are read once at startup as raw UTF-8 bytes (no trim, no base64). An empty or whitespace previous key means "not configured": validation parameters are then exactly what they were before #338. With a previous key set, startup fails if either key is under 32 bytes or the two are equal. Messages name config keys, never values. `backend/Authentication/JwtSigningKeys.cs`.
 - Claims: `NameIdentifier` (user id), `Email`, `Name`, `iss`, `aud`, `exp`, plus exactly one of `sid` (device and web session tokens) or `ordo_stamp` (`/login` tokens), see the session check section.
 - `iss` = `ordo-api`, `aud` = `ordo-clients`. Constants in `backend/Authentication/AccessTokenClaims.cs`, not configuration.
 - **Issuing** (#301 phase 1): all token paths issue them: login, device session create and refresh, web session create and refresh.
@@ -132,7 +135,7 @@ Remaining oracles and residuals (#319 is done: sign-in timing, reset-password, r
   - `ordo_stamp`: equals the hash of the user's current stamp (a missing user fails).
   - Neither claim (a token issued before #337), both, two of one, or a `sid` that does not unprotect: `401`.
 - Claims are read by literal name from the validated principal. A claim-mapping change fails closed (`401`); `AccessTokenSessionCheckTests` pins the names and the principal.
-- **Ends a token immediately**: sign-out of its session (native or web, including a web sign-in that replaces an old cookie); a completed password reset (sessions deleted and stamp changed, which also covers `/login` tokens); any other stamp change; reuse detection; eviction past the 20-session cap; session idle or absolute expiry; a deleted user.
+- **Ends a token immediately**: sign-out of its session (native or web, including a web sign-in that replaces an old cookie); a completed password reset (sessions deleted and stamp changed, which also covers `/login` tokens); any other stamp change; a signing-key swap with no previous key (#338); reuse detection; eviction past the 20-session cap; session idle or absolute expiry; a deleted user.
 - **Does not end a token**: lockout (it never revokes, so wrong guesses cannot sign the owner out); refresh and rotation (same session id); forgot-password, resend and confirm; sign-out of a different session.
 - **Public endpoints**: the web client sends its bearer on the public auth calls too. A stale bearer there is not an error: authentication only sets the user, and only protected endpoints challenge. Sign-in and refresh keep working with a revoked token.
 - **Cost**: one indexed primary-key `SELECT` per request that carries a bearer (a join of `DeviceSessions` and `AspNetUsers` for `sid`, one user row for `ordo_stamp`), `AsNoTracking`, no transaction, no lock, no write, no cache, so no staleness window. Data Protection reads its key ring from the database only when it refreshes it, not per request. Round-trip time from Render to Neon is not measured here.
@@ -188,13 +191,13 @@ All are in-memory fixed-window limiters with code defaults. State is per process
 ## Intentionally not done
 
 - **No access-token revocation list.** Revocation is the per-request session check (see above); there is no table of revoked tokens and no cache.
-- **No JWT key rotation.** One key in `Jwt:Key`; no `kid`, no overlap period.
+- **No `kid` in tokens.** Rotation (#338) uses a validation-only previous key and the handler tries both keys, so there is no token-format change and no key fingerprint in headers.
 - **`ValidAlgorithms` is not pinned.** The handler default applies.
 - **No clock-skew override.** The default lifetime validation applies, so a token is accepted for a few minutes past `exp`.
 - **No refresh grace window** and no multi-refresher support (see Rotation and reuse).
 - **No refresh lockout check.** A locked account's existing sessions still refresh.
 - **No MFA, passkeys or social sign-in endpoints** exist in `AuthController`.
-- **No endpoint to list sessions or sign out everywhere.** Sign-out ends only the named session; only a password reset revokes all.
+- **No endpoint to list sessions or sign out everywhere.** Sign-out ends only the named session; only a password reset revokes all. A key swap alone does not end sessions (clients refresh); the owner-run end-all-sessions step in the runbook does.
 - **No iOS universal links.** No associated-domains configuration was found under `ios/`; confirm and reset links are web links.
 - **No distributed rate limiting.** Per-IP limits exist (#332) but are per process.
 - **No password policy beyond ASP.NET Identity defaults** (`Program.cs` does not customize it).
@@ -213,6 +216,7 @@ All are in-memory fixed-window limiters with code defaults. State is per process
 | Per-IP throttle | `ClientIpLimiter.cs`, `AuthController`, `Program.cs` (forwarded headers) | `ClientIpThrottleTests.cs` |
 | Resend and forgot password | `ConfirmationResendLimiter.cs`, `ForgotPasswordLimiter.cs`, `AuthController` | `AccountConfirmationFlowTests.cs`, `ForgotPasswordFlowTests.cs` |
 | JWT claims and parameters | `AccessTokenClaims.cs`, `AuthController.GenerateJwtToken`, `Program.cs` | `AccessTokenClaimsTests.cs` (issued claims and rejection matrix) |
+| JWT key rotation (#338) | `JwtSigningKeys.cs`, `Program.cs` | `JwtKeyRotationTests.cs` (overlap, removal, startup rules) |
 | Access-token session check (#337) | `AccessTokenSessionValidation.cs`, `DeviceSessionService.IsAccessTokenCurrentAsync`, `AuthController`, `Program.cs` (`OnTokenValidated`) | `AccessTokenSessionCheckTests.cs`, `PostgreSqlAccessTokenSessionTests.cs` |
 | Data Protection key persistence | `Program.cs` | `DataProtectionPersistenceTests.cs` |
 | Safe errors and health | `backend/Diagnostics/UnhandledExceptionHandler.cs`, `Program.cs` | `backend.Tests/Diagnostics/ExceptionHandlingAndHealthTests.cs` |
