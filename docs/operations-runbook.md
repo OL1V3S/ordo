@@ -246,12 +246,13 @@ Record the UTC time at each step with `date -u +%FT%TZ`:
 ### Checks
 
 (a) Every migration of the deployed commit is in `__EFMigrationsHistory`.
-Replace `<deployed-commit>` with the commit Render serves and `<repo-path>` with
-the path of your clone. Run it from the private notes directory, so both files
-land outside the repository. Extra ids on the branch need an explanation
-(schema is applied before code).
+Replace `<deployed-commit>` with the commit Render serves, `<repo-path>` with
+the path of your clone and `<notes-dir>` with your private notes directory. The
+`cd` keeps both files outside the repository; if it fails, stop. Extra ids on
+the branch need an explanation (schema is applied before code).
 
 ```bash
+cd <notes-dir>
 psql -X -At "$DRILL_DATABASE_URL" \
   -c 'SELECT "MigrationId" FROM "__EFMigrationsHistory"' \
   | LC_ALL=C sort > branch-migrations.txt
@@ -298,20 +299,27 @@ SELECT count(*) AS key_rows FROM public."DataProtectionKeys";
 
 ### Optional: production baseline
 
-Only if baseline is yes. Run the same (b) to (e) queries read-only against
-production with the same `PGOPTIONS`. Exact equality needs T to be the instant
-the baseline was taken: take the baseline first, then add its UTC time as T in a
-follow-up #339 comment before creating the branch. Otherwise expect differences
-from later writes and explain them as counts.
+Only if baseline is yes. Use production's **direct (unpooled)** connection
+string, entered as in Before the drill step 4. Set the same `PGOPTIONS` and run
+the read-only gate from Run step 3 first: **stop unless it prints `on`.** Then
+run the same (b) to (e) queries read-only against production. Enter the
+branch's values again before using the branch. Exact equality needs T to be the
+instant the baseline was taken: take the baseline first, then add its UTC time
+as T in a follow-up #339 comment before creating the branch. Otherwise expect
+differences from later writes and explain them as counts.
 
 ### Optional: app check
 
 Default off. Only if app check is yes. Run it last (t6), after every other check,
-because the app's own connection does not carry the read-only setting and the
-app could write to the branch.
+because the app's own connection may not carry the read-only setting (whether
+Npgsql honors `PGOPTIONS`, which stays exported until After the drill step 1, is
+unverified) and the app could write to the branch.
 
-- Run the backend locally in Development. Set in the shell only:
-  `ConnectionStrings__DefaultConnection` (the branch, in Npgsql form) and a
+- Run the backend locally in Development. Set these in the shell only. Never
+  type the connection string into an `export` line: that puts the password in
+  shell history. Enter it with
+  `read -rs ConnectionStrings__DefaultConnection; export ConnectionStrings__DefaultConnection`
+  (the branch, in Npgsql form), as in Before the drill step 4. Also set a
   throwaway `Jwt__Key` (for example `openssl rand -base64 48`).
 - Startup validation requires these shell-only values. Use obvious dummy
   values and never real email credentials:
