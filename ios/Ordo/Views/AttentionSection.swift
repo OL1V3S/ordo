@@ -15,18 +15,15 @@ struct AttentionSection: View {
 
     private var section: some View {
         Section {
-            switch state {
+            switch HomePresenter.attentionNotice(state, paycheckAttention) {
             case .malformed:
                 InlineStatusView(systemImage: "exclamationmark.triangle", message: presenter.l10n.string(.homeAttentionMalformed), tone: .warning)
             case .unavailable:
                 InlineStatusView(systemImage: "exclamationmark.triangle", message: presenter.l10n.string(.homeAttentionUnavailable), tone: .warning)
-            case .available(let content):
-                if content.isPartial {
-                    InlineStatusView(systemImage: "exclamationmark.triangle", message: presenter.l10n.string(.homeAttentionPartialUnavailable), tone: .warning)
-                }
-            }
-            if case .unavailable = paycheckAttention, case .available(let content) = state, !content.isPartial {
+            case .partial:
                 InlineStatusView(systemImage: "exclamationmark.triangle", message: presenter.l10n.string(.homeAttentionPartialUnavailable), tone: .warning)
+            case .none:
+                EmptyView()
             }
             ForEach(HomePresenter.allRows(state, paycheckAttention)) { row in
                 if case .paycheck = row {

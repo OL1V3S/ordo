@@ -95,4 +95,26 @@ import Testing
         let unavailable = try Fixtures.snapshot("home-paycheck-attention-unavailable")
         #expect(HomePresenter.showsAttention(unavailable.attention, unavailable.paycheckAttention))
     }
+
+    private func paychecks() throws -> PaycheckAttentionState {
+        try Fixtures.snapshot("home-paycheck-attention").paycheckAttention
+    }
+
+    @Test func unavailableWithPaychecksShowsPartialAndRows() throws {
+        let state = try paychecks()
+        #expect(HomePresenter.attentionNotice(.unavailable, state) == .partial)
+        #expect(HomePresenter.allRows(.unavailable, state).count == 2)
+        #expect(HomePresenter.showsAttention(.unavailable, state))
+    }
+
+    @Test func unavailableWithoutPaychecksShowsFullMessage() {
+        #expect(HomePresenter.attentionNotice(.unavailable, .absent) == .unavailable)
+        #expect(HomePresenter.attentionNotice(.unavailable, .available([])) == .unavailable)
+        #expect(HomePresenter.attentionNotice(.unavailable, .unavailable) == .unavailable)
+    }
+
+    @Test func malformedWithPaychecksShowsPartial() throws {
+        #expect(HomePresenter.attentionNotice(.malformed, try paychecks()) == .partial)
+        #expect(HomePresenter.attentionNotice(.malformed, .absent) == .malformed)
+    }
 }

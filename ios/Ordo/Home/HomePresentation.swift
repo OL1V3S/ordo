@@ -88,6 +88,23 @@ struct HomePresenter: Sendable {
         return !allRows(attention, paycheck).isEmpty
     }
 
+    /// Status line above the rows. When attention failed but paycheck rows can still show, the
+    /// partial note replaces the full failure message (web `OverviewPage`).
+    enum AttentionNotice: Equatable { case none, partial, unavailable, malformed }
+
+    static func attentionNotice(_ attention: SectionState<AttentionContent>, _ paycheck: PaycheckAttentionState) -> AttentionNotice {
+        let hasPaychecks: Bool
+        if case .available(let items) = paycheck { hasPaychecks = !items.isEmpty } else { hasPaychecks = false }
+        switch attention {
+        case .malformed: return hasPaychecks ? .partial : .malformed
+        case .unavailable: return hasPaychecks ? .partial : .unavailable
+        case .available(let content):
+            if content.isPartial { return .partial }
+            if case .unavailable = paycheck { return .partial }
+            return .none
+        }
+    }
+
     func title(for row: AttentionRow) -> String {
         switch row {
         case .paycheck(let item): paycheckSentence(item)
