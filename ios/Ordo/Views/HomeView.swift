@@ -10,6 +10,7 @@ struct HomeView: View {
     let l10n: L10n
     /// Jumps to Plan, Recurring expenses, Changes to review (`AppModel.openRecurringReviews`).
     var openReviews: () -> Void = {}
+    var openPaychecks: () -> Void = {}
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
@@ -51,7 +52,8 @@ struct HomeView: View {
         case .loaded(let snapshot):
             let presenter = HomePresenter(l10n: l10n, currencyCode: snapshot.currencyCode)
             List {
-                AttentionSection(state: snapshot.attention, presenter: presenter, reviewsEnabled: !writeBlocked, openReviews: openReviews)
+                AttentionSection(state: snapshot.attention, presenter: presenter, reviewsEnabled: !writeBlocked, openReviews: openReviews,
+                                 paycheckAttention: snapshot.paycheckAttention, openPaychecks: openPaychecks)
                 RecentActivitySection(state: snapshot.recentActivity, presenter: presenter)
                 UpcomingSection(state: snapshot.upcoming, presenter: presenter)
             }

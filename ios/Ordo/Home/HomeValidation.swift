@@ -33,7 +33,10 @@ enum HomeValidation {
 
         return HomeSnapshot(currencyCode: "USD", activityThroughDate: activityThrough,
                             upcomingEvaluatedOn: upcomingEvaluatedOn, recentActivity: recent,
-                            attention: attention, upcoming: upcoming)
+                            attention: attention, upcoming: upcoming,
+                            paycheckAttention: root["paycheckAttention"].map {
+                                paycheckAttentionSection($0, evaluatedOn: upcomingEvaluatedOn)
+                            } ?? .absent)
     }
 
     // MARK: Primitives
@@ -202,6 +205,44 @@ enum HomeValidation {
         case .overLimit: guard limit.cents != 0, spent.cents > limit.cents else { return nil }
         }
         return BudgetAttentionItem(category: category, state: state, spent: spent, limit: limit)
+    }
+
+    // MARK: Paycheck attention
+
+    /// Port of `readHomePaycheckAttention`: malformed makes only this family unavailable and
+    /// unknown kinds are skipped.
+    private static func paycheckAttentionSection(_ value: JSONValue, evaluatedOn: CalendarDate) -> PaycheckAttentionState {
+        guard value.objectValue != nil, date(value["evaluatedOn"]) == evaluatedOn,
+              let available = availability(value, itemsKey: "items") else { return .unavailable }
+        guard available, let rows = value["items"]?.arrayValue else { return .unavailable }
+        let known = rows.filter { PaycheckAttentionItem.Kind(rawValue: $0["kind"]?.stringValue ?? "") != nil }
+        guard known.count <= 3 else { return .unavailable }
+        var items: [PaycheckAttentionItem] = []
+        for row in known {
+            guard let item = paycheckAttentionItem(row, evaluatedOn: evaluatedOn) else { return .unavailable }
+            items.append(item)
+        }
+        return .available(items)
+    }
+
+    private static func paycheckAttentionItem(_ value: JSONValue, evaluatedOn: CalendarDate) -> PaycheckAttentionItem? {
+        guard value.objectValue != nil,
+              let kindText = value["kind"]?.stringValue, let kind = PaycheckAttentionItem.Kind(rawValue: kindText),
+              let profileId = value["paycheckProfileId"]?.stringValue, isUUID(profileId),
+              let name = value["displayName"]?.stringValue, !isBlank(name),
+              let cadenceText = value["cadence"]?.stringValue, let cadence = UpcomingItem.Cadence(rawValue: cadenceText),
+              let anchor = date(value["anchorDate"]),
+              let earliest = date(value["earliestExpectedDate"]),
+              let latest = date(value["latestExpectedDate"]),
+              earliest <= anchor, anchor <= latest,
+              let amountValue = value["amount"], let amount = upcomingAmount(amountValue) else { return nil }
+        switch kind {
+        case .expected: guard earliest <= evaluatedOn, latest >= evaluatedOn else { return nil }
+        case .unrecorded: guard latest < evaluatedOn else { return nil }
+        }
+        return PaycheckAttentionItem(kind: kind, profileId: profileId, displayName: name, cadence: cadence,
+                                     anchorDate: anchor, earliestExpectedDate: earliest,
+                                     latestExpectedDate: latest, amount: amount)
     }
 
     // MARK: Upcoming
