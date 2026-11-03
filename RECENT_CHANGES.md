@@ -24,6 +24,13 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-11-03 — Access tokens end with their session
+
+[Issue #337](https://github.com/OL1V3S/ordo/issues/337) · [PR #351](https://github.com/OL1V3S/ordo/pull/351)
+
+- Every request with a bearer token now checks the token still belongs to a live session (or, for `/login` tokens, the user's current security stamp). Sign-out, password reset, reuse detection, eviction and expiry end a token on its next request instead of up to 2 hours later. The session id in the token is protected, never bare.
+- No schema, endpoint or response change. Tokens issued before the deploy get one `401`, then web and iOS refresh and retry. Web memory-only token is a separate PR.
+
 ### 2026-11-03 — Paychecks in Needs your attention
 
 [Issue #346](https://github.com/OL1V3S/ordo/issues/346) · [PR #347](https://github.com/OL1V3S/ordo/pull/347)
@@ -157,12 +164,3 @@ the permanent, complete archive.
 
 - The Recurring section now lists "Changes to review" (new amount, new dates, or no matching expense lately) with a detail screen. You can use the new details, keep the saved ones, keep an expense active, mark it as ended (with a confirmation) or review a kept change again.
 - Home's "Needs your attention" links to these changes. English and Spanish; iPhone app only, so backend, API and schema are unchanged.
-
-### 2026-10-20 — iPhone app tabs, sign-in "What is Ordo?", password rules
-
-[PR #286](https://github.com/OL1V3S/ordo/pull/286) · [PR #287](https://github.com/OL1V3S/ordo/pull/287) · [Issue #285](https://github.com/OL1V3S/ordo/issues/285)
-
-- The iPhone app now has five tabs: Home, Transactions, Plan (Budgets, Recurring expenses and Paychecks behind a switcher), Reports and Settings. Reports and Settings no longer open from Home.
-- Sign-in is centred and has a "What is Ordo?" sheet. Create account lists the password rules one per line, and Forgot password no longer clips its heading.
-- The web sign-in page has the same "What is Ordo?" dialog, and Create account shows the password rules as a bulleted list.
-- English and Spanish; backend, API and schema are unchanged.
