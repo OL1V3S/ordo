@@ -39,11 +39,15 @@ builder.Services.AddCors(options =>
             "https://oli-budget-planner.vercel.app"
         )
         .AllowAnyHeader()
-        .AllowAnyMethod();
+        .AllowAnyMethod()
+        // #340: lets the browser read the support reference, e.g. on a 5xx without a ProblemDetails body.
+        .WithExposedHeaders(RequestCorrelationMiddleware.HeaderName);
     });
 });
 
-builder.Services.AddControllers();
+// #340: highest order, so it runs after the filters that create or replace ProblemDetails results.
+builder.Services.AddControllers(options =>
+    options.Filters.Add<RequestIdProblemFilter>(int.MaxValue));
 builder.Services.AddExceptionHandler<UnhandledExceptionHandler>();
 builder.Services.AddHealthChecks()
     .AddCheck<DatabaseReadinessCheck>(
@@ -198,6 +202,9 @@ var app = builder.Build();
 
 // #319: build the dummy sign-in hash at startup, not on the first request.
 app.Services.GetRequiredService<PasswordTimingEqualizer>();
+
+// #340: first, so every response (redirect, preflight, 401, 404, 429, 500, health) gets a request ID.
+app.UseMiddleware<RequestCorrelationMiddleware>();
 
 // The handler writes the response itself; the no-op satisfies the .NET 9 startup check.
 app.UseExceptionHandler(_ => { });

@@ -421,6 +421,9 @@ hashes, and configuration key names. Never record values, tokens, cookies,
 connection strings, emails, user IDs, amounts, dates, or statement content.
 
 1. Record the deployed commit for Render and Vercel, and the intended commit.
+   Find a failing request in the Render log by its `X-Request-Id`
+   (see [`debugging.md`](debugging.md)): search the 16-hex ID from the response
+   header or the `requestId` in the error body.
 2. Check `__EFMigrationsHistory` matches the deployed backend commit.
 3. Check the `DataProtectionKeys` table exists. Expect sign-ins and tokens to
    need reissue if the restore point predates the current keys.
@@ -431,6 +434,28 @@ connection strings, emails, user IDs, amounts, dates, or statement content.
 7. Note data written after the restore point that was lost, as counts and a
    time range, not contents. Tell the owner.
 8. Open a separately scoped issue for follow-up fixes or forward migrations.
+
+## Release and rollback evidence
+
+Record this in the change's issue or PR comment for every deploy and rollback.
+Never record secrets, tokens in URLs, env values, connection strings, emails,
+user IDs or amounts.
+
+- UTC time, who ran it, and a link to the durable owner authorization.
+- Backend commit SHA (Render) and frontend commit SHA plus Vercel deployment ID:
+  intended and live.
+- Migration state: latest `__EFMigrationsHistory` id before and after, the
+  latest migration id in the commit, and any pre-check results as counts.
+- Order followed: migrate, then backend, then frontend.
+- Smoke: `scripts/smoke-deploy.sh` exit code and status codes. To confirm a new
+  build is live, check that `X-Request-Id` is 16 lowercase hex or that an error
+  body has `requestId`. The host edge may add its own `X-Request-Id`, so
+  its presence alone proves nothing.
+- Rollback target: previous Render deploy (SHA, time), previous Vercel
+  deployment ID, and a yes/no "older app works with the current schema" with the
+  migration ids.
+- If a rollback was triggered: what was seen (smoke failure, readiness 503, 5xx
+  rate) and the request IDs of sampled failures.
 
 ## Health, smoke and uptime alerts
 

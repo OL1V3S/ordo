@@ -24,6 +24,13 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-11-03 — Request IDs and support references
+
+[Issue #340](https://github.com/OL1V3S/ordo/issues/340) · [PR #353](https://github.com/OL1V3S/ordo/pull/353)
+
+- Every API response now has an `X-Request-Id` (server-generated). Error bodies also carry `requestId`, and each request writes one privacy-safe `request_complete` log line, so a reported failure can be found in the host log. Additive; no status, body shape or auth change.
+- The web app shows the ID after a server error as a reference to share (English and Spanish). iPhone display is a separate slice. Runbook adds release and rollback evidence.
+
 ### 2026-11-03 — Browser smoke tests for core money flows
 
 [Issue #336](https://github.com/OL1V3S/ordo/issues/336) · [PR #350](https://github.com/OL1V3S/ordo/pull/350)
@@ -157,10 +164,3 @@ the permanent, complete archive.
 
 - New medium Home Screen widget with two buttons that open Add expense and Add deposit in the app. Nothing is saved from the widget. It shows "Open Ordo to see spending" for now; the spending graph is a later slice.
 - The widget reads no account data and shares no credentials. English and Spanish; iPhone app only, so backend, API and schema are unchanged.
-
-### 2026-10-22 — Edit a recurring expense in the iPhone app
-
-[PR #290](https://github.com/OL1V3S/ordo/pull/290) · [Issue #288](https://github.com/OL1V3S/ordo/issues/288)
-
-- Active, paused and ended recurring expenses now have an Edit action (row menu and detail screen) with the same form as Review and confirm; "Save changes" updates it.
-- A saved amount that cannot be read exactly is left empty and has to be entered. A refused save keeps the form and your changes. English and Spanish; iPhone app only, so backend, API and schema are unchanged.
