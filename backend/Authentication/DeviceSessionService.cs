@@ -21,8 +21,11 @@ public sealed class DeviceSessionOptions
     public int ExpiredCleanupBatchSize { get; set; } = DefaultExpiredCleanupBatchSize;
 }
 
-/// <summary>The owner of a device session and the credential that now identifies it.</summary>
-public sealed record DeviceSessionIssue(ApplicationUser User, string Credential);
+/// <summary>A new session: its id (for the access token) and the credential that identifies it.</summary>
+public sealed record DeviceSessionCreated(Guid SessionId, string Credential);
+
+/// <summary>The owner of a device session, the credential that now identifies it, and the session id.</summary>
+public sealed record DeviceSessionIssue(ApplicationUser User, string Credential, Guid SessionId);
 
 public interface IDeviceSessionService
 {
@@ -31,7 +34,7 @@ public interface IDeviceSessionService
     /// <paramref name="securityStamp"/> must be read from the same tracked user
     /// immediately after the password check succeeded.
     /// </summary>
-    Task<string> CreateAsync(string userId, string? securityStamp, CancellationToken cancellationToken);
+    Task<DeviceSessionCreated> CreateAsync(string userId, string? securityStamp, CancellationToken cancellationToken);
 
     /// <summary>Rotates the credential. Returns null for every kind of failure.</summary>
     Task<DeviceSessionIssue?> RefreshAsync(string credential, CancellationToken cancellationToken);
@@ -41,6 +44,17 @@ public interface IDeviceSessionService
 
     /// <summary>Ends every session of a user.</summary>
     Task RevokeAllAsync(string userId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Read-only check for an access token (#337). Exactly one of <paramref name="sessionId"/>
+    /// (already unprotected) or <paramref name="stampClaim"/> must be given.
+    /// Session: the row exists, belongs to <paramref name="userId"/>, is not idle or absolutely
+    /// expired, and its stored stamp hash equals the hash of the user's current stamp.
+    /// Stamp: the claim equals the hash of the user's current stamp.
+    /// Returns false for every kind of mismatch; database errors are thrown, never false.
+    /// </summary>
+    Task<bool> IsAccessTokenCurrentAsync(
+        string userId, Guid? sessionId, string? stampClaim, CancellationToken cancellationToken);
 }
 
 public sealed class DeviceSessionService(
@@ -48,7 +62,7 @@ public sealed class DeviceSessionService(
     TimeProvider clock,
     Microsoft.Extensions.Options.IOptions<DeviceSessionOptions> options) : IDeviceSessionService
 {
-    public async Task<string> CreateAsync(
+    public async Task<DeviceSessionCreated> CreateAsync(
         string userId, string? securityStamp, CancellationToken cancellationToken)
     {
         var settings = options.Value;
@@ -74,7 +88,7 @@ public sealed class DeviceSessionService(
         await context.SaveChangesAsync(cancellationToken);
         if (transaction is not null) await transaction.CommitAsync(cancellationToken);
 
-        return DeviceSessionCredential.Format(session.Id, secret);
+        return new DeviceSessionCreated(session.Id, DeviceSessionCredential.Format(session.Id, secret));
     }
 
     public async Task<DeviceSessionIssue?> RefreshAsync(
@@ -125,7 +139,7 @@ public sealed class DeviceSessionService(
         }
 
         if (transaction is not null) await transaction.CommitAsync(cancellationToken);
-        return new DeviceSessionIssue(user, DeviceSessionCredential.Format(session.Id, newSecret));
+        return new DeviceSessionIssue(user, DeviceSessionCredential.Format(session.Id, newSecret), session.Id);
     }
 
     public async Task SignOutAsync(string credential, CancellationToken cancellationToken)
@@ -161,8 +175,50 @@ public sealed class DeviceSessionService(
         await RemoveTrackedAsync(sessions, cancellationToken);
     }
 
+    public async Task<bool> IsAccessTokenCurrentAsync(
+        string userId, Guid? sessionId, string? stampClaim, CancellationToken cancellationToken)
+    {
+        if (sessionId is { } id)
+        {
+            if (stampClaim is not null) return false;
+
+            var settings = options.Value;
+            var now = clock.GetUtcNow().UtcDateTime;
+
+            // One primary-key SELECT: no tracking, no transaction, no lock, no write.
+            var row = await (
+                from session in context.DeviceSessions.AsNoTracking()
+                join user in context.Users.AsNoTracking() on session.OwnerId equals user.Id
+                where session.Id == id && session.OwnerId == userId
+                select new { session.LastUsedAt, session.AbsoluteExpiresAt, session.SecurityStampHash, user.SecurityStamp })
+                .SingleOrDefaultAsync(cancellationToken);
+
+            return row is not null
+                && !IsExpired(row.LastUsedAt, row.AbsoluteExpiresAt, now, settings)
+                && DeviceSessionCredential.HashesEqual(
+                    row.SecurityStampHash,
+                    DeviceSessionCredential.HashSecurityStamp(row.SecurityStamp));
+        }
+
+        if (stampClaim is null) return false;
+
+        var current = await context.Users.AsNoTracking()
+            .Where(user => user.Id == userId)
+            .Select(user => new { user.SecurityStamp })
+            .SingleOrDefaultAsync(cancellationToken);
+        if (current is null) return false;
+
+        var expected = System.Text.Encoding.UTF8.GetBytes(AccessTokenClaims.StampHashValue(current.SecurityStamp));
+        var actual = System.Text.Encoding.UTF8.GetBytes(stampClaim);
+        return System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(expected, actual);
+    }
+
     private static bool IsExpired(DeviceSession session, DateTime now, DeviceSessionOptions settings) =>
-        now >= session.LastUsedAt + settings.IdleTimeout || now >= session.AbsoluteExpiresAt;
+        IsExpired(session.LastUsedAt, session.AbsoluteExpiresAt, now, settings);
+
+    private static bool IsExpired(
+        DateTime lastUsedAt, DateTime absoluteExpiresAt, DateTime now, DeviceSessionOptions settings) =>
+        now >= lastUsedAt + settings.IdleTimeout || now >= absoluteExpiresAt;
 
     /// <summary>Deletes the session, commits and reports a failed refresh.</summary>
     private async Task<DeviceSessionIssue?> EndAsync(

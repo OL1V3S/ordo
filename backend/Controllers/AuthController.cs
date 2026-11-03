@@ -30,6 +30,7 @@ public class AuthController : ControllerBase
     private readonly IClientIpLimiter _clientIpLimiter;
     private readonly IBackgroundEmailQueue _backgroundEmails;
     private readonly IDeviceSessionService _deviceSessions;
+    private readonly AccessTokenSessionIdProtector _sessionIds;
     private readonly PasswordTimingEqualizer _passwordTiming;
     private readonly BudgetContext _context;
     private readonly ILogger<AuthController> _logger;
@@ -45,6 +46,7 @@ public class AuthController : ControllerBase
         IClientIpLimiter clientIpLimiter,
         IBackgroundEmailQueue backgroundEmails,
         IDeviceSessionService deviceSessions,
+        AccessTokenSessionIdProtector sessionIds,
         PasswordTimingEqualizer passwordTiming,
         BudgetContext context,
         ILogger<AuthController> logger)
@@ -59,6 +61,7 @@ public class AuthController : ControllerBase
         _clientIpLimiter = clientIpLimiter;
         _backgroundEmails = backgroundEmails;
         _deviceSessions = deviceSessions;
+        _sessionIds = sessionIds;
         _passwordTiming = passwordTiming;
         _context = context;
         _logger = logger;
@@ -238,7 +241,8 @@ public class AuthController : ControllerBase
         if (!await _userManager.IsEmailConfirmedAsync(user))
             return Unauthorized("Invalid email or password");
 
-        var token = GenerateJwtToken(user);
+        // No session: the token carries the stamp hash instead of a session id (#337).
+        var token = GenerateJwtToken(user, new Claim(AccessTokenClaims.StampHash, AccessTokenClaims.StampHashValue(signIn.SecurityStamp)));
 
         return Ok(new
         {
@@ -272,14 +276,14 @@ public class AuthController : ControllerBase
         if (!await _userManager.IsEmailConfirmedAsync(user))
             return Unauthorized(new { code = "invalid_credentials" });
 
-        var credential = await _deviceSessions.CreateAsync(user.Id, securityStamp, cancellationToken);
+        var created = await _deviceSessions.CreateAsync(user.Id, securityStamp, cancellationToken);
 
         Response.Headers.CacheControl = "no-store";
         return Ok(new
         {
-            token = GenerateJwtToken(user),
+            token = GenerateSessionJwtToken(user, created.SessionId),
             email = user.Email,
-            refreshToken = credential
+            refreshToken = created.Credential
         });
     }
 
@@ -296,7 +300,7 @@ public class AuthController : ControllerBase
         Response.Headers.CacheControl = "no-store";
         return Ok(new
         {
-            token = GenerateJwtToken(issued.User),
+            token = GenerateSessionJwtToken(issued.User, issued.SessionId),
             email = issued.User.Email,
             refreshToken = issued.Credential
         });
@@ -345,12 +349,12 @@ public class AuthController : ControllerBase
         if (existing != null)
             await _deviceSessions.SignOutAsync(existing, cancellationToken);
 
-        var credential = await _deviceSessions.CreateAsync(user.Id, securityStamp, cancellationToken);
+        var created = await _deviceSessions.CreateAsync(user.Id, securityStamp, cancellationToken);
 
-        WebSessionCookie.Write(HttpContext, credential);
+        WebSessionCookie.Write(HttpContext, created.Credential);
         return Ok(new
         {
-            token = GenerateJwtToken(user),
+            token = GenerateSessionJwtToken(user, created.SessionId),
             email = user.Email
         });
     }
@@ -373,7 +377,7 @@ public class AuthController : ControllerBase
         WebSessionCookie.Write(HttpContext, issued.Credential);
         return Ok(new
         {
-            token = GenerateJwtToken(issued.User),
+            token = GenerateSessionJwtToken(issued.User, issued.SessionId),
             email = issued.User.Email
         });
     }
@@ -625,7 +629,11 @@ public class AuthController : ControllerBase
         }
     }
 
-    private string GenerateJwtToken(ApplicationUser user)
+    // Session tokens carry the session id protected with Data Protection, never bare (#337).
+    private string GenerateSessionJwtToken(ApplicationUser user, Guid sessionId) =>
+        GenerateJwtToken(user, new Claim(AccessTokenClaims.SessionId, _sessionIds.Protect(sessionId)));
+
+    private string GenerateJwtToken(ApplicationUser user, Claim sessionBinding)
     {
         var jwtKey = _configuration["Jwt:Key"]
             ?? throw new InvalidOperationException("JWT key is missing");
@@ -634,7 +642,8 @@ public class AuthController : ControllerBase
         {
             new Claim(ClaimTypes.NameIdentifier, user.Id),
             new Claim(ClaimTypes.Email, user.Email ?? ""),
-            new Claim(ClaimTypes.Name, user.UserName ?? "")
+            new Claim(ClaimTypes.Name, user.UserName ?? ""),
+            sessionBinding
         };
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
