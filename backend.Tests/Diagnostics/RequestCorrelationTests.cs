@@ -335,7 +335,7 @@ public sealed class RequestCorrelationTests
         foreach (var entry in scoped)
         {
             var pairs = (entry.Scopes ?? []).OfType<IEnumerable<KeyValuePair<string, object>>>().SelectMany(p => p);
-            Assert.Contains(pairs, pair => pair.Key == "RequestId" && (string?)pair.Value == id);
+            Assert.Contains(pairs, pair => pair.Key == "OrdoRequestId" && (string?)pair.Value == id);
         }
     }
 

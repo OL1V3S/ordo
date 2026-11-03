@@ -449,8 +449,8 @@ user IDs or amounts.
 - Order followed: migrate, then backend, then frontend.
 - Smoke: `scripts/smoke-deploy.sh` exit code and status codes. To confirm a new
   build is live, check that `X-Request-Id` is 16 lowercase hex or that an error
-  body has `requestId`. The host edge may add its own `X-Request-Id`, so the
-  header alone proves nothing.
+  body has `requestId`. The host edge may add its own `X-Request-Id`, so
+  its presence alone proves nothing.
 - Rollback target: previous Render deploy (SHA, time), previous Vercel
   deployment ID, and a yes/no "older app works with the current schema" with the
   migration ids.

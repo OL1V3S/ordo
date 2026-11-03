@@ -63,7 +63,7 @@ public sealed class RequestCorrelationMiddleware(
 
         var started = Stopwatch.GetTimestamp();
         var completed = false;
-        using var scope = logger.BeginScope(new Dictionary<string, object> { ["RequestId"] = requestId });
+        using var scope = logger.BeginScope(new Dictionary<string, object> { ["OrdoRequestId"] = requestId });
         try
         {
             await next(context);
