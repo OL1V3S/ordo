@@ -118,7 +118,7 @@ export function subscribeToSession(listener) {
   };
 }
 
-function publishSignedIn(token, id, email) {
+function publishSignedIn(token, id) {
   accessToken = token;
   currentId = id;
   generation += 1;
@@ -133,7 +133,7 @@ export function establishSession(token, email) {
   identityMirrored = writeStored(ID_KEY, id);
   writeStored(EMAIL_KEY, email);
   removeLegacyAccessToken();
-  publishSignedIn(token, id, email);
+  publishSignedIn(token, id);
 }
 
 // A token obtained by refreshing through the cookie when this tab holds none
