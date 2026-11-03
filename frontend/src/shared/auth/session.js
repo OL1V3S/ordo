@@ -173,6 +173,9 @@ function publishAdopted(token, id) {
   accessToken = token;
   currentId = id;
   getSessionSnapshot();
+  // An adopt can run before the storage event of the sign-in it follows: a
+  // support reference from the older session must not carry over (#340).
+  if (generation !== referenceGeneration) clearRequestReference();
   referenceGeneration = generation;
   notifyListeners();
 }

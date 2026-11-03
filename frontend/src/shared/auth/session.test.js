@@ -330,6 +330,20 @@ describe('shared authentication session', () => {
       expect(getRequestReference()).toBeNull()
     })
 
+    it('clears the reference when this tab adopts a token before the storage event of another tab sign-in', () => {
+      establishSession('old-token', 'old@example.com')
+      raise()
+      expect(getRequestReference()).toBe('req-1234abcd')
+
+      // Another tab signed in; this tab's storage event has not arrived yet.
+      localStorage.setItem('sessionId', 'other-tab-sign-in')
+      localStorage.setItem('email', 'new@example.com')
+      adoptAccessToken('new-token', 'new@example.com')
+
+      expect(getSessionSnapshot()).toMatchObject({ signedIn: true, id: 'other-tab-sign-in' })
+      expect(getRequestReference()).toBeNull()
+    })
+
     it('keeps the reference for an email-only change or unrelated storage events', () => {
       establishSession('old-token', 'old@example.com')
       subscribe()
