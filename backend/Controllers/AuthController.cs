@@ -27,6 +27,7 @@ public class AuthController : ControllerBase
     private readonly IConfirmationResendLimiter _confirmationResendLimiter;
     private readonly IForgotPasswordLimiter _forgotPasswordLimiter;
     private readonly IRegistrationLimiter _registrationLimiter;
+    private readonly IBackgroundEmailQueue _backgroundEmails;
     private readonly IDeviceSessionService _deviceSessions;
     private readonly PasswordTimingEqualizer _passwordTiming;
     private readonly BudgetContext _context;
@@ -40,6 +41,7 @@ public class AuthController : ControllerBase
         IConfirmationResendLimiter confirmationResendLimiter,
         IForgotPasswordLimiter forgotPasswordLimiter,
         IRegistrationLimiter registrationLimiter,
+        IBackgroundEmailQueue backgroundEmails,
         IDeviceSessionService deviceSessions,
         PasswordTimingEqualizer passwordTiming,
         BudgetContext context,
@@ -52,6 +54,7 @@ public class AuthController : ControllerBase
         _confirmationResendLimiter = confirmationResendLimiter;
         _forgotPasswordLimiter = forgotPasswordLimiter;
         _registrationLimiter = registrationLimiter;
+        _backgroundEmails = backgroundEmails;
         _deviceSessions = deviceSessions;
         _passwordTiming = passwordTiming;
         _context = context;
@@ -175,9 +178,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("resend-confirmation")]
-    public async Task<IActionResult> ResendConfirmation(
-        ResendConfirmationRequest request,
-        CancellationToken cancellationToken)
+    public async Task<IActionResult> ResendConfirmation(ResendConfirmationRequest request)
     {
         if (!_confirmationResendLimiter.TryAcquireGlobal())
             return StatusCode(StatusCodes.Status429TooManyRequests);
@@ -187,21 +188,14 @@ public class AuthController : ControllerBase
 
         var user = await _userManager.FindByEmailAsync(request.Email!);
 
-        if (user != null && !await _userManager.IsEmailConfirmedAsync(user))
+        // #319: the confirmed-state check, token, link and send run in the
+        // background so response time and status do not depend on the account.
+        if (user != null)
         {
-            try
-            {
-                await _accountConfirmationService.SendConfirmationEmailAsync(
-                    user,
-                    ConfirmationEmailReason.Resend,
-                    EmailLanguageParser.Parse(request.Language),
-                    cancellationToken);
-            }
-            catch (EmailDeliveryException)
-            {
-                // Preserve the same public response for missing, confirmed, and
-                // delivery-failed accounts to avoid account enumeration.
-            }
+            QueueBackgroundEmail(
+                user,
+                BackgroundEmailKind.ConfirmationResend,
+                EmailLanguageParser.Parse(request.Language));
         }
 
         return Accepted(new
@@ -390,9 +384,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("forgot-password")]
-    public async Task<IActionResult> ForgotPassword(
-        ForgotPasswordRequest request,
-        CancellationToken cancellationToken)
+    public async Task<IActionResult> ForgotPassword(ForgotPasswordRequest request)
     {
         if (!_forgotPasswordLimiter.TryAcquireGlobal())
             return StatusCode(StatusCodes.Status429TooManyRequests);
@@ -402,33 +394,14 @@ public class AuthController : ControllerBase
 
         var user = await _userManager.FindByEmailAsync(request.Email!);
 
+        // #319: the token, link and send run in the background so response time and
+        // status do not depend on whether the account exists.
         if (user != null)
         {
-            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
-            var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
-
-            var frontendBaseUrl = _configuration["Frontend:BaseUrl"];
-
-            var resetLink =
-                $"{frontendBaseUrl}/reset-password?email={Uri.EscapeDataString(request.Email!)}&token={encodedToken}";
-
-            try
-            {
-                var content = AccountEmailTemplates.PasswordResetEmail(
-                    EmailLanguageParser.Parse(request.Language),
-                    resetLink);
-
-                await _emailService.SendEmailAsync(
-                    request.Email!,
-                    content.Subject,
-                    content.HtmlBody,
-                    cancellationToken);
-            }
-            catch (EmailDeliveryException)
-            {
-                // Preserve the same public response for missing and
-                // delivery-failed accounts to reduce account enumeration.
-            }
+            QueueBackgroundEmail(
+                user,
+                BackgroundEmailKind.PasswordReset,
+                EmailLanguageParser.Parse(request.Language));
         }
 
         return Ok(new
@@ -464,6 +437,21 @@ public class AuthController : ControllerBase
         await _deviceSessions.RevokeAllAsync(user.Id, CancellationToken.None);
 
         return Ok(new { message = "Password reset successfully" });
+    }
+
+    private void QueueBackgroundEmail(
+        ApplicationUser user,
+        BackgroundEmailKind kind,
+        EmailLanguage language)
+    {
+        // Never waits. A full queue drops the item and the response stays the same.
+        if (!_backgroundEmails.TryEnqueue(new BackgroundEmailJob(user.Id, language, kind)))
+        {
+            _logger.LogWarning(
+                "Background email queue is full; dropped {Kind} email for user {UserId}",
+                kind,
+                user.Id);
+        }
     }
 
     private sealed record PasswordSignIn(ApplicationUser User, string? SecurityStamp);

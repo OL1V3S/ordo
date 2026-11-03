@@ -165,6 +165,8 @@ builder.Services.AddAuthorization();
 builder.Services.AddSingleton<IGmailApiClient, GmailApiClient>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IAccountConfirmationService, AccountConfirmationService>();
+builder.Services.AddSingleton<IBackgroundEmailQueue>(_ => new BackgroundEmailQueue());
+builder.Services.AddHostedService<BackgroundEmailWorker>();
 builder.Services.AddOptions<ConfirmationResendLimiterOptions>();
 builder.Services.AddSingleton<IConfirmationResendLimiter, ConfirmationResendLimiter>();
 builder.Services.AddOptions<ForgotPasswordLimiterOptions>();

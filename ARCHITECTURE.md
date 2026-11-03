@@ -276,7 +276,12 @@ iOS show a neutral "Just created an account?" hint and an inline resend after
 any invalid-credentials sign-in failure; resend answers the same `202` for every
 email. Sign-in verifies a dummy password hash for unknown emails and locked
 accounts, and `reset-password` answers an unknown email like a bad token (#319).
-Resend and forgot-password timing is still tracked in #319.
+Resend-confirmation and forgot-password do the confirmed-state check, token, link
+and send in an in-process background worker (`IBackgroundEmailQueue`, bounded
+channel of 256, single reader, `BackgroundEmailWorker`). The request only looks
+up the account and queues `{userId, language}`, so timing and status do not show
+whether it exists. Queued emails are lost on restart; registration (#300) still
+sends inside its request because it reports delivery failure.
 
 The backend also exposes web-session endpoints (#292), used by the web app: `POST /api/auth/web-session`, `/refresh` and
 `/sign-out`. They reuse `DeviceSessionService` and the `DeviceSessions` table

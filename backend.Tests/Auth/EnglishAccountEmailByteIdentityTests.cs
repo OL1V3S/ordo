@@ -33,6 +33,7 @@ public sealed class EnglishAccountEmailByteIdentityTests
             "/api/auth/resend-confirmation",
             new { email = "golden@example.com" });
 
+        await app.WaitForEmailQueueIdleAsync();
         var sent = Assert.Single(app.EmailSender.Messages);
         Assert.Equal(EnglishAccountEmailGolden.ConfirmationSubject, sent.Subject);
         Assert.Equal(EnglishAccountEmailGolden.ConfirmationBody, MaskLink(sent.HtmlBody));
@@ -48,6 +49,7 @@ public sealed class EnglishAccountEmailByteIdentityTests
             "/api/auth/forgot-password",
             new { email = "golden@example.com" });
 
+        await app.WaitForEmailQueueIdleAsync();
         var sent = Assert.Single(app.EmailSender.Messages);
         Assert.Equal(EnglishAccountEmailGolden.ResetSubject, sent.Subject);
         Assert.Equal(EnglishAccountEmailGolden.ResetBody, MaskLink(sent.HtmlBody));

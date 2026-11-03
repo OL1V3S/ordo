@@ -214,6 +214,7 @@ public sealed class AccountEmailLocalizationFlowTests
 
         Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
         Assert.Equal(TestApplication.GenericResendMessage, body.GetProperty("message").GetString());
+        await app.WaitForEmailQueueIdleAsync();
         Assert.Equal(subject, Assert.Single(app.EmailSender.Messages).Subject);
     }
 
@@ -232,6 +233,7 @@ public sealed class AccountEmailLocalizationFlowTests
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("If the email exists, a reset link was sent.", body.GetProperty("message").GetString());
+        await app.WaitForEmailQueueIdleAsync();
         var sent = Assert.Single(app.EmailSender.Messages);
         Assert.Equal(subject, sent.Subject);
         Assert.Contains("https://frontend.test/reset-password?email=lang%40example.com&token=", sent.HtmlBody);
@@ -293,6 +295,7 @@ public sealed class AccountEmailLocalizationFlowTests
             Json($"{{\"email\":\"edge@example.com\",{languageFragment}}}"));
 
         Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
+        await app.WaitForEmailQueueIdleAsync();
         Assert.Equal("Confirm your Ordo account", Assert.Single(app.EmailSender.Messages).Subject);
     }
 
@@ -311,6 +314,7 @@ public sealed class AccountEmailLocalizationFlowTests
             Json($"{{\"email\":\"edge@example.com\",{languageFragment}}}"));
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        await app.WaitForEmailQueueIdleAsync();
         Assert.Equal("Reset your Ordo password", Assert.Single(app.EmailSender.Messages).Subject);
     }
 
@@ -331,6 +335,7 @@ public sealed class AccountEmailLocalizationFlowTests
             Assert.Equal(TestApplication.GenericResendMessage, body.GetProperty("message").GetString());
         }
 
+        await app.WaitForEmailQueueIdleAsync();
         Assert.Empty(app.EmailSender.Messages);
     }
 
@@ -346,6 +351,7 @@ public sealed class AccountEmailLocalizationFlowTests
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("If the email exists, a reset link was sent.", body.GetProperty("message").GetString());
+        await app.WaitForEmailQueueIdleAsync();
         Assert.Equal(0, app.EmailSender.AttemptCount);
     }
 

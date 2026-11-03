@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Threading.Channels;
 using BudgetPlanner.Authentication;
 using BudgetPlanner.Configuration;
 using BudgetPlanner.Data;
@@ -132,6 +133,11 @@ internal sealed class TestApplication : WebApplicationFactory<Program>
             services.RemoveAll<IEmailService>();
             services.AddSingleton<IEmailService>(EmailSender);
 
+            // Test-only: wraps the real queue so tests can wait until the worker has
+            // finished every queued email (no sleeps, no production API).
+            services.RemoveAll<IBackgroundEmailQueue>();
+            services.AddSingleton<IBackgroundEmailQueue>(new TrackingBackgroundEmailQueue());
+
             if (_tokenLifespan != null)
             {
                 services.Configure<DataProtectionTokenProviderOptions>(options =>
@@ -210,6 +216,12 @@ internal sealed class TestApplication : WebApplicationFactory<Program>
 
         return base.CreateHost(builder);
     }
+
+    public TrackingBackgroundEmailQueue EmailQueue =>
+        (TrackingBackgroundEmailQueue)Services.GetRequiredService<IBackgroundEmailQueue>();
+
+    /// <summary>Waits until the background worker has finished every email queued so far.</summary>
+    public Task WaitForEmailQueueIdleAsync() => EmailQueue.WaitForIdleAsync();
 
     public async Task<ApplicationUser> CreateUserAsync(string email, bool confirmed)
     {
@@ -339,15 +351,36 @@ internal sealed class RecordingForgotPasswordLimiter(
 
 internal sealed class FakeEmailService(EmailFailureMode failureMode) : IEmailService
 {
+    private static readonly TimeSpan SafetyTimeout = TimeSpan.FromSeconds(30);
+
     private int _attemptCount;
     private readonly ConcurrentQueue<SentEmail> _messages = new();
     private int _receivedCancellableToken;
+    private readonly SemaphoreSlim _sendEntered = new(0);
+    private volatile TaskCompletionSource? _gate;
+    private volatile EmailFailureMode _failureMode = failureMode;
 
     public int AttemptCount => _attemptCount;
     public IReadOnlyCollection<SentEmail> Messages => _messages.ToArray();
     public bool ReceivedCancellableToken => Volatile.Read(ref _receivedCancellableToken) == 1;
 
-    public Task SendEmailAsync(
+    /// <summary>Changes how later sends behave. Change it only while the queue is idle.</summary>
+    public EmailFailureMode FailureMode
+    {
+        get => _failureMode;
+        set => _failureMode = value;
+    }
+
+    /// <summary>Makes every later send wait until <see cref="ReleaseSends"/>.</summary>
+    public void BlockSends() =>
+        _gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    public void ReleaseSends() => _gate?.TrySetResult();
+
+    /// <summary>Completes once a send has started (one per send).</summary>
+    public Task WaitForSendEnteredAsync() => _sendEntered.WaitAsync(SafetyTimeout);
+
+    public async Task SendEmailAsync(
         string toEmail,
         string subject,
         string htmlBody,
@@ -357,7 +390,12 @@ internal sealed class FakeEmailService(EmailFailureMode failureMode) : IEmailSer
         if (cancellationToken.CanBeCanceled)
             Interlocked.Exchange(ref _receivedCancellableToken, 1);
 
-        switch (failureMode)
+        _sendEntered.Release();
+        var gate = _gate;
+        if (gate != null)
+            await gate.Task.WaitAsync(SafetyTimeout, cancellationToken);
+
+        switch (_failureMode)
         {
             case EmailFailureMode.DeliveryFailure:
                 throw new EmailDeliveryException(
@@ -370,7 +408,118 @@ internal sealed class FakeEmailService(EmailFailureMode failureMode) : IEmailSer
         }
 
         _messages.Enqueue(new SentEmail(toEmail, subject, htmlBody));
-        return Task.CompletedTask;
+    }
+}
+
+/// <summary>
+/// Test-only wrapper over the real queue. Counts queued and finished items so tests
+/// can wait for the single-reader worker to be idle. An item counts as finished when
+/// the worker next asks the reader for more.
+/// </summary>
+internal sealed class TrackingBackgroundEmailQueue : IBackgroundEmailQueue
+{
+    private static readonly TimeSpan SafetyTimeout = TimeSpan.FromSeconds(30);
+
+    private readonly BackgroundEmailQueue _inner;
+    private readonly object _lock = new();
+    private TaskCompletionSource _changed = NewSignal();
+    private int _enqueued;
+    private int _taken;
+    private int _finished;
+    private int _dropped;
+
+    public TrackingBackgroundEmailQueue(int capacity = BackgroundEmailQueue.DefaultCapacity)
+    {
+        _inner = new BackgroundEmailQueue(capacity);
+        Reader = new TrackingReader(this, _inner.Reader);
+    }
+
+    public ChannelReader<BackgroundEmailJob> Reader { get; }
+
+    public int DroppedCount
+    {
+        get { lock (_lock) return _dropped; }
+    }
+
+    public bool TryEnqueue(BackgroundEmailJob job)
+    {
+        lock (_lock)
+            _enqueued++;
+
+        var accepted = _inner.TryEnqueue(job);
+        if (!accepted)
+        {
+            lock (_lock)
+            {
+                _enqueued--;
+                _dropped++;
+                Signal();
+            }
+        }
+
+        return accepted;
+    }
+
+    public async Task WaitForIdleAsync()
+    {
+        while (true)
+        {
+            Task changed;
+            lock (_lock)
+            {
+                if (_finished == _enqueued)
+                    return;
+                changed = _changed.Task;
+            }
+
+            await changed.WaitAsync(SafetyTimeout);
+        }
+    }
+
+    private static TaskCompletionSource NewSignal() =>
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    private void Signal()
+    {
+        _changed.TrySetResult();
+        _changed = NewSignal();
+    }
+
+    private void WorkerAsksForMore()
+    {
+        lock (_lock)
+        {
+            if (_finished == _taken)
+                return;
+            _finished = _taken;
+            Signal();
+        }
+    }
+
+    private void ItemTaken()
+    {
+        lock (_lock)
+            _taken++;
+    }
+
+    private sealed class TrackingReader(
+        TrackingBackgroundEmailQueue owner,
+        ChannelReader<BackgroundEmailJob> inner) : ChannelReader<BackgroundEmailJob>
+    {
+        public override bool TryRead(out BackgroundEmailJob item)
+        {
+            owner.WorkerAsksForMore();
+            if (!inner.TryRead(out item))
+                return false;
+            owner.ItemTaken();
+            return true;
+        }
+
+        public override ValueTask<bool> WaitToReadAsync(CancellationToken cancellationToken = default)
+        {
+            owner.WorkerAsksForMore();
+            return inner.WaitToReadAsync(cancellationToken);
+        }
     }
 }
 

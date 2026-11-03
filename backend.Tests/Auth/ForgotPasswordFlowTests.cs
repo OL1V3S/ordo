@@ -25,6 +25,7 @@ public sealed class ForgotPasswordFlowTests
         var response = await PostForgotPasswordAsync(app, ExistingEmail);
 
         await AssertNeutralSuccessAsync(response);
+        await app.WaitForEmailQueueIdleAsync();
         var sent = Assert.Single(app.EmailSender.Messages);
         Assert.Equal(ExistingEmail, sent.ToEmail);
         Assert.Equal("Reset your Ordo password", sent.Subject);
@@ -103,6 +104,7 @@ public sealed class ForgotPasswordFlowTests
         var response = await PostForgotPasswordAsync(app, "missing@example.com");
 
         await AssertNeutralSuccessAsync(response);
+        await app.WaitForEmailQueueIdleAsync();
         Assert.Equal(0, app.EmailSender.AttemptCount);
     }
 
@@ -115,6 +117,7 @@ public sealed class ForgotPasswordFlowTests
         var response = await PostForgotPasswordAsync(app, ExistingEmail);
 
         await AssertNeutralSuccessAsync(response);
+        await app.WaitForEmailQueueIdleAsync();
         Assert.Equal(1, app.EmailSender.AttemptCount);
     }
 
@@ -211,6 +214,7 @@ public sealed class ForgotPasswordFlowTests
 
         var limited = await PostForgotPasswordAsync(app, "global-final@example.com");
         Assert.Equal(HttpStatusCode.TooManyRequests, limited.StatusCode);
+        await app.WaitForEmailQueueIdleAsync();
         Assert.Equal(0, app.EmailSender.AttemptCount);
     }
 
@@ -231,6 +235,7 @@ public sealed class ForgotPasswordFlowTests
 
         var limited = await PostForgotPasswordAsync(app, email);
         Assert.Equal(HttpStatusCode.TooManyRequests, limited.StatusCode);
+        await app.WaitForEmailQueueIdleAsync();
         Assert.Equal(expectedEmailAttempts, app.EmailSender.AttemptCount);
     }
 
@@ -281,21 +286,22 @@ public sealed class ForgotPasswordFlowTests
     }
 
     [Fact]
-    public async Task Unexpected_email_exception_propagates()
+    public async Task Unexpected_email_exception_gets_same_neutral_response()
     {
         await using var app = await TestApplication.StartAsync(EmailFailureMode.UnexpectedFailure);
         await app.CreateUserAsync(ExistingEmail, confirmed: true);
 
         var response = await PostForgotPasswordAsync(app, ExistingEmail);
-        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
 
-        Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
-        Assert.Equal("internal_error", body.GetProperty("code").GetString());
+        // #319: the send runs in the background, so a non-delivery exception no
+        // longer gives 500 for an existing account only.
+        await AssertNeutralSuccessAsync(response);
+        await app.WaitForEmailQueueIdleAsync();
         Assert.Equal(1, app.EmailSender.AttemptCount);
     }
 
     [Fact]
-    public async Task Cancellation_propagates_and_request_token_reaches_email_boundary()
+    public async Task Cancellation_gets_same_neutral_response_and_worker_token_reaches_email_boundary()
     {
         await using var app = await TestApplication.StartAsync(EmailFailureMode.Cancellation);
         await app.CreateUserAsync(ExistingEmail, confirmed: true);
@@ -306,10 +312,8 @@ public sealed class ForgotPasswordFlowTests
             new { email = ExistingEmail },
             cancellation.Token);
 
-        // Not swallowed: the global handler answers 500 for the unrequested cancellation.
-        Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
-        var cancelBody = await response.Content.ReadFromJsonAsync<JsonElement>();
-        Assert.Equal("internal_error", cancelBody.GetProperty("code").GetString());
+        await AssertNeutralSuccessAsync(response);
+        await app.WaitForEmailQueueIdleAsync();
         Assert.Equal(1, app.EmailSender.AttemptCount);
         Assert.True(app.EmailSender.ReceivedCancellableToken);
     }
@@ -350,6 +354,7 @@ public sealed class ForgotPasswordFlowTests
         await app.CreateUserAsync(email, confirmed);
         var forgot = await PostForgotPasswordAsync(app, email);
         await AssertNeutralSuccessAsync(forgot);
+        await app.WaitForEmailQueueIdleAsync();
 
         var sent = Assert.Single(app.EmailSender.Messages);
         var href = Regex.Match(sent.HtmlBody, "href=\"([^\"]+)\"").Groups[1].Value;
