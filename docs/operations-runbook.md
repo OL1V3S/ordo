@@ -14,17 +14,26 @@ This document authorizes nothing. It is reference material only.
 
 ## Facts to record
 
-| Fact | Value |
-| --- | --- |
-| Neon plan tier | OWNER TO FILL IN |
-| Neon point-in-time restore (PITR) retention window | OWNER TO FILL IN |
-| Neon project and production branch names | OWNER TO FILL IN |
-| Neon automated snapshot/backup schedule, if any | OWNER TO FILL IN |
-| Render service name and plan | OWNER TO FILL IN |
-| Number of previous Render deploys kept and rollbackable | OWNER TO FILL IN |
-| Vercel project name and production alias | OWNER TO FILL IN |
-| Who holds Neon, Render, and Vercel admin access | OWNER TO FILL IN |
-| Target recovery time and acceptable data loss | OWNER TO FILL IN |
+| Fact | Value | Confirmed from (console page, date) |
+| --- | --- | --- |
+| Neon plan tier | OWNER TO FILL IN | OWNER TO FILL IN |
+| Neon point-in-time restore (PITR) retention window | OWNER TO FILL IN | OWNER TO FILL IN |
+| Neon project and production branch names | OWNER TO FILL IN | OWNER TO FILL IN |
+| Neon automated snapshot/backup schedule, if any | OWNER TO FILL IN | OWNER TO FILL IN |
+| Neon branch-count limit and cost of a drill branch | OWNER TO FILL IN | OWNER TO FILL IN |
+| Render service name and plan | OWNER TO FILL IN | OWNER TO FILL IN |
+| Number of previous Render deploys kept and rollbackable | OWNER TO FILL IN | OWNER TO FILL IN |
+| Vercel project name and production alias | OWNER TO FILL IN | OWNER TO FILL IN |
+| Who holds Neon, Render, and Vercel admin access | OWNER TO FILL IN | OWNER TO FILL IN |
+| Recovery time objective (RTO): target time to restore service | OWNER TO FILL IN | OWNER TO FILL IN |
+| Recovery point objective (RPO): acceptable data loss | OWNER TO FILL IN | OWNER TO FILL IN |
+| Restore drill authorization (link to the durable #339 comment) | OWNER TO FILL IN | OWNER TO FILL IN |
+| Last restore drill: date and result | OWNER TO FILL IN | OWNER TO FILL IN |
+
+- RTO and RPO are owner decisions. No agent sets them. A measured drill time
+  informs them; it does not set them.
+- "Confirmed from" names the console page or document and the date. Never
+  paste connection strings, hostnames or screenshots of them.
 
 ## Who can do what
 
@@ -66,7 +75,9 @@ Practical consequences:
 
 Behavior below is generic Neon behavior. Confirm it against current Neon
 documentation and the active plan before relying on it. The retention window
-and available features depend on the plan: OWNER TO FILL IN.
+and available features depend on the plan: OWNER TO FILL IN. See
+[Unverified Neon behavior](#unverified-neon-behavior) for the claims no one has
+confirmed yet.
 
 ### Before any restore
 
@@ -88,7 +99,8 @@ Preferred first step. Production is not changed.
 3. Name it clearly (for example `restore-check-YYYYMMDD`). Record the name.
 4. Use the new branch's own connection string. Keep it private and never
    commit it.
-5. Delete the branch when finished, if the plan bills or limits branches.
+5. Delete the branch when finished. It holds a copy of production data. A
+   [restore drill](#restore-drill-owner-run) always deletes its branch.
 
 ### Restore production in place (destructive)
 
@@ -105,11 +117,32 @@ Only after a branch check and explicit owner authorization.
    authorization.
 4. Run the post-incident checks below.
 
+### Unverified Neon behavior
+
+None of these is confirmed for this project. Treat each as unknown until the
+owner records the date it was confirmed from current Neon documentation or the
+console. Do not rely on any of them before then.
+
+| Claim | Confirmed (date) |
+| --- | --- |
+| Plan tier, and which recovery features it includes | OWNER TO FILL IN |
+| History/PITR window, and restore to an arbitrary timestamp or LSN | OWNER TO FILL IN |
+| A branch created at a past time leaves the parent branch untouched | OWNER TO FILL IN |
+| Branch creation time (measure it in a drill; do not assume) | OWNER TO FILL IN |
+| A branch inherits the parent's roles and passwords, so its connection string is as sensitive as production | OWNER TO FILL IN |
+| The branch's endpoint host, and which string is direct (unpooled) versus pooled | OWNER TO FILL IN |
+| Autosuspend and cold-start time | OWNER TO FILL IN |
+| Compute and storage cost of a drill branch, and the branch-count limit | OWNER TO FILL IN |
+| Delete rules (branches with children, the default branch) | OWNER TO FILL IN |
+| In-place restore keeps a backup branch, and connection strings stay the same (see steps 2 and 3 of "Restore production in place") | OWNER TO FILL IN |
+
 ## Verifying a restore without touching production
 
 - Restore to a branch (above), never over production, to test a recovery.
-- Point a disposable local or CI environment at the branch connection string
-  only if the owner authorizes that connection. Otherwise stop and report.
+- Connect to the branch only under a durable owner authorization for that
+  restore or a [restore drill](#restore-drill-owner-run), read-only (except the
+  drill's optional app check). Otherwise stop and report. Never point CI, a CI
+  secret, or the PostgreSQL integration tests at a branch.
 - Never use Neon, Render, production, or another hosted database as a
   substitute when a local PostgreSQL is unavailable
   ([`debugging.md`](debugging.md), [`verification.md`](verification.md)).
@@ -117,6 +150,234 @@ Only after a branch check and explicit owner authorization.
   data and `./scripts/verify.sh postgresql`.
 - Inspect schema state, `__EFMigrationsHistory` IDs, and aggregate row counts.
   Do not read or publish row contents.
+
+## Restore drill (owner-run)
+
+**Authorizes nothing.** This is a checklist. The owner may run it only after
+posting a durable authorization on
+[#339](https://github.com/OL1V3S/ordo/issues/339). Agents never run it, never
+hold the branch connection string, and never fill in the facts. No drill has
+been run.
+
+Goal: measure a branch restore and check that the branch has the expected
+schema and data, with production untouched.
+
+- A drill creates a **new child branch** and nothing else. It never restores
+  in place and never changes an existing branch.
+- Use the Neon console. Wording there may differ from this checklist; if a step
+  is unclear, stop.
+
+### Stop conditions
+
+**Stop, change nothing more, and report if any of these is true.**
+
+- **No durable #339 authorization naming restore point T and the branch name.**
+- **T is outside the PITR window, or the window is unconfirmed.**
+- **The branch-count limit or cost is unconfirmed.**
+- **A console action would modify an existing branch instead of creating a new
+  child, restore in place, change Render or Vercel settings, repoint, or
+  deploy. Or the target is ambiguous.**
+- **The branch cannot be told apart from production by name.**
+- **`SHOW default_transaction_read_only;` does not return `on`.**
+- **A check needs row contents or a dump.**
+- **A migration of the deployed commit is missing on the branch,
+  `DataProtectionKeys` is missing, or counts differ without an explained write.**
+- **Any tool rejects the target** (for example the PostgreSQL test guard). Never
+  weaken or bypass the rejection.
+- **The connection string appears anywhere outside the shell session** (history,
+  chat, ticket, screenshot, CI, log). Treat it as compromised. Rotating it needs
+  separate owner authorization.
+- **Branch deletion fails or would affect any other branch, or production
+  changes in any way beyond the branch being created.**
+
+### Before the drill
+
+1. Post a durable comment on #339 with: restore point T (UTC), the branch name
+   `restore-drill-YYYYMMDD`, who runs it, and a separate yes or no for:
+   - baseline: production baseline reads and the production smoke GETs;
+   - app check: the optional app check (below).
+2. Link that comment in the facts table. Fill in the facts: plan, PITR window,
+   branch limit and cost, each with where it was confirmed. Confirm T is inside
+   the window.
+3. Keep a private notes directory outside the repository for timings,
+   per-table counts and the migration lists. The repository is public.
+4. Keep the branch connection string only in the shell session. Split off the
+   password so it never appears in `psql` process arguments (visible in process
+   listings). Enter the string without its password with
+   `read -r DRILL_DATABASE_URL`, then the password with
+   `read -rs PGPASSWORD; export PGPASSWORD`. This also keeps both out of shell
+   history. Never put either in chat, tickets, screenshots, CI, or a file in the
+   repository.
+5. If baseline is yes: run `scripts/smoke-deploy.sh --api <url> --web <url>` for a
+   pre-state. It is GET-only and needs no credentials.
+
+### Run
+
+Record the UTC time at each step with `date -u +%FT%TZ`:
+
+| Mark | Step |
+| --- | --- |
+| t0 | Drill starts |
+| t1 | Branch creation requested |
+| t2 | Console shows the branch ready |
+| t3 | First connection succeeds (includes any cold start) |
+| t4 | Schema checks (a), (d), (e) done |
+| t5 | Counts and checksums (b), (c) done |
+| t6 | Optional app check done |
+| t7 | Branch deleted |
+
+1. t1: in the console, create a new branch from the production branch at T.
+   Before confirming, check it is a new child with the drill name and not the
+   primary branch.
+2. t2: wait until the console shows it ready.
+3. Get the branch's own **direct (unpooled)** connection string. Set the
+   session options and run the gate:
+
+   ```bash
+   export PGOPTIONS='-c default_transaction_read_only=on -c TimeZone=UTC -c DateStyle=ISO,MDY'
+   psql -X "$DRILL_DATABASE_URL" -c 'SHOW default_transaction_read_only;'
+   ```
+
+   t3 is when this connects. **Stop unless it prints `on`.** This is a safety
+   net, not a security boundary: the branch still holds production data.
+4. Run the checks below. Output must be counts, migration ids and hashes only.
+   Never print rows. Never select columns from `DataProtectionKeys`.
+
+### Checks
+
+(a) Every migration of the deployed commit is in `__EFMigrationsHistory`.
+Replace `<deployed-commit>` with the commit Render serves, `<repo-path>` with
+the path of your clone and `<notes-dir>` with your private notes directory. The
+`cd` keeps both files outside the repository; if it fails, stop. Extra ids on
+the branch need an explanation (schema is applied before code).
+
+```bash
+cd <notes-dir>
+psql -X -At "$DRILL_DATABASE_URL" \
+  -c 'SELECT "MigrationId" FROM "__EFMigrationsHistory"' \
+  | LC_ALL=C sort > branch-migrations.txt
+git -C <repo-path> ls-tree --name-only <deployed-commit> backend/Migrations/ \
+  | grep -E '/[0-9]{14}_[A-Za-z0-9_]+\.cs$' | grep -v '\.Designer\.cs$' \
+  | sed -E 's#.*/([0-9]{14}_[A-Za-z0-9_]+)\.cs#\1#' \
+  | LC_ALL=C sort > commit-migrations.txt
+diff commit-migrations.txt branch-migrations.txt
+```
+
+A line starting `<` is missing on the branch: stop.
+
+(b) to (e), run through `psql -X -v ON_ERROR_STOP=1 "$DRILL_DATABASE_URL"`:
+
+```sql
+-- (b) exact row count per user table
+SELECT format('SELECT %L AS table_name, count(*) AS row_count FROM %I.%I',
+              tablename, schemaname, tablename)
+FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename \gexec
+
+-- (c) checksum of one owner-chosen table (repeat per table; NULL means empty)
+SELECT md5(string_agg(t::text, E'\n' ORDER BY t::text)) AS table_md5
+FROM public."BudgetLimits" AS t;
+
+-- (d) index and constraint counts
+SELECT 'indexes' AS what, count(*) AS n FROM pg_indexes WHERE schemaname = 'public'
+UNION ALL
+SELECT 'constraint ' || c.contype::text, count(*)
+FROM pg_constraint c JOIN pg_namespace n ON n.oid = c.connamespace
+WHERE n.nspname = 'public' GROUP BY c.contype
+ORDER BY 1;
+
+-- (e) the Data Protection key ring exists and is not empty
+SELECT to_regclass('public."DataProtectionKeys"') AS key_table;
+SELECT count(*) AS key_rows FROM public."DataProtectionKeys";
+```
+
+- (c) hashes row text, so both sides must use the same `TimeZone` and
+  `DateStyle` (the `PGOPTIONS` above). Choose small tables by name. Never
+  checksum `DataProtectionKeys`.
+- (e): stop if `key_table` is empty or `key_rows` is 0.
+- Count differences are acceptable only when explained as writes after T.
+  Record the difference as a count, never as rows.
+
+### Optional: production baseline
+
+Only if baseline is yes. Use production's **direct (unpooled)** connection
+string, entered as in Before the drill step 4. Set the same `PGOPTIONS` and run
+the read-only gate from Run step 3 first: **stop unless it prints `on`.** Then
+run the same (b) to (e) queries read-only against production. Enter the
+branch's values again before using the branch. Exact equality needs T to be the
+instant the baseline was taken: take the baseline first, then add its UTC time
+as T in a follow-up #339 comment before creating the branch. Otherwise expect
+differences from later writes and explain them as counts.
+
+### Optional: app check
+
+Default off. Only if app check is yes. Run it last (t6), after every other check,
+because the app's own connection may not carry the read-only setting (whether
+Npgsql honors `PGOPTIONS`, which stays exported until After the drill step 1, is
+unverified) and the app could write to the branch.
+
+- Run the backend locally in Development. Set these in the shell only. Never
+  type the connection string into an `export` line: that puts the password in
+  shell history. Enter it with
+  `read -rs ConnectionStrings__DefaultConnection; export ConnectionStrings__DefaultConnection`
+  (the branch, in Npgsql form), as in Before the drill step 4. Also set a
+  throwaway `Jwt__Key` (for example `openssl rand -base64 48`).
+- Startup validation requires these shell-only values. Use obvious dummy
+  values and never real email credentials:
+  - `EmailSettings__FromName`: non-empty.
+  - `EmailSettings__FromEmail`: a valid email address, for example
+    `drill@example.invalid`.
+  - `GoogleEmail__ClientId`, `GoogleEmail__ClientSecret` and
+    `GoogleEmail__RefreshToken`: non-empty.
+  - `Frontend__BaseUrl`: an absolute http or https URL with no query or
+    fragment, for example `http://localhost:5173`.
+- Call `GET /health/ready` only and record the HTTP status. No sign-in, no other
+  request. Never register, resend a confirmation, or use forgot-password.
+- The branch holds a copy of production data, including the Data Protection
+  key ring. Treat the connection string and the running process as production-sensitive.
+  Stop the process as soon as the call returns.
+
+### PostgreSQL test guard
+
+The PostgreSQL integration tests accept only `localhost`, `127.0.0.1` or `::1`
+with database `budget_planner_ci` or `budget_planner_test_*`, and they run
+`EnsureDeleted` (`backend.Tests/Financial/PostgreSqlFinancialApiTestApplication.cs`).
+Never point them, a CI job, or a CI secret at the branch. No allow-list, flag
+or rename.
+
+### After the drill
+
+1. Close psql and stop the app. Unset `DRILL_DATABASE_URL`, `PGPASSWORD`,
+   `PGOPTIONS`, `ConnectionStrings__DefaultConnection`, `Jwt__Key` and the
+   dummy email and frontend values.
+2. In the console, confirm the branch you are about to delete is the drill
+   child and not the primary branch. Confirm no Render or Vercel setting
+   references it.
+3. t7: delete the branch. If it fails, **stop** and report.
+4. If baseline is yes: rerun `scripts/smoke-deploy.sh --api <url> --web <url>` to
+   show production is healthy.
+5. Record results in a follow-up docs-only PR (below), then remove the local
+   notes and migration files.
+
+### Results
+
+Empty until the owner runs a drill. Record match or mismatch and table totals
+only. Per-table counts stay in the private notes.
+
+| Step | UTC start | UTC end | Elapsed | Result |
+| --- | --- | --- | --- | --- |
+| Branch create to ready (t1 to t2) | | | | |
+| First connection, cold start (t2 to t3) | | | | |
+| Schema checks (t3 to t4) | | | | |
+| Counts and checksums (t4 to t5) | | | | |
+| App check, optional (t5 to t6) | | | | |
+| Branch delete (t6 to t7) | | | | |
+
+- Measured RTO (t0 to the last passing check): OWNER TO FILL IN
+- RPO: take it from the branch point the Neon console reports for T, not from
+  reading user timestamps. If a newest-record timestamp is used, record only the
+  delta: OWNER TO FILL IN
+- This measures a branch restore only. It excludes detection, the decision to
+  restore, and cutover.
 
 ## Render rollback (backend)
 
@@ -192,5 +453,8 @@ connection strings, emails, user IDs, amounts, dates, or statement content.
 - Anonymous `/health` (liveness) and `/health/ready` (readiness) are done.
   Telemetry, deployment workflows and authenticated smoke remain separate
   ROADMAP E1/E4 work. Monitors must be created by the owner.
-- Restore drills have not been run. A drill needs its own owner authorization
-  and issue.
+- Restore drills have not been run. A checklist exists
+  ([Restore drill](#restore-drill-owner-run)), but no drill has been run and
+  its results table is empty. RTO and RPO are unset. A drill needs its own
+  durable owner authorization on
+  [#339](https://github.com/OL1V3S/ordo/issues/339).
