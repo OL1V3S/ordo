@@ -3,6 +3,7 @@ using BudgetPlanner.Data;
 using BudgetPlanner.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -173,6 +174,8 @@ builder.Services.AddOptions<ForgotPasswordLimiterOptions>();
 builder.Services.AddSingleton<IForgotPasswordLimiter, ForgotPasswordLimiter>();
 builder.Services.AddOptions<RegistrationLimiterOptions>();
 builder.Services.AddSingleton<IRegistrationLimiter, RegistrationLimiter>();
+builder.Services.AddOptions<ClientIpLimiterOptions>();
+builder.Services.AddSingleton<IClientIpLimiter, ClientIpLimiter>();
 builder.Services.AddSingleton(PasswordTimingEqualizer.Create);
 builder.Services.AddOptions<DeviceSessionOptions>();
 builder.Services.AddScoped<IDeviceSessionService, DeviceSessionService>();
@@ -185,6 +188,22 @@ app.Services.GetRequiredService<PasswordTimingEqualizer>();
 
 // The handler writes the response itself; the no-op satisfies the .NET 9 startup check.
 app.UseExceptionHandler(_ => { });
+
+// #332: behind Render's proxy, take the client IP from the rightmost
+// X-Forwarded-For entry (the one the edge appends). Left entries are
+// client-sent and ignored. The scheme is not forwarded, so HTTPS
+// redirection is unchanged. Not applied in Development (no proxy).
+if (!app.Environment.IsDevelopment())
+{
+    var forwardedHeaders = new ForwardedHeadersOptions
+    {
+        ForwardedHeaders = ForwardedHeaders.XForwardedFor,
+        ForwardLimit = 1
+    };
+    forwardedHeaders.KnownNetworks.Clear();
+    forwardedHeaders.KnownProxies.Clear();
+    app.UseForwardedHeaders(forwardedHeaders);
+}
 
 if (app.Environment.IsDevelopment())
 {
