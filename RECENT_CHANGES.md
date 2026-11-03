@@ -26,7 +26,7 @@ the permanent, complete archive.
 
 ### 2026-11-03 — Web: access token kept in memory only
 
-[Issue #337](https://github.com/OL1V3S/ordo/issues/337) · PR_PLACEHOLDER
+[Issue #337](https://github.com/OL1V3S/ordo/issues/337) · [PR #354](https://github.com/OL1V3S/ordo/pull/354)
 
 - The web app no longer stores the access token in the browser. It lives in the tab's memory and is fetched through the HttpOnly session cookie on every page load, so script cannot read it from storage. A token left by an older version is deleted.
 - Page load now waits for that refresh: a loading view (with a "taking longer than usual" note after 4 seconds) replaces sign-in, and it retries if the server cannot be reached. Reloading with cookies blocked signs you out. English and Spanish; no backend, API or iOS change.
