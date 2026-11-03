@@ -4,6 +4,10 @@
     "body": "Ordo tuvo un problema inesperado. Vuelve a cargar la página para intentarlo de nuevo.",
     "reload": "Recargar"
   },
+  "requestReference": {
+    "message": "Algo salió mal de nuestro lado. Si sigue pasando, comparte esta referencia: <code>{{id}}</code>",
+    "dismiss": "Cerrar"
+  },
   "shell": {
     "skipToMainContent": "Saltar al contenido principal",
     "signedIn": "Sesión iniciada",

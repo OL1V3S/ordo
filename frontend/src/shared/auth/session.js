@@ -1,3 +1,5 @@
+import { clearRequestReference } from "../api/requestReference";
+
 let snapshot;
 let generation = 0;
 let fallbackId = null;
@@ -80,6 +82,8 @@ export function establishSession(token, email) {
   fallbackId = null;
   generation += 1;
   snapshot = Object.freeze({ signedIn: Boolean(localStorage.getItem("token")), id, email: localStorage.getItem("email"), generation });
+  // A support reference belongs to the sign-in it was raised in (#340).
+  clearRequestReference();
   notifyListeners();
 }
 
@@ -105,6 +109,7 @@ export function clearSession() {
   localStorage.removeItem("sessionId");
   generation += 1;
   snapshot = Object.freeze({ signedIn: false, id: null, email: null, generation });
+  clearRequestReference();
   notifyListeners();
 }
 

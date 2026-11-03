@@ -1,6 +1,7 @@
 import axios from "axios";
 import { getAccessToken, getSessionSnapshot, invalidateSession } from "../auth/session";
 import { refreshWebSession } from "../auth/webSession";
+import { reportServerError } from "./requestReference";
 
 const client = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
@@ -26,6 +27,8 @@ client.interceptors.response.use(
     return response;
   },
   async (error) => {
+    // Side effect only: keep the support reference of a 5xx. The 401 logic below is unchanged.
+    if (error.response) reportServerError(error.response);
     const request = requestSessions.get(error.config);
     requestSessions.delete(error.config);
     if (error.response?.status !== 401 || !request) return Promise.reject(error);

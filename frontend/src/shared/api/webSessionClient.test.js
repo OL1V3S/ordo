@@ -1,5 +1,6 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { webSessionClient } from './webSessionClient'
+import { clearRequestReference, getRequestReference } from './requestReference'
 
 function stubFetch(status, body, contentType = 'application/json; charset=utf-8') {
   const fetch = vi.fn(async () => new Response(body, { status, headers: { 'Content-Type': contentType } }))
@@ -56,5 +57,27 @@ describe('web-session client', () => {
     const error = await webSessionClient.refresh().catch((failure) => failure)
 
     expect(error.response).toEqual({ status: 401, data: { code: 'session_invalid' } })
+  })
+
+  describe('support reference (#340)', () => {
+    beforeEach(() => clearRequestReference())
+
+    it('keeps the request ID of a failed sign-in (header or body)', async () => {
+      vi.stubGlobal('fetch', vi.fn(async () => new Response('Bad gateway', { status: 502, headers: { 'Content-Type': 'text/plain', 'X-Request-Id': 'aaaaaaaa11111111' } })))
+      await webSessionClient.signIn({ email: 'a@example.invalid', password: 'x' }).catch(() => {})
+      expect(getRequestReference()).toBe('aaaaaaaa11111111')
+      stubFetch(500, JSON.stringify({ code: 'internal_error', requestId: 'bbbbbbbb22222222' }))
+      await webSessionClient.signIn({ email: 'a@example.invalid', password: 'x' }).catch(() => {})
+      expect(getRequestReference()).toBe('bbbbbbbb22222222')
+    })
+
+    it('ignores sign-in 401 and never reports refresh or sign-out failures', async () => {
+      stubFetch(401, JSON.stringify({ requestId: 'aaaaaaaa11111111' }))
+      await webSessionClient.signIn({ email: 'a@example.invalid', password: 'x' }).catch(() => {})
+      stubFetch(500, JSON.stringify({ requestId: 'aaaaaaaa11111111' }))
+      await webSessionClient.refresh().catch(() => {})
+      await webSessionClient.signOut().catch(() => {})
+      expect(getRequestReference()).toBeNull()
+    })
   })
 })
