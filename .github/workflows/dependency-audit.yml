@@ -1,0 +1,40 @@
+name: Dependency audit
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  frontend:
+    name: Frontend npm audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+      - name: Audit (fails on high or critical)
+        working-directory: frontend
+        run: npm audit --audit-level=high
+
+  backend:
+    name: Backend vulnerable packages
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '9.0.x'
+      - name: Restore
+        run: dotnet restore backend.Tests/backend.Tests.csproj
+      - name: Scan (fails on high or critical)
+        run: |
+          dotnet list backend.Tests/backend.Tests.csproj package --vulnerable --include-transitive 2>&1 | tee scan.txt
+          if grep -Eq '^\s*>.*\s(High|Critical)\s' scan.txt; then
+            echo 'High or critical vulnerable packages found.' >&2
+            exit 1
+          fi

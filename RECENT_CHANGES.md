@@ -31,6 +31,13 @@ the permanent, complete archive.
 - Added anonymous `/health/ready` (database reachability, fixed body, 503 when down); `/health` stays DB-free.
 - Added `scripts/smoke-deploy.sh` and runbook guidance for post-deploy smoke and uptime monitors.
 
+### 2026-11-03 — Budget limit save binds a request DTO
+
+[PR #342](https://github.com/OL1V3S/ordo/pull/342) · [Issue #331](https://github.com/OL1V3S/ordo/issues/331)
+
+- `POST /api/BudgetLimits` now binds a request type with `category`, `limitAmount` and `monthYear`, and returns a response type. Status codes and error texts are unchanged.
+- The response no longer includes the always-null `user` key. No schema, web or iOS change.
+
 ### 2026-11-02 — Resend and forgot-password emails send in the background
 
 [PR #324](https://github.com/OL1V3S/ordo/pull/324) · [Issue #319](https://github.com/OL1V3S/ordo/issues/319)
@@ -159,10 +166,3 @@ the permanent, complete archive.
 
 - The web Transactions page has one Refresh button that reloads both the expense and deposit lists, replacing "Refresh expenses" and "Refresh deposits". Recovery messages now say "Select Refresh". English and Spanish.
 - Refresh is off while either list loads or a save is running. Each list's recovery checks and write blocks are unchanged. iPhone app, backend, API and schema are unchanged.
-
-### 2026-10-20 — Reports in the iPhone app
-
-[Issue #276](https://github.com/OL1V3S/ordo/issues/276)
-
-- The iPhone app has Reports, opened from Home: the selected month's deposits, spending, confirmed paychecks vs other deposits and deposits minus spending, spending by category, and a six-month trend chart with an exact list, in English and Spanish. You can move between months that have records.
-- Figures come from the server and are shown exactly; the phone does no money maths. Reports re-reads after saves, edits, deletes and paycheck changes. The web's "More spending detail" is not in the app yet. Backend, API, schema, web app and required checks are unchanged.

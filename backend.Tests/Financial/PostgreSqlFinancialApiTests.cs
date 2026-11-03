@@ -37,6 +37,9 @@ public sealed class PostgreSqlFinancialApiTests
         Assert.Equal("Npgsql.EntityFrameworkCore.PostgreSQL", context.Database.ProviderName);
         Assert.True(await context.Users.AnyAsync(candidate => candidate.Id == user.Id));
         Assert.False((await context.Database.GetPendingMigrationsAsync()).Any());
+        Assert.False(
+            context.Database.HasPendingModelChanges(),
+            "EF model has changes without a migration. Add a migration.");
 
         await context.Database.OpenConnectionAsync();
         await using var command = context.Database.GetDbConnection().CreateCommand();
