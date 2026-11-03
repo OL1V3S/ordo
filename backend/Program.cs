@@ -141,12 +141,8 @@ builder.Services
     .AddEntityFrameworkStores<BudgetContext>()
     .AddDefaultTokenProviders();
 
-var jwtKey = builder.Configuration["Jwt:Key"];
-
-if (string.IsNullOrWhiteSpace(jwtKey))
-{
-    throw new InvalidOperationException("JWT key is missing");
-}
+// #338: Jwt:Key signs and validates; optional Jwt:PreviousKey only validates (key rotation).
+var jwtKeys = JwtSigningKeys.Read(builder.Configuration);
 
 builder.Services.AddAuthentication(options =>
 {
@@ -167,11 +163,9 @@ builder.Services.AddAuthentication(options =>
         ValidIssuer = AccessTokenClaims.Issuer,
         ValidateAudience = true,
         ValidAudience = AccessTokenClaims.Audience,
-        ValidateIssuerSigningKey = true,
-        IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(jwtKey)
-        )
+        ValidateIssuerSigningKey = true
     };
+    jwtKeys.ApplyTo(options.TokenValidationParameters);
 });
 
 builder.Services.AddAuthorization();

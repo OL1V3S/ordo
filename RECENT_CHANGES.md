@@ -24,6 +24,13 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-11-03 — JWT signing-key rotation
+
+[Issue #338](https://github.com/OL1V3S/ordo/issues/338) · [PR #PR_NUMBER](https://github.com/OL1V3S/ordo/pull/PR_NUMBER)
+
+- New optional `Jwt:PreviousKey` validates access tokens signed with the old key; the current `Jwt:Key` still signs. Unset, nothing changes and no new production secret is needed to deploy.
+- Runbook gets a planned (three-deploy) and an emergency rotation procedure, plus an optional owner-run end-all-sessions step. No schema, endpoint or client change.
+
 ### 2026-11-03 — Access tokens end with their session
 
 [Issue #337](https://github.com/OL1V3S/ordo/issues/337) · [PR #351](https://github.com/OL1V3S/ordo/pull/351)
@@ -157,10 +164,3 @@ the permanent, complete archive.
 
 - Active, paused and ended recurring expenses now have an Edit action (row menu and detail screen) with the same form as Review and confirm; "Save changes" updates it.
 - A saved amount that cannot be read exactly is left empty and has to be entered. A refused save keeps the form and your changes. English and Spanish; iPhone app only, so backend, API and schema are unchanged.
-
-### 2026-10-22 — Review recurring expense changes in the iPhone app
-
-[PR #289](https://github.com/OL1V3S/ordo/pull/289) · [Issue #288](https://github.com/OL1V3S/ordo/issues/288)
-
-- The Recurring section now lists "Changes to review" (new amount, new dates, or no matching expense lately) with a detail screen. You can use the new details, keep the saved ones, keep an expense active, mark it as ended (with a confirmation) or review a kept change again.
-- Home's "Needs your attention" links to these changes. English and Spanish; iPhone app only, so backend, API and schema are unchanged.

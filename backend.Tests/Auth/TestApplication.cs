@@ -23,6 +23,8 @@ internal sealed class TestApplication : WebApplicationFactory<Program>
 {
     private static readonly object HostStartupLock = new();
 
+    public const string DefaultJwtKey = "test-only-signing-key-that-is-at-least-thirty-two-bytes-long";
+
     public const string GenericResendMessage =
         "If an unconfirmed account exists for that email, a confirmation link has been sent.";
     public const string GenericForgotPasswordMessage =
@@ -40,6 +42,8 @@ internal sealed class TestApplication : WebApplicationFactory<Program>
     private readonly RegistrationLimiterTestSettings? _registrationLimiterSettings;
     private readonly string _environment;
     private readonly Action<IServiceCollection>? _configureServices;
+    private readonly string _jwtKey;
+    private readonly string? _jwtPreviousKey;
 
     private TestApplication(
         EmailFailureMode emailFailureMode,
@@ -53,8 +57,12 @@ internal sealed class TestApplication : WebApplicationFactory<Program>
         ILoggerProvider? loggerProvider,
         RegistrationLimiterTestSettings? registrationLimiterSettings,
         string environment,
-        Action<IServiceCollection>? configureServices)
+        Action<IServiceCollection>? configureServices,
+        string jwtKey,
+        string? jwtPreviousKey)
     {
+        _jwtKey = jwtKey;
+        _jwtPreviousKey = jwtPreviousKey;
         _environment = environment;
         _configureServices = configureServices;
         EmailSender = new FakeEmailService(emailFailureMode);
@@ -84,7 +92,9 @@ internal sealed class TestApplication : WebApplicationFactory<Program>
         ILoggerProvider? loggerProvider = null,
         RegistrationLimiterTestSettings? registrationLimiterSettings = null,
         string environment = "Testing",
-        Action<IServiceCollection>? configureServices = null)
+        Action<IServiceCollection>? configureServices = null,
+        string jwtKey = DefaultJwtKey,
+        string? jwtPreviousKey = null)
     {
         var application = new TestApplication(
             emailFailureMode,
@@ -98,23 +108,33 @@ internal sealed class TestApplication : WebApplicationFactory<Program>
             loggerProvider,
             registrationLimiterSettings,
             environment,
-            configureServices);
+            configureServices,
+            jwtKey,
+            jwtPreviousKey);
         lock (HostStartupLock)
         {
             var originalEnvironment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
             var originalJwtKey = Environment.GetEnvironmentVariable("Jwt__Key");
+            var originalJwtPreviousKey = Environment.GetEnvironmentVariable("Jwt__PreviousKey");
             try
             {
                 Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", environment);
-                Environment.SetEnvironmentVariable(
-                    "Jwt__Key",
-                    "test-only-signing-key-that-is-at-least-thirty-two-bytes-long");
+                Environment.SetEnvironmentVariable("Jwt__Key", jwtKey);
+                // Null removes the variable, so the default path never sees an ambient previous key.
+                Environment.SetEnvironmentVariable("Jwt__PreviousKey", jwtPreviousKey);
                 application.Client = application.CreateClient();
+            }
+            catch
+            {
+                // A host that refuses to start (for example a bad previous key) must not leak the factory.
+                application.Dispose();
+                throw;
             }
             finally
             {
                 Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", originalEnvironment);
                 Environment.SetEnvironmentVariable("Jwt__Key", originalJwtKey);
+                Environment.SetEnvironmentVariable("Jwt__PreviousKey", originalJwtPreviousKey);
             }
         }
         return Task.FromResult(application);
@@ -208,17 +228,22 @@ internal sealed class TestApplication : WebApplicationFactory<Program>
     protected override IHost CreateHost(IHostBuilder builder)
     {
         builder.ConfigureAppConfiguration(configuration =>
-            configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            var settings = new Dictionary<string, string?>
             {
                 ["ConnectionStrings:DefaultConnection"] = "Host=unused-by-tests",
-                ["Jwt:Key"] = "test-only-signing-key-that-is-at-least-thirty-two-bytes-long",
+                ["Jwt:Key"] = _jwtKey,
                 ["EmailSettings:FromName"] = "Ordo Tests",
                 ["EmailSettings:FromEmail"] = "sender@example.com",
                 ["GoogleEmail:ClientId"] = "test-client-id",
                 ["GoogleEmail:ClientSecret"] = "test-client-secret",
                 ["GoogleEmail:RefreshToken"] = "test-refresh-token",
                 ["Frontend:BaseUrl"] = "https://frontend.test"
-            }));
+            };
+            if (_jwtPreviousKey != null)
+                settings["Jwt:PreviousKey"] = _jwtPreviousKey;
+            configuration.AddInMemoryCollection(settings);
+        });
 
         return base.CreateHost(builder);
     }
