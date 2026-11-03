@@ -131,11 +131,13 @@ public sealed class AccessTokenClaimsTests
         Assert.Equal(HttpStatusCode.Unauthorized, await GetProtectedAsync(app, token));
     }
 
+    // Carries a valid stamp binding (#337) so each case fails only for its stated reason.
     private static List<Claim> UserClaims(ApplicationUser user) => new()
     {
         new Claim(ClaimTypes.NameIdentifier, user.Id),
         new Claim(ClaimTypes.Email, user.Email!),
-        new Claim(ClaimTypes.Name, user.UserName!)
+        new Claim(ClaimTypes.Name, user.UserName!),
+        new Claim(AccessTokenClaims.StampHash, AccessTokenClaims.StampHashValue(user.SecurityStamp))
     };
 
     private static string Sign(List<Claim> claims, string? issuer, int expiresInMinutes, string key) =>

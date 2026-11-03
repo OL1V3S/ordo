@@ -254,7 +254,11 @@ credential is indistinguishable from reuse and ends the session. The iOS widget
 (#291) follows this by never holding the credential: the app copies only the
 2-hour access token to a shared Keychain item the widget reads, so the access
 token is no longer memory-only on iOS; the widget never refreshes. Web login
-(`/api/auth/login`) and access-token validation are unchanged.
+(`/api/auth/login`) is unchanged. Access tokens are also checked on every
+request (#337): session tokens carry a Data Protection-protected `sid`, `/login`
+tokens carry a security-stamp hash, and the bearer handler rejects a token whose
+session or stamp is no longer current (see
+[`docs/auth-session-invariants.md`](docs/auth-session-invariants.md)).
 
 Account lockout (#299) is enforced on the three password sign-in endpoints
 (`/api/auth/login`, `/api/auth/device-sessions`, `/api/auth/web-session`), using

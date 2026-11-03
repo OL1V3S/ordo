@@ -155,6 +155,11 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
+    // #337: after signature, iss/aud and lifetime, the token must belong to a live session.
+    options.Events = new JwtBearerEvents
+    {
+        OnTokenValidated = AccessTokenSessionValidation.OnTokenValidatedAsync
+    };
     options.TokenValidationParameters = new TokenValidationParameters
     {
         // #301 phase 2: access tokens must carry the fixed iss/aud from AccessTokenClaims.
@@ -186,6 +191,7 @@ builder.Services.AddSingleton<IClientIpLimiter, ClientIpLimiter>();
 builder.Services.AddSingleton(PasswordTimingEqualizer.Create);
 builder.Services.AddOptions<DeviceSessionOptions>();
 builder.Services.AddScoped<IDeviceSessionService, DeviceSessionService>();
+builder.Services.AddSingleton<AccessTokenSessionIdProtector>();
 builder.Services.AddScoped<WebSessionGuardFilter>();
 
 var app = builder.Build();
