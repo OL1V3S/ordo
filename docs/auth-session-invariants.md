@@ -62,7 +62,7 @@ Both are the same session: one `DeviceSessions` row, owned by
   - header `X-Ordo-Web-Session: 1` is required;
   - `Origin` must equal `Frontend:BaseUrl` by parsed scheme, host and port (no path, query, fragment or userinfo);
   - otherwise `403`, nothing changes, and responses are `no-store`.
-- CORS (`Program.cs`) allows two fixed origins, any header and method, and **no credentials**.
+- CORS (`Program.cs`) allows two fixed origins, any header and method, and **no credentials**. It exposes one response header, `X-Request-Id` (#340), to those origins so the browser can read the support reference. This is a read-only support value, not a credential.
 - The cookie is first-party because the browser calls `/api/auth/web-session/*` at a relative URL. `frontend/vercel.json` rewrites that path to the Render API; the Vite dev server proxies it. All other API calls go straight to Render with the bearer token.
 - Web client behavior (`shared/auth/webSession.js`): refresh on boot, about 5 minutes before the JWT `exp`, and once after an authenticated `401` (then the request is retried once). Refresh is single-flight per tab and serialized across tabs with the Web Lock `ordo-web-session-refresh`. A refresh `401` signs out every tab; a network error or `5xx` never keeps an expired token.
 - Sign-out failure sets a `pending-sign-out` flag that blocks auto-refresh and retries sign-out on next boot.

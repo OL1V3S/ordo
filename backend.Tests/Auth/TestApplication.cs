@@ -566,26 +566,31 @@ internal sealed class TestClock(DateTimeOffset start) : TimeProvider
     public void Advance(TimeSpan by) => _now += by;
 }
 
-internal sealed class CapturingLoggerProvider : ILoggerProvider
+internal sealed class CapturingLoggerProvider : ILoggerProvider, ISupportExternalScope
 {
     private readonly ConcurrentQueue<string> _messages = new();
 
     private readonly ConcurrentQueue<CapturedLog> _entries = new();
 
+    private IExternalScopeProvider? _scopes;
+
     public IReadOnlyCollection<string> Messages => _messages.ToArray();
     public IReadOnlyCollection<CapturedLog> Entries => _entries.ToArray();
 
+    public void SetScopeProvider(IExternalScopeProvider scopeProvider) => _scopes = scopeProvider;
+
     public ILogger CreateLogger(string categoryName) =>
-        new CapturingLogger(categoryName, _messages, _entries);
+        new CapturingLogger(categoryName, _messages, _entries, () => _scopes);
 
     public void Dispose() { }
 
     private sealed class CapturingLogger(
         string category,
         ConcurrentQueue<string> messages,
-        ConcurrentQueue<CapturedLog> entries) : ILogger
+        ConcurrentQueue<CapturedLog> entries,
+        Func<IExternalScopeProvider?> scopes) : ILogger
     {
-        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => scopes()?.Push(state);
 
         public bool IsEnabled(LogLevel logLevel) => true;
 
@@ -604,10 +609,17 @@ internal sealed class CapturingLoggerProvider : ILoggerProvider
             Func<TState, Exception?, string> formatter)
         {
             var text = $"{category}: {formatter(state, exception)} {exception}";
+            var activeScopes = new List<object?>();
+            scopes()?.ForEachScope(static (scope, list) => list.Add(scope), activeScopes);
             messages.Enqueue(text);
-            entries.Enqueue(new CapturedLog(category, logLevel, text, exception is not null));
+            entries.Enqueue(new CapturedLog(category, logLevel, text, exception is not null, activeScopes));
         }
     }
 }
 
-internal sealed record CapturedLog(string Category, LogLevel Level, string Text, bool HadException);
+internal sealed record CapturedLog(
+    string Category,
+    LogLevel Level,
+    string Text,
+    bool HadException,
+    IReadOnlyList<object?>? Scopes = null);

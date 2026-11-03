@@ -31,6 +31,13 @@ the permanent, complete archive.
 - New optional `Jwt:PreviousKey` validates access tokens signed with the old key; the current `Jwt:Key` still signs. Unset, nothing changes and no new production secret is needed to deploy.
 - Runbook gets a planned (three-deploy) and an emergency rotation procedure, plus an optional owner-run end-all-sessions step. No schema, endpoint or client change.
 
+### 2026-11-03 — Request IDs and support references
+
+[Issue #340](https://github.com/OL1V3S/ordo/issues/340) · [PR #353](https://github.com/OL1V3S/ordo/pull/353)
+
+- Every API response now has an `X-Request-Id` (server-generated). Error bodies also carry `requestId`, and each request writes one privacy-safe `request_complete` log line, so a reported failure can be found in the host log. Additive; no status, body shape or auth change.
+- The web app shows the ID after a server error as a reference to share (English and Spanish). iPhone display is a separate slice. Runbook adds release and rollback evidence.
+
 ### 2026-11-03 — Browser smoke tests for core money flows
 
 [Issue #336](https://github.com/OL1V3S/ordo/issues/336) · [PR #350](https://github.com/OL1V3S/ordo/pull/350)
@@ -157,10 +164,3 @@ the permanent, complete archive.
 - Backend: `POST /api/auth/web-session`, `/refresh` and `/sign-out` keep a long-lived session in an HttpOnly, Secure, SameSite=Strict cookie, guarded by an Origin and custom-header check.
 - Web app: signs in through a same-origin Vercel rewrite, refreshes the 2-hour access token before expiry and after a `401`, coordinates tabs with a Web Lock, and signs out on the server and in every tab.
 - Session identity no longer changes when the access token is refreshed. Older 2-hour sessions run out normally; `/api/auth/login` and iOS are unchanged.
-
-### 2026-10-23 — iPhone Home Screen widget: Add expense and Add deposit
-
-[PR #294](https://github.com/OL1V3S/ordo/pull/294) · [Issue #291](https://github.com/OL1V3S/ordo/issues/291)
-
-- New medium Home Screen widget with two buttons that open Add expense and Add deposit in the app. Nothing is saved from the widget. It shows "Open Ordo to see spending" for now; the spending graph is a later slice.
-- The widget reads no account data and shares no credentials. English and Spanish; iPhone app only, so backend, API and schema are unchanged.

@@ -4,6 +4,10 @@
     "body": "Ordo hit an unexpected problem. Reload the page to try again.",
     "reload": "Reload"
   },
+  "requestReference": {
+    "message": "Something went wrong on our side. If it keeps happening, share this reference: <code>{{id}}</code>",
+    "dismiss": "Dismiss"
+  },
   "shell": {
     "skipToMainContent": "Skip to main content",
     "signedIn": "Signed in",

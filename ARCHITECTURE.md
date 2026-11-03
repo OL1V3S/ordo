@@ -297,7 +297,7 @@ device-session endpoints never read the cookie. Every web-session action runs
 behind `WebSessionGuardFilter`, a resource filter that runs before model
 validation and returns `403` unless the `X-Ordo-Web-Session: 1` header is
 present and `Origin` equals `Frontend:BaseUrl` by parsed scheme, host and port.
-CORS is unchanged and has no `AllowCredentials`; responses are `no-store`. Any
+CORS has no `AllowCredentials` and only exposes the `X-Request-Id` header (#340); responses are `no-store`. Any
 refresh failure returns `401 {"code":"session_invalid"}` and clears the cookie.
 The cookie is first-party because the web app calls these endpoints at
 relative URLs: a Vercel rewrite in `frontend/vercel.json` (before the SPA

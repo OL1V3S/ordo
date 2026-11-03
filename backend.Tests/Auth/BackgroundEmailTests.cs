@@ -302,8 +302,8 @@ public sealed class BackgroundEmailTests
     private static async Task<(HttpStatusCode Status, string? ContentType, string Body)> Snapshot(
         HttpResponseMessage response) =>
         (response.StatusCode, response.Content.Headers.ContentType?.ToString(),
-            // The 429 problem body carries a per-request trace ID; nothing else differs.
-            Regex.Replace(await response.Content.ReadAsStringAsync(), "\"traceId\":\"[^\"]*\"", "\"traceId\":\"-\""));
+            // The 429 problem body carries per-request trace and request IDs; nothing else differs.
+            Regex.Replace(await response.Content.ReadAsStringAsync(), "\"(traceId|requestId)\":\"[^\"]*\"", "\"$1\":\"-\""));
 
     private static async Task ConfirmAsync(TestApplication app, string userId)
     {

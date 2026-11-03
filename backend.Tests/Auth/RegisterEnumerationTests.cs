@@ -42,7 +42,7 @@ public sealed class RegisterEnumerationTests
         Assert.Equal(expected.Body, actual.Body);
     }
 
-    // The framework's 429 problem details carry a per-request traceId; every
+    // The framework's 429 problem details carry a per-request traceId and requestId (#340); every
     // other byte must match.
     private static void AssertSameProblemResponse(RawResponse expected, RawResponse actual)
     {
@@ -54,8 +54,8 @@ public sealed class RegisterEnumerationTests
     private static string WithoutTraceId(byte[] body) =>
         System.Text.RegularExpressions.Regex.Replace(
             System.Text.Encoding.UTF8.GetString(body),
-            "\"traceId\":\"[^\"]*\"",
-            "\"traceId\":\"\"");
+            "\"(traceId|requestId)\":\"[^\"]*\"",
+            "\"$1\":\"\"");
 
     private static async Task<int> CountUsersAsync(TestApplication app)
     {
