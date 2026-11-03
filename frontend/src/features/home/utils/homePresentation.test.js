@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatHomeAmount, formatHomeDate, formatHomeProjectionAmount, isHomeAttentionSection, isHomeResponse, isHomeUpcomingSection } from "./homePresentation";
+import { formatHomeAmount, formatHomeDate, formatHomeProjectionAmount, isHomeAttentionSection, isHomeResponse, isHomeUpcomingSection, readHomePaycheckAttention } from "./homePresentation";
 
 const item = {
   kind: "expense",
@@ -223,5 +223,42 @@ describe("Home presentation contract", () => {
       .toBe("$9,999,999,999,999,999.99");
     expect(formatHomeProjectionAmount("1234.56", "es")).toBe("USD\u00a01,234.56");
     expect(formatHomeProjectionAmount("10000000000000000.00", "en-US")).toBeNull();
+  });
+});
+
+describe("readHomePaycheckAttention", () => {
+  const pc = (o = {}) => ({
+    kind: "paycheck_expected", paycheckProfileId: "b375a2a2-3f95-43b0-985e-a9360237b0b7",
+    displayName: "Pay", cadence: "biweekly", anchorDate: "2026-09-23",
+    earliestExpectedDate: "2026-09-22", latestExpectedDate: "2026-09-24",
+    amount: { mode: "fixed", fixedAmount: "1.00", minimumAmount: null, maximumAmount: null }, ...o,
+  });
+  const section = (items) => ({ availability: { state: "available", reasonCode: null }, evaluatedOn: "2026-09-23", items });
+  const D = "2026-09-23";
+
+  it("treats a missing section as absent and empty", () => {
+    expect(readHomePaycheckAttention(undefined, D)).toEqual({ status: "absent", items: [] });
+  });
+  it("accepts valid expected and unrecorded items", () => {
+    const late = pc({ kind: "paycheck_unrecorded", anchorDate: "2026-09-10", earliestExpectedDate: "2026-09-09", latestExpectedDate: "2026-09-11" });
+    expect(readHomePaycheckAttention(section([late, pc()]), D).status).toBe("available");
+  });
+  it("skips unknown kinds", () => {
+    const r = readHomePaycheckAttention(section([pc({ kind: "future_kind", junk: 1 }), pc()]), D);
+    expect(r.status).toBe("available");
+    expect(r.items).toHaveLength(1);
+  });
+  it("returns no items when unavailable", () => {
+    const r = readHomePaycheckAttention({ availability: { state: "unavailable", reasonCode: "source_unavailable" }, evaluatedOn: D, items: null }, D);
+    expect(r).toEqual({ status: "unavailable", items: [] });
+  });
+  it("marks malformed sections and items", () => {
+    expect(readHomePaycheckAttention(null, D).status).toBe("malformed");
+    expect(readHomePaycheckAttention({ ...section([]), evaluatedOn: "2026-09-24" }, D).status).toBe("malformed");
+    expect(readHomePaycheckAttention(section([pc({ displayName: " " })]), D).status).toBe("malformed");
+    expect(readHomePaycheckAttention(section([pc({ paycheckProfileId: "00000000-0000-0000-0000-000000000000" })]), D).status).toBe("malformed");
+    expect(readHomePaycheckAttention(section([pc({ earliestExpectedDate: "2026-09-25" })]), D).status).toBe("malformed");
+    expect(readHomePaycheckAttention(section([pc({ kind: "paycheck_unrecorded" })]), D).status).toBe("malformed");
+    expect(readHomePaycheckAttention(section([pc(), pc(), pc(), pc()]), D).status).toBe("malformed");
   });
 });

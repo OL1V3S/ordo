@@ -68,6 +68,83 @@ beforeEach(() => {
 });
 afterEach(async () => { clearSession(); sessionStorage.clear(); await i18n.changeLanguage("en"); });
 
+const pcItem = (overrides = {}) => ({
+  kind: "paycheck_expected", paycheckProfileId: "b375a2a2-3f95-43b0-985e-a9360237b0b7",
+  displayName: "Primary paycheck", cadence: "biweekly", anchorDate: "2026-09-02",
+  earliestExpectedDate: "2026-09-01", latestExpectedDate: "2026-09-03",
+  amount: { mode: "fixed", fixedAmount: "100.00", minimumAmount: null, maximumAmount: null },
+  ...overrides,
+});
+const pcSection = (items, state = "available") => ({
+  availability: { state, reasonCode: state === "available" ? null : "source_unavailable" },
+  evaluatedOn: "2026-09-01", items: state === "available" ? items : null,
+});
+const withPaycheck = (paycheckAttention, attention = availableAttention()) =>
+  ({ ...home([], availableUpcoming(), attention), paycheckAttention });
+
+describe("paycheck attention on Home", () => {
+  it("shows paycheck rows first, then existing rows, linking to Paychecks", async () => {
+    const attention = availableAttention([], [
+      { kind: "budget_attention", category: "Groceries", state: "over_limit", spentAmount: "110.00", limitAmount: "100.00" },
+    ]);
+    homeApi.getHome.mockResolvedValue(response(withPaycheck(pcSection([
+      pcItem({ kind: "paycheck_unrecorded", displayName: "Old pay", anchorDate: "2026-08-20", earliestExpectedDate: "2026-08-19", latestExpectedDate: "2026-08-21" }),
+      pcItem(),
+    ]), attention)));
+    renderPage();
+    const list = await screen.findByRole("list", { name: "Items needing attention" });
+    const rows = within(list).getAllByRole("listitem");
+    expect(rows).toHaveLength(3);
+    expect(rows[0]).toHaveTextContent("Old pay not recorded (expected");
+    expect(rows[1]).toHaveTextContent("Primary paycheck expected");
+    expect(rows[2]).toHaveTextContent("Groceries");
+    expect(within(rows[0]).getByRole("link", { name: "Open paychecks for Old pay" })).toHaveAttribute("href", "/paychecks");
+  });
+
+  it("renders up to three paycheck rows", async () => {
+    const many = ["a", "b", "c"].map((n) => pcItem({ displayName: `Pay ${n}` }));
+    homeApi.getHome.mockResolvedValue(response(withPaycheck(pcSection(many))));
+    renderPage();
+    const list = await screen.findByRole("list", { name: "Items needing attention" });
+    expect(within(list).getAllByRole("listitem")).toHaveLength(3);
+  });
+
+  it("hides the card when paychecks are absent (older server) and all families are empty", async () => {
+    homeApi.getHome.mockResolvedValue(response(home()));
+    renderPage();
+    await screen.findByRole("heading", { name: "Recent transactions" });
+    expect(screen.queryByRole("heading", { name: "Needs your attention" })).not.toBeInTheDocument();
+  });
+
+  it("hides the card when the paycheck section is available and empty", async () => {
+    homeApi.getHome.mockResolvedValue(response(withPaycheck(pcSection([]))));
+    renderPage();
+    await screen.findByRole("heading", { name: "Recent transactions" });
+    expect(screen.queryByRole("heading", { name: "Needs your attention" })).not.toBeInTheDocument();
+  });
+
+  it("keeps the card with a partial note when only paycheck attention is unavailable", async () => {
+    homeApi.getHome.mockResolvedValue(response(withPaycheck(pcSection(null, "unavailable"))));
+    renderPage();
+    expect(await screen.findByText("We couldn’t check some items. The rest are shown.")).toBeInTheDocument();
+  });
+
+  it("treats a malformed paycheck section as unavailable", async () => {
+    homeApi.getHome.mockResolvedValue(response(withPaycheck({ ...pcSection([pcItem()]), evaluatedOn: "bad" })));
+    renderPage();
+    expect(await screen.findByText("We couldn’t check some items. The rest are shown.")).toBeInTheDocument();
+  });
+
+  it("shows paycheck rows alone when the existing attention section is unavailable", async () => {
+    const down = { state: "unavailable", reasonCode: "source_unavailable" };
+    const attention = { ...availableAttention(), availability: down, kindsEvaluated: [], items: null, budgetItems: null,
+      familyAvailability: { commitment_change_review: down, budget_attention: down } };
+    homeApi.getHome.mockResolvedValue(response(withPaycheck(pcSection([pcItem()]), attention)));
+    renderPage();
+    expect(await screen.findByText(/Primary paycheck expected/)).toBeInTheDocument();
+  });
+});
+
 describe("capture-first Home", () => {
   it("uses only the Home endpoint, preserves server row order, and formats exact mixed activity", async () => {
     renderPage();
@@ -77,12 +154,10 @@ describe("capture-first Home", () => {
     expect(screen.getByText("+$12.34")).toBeInTheDocument();
     expect(screen.getByText("−$9,999,999,999,999,999.99")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Upcoming paychecks" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Needs your attention" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Needs your attention" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Nothing needs your attention right now.")).not.toBeInTheDocument();
     expect(screen.getByText("No upcoming paychecks to show.")).toBeInTheDocument();
     const headingOrder = screen.getAllByRole("heading").map((heading) => heading.textContent);
-    const captureRegion = screen.getByRole("region", { name: "Add a transaction" });
-    expect(captureRegion.compareDocumentPosition(screen.getByRole("region", { name: "Needs your attention" })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(headingOrder.indexOf("Needs your attention")).toBeLessThan(headingOrder.indexOf("Recent transactions"));
     expect(headingOrder.indexOf("Recent transactions")).toBeLessThan(headingOrder.indexOf("Upcoming paychecks"));
     expect(paychecksApi.getPaychecks).not.toHaveBeenCalled();
   });
