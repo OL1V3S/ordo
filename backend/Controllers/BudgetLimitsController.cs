@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using BudgetPlanner.Contracts.BudgetLimits;
 using BudgetPlanner.Data;
 using BudgetPlanner.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -58,7 +59,7 @@ public class BudgetLimitsController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<BudgetLimit>> UpsertBudgetLimit(BudgetLimit limit)
+    public async Task<ActionResult<BudgetLimitResponse>> UpsertBudgetLimit(UpsertBudgetLimitRequest limit)
     {
         var userId = GetUserId();
 
@@ -77,10 +78,8 @@ public class BudgetLimitsController : ControllerBase
             return BadRequest("MonthYear is required.");
         }
 
-        limit.UserId = userId;
-
-        // 🔥 FIX: normalize + force UTC
-        limit.MonthYear = DateTime.SpecifyKind(
+        // Normalize to the first day of the month, UTC.
+        var monthYear = DateTime.SpecifyKind(
             new DateTime(limit.MonthYear.Year, limit.MonthYear.Month, 1),
             DateTimeKind.Utc
         );
@@ -89,20 +88,27 @@ public class BudgetLimitsController : ControllerBase
             .FirstOrDefaultAsync(b =>
                 b.UserId == userId &&
                 b.Category == limit.Category &&
-                b.MonthYear.Year == limit.MonthYear.Year &&
-                b.MonthYear.Month == limit.MonthYear.Month);
+                b.MonthYear.Year == monthYear.Year &&
+                b.MonthYear.Month == monthYear.Month);
 
         if (existing != null)
         {
             existing.LimitAmount = limit.LimitAmount;
             await _context.SaveChangesAsync();
-            return Ok(existing);
+            return Ok(BudgetLimitResponse.From(existing));
         }
 
-        _context.BudgetLimits.Add(limit);
+        var created = new BudgetLimit
+        {
+            Category = limit.Category,
+            LimitAmount = limit.LimitAmount,
+            MonthYear = monthYear,
+            UserId = userId
+        };
+        _context.BudgetLimits.Add(created);
         await _context.SaveChangesAsync();
 
-        return Ok(limit);
+        return Ok(BudgetLimitResponse.From(created));
     }
 
     [HttpDelete("{id}")]

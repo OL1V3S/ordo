@@ -78,6 +78,130 @@ public sealed class BudgetLimitsApiTests
         Assert.True(limit.TryGetProperty("monthYear", out _));
     }
 
+    private static StringContent Json(string json) =>
+        new(json, System.Text.Encoding.UTF8, "application/json");
+
+    [Theory]
+    [InlineData("{\"limitAmount\":1,\"monthYear\":\"2026-08-01\"}")]
+    [InlineData("{\"category\":\"\",\"limitAmount\":1,\"monthYear\":\"2026-08-01\"}")]
+    [InlineData("{\"category\":\"  \",\"limitAmount\":1,\"monthYear\":\"2026-08-01\"}")]
+    public async Task Missing_or_blank_category_returns_category_required(string json)
+    {
+        await using var app = new FinancialApiTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("owner@example.com");
+
+        var response = await owner.Client.PostAsync("/api/budgetlimits", Json(json));
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal("Category is required.", await response.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public async Task Null_category_returns_automatic_validation_error()
+    {
+        await using var app = new FinancialApiTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("owner@example.com");
+
+        var response = await owner.Client.PostAsync(
+            "/api/budgetlimits",
+            Json("{\"category\":null,\"limitAmount\":1,\"monthYear\":\"2026-08-01\"}"));
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal("One or more validation errors occurred.", body.GetProperty("title").GetString());
+        Assert.Equal(
+            "The Category field is required.",
+            body.GetProperty("errors").GetProperty("Category")[0].GetString());
+    }
+
+    [Theory]
+    [InlineData("{\"category\":\"f\",\"limitAmount\":\"x\",\"monthYear\":\"2026-08-01\"}", "$.limitAmount")]
+    [InlineData("{\"category\":\"f\",\"limitAmount\":1,\"monthYear\":\"x\"}", "$.monthYear")]
+    public async Task Wrong_type_fields_return_automatic_validation_error(string json, string errorKey)
+    {
+        await using var app = new FinancialApiTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("owner@example.com");
+
+        var response = await owner.Client.PostAsync("/api/budgetlimits", Json(json));
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var errors = body.GetProperty("errors");
+        Assert.True(errors.TryGetProperty(errorKey, out _));
+        Assert.True(errors.TryGetProperty("limit", out _));
+    }
+
+    [Fact]
+    public async Task Extra_body_fields_are_ignored_and_create_one_caller_owned_row()
+    {
+        await using var app = new FinancialApiTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("owner@example.com");
+        using var other = await app.CreateAuthenticatedUserAsync("other@example.com");
+        var otherLimit = await app.SeedBudgetLimitAsync(other.Id, "food", 50m);
+        var usersBefore = await app.CountUsersAsync();
+
+        var response = await owner.Client.PostAsync(
+            "/api/budgetlimits",
+            Json($$$"""
+            {"category":"food","limitAmount":10,"monthYear":"2026-08-01",
+             "id":{{{otherLimit.Id}}},"userId":"{{{other.Id}}}",
+             "user":{"id":"{{{other.Id}}}","email":"injected@example.com","userName":"injected"}}
+            """));
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(owner.Id, body.GetProperty("userId").GetString());
+        Assert.NotEqual(otherLimit.Id, body.GetProperty("id").GetInt32());
+        Assert.Single(await app.FindBudgetLimitsAsync(owner.Id, "food"));
+        var untouched = Assert.Single(await app.FindBudgetLimitsAsync(other.Id, "food"));
+        Assert.Equal(otherLimit.Id, untouched.Id);
+        Assert.Equal(50m, untouched.LimitAmount);
+        Assert.Equal(usersBefore, await app.CountUsersAsync());
+    }
+
+    [Fact]
+    public async Task Extra_body_fields_on_existing_row_update_only_limit_amount()
+    {
+        await using var app = new FinancialApiTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("owner@example.com");
+        using var other = await app.CreateAuthenticatedUserAsync("other@example.com");
+        var existing = await app.SeedBudgetLimitAsync(owner.Id, "food", 100m);
+        var usersBefore = await app.CountUsersAsync();
+
+        var response = await owner.Client.PostAsync(
+            "/api/budgetlimits",
+            Json($$$"""
+            {"category":"food","limitAmount":20,"monthYear":"2026-08-01",
+             "userId":"{{{other.Id}}}","user":{"id":"{{{other.Id}}}","email":"injected@example.com"}}
+            """));
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var persisted = Assert.Single(await app.FindBudgetLimitsAsync(owner.Id, "food"));
+        Assert.Equal(existing.Id, persisted.Id);
+        Assert.Equal(20m, persisted.LimitAmount);
+        Assert.Equal(owner.Id, persisted.UserId);
+        Assert.Equal(usersBefore, await app.CountUsersAsync());
+    }
+
+    [Fact]
+    public async Task Post_response_has_exactly_the_expected_keys()
+    {
+        await using var app = new FinancialApiTestApplication();
+        using var owner = await app.CreateAuthenticatedUserAsync("owner@example.com");
+
+        var response = await owner.Client.PostAsJsonAsync("/api/budgetlimits", new
+        {
+            category = "food",
+            limitAmount = 5m,
+            monthYear = "2026-08-01"
+        });
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.Equal(
+            new[] { "category", "id", "limitAmount", "monthYear", "userId" },
+            body.EnumerateObject().Select(p => p.Name).OrderBy(n => n, StringComparer.Ordinal));
+    }
+
     [Fact]
     public async Task Create_assigns_owner_and_normalizes_month_to_first_day_utc()
     {
@@ -98,7 +222,7 @@ public sealed class BudgetLimitsApiTests
         Assert.Equal(owner.Id, body.GetProperty("userId").GetString());
         Assert.Equal("food", body.GetProperty("category").GetString());
         Assert.Equal(125.50m, body.GetProperty("limitAmount").GetDecimal());
-        Assert.Equal(JsonValueKind.Null, body.GetProperty("user").ValueKind);
+        Assert.False(body.TryGetProperty("user", out _));
 
         var limits = await app.FindBudgetLimitsAsync(owner.Id, "food");
         var persisted = Assert.Single(limits);
