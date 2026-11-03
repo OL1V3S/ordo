@@ -76,6 +76,7 @@ struct HomePresenter: Sendable {
     /// Paycheck rows first (cap 3), then the existing rows.
     static func allRows(_ attention: SectionState<AttentionContent>, _ paycheck: PaycheckAttentionState) -> [AttentionRow] {
         var rows: [AttentionRow] = []
+        if case .malformed = attention { return [] }
         if case .available(let items) = paycheck { rows += items.prefix(3).map(AttentionRow.paycheck) }
         if case .available(let content) = attention { rows += attentionRows(content) }
         return rows
@@ -96,7 +97,7 @@ struct HomePresenter: Sendable {
         let hasPaychecks: Bool
         if case .available(let items) = paycheck { hasPaychecks = !items.isEmpty } else { hasPaychecks = false }
         switch attention {
-        case .malformed: return hasPaychecks ? .partial : .malformed
+        case .malformed: return .malformed
         case .unavailable: return hasPaychecks ? .partial : .unavailable
         case .available(let content):
             if content.isPartial { return .partial }

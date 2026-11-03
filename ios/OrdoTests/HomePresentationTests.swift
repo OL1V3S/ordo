@@ -113,8 +113,10 @@ import Testing
         #expect(HomePresenter.attentionNotice(.unavailable, .unavailable) == .unavailable)
     }
 
-    @Test func malformedWithPaychecksShowsPartial() throws {
-        #expect(HomePresenter.attentionNotice(.malformed, try paychecks()) == .partial)
+    @Test func malformedShowsFullMessageAndNoPaycheckRows() throws {
+        let state = try paychecks()
+        #expect(HomePresenter.attentionNotice(.malformed, state) == .malformed)
+        #expect(HomePresenter.allRows(.malformed, state).isEmpty)
         #expect(HomePresenter.attentionNotice(.malformed, .absent) == .malformed)
     }
 }
