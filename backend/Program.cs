@@ -21,6 +21,8 @@ using BudgetPlanner.ActivityTimeline;
 using BudgetPlanner.Home;
 using BudgetPlanner.CreateRequests;
 using BudgetPlanner.Diagnostics;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -43,7 +45,12 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddControllers();
 builder.Services.AddExceptionHandler<UnhandledExceptionHandler>();
-builder.Services.AddHealthChecks();
+builder.Services.AddHealthChecks()
+    .AddCheck<DatabaseReadinessCheck>(
+        DatabaseReadinessCheck.Name,
+        failureStatus: HealthStatus.Unhealthy,
+        tags: [DatabaseReadinessCheck.ReadyTag],
+        timeout: DatabaseReadinessCheck.DefaultTimeout);
 builder.Services.AddSingleton(new PdfExtractionOptions());
 builder.Services.AddSingleton<IPdfTextExtractor, ContainedPdfTextExtractor>();
 builder.Services.AddSingleton<ISunflowerStatementParser, SunflowerStatementParser>();
@@ -219,7 +226,21 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-app.MapHealthChecks("/health").AllowAnonymous();
+// Liveness: runs no checks, never touches the database.
+app.MapHealthChecks("/health", new HealthCheckOptions { Predicate = _ => false }).AllowAnonymous();
+// Readiness: database reachability. Fixed body, Degraded and Unhealthy both 503.
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains(DatabaseReadinessCheck.ReadyTag),
+    ResultStatusCodes =
+    {
+        [HealthStatus.Healthy] = StatusCodes.Status200OK,
+        [HealthStatus.Degraded] = StatusCodes.Status503ServiceUnavailable,
+        [HealthStatus.Unhealthy] = StatusCodes.Status503ServiceUnavailable,
+    },
+    AllowCachingResponses = false,
+    ResponseWriter = ReadinessResponseWriter.WriteAsync,
+}).AllowAnonymous();
 
 app.Run();
 

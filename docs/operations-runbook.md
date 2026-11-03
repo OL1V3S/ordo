@@ -171,10 +171,26 @@ connection strings, emails, user IDs, amounts, dates, or statement content.
    time range, not contents. Tell the owner.
 8. Open a separately scoped issue for follow-up fixes or forward migrations.
 
+## Health, smoke and uptime alerts
+
+- `GET /health` is liveness: no checks, no database. Keep Render's health check
+  path on `/health` so a database blip does not restart the app.
+- `GET /health/ready` is readiness: one `SELECT 1` with a 3 s timeout. It returns
+  `200` or `503` with a fixed body (`status`, `checks.database`) and
+  `Cache-Control: no-store`. It shows up/down only.
+- Run `scripts/smoke-deploy.sh --api <url> --web <url>` after every deploy,
+  rollback or restore. It is GET-only, needs no credentials, and prints URLs and
+  status codes only. Exit 0 pass, 1 failed check, 2 usage error.
+- Owner-created monitors (for example UptimeRobot or Better Stack free tier):
+  - `/health/ready` every 5 minutes; alert after 2 consecutive failures.
+  - The web origin on the same schedule.
+  - Each tick wakes Neon, so do not poll faster than 5 minutes.
+  - Creating monitors is an owner action; nothing here creates them.
+
 ## Not covered
 
-- A basic anonymous `/health` liveness endpoint is done (PR #304). Readiness and
-  database checks, alerts, telemetry, automated smoke, and deployment workflows
-  remain separate ROADMAP E2/E1/E4 work.
+- Anonymous `/health` (liveness) and `/health/ready` (readiness) are done.
+  Telemetry, deployment workflows and authenticated smoke remain separate
+  ROADMAP E1/E4 work. Monitors must be created by the owner.
 - Restore drills have not been run. A drill needs its own owner authorization
   and issue.

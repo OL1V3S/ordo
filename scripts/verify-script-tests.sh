@@ -6,6 +6,23 @@ verify="$repo_root/scripts/verify.sh"
 
 bash -n "$verify"
 bash -n "$repo_root/scripts/verify-container.sh"
+bash -n "$repo_root/scripts/smoke-deploy.sh"
+
+smoke="$repo_root/scripts/smoke-deploy.sh"
+"$smoke" --help >/dev/null
+for bad in "" "--api https://a.example" "--api http://a.example --web https://b.example" \
+  "--api https://u:p@a.example --web https://b.example" "--api https://a.example --web https://b.example --bogus" \
+  "--api https://a.example --web https://b.example --timeout 0"; do
+  set +e
+  # shellcheck disable=SC2086
+  env -u SMOKE_API_URL -u SMOKE_WEB_URL "$smoke" $bad >/dev/null 2>&1
+  status=$?
+  set -e
+  if [[ "$status" -ne 2 ]]; then
+    echo "Smoke script must exit 2 for usage error: $bad" >&2
+    exit 1
+  fi
+done
 
 default_output="$($verify --dry-run)"
 grep -Fq 'Frontend verification' <<<"$default_output"
