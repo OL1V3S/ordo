@@ -74,6 +74,27 @@ struct UpcomingContent: Equatable, Sendable {
     let items: [UpcomingItem]
 }
 
+struct PaycheckAttentionItem: Equatable, Sendable, Identifiable {
+    enum Kind: String, Sendable { case expected = "paycheck_expected", unrecorded = "paycheck_unrecorded" }
+    let kind: Kind
+    let profileId: String
+    let displayName: String
+    let cadence: UpcomingItem.Cadence
+    let anchorDate: CalendarDate
+    let earliestExpectedDate: CalendarDate
+    let latestExpectedDate: CalendarDate
+    let amount: UpcomingItem.Amount
+    var id: String { "\(kind.rawValue)-\(profileId)" }
+}
+
+/// The optional top-level `paycheckAttention` family. A missing section (older server) is `absent`
+/// and counts as empty; unavailable and malformed sections both read as `unavailable`.
+enum PaycheckAttentionState: Equatable, Sendable {
+    case absent
+    case available([PaycheckAttentionItem])
+    case unavailable
+}
+
 struct HomeSnapshot: Equatable, Sendable {
     let currencyCode: String
     let activityThroughDate: CalendarDate
@@ -81,4 +102,5 @@ struct HomeSnapshot: Equatable, Sendable {
     let recentActivity: RecentActivityState
     let attention: SectionState<AttentionContent>
     let upcoming: SectionState<UpcomingContent>
+    var paycheckAttention: PaycheckAttentionState = .absent
 }

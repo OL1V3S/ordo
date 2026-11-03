@@ -453,21 +453,25 @@ public sealed class HomeApiTests
         var body = await ReadAsync(owner.Client);
         var activity = body.GetProperty("recentActivity").GetProperty("items");
         Assert.Empty(activity.EnumerateArray());
-        var items = body.GetProperty("upcoming").GetProperty("items").EnumerateArray().ToArray();
+
+        // In-window profiles are shown as paycheck attention and removed from Coming Up.
+        var upcomingItems = body.GetProperty("upcoming").GetProperty("items").EnumerateArray().ToArray();
+        Assert.Equal([third.Id], upcomingItems.Select(value => value.GetProperty("paycheckProfileId").GetGuid()));
+        var items = body.GetProperty("paycheckAttention").GetProperty("items").EnumerateArray().ToArray();
 
         Assert.Equal(2, items.Length);
-        Assert.Equal([overlapping.Id, today.Id],
+        Assert.Equal([today.Id, overlapping.Id],
             items.Select(value => value.GetProperty("paycheckProfileId").GetGuid()));
-        Assert.Equal("2026-09-22", items[0].GetProperty("earliestExpectedDate").GetString());
-        Assert.Equal("2026-09-25", items[0].GetProperty("latestExpectedDate").GetString());
-        var range = items[0].GetProperty("amount");
+        Assert.All(items, value => Assert.Equal("paycheck_expected", value.GetProperty("kind").GetString()));
+        Assert.Equal("2026-09-22", items[1].GetProperty("earliestExpectedDate").GetString());
+        Assert.Equal("2026-09-25", items[1].GetProperty("latestExpectedDate").GetString());
+        var range = items[1].GetProperty("amount");
         Assert.Equal("range", range.GetProperty("mode").GetString());
         Assert.Equal(JsonValueKind.Null, range.GetProperty("fixedAmount").ValueKind);
         Assert.Equal("100.25", range.GetProperty("minimumAmount").GetString());
         Assert.Equal("200.75", range.GetProperty("maximumAmount").GetString());
-        var fixedAmount = items[1].GetProperty("amount");
+        var fixedAmount = items[0].GetProperty("amount");
         Assert.Equal("9999999999999999.99", fixedAmount.GetProperty("fixedAmount").GetString());
-        Assert.DoesNotContain("Third omitted", body.GetRawText(), StringComparison.Ordinal);
         Assert.DoesNotContain("Outside horizon", body.GetRawText(), StringComparison.Ordinal);
         Assert.DoesNotContain("Paused", body.GetRawText(), StringComparison.Ordinal);
     }
@@ -607,6 +611,202 @@ public sealed class HomeApiTests
             defectiveService.GetAsync("owner", new(2026, 9, 22), default));
     }
 
+    private static PaycheckProfile Created(PaycheckProfile profile, DateTime createdAt)
+    {
+        profile.CreatedAt = createdAt;
+        profile.UpdatedAt = createdAt;
+        return profile;
+    }
+
+    private static readonly DateTime LongAgo = new(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+    private static readonly DateTime Recent = new(2026, 9, 10, 0, 0, 0, DateTimeKind.Utc);
+
+    private static async Task SeedAsync(FinancialApiTestApplicationBase app, params PaycheckProfile[] profiles)
+    {
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<BudgetContext>();
+        db.PaycheckProfiles.AddRange(profiles);
+        await db.SaveChangesAsync();
+    }
+
+    private static JsonElement[] AttentionItems(JsonElement body) =>
+        body.GetProperty("paycheckAttention").GetProperty("items").EnumerateArray().ToArray();
+
+    [Fact]
+    public async Task Paycheck_attention_flags_expected_and_unrecorded_but_not_future_windows()
+    {
+        await using var app = new HomeTestApplication(Now);
+        using var owner = await app.CreateAuthenticatedUserAsync("home-pa-basic@example.com");
+        var expected = Created(RangeProfile(owner.Id, "In window", 24, 2, 1, 10m, 20m), Recent);
+        var missed = Created(Profile(owner.Id, "Missed", 20), Recent);
+        var future = Created(Profile(owner.Id, "Future", 28), Recent);
+        await SeedAsync(app, expected, missed, future);
+
+        var body = await ReadAsync(owner.Client);
+
+        AssertAvailable(body.GetProperty("paycheckAttention"));
+        Assert.Equal("2026-09-23", body.GetProperty("paycheckAttention").GetProperty("evaluatedOn").GetString());
+        var items = AttentionItems(body);
+        Assert.Equal(["paycheck_unrecorded", "paycheck_expected"], items.Select(v => v.GetProperty("kind").GetString()));
+        Assert.Equal([missed.Id, expected.Id], items.Select(v => v.GetProperty("paycheckProfileId").GetGuid()));
+        Assert.Equal("2026-09-20", items[0].GetProperty("anchorDate").GetString());
+        Assert.Equal("2026-09-20", items[0].GetProperty("latestExpectedDate").GetString());
+        Assert.Equal("2026-09-22", items[1].GetProperty("earliestExpectedDate").GetString());
+        Assert.Equal("2026-09-25", items[1].GetProperty("latestExpectedDate").GetString());
+        // The expected profile is de-duplicated out of Coming Up; the future one stays.
+        var upcoming = body.GetProperty("upcoming").GetProperty("items").EnumerateArray().ToArray();
+        Assert.Equal([future.Id], upcoming.Select(v => v.GetProperty("paycheckProfileId").GetGuid()));
+    }
+
+    [Fact]
+    public async Task Paycheck_attention_unrecorded_look_back_is_thirty_days_after_window_end()
+    {
+        await using var app = new HomeTestApplication(Now);
+        using var owner = await app.CreateAuthenticatedUserAsync("home-pa-bound@example.com");
+        var inside = Created(Profile(owner.Id, "Thirty days", 24), LongAgo);   // Aug 24 ended 30 days ago
+        var outside = Created(Profile(owner.Id, "Thirty one days", 23), LongAgo); // Aug 23 ended 31 days ago
+        await SeedAsync(app, inside, outside);
+
+        var body = await ReadAsync(owner.Client);
+
+        var unrecorded = AttentionItems(body).Where(v => v.GetProperty("kind").GetString() == "paycheck_unrecorded").ToArray();
+        var item = Assert.Single(unrecorded);
+        Assert.Equal(inside.Id, item.GetProperty("paycheckProfileId").GetGuid());
+        Assert.Equal("2026-08-24", item.GetProperty("anchorDate").GetString());
+    }
+
+    [Fact]
+    public async Task Paycheck_attention_ignores_slots_before_profile_creation_but_keeps_creation_day()
+    {
+        await using var app = new HomeTestApplication(Now);
+        using var owner = await app.CreateAuthenticatedUserAsync("home-pa-created@example.com");
+        var after = Created(Profile(owner.Id, "Created after", 20), new DateTime(2026, 9, 21, 8, 0, 0, DateTimeKind.Utc));
+        var sameDay = Created(Profile(owner.Id, "Created on anchor", 21), new DateTime(2026, 9, 21, 23, 0, 0, DateTimeKind.Utc));
+        await SeedAsync(app, after, sameDay);
+
+        var body = await ReadAsync(owner.Client);
+
+        var item = Assert.Single(AttentionItems(body));
+        Assert.Equal(sameDay.Id, item.GetProperty("paycheckProfileId").GetGuid());
+        Assert.Equal("paycheck_unrecorded", item.GetProperty("kind").GetString());
+    }
+
+    [Theory]
+    [InlineData(PaycheckOccurrenceKind.RecordedReceipt)]
+    [InlineData(PaycheckOccurrenceKind.ConfirmationEvidence)]
+    public async Task Paycheck_attention_is_cleared_only_by_a_linked_inflow(PaycheckOccurrenceKind kind)
+    {
+        await using var app = new HomeTestApplication(Now);
+        using var owner = await app.CreateAuthenticatedUserAsync($"home-pa-linked-{kind}@example.com");
+        var linked = Created(Profile(owner.Id, "Linked", 20), Recent);
+        var unlinked = Created(Profile(owner.Id, "Unlinked", 21), Recent);
+        var receipt = await app.SeedInflowAsync(owner.Id, "Linked pay", 1000m, new(2026, 9, 20));
+        await app.SeedInflowAsync(owner.Id, "Loose pay", 1000m, new(2026, 9, 21));
+        await SeedAsync(app, linked, unlinked);
+        using (var scope = app.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<BudgetContext>();
+            db.PaycheckOccurrences.Add(Link(owner.Id, linked.Id, receipt, kind));
+            await db.SaveChangesAsync();
+        }
+
+        var body = await ReadAsync(owner.Client, "/api/home?activityThroughDate=2026-09-23");
+
+        var item = Assert.Single(AttentionItems(body));
+        Assert.Equal(unlinked.Id, item.GetProperty("paycheckProfileId").GetGuid());
+    }
+
+    [Fact]
+    public async Task Paycheck_attention_excludes_inactive_and_other_owner_profiles_and_writes_nothing()
+    {
+        await using var app = new HomeTestApplication(Now);
+        using var owner = await app.CreateAuthenticatedUserAsync("home-pa-owner@example.com");
+        using var other = await app.CreateAuthenticatedUserAsync("home-pa-other@example.com");
+        await SeedAsync(app,
+            Created(Profile(owner.Id, "Paused", 20, PaycheckLifecycle.Paused), LongAgo),
+            Created(Profile(other.Id, "Foreign", 20), LongAgo),
+            Created(Profile(owner.Id, "Mine", 21), LongAgo));
+        var before = await RecordStateAsync(app);
+
+        var body = await ReadAsync(owner.Client);
+
+        var item = Assert.Single(AttentionItems(body));
+        Assert.Equal("Mine", item.GetProperty("displayName").GetString());
+        Assert.DoesNotContain("Foreign", body.GetRawText(), StringComparison.Ordinal);
+        Assert.Equal(before, await RecordStateAsync(app));
+    }
+
+    [Fact]
+    public async Task Paycheck_attention_orders_unrecorded_oldest_first_then_expected_and_caps_at_three()
+    {
+        await using var app = new HomeTestApplication(Now);
+        using var owner = await app.CreateAuthenticatedUserAsync("home-pa-order@example.com");
+        var newer = Created(Profile(owner.Id, "Newer miss", 21), Recent);
+        var older = Created(Profile(owner.Id, "Older miss", 18), Recent);
+        var today = Created(Profile(owner.Id, "Today", 23), Recent);
+        var later = Created(RangeProfile(owner.Id, "Later", 25, 3, 0, 1m, 2m), Recent);
+        await SeedAsync(app, newer, older, today, later);
+
+        var body = await ReadAsync(owner.Client);
+
+        Assert.Equal([older.Id, newer.Id, today.Id],
+            AttentionItems(body).Select(v => v.GetProperty("paycheckProfileId").GetGuid()));
+        // Only the displayed expected item is removed from Coming Up; "Later" is not displayed.
+        var upcoming = body.GetProperty("upcoming").GetProperty("items").EnumerateArray()
+            .Select(v => v.GetProperty("paycheckProfileId").GetGuid()).ToArray();
+        Assert.Equal([later.Id], upcoming);
+    }
+
+    [Fact]
+    public async Task Coming_up_still_shows_two_after_removing_an_expected_occurrence()
+    {
+        await using var app = new HomeTestApplication(Now);
+        using var owner = await app.CreateAuthenticatedUserAsync("home-pa-takes2@example.com");
+        var a = Created(Profile(owner.Id, "A", 23), Recent);
+        var b = Created(Profile(owner.Id, "B", 24), Recent);
+        var c = Created(Profile(owner.Id, "C", 25), Recent);
+        var d = Created(Profile(owner.Id, "D", 26), Recent);
+        await SeedAsync(app, a, b, c, d);
+
+        var body = await ReadAsync(owner.Client);
+
+        Assert.Equal([b.Id, c.Id], body.GetProperty("upcoming").GetProperty("items").EnumerateArray()
+            .Select(v => v.GetProperty("paycheckProfileId").GetGuid()));
+    }
+
+    [Fact]
+    public async Task Paycheck_attention_unavailable_when_shared_read_fails_but_home_survives_otherwise()
+    {
+        await using var app = new HomeTestApplication(
+            Now, upcoming: new ThrowingUpcomingReader(new SyntheticDbException()));
+        using var owner = await app.CreateAuthenticatedUserAsync("home-pa-fail@example.com");
+
+        var body = await ReadAsync(owner.Client);
+
+        var section = body.GetProperty("paycheckAttention");
+        AssertUnavailable(section);
+        Assert.Equal(JsonValueKind.Null, section.GetProperty("items").ValueKind);
+        AssertAvailable(body.GetProperty("attention"));
+    }
+
+    [Fact]
+    public async Task Only_paycheck_attention_available_still_returns_200()
+    {
+        await using var app = new HomeTestApplication(
+            Now,
+            new ThrowingActivityReader(new SyntheticDbException()),
+            new UpcomingUnavailableAttentionAvailableReader(),
+            new ThrowingAttentionReader(new SyntheticDbException()));
+        using var owner = await app.CreateAuthenticatedUserAsync("home-pa-only@example.com");
+
+        using var response = await owner.Client.GetAsync(Route);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        AssertAvailable(body.GetProperty("paycheckAttention"));
+        AssertUnavailable(body.GetProperty("upcoming"));
+    }
+
     private static async Task<JsonElement> ReadAsync(HttpClient client, string route = Route)
     {
         using var response = await client.GetAsync(route);
@@ -733,7 +933,7 @@ public sealed class HomeApiTests
 internal sealed class HomeTestApplication(
     DateTimeOffset now,
     IHomeActivityReader? activity = null,
-    IHomeUpcomingReader? upcoming = null,
+    IHomePaycheckReader? upcoming = null,
     IHomeAttentionReader? attention = null,
     ICommitmentChangeReadService? commitmentChanges = null) : FinancialApiTestApplication
 {
@@ -748,7 +948,7 @@ internal sealed class HomeTestApplication(
         }
         if (upcoming is not null)
         {
-            services.RemoveAll<IHomeUpcomingReader>();
+            services.RemoveAll<IHomePaycheckReader>();
             services.AddSingleton(upcoming);
         }
         if (attention is not null)
@@ -820,30 +1020,47 @@ internal sealed class ThrowingCommitmentChangeReadService(Exception exception) :
         Task.FromException<CommitmentChangesResponse>(exception);
 }
 
-internal sealed class ThrowingUpcomingReader(Exception exception) : IHomeUpcomingReader
+internal sealed class ThrowingUpcomingReader(Exception exception) : IHomePaycheckReader
 {
-    public Task<HomeUpcomingSectionResponse> ReadAsync(
+    public Task<HomePaycheckReadResult> ReadAsync(
         string ownerId,
         DateOnly evaluatedOn,
         CancellationToken cancellationToken) =>
-        Task.FromException<HomeUpcomingSectionResponse>(exception);
+        Task.FromException<HomePaycheckReadResult>(exception);
 }
 
-internal sealed class RecordingUpcomingReader : IHomeUpcomingReader
+internal sealed class RecordingUpcomingReader : IHomePaycheckReader
 {
     public bool Called { get; private set; }
 
-    public Task<HomeUpcomingSectionResponse> ReadAsync(
+    public Task<HomePaycheckReadResult> ReadAsync(
         string ownerId,
         DateOnly evaluatedOn,
         CancellationToken cancellationToken)
     {
         Called = true;
-        return Task.FromResult(new HomeUpcomingSectionResponse(
-            new HomeSectionAvailabilityResponse("available", null),
-            new HomeUpcomingHorizonResponse(evaluatedOn, evaluatedOn.AddDays(13)),
-            []));
+        return Task.FromResult(new HomePaycheckReadResult(
+            new HomeUpcomingSectionResponse(
+                new HomeSectionAvailabilityResponse("available", null),
+                new HomeUpcomingHorizonResponse(evaluatedOn, evaluatedOn.AddDays(13)),
+                []),
+            new HomePaycheckAttentionSectionResponse(
+                new HomeSectionAvailabilityResponse("available", null), evaluatedOn, [])));
     }
+}
+
+internal sealed class UpcomingUnavailableAttentionAvailableReader : IHomePaycheckReader
+{
+    public Task<HomePaycheckReadResult> ReadAsync(
+        string ownerId,
+        DateOnly evaluatedOn,
+        CancellationToken cancellationToken) => Task.FromResult(new HomePaycheckReadResult(
+        new HomeUpcomingSectionResponse(
+            new HomeSectionAvailabilityResponse("unavailable", "source_unavailable"),
+            new HomeUpcomingHorizonResponse(evaluatedOn, evaluatedOn.AddDays(13)),
+            null),
+        new HomePaycheckAttentionSectionResponse(
+            new HomeSectionAvailabilityResponse("available", null), evaluatedOn, [])));
 }
 
 internal sealed class SyntheticDbException : DbException;

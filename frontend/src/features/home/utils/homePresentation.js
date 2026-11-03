@@ -188,6 +188,43 @@ export function isHomeAttentionSection(value, evaluatedOn) {
   });
 }
 
+const PAYCHECK_ATTENTION_KINDS = new Set(["paycheck_expected", "paycheck_unrecorded"]);
+
+function isPaycheckAttentionItem(value, evaluatedOn) {
+  if (!value || typeof value !== "object"
+      || typeof value.paycheckProfileId !== "string" || !PROFILE_ID.test(value.paycheckProfileId)
+      || value.paycheckProfileId.toLowerCase() === EMPTY_PROFILE_ID
+      || typeof value.displayName !== "string" || value.displayName.trim().length === 0
+      || !CADENCES.has(value.cadence)
+      || !isDateOnly(value.anchorDate)
+      || !isDateOnly(value.earliestExpectedDate)
+      || !isDateOnly(value.latestExpectedDate)
+      || value.earliestExpectedDate > value.anchorDate
+      || value.anchorDate > value.latestExpectedDate
+      || !isUpcomingAmount(value.amount)) return false;
+  return value.kind === "paycheck_expected"
+    ? value.earliestExpectedDate <= evaluatedOn && value.latestExpectedDate >= evaluatedOn
+    : value.latestExpectedDate < evaluatedOn;
+}
+
+// Reads the optional top-level paycheckAttention section. A missing section (older
+// server) is "absent" and counts as empty. A malformed section makes only this family
+// unavailable. Items with an unknown kind are skipped.
+export function readHomePaycheckAttention(section, evaluatedOn) {
+  if (section === undefined) return { status: "absent", items: [] };
+  if (!section || typeof section !== "object" || section.evaluatedOn !== evaluatedOn
+      || !isDateOnly(section.evaluatedOn) || !isAvailability(section, "items")) {
+    return { status: "malformed", items: [] };
+  }
+  if (section.availability.state === "unavailable") return { status: "unavailable", items: [] };
+  const known = section.items.filter((item) => item && typeof item === "object"
+    && PAYCHECK_ATTENTION_KINDS.has(item.kind));
+  if (known.length > 3 || !known.every((item) => isPaycheckAttentionItem(item, evaluatedOn))) {
+    return { status: "malformed", items: [] };
+  }
+  return { status: "available", items: known };
+}
+
 export function isHomeResponse(value) {
   if (!value || typeof value !== "object"
       || typeof value.generatedAt !== "string" || Number.isNaN(Date.parse(value.generatedAt))

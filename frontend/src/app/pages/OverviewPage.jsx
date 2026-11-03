@@ -23,6 +23,7 @@ import {
   formatHomeProjectionAmount,
   isHomeAttentionSection,
   isHomeUpcomingSection,
+  readHomePaycheckAttention,
 } from "../../features/home/utils/homePresentation";
 import "../../styles/home-capture.css";
 
@@ -116,14 +117,21 @@ export default function OverviewPage() {
     ...commitmentItems.map((item) => ({ type: "commitment", item })),
     ...budgetItems.filter((item) => item.state === "at_limit").map((item) => ({ type: "budget", item })),
   ];
+  const paycheck = data.data
+    ? readHomePaycheckAttention(data.data.paycheckAttention, data.data.evaluations.upcomingEvaluatedOn)
+    : { status: "absent", items: [] };
+  const paycheckUnavailable = paycheck.status === "unavailable" || paycheck.status === "malformed";
+  const paycheckItems = paycheck.items.slice(0, 3);
+  const totalItems = paycheckItems.length + orderedAttentionItems.length;
   const attentionState = data.loading ? "loading"
     : data.error || !data.data ? "homeUnavailable"
       : !attentionValid ? "malformed"
-        : attention.availability.state === "unavailable" ? "unavailable"
-          : !commitmentAvailable || !budgetAvailable ? "partial"
-            : orderedAttentionItems.length === 0 ? "empty" : "available";
+        : attention.availability.state === "unavailable" ? (paycheckItems.length > 0 ? "partial" : "unavailable")
+          : !commitmentAvailable || !budgetAvailable || paycheckUnavailable ? "partial"
+            : totalItems === 0 ? "empty" : "available";
   const visibleAttention = ["available", "partial"].includes(attentionState)
     ? orderedAttentionItems.slice(0, 2) : [];
+  const visiblePaychecks = ["available", "partial"].includes(attentionState) ? paycheckItems : [];
   const visibleCommitmentCount = visibleAttention.filter((entry) => entry.type === "commitment").length;
   const reviewCount = commitmentItems.reduce((total, item) => total + item.reviews.length, 0);
 
@@ -167,13 +175,24 @@ export default function OverviewPage() {
       {data.error && <StatusMessage tone="danger">{t("capture.feedback.refreshFailed")}</StatusMessage>}
       {data.loading && <StatusMessage>{t("activity.loading")}</StatusMessage>}
     </section>
-    <section className="home-attention" aria-labelledby="home-attention-heading" aria-busy={attentionState === "loading"}>
+    {attentionState !== "empty" && <section className="home-attention" aria-labelledby="home-attention-heading" aria-busy={attentionState === "loading"}>
       <SectionHeader id="home-attention-heading" title={t("attention.heading")}
         action={["available", "partial"].includes(attentionState) && commitmentItems.length > 0
           ? <Link to="/commitments#changes-review-heading">{commitmentItems.length > visibleCommitmentCount
             ? t("attention.viewAll", { count: reviewCount }) : t("attention.openReviews")}</Link> : null} />
-      {["available", "partial"].includes(attentionState) && visibleAttention.length > 0
+      {["available", "partial"].includes(attentionState) && visiblePaychecks.length + visibleAttention.length > 0
         && <ul className="home-attention__list" aria-label={t("attention.listLabel")}>
+        {visiblePaychecks.map((item) => {
+          const range = item.earliestExpectedDate === item.latestExpectedDate
+            ? formatHomeDate(item.earliestExpectedDate, locale)
+            : `${formatHomeDate(item.earliestExpectedDate, locale)}–${formatHomeDate(item.latestExpectedDate, locale)}`;
+          return <ListRow key={`${item.kind}-${item.paycheckProfileId}-${item.anchorDate}`} title={item.displayName}
+            meta={t(item.kind === "paycheck_expected" ? "attention.paycheckExpected" : "attention.paycheckUnrecorded",
+              { name: item.displayName, range })}
+            actions={<Link to="/paychecks" aria-label={t("attention.openPaychecksFor", { name: item.displayName })}>
+              {t("attention.openPaychecks")}
+            </Link>} />;
+        })}
         {visibleAttention.map(({ type, item }) => {
           if (type === "budget") {
             const spent = formatHomeProjectionAmount(item.spentAmount, locale);
@@ -190,8 +209,6 @@ export default function OverviewPage() {
             meta={reasons.join(t("attention.reasonSeparator"))} />;
         })}
       </ul>}
-      {attentionState === "empty"
-        && <StatusMessage>{t("attention.empty")}</StatusMessage>}
       {attentionState === "partial"
         && <StatusMessage tone="warning">{t("attention.partialUnavailable")}</StatusMessage>}
       {!["available", "partial", "empty"].includes(attentionState) && <StatusMessage tone={attentionState === "unavailable" || attentionState === "malformed" ? "warning" : undefined}>
@@ -199,7 +216,7 @@ export default function OverviewPage() {
       </StatusMessage>}
       {!["available", "partial", "empty", "loading"].includes(attentionState)
         && <Link to="/commitments#changes-review-heading">{t("attention.openReviews")}</Link>}
-    </section>
+    </section>}
     <section className="home-recent" aria-labelledby="home-recent-heading" aria-busy={data.loading}>
       <SectionHeader id="home-recent-heading" title={t("activity.heading")}
         action={<Link to="/transactions">{t("activity.viewAll")}</Link>} />

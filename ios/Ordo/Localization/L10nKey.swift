@@ -517,6 +517,8 @@ enum L10nKey: String, CaseIterable, Sendable {
     case homeAttentionLoading = "home.attention.loading"
     case homeAttentionMalformed = "home.attention.malformed"
     case homeAttentionOpenReviews = "home.attention.openReviews"
+    case homeAttentionPaycheckExpected = "home.attention.paycheckExpected"
+    case homeAttentionPaycheckUnrecorded = "home.attention.paycheckUnrecorded"
     case homeAttentionPartialUnavailable = "home.attention.partialUnavailable"
     case homeAttentionReasonSeparator = "home.attention.reasonSeparator"
     case homeAttentionUnavailable = "home.attention.unavailable"

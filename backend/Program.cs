@@ -71,7 +71,7 @@ builder.Services.AddScoped<ICashFlowService, CashFlowService>();
 builder.Services.AddScoped<IdempotentCreateService>();
 builder.Services.AddScoped<IActivityFeedReader, ActivityFeedReader>();
 builder.Services.AddScoped<IHomeActivityReader, HomeActivityReader>();
-builder.Services.AddScoped<IHomeUpcomingReader, HomeUpcomingReader>();
+builder.Services.AddScoped<IHomePaycheckReader, HomePaycheckReader>();
 builder.Services.AddScoped<IHomeAttentionReader, HomeAttentionReader>();
 builder.Services.AddScoped<IHomeReadService, HomeReadService>();
 

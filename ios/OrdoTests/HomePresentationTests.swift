@@ -75,3 +75,24 @@ import Testing
         #expect(text.contains("120.50") && text.contains("100.00") && text.contains("USD"))
     }
 }
+
+@Suite struct HomePaycheckAttentionPresentationTests {
+    @Test func paycheckRowsComeFirstWithText() throws {
+        let home = try Fixtures.snapshot("home-paycheck-attention")
+        let rows = HomePresenter.allRows(home.attention, home.paycheckAttention)
+        #expect(rows.count == 2)
+        let presenter = HomePresenter(l10n: L10n(language: .en), currencyCode: home.currencyCode)
+        #expect(presenter.title(for: rows[0]).hasPrefix("Salary expected "))
+        #expect(presenter.title(for: rows[1]).hasPrefix("Side gig not recorded (expected "))
+        #expect(HomePresenter.showsAttention(home.attention, home.paycheckAttention))
+    }
+
+    @Test func hiddenOnlyWhenEverythingAvailableAndEmpty() throws {
+        for name in ["home-available-empty", "home-paycheck-attention-empty"] {
+            let home = try Fixtures.snapshot(name)
+            #expect(!HomePresenter.showsAttention(home.attention, home.paycheckAttention), "\(name)")
+        }
+        let unavailable = try Fixtures.snapshot("home-paycheck-attention-unavailable")
+        #expect(HomePresenter.showsAttention(unavailable.attention, unavailable.paycheckAttention))
+    }
+}

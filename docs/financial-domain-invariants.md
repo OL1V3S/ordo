@@ -199,7 +199,9 @@ slot anchor among currently linked occurrences, or null when no links remain.
 The response supplies algorithm version, one captured UTC evaluation date,
 anchor, earliest/latest expected dates, and accepted amount. Paused/ended
 profiles return null projection. These dates are **expected, not guaranteed**;
-there is no missed-pay diagnosis or amount/timing change detection. Writes whose
+Home may flag an expected window that passed with no linked inflow as *not
+recorded*. This is a read-only prompt. It never creates money, a missed-pay
+status, or any stored state. There is no amount/timing change detection. Writes whose
 projection window would exceed the representable calendar are rejected before
 persisting that state.
 
@@ -301,7 +303,9 @@ records. Recent Activity contains bounded current Expenses and AccountInflows;
 a paycheck-linked inflow appears once with relationship metadata. Coming Up
 contains only bounded active paycheck projections and remains structurally
 separate from actual activity. Needs Attention evaluates pending commitment
-change reviews and recorded-spending-versus-budget conditions independently.
+change reviews, recorded-spending-versus-budget conditions, and paychecks
+expected or not recorded, independently. The paycheck prompt is read-only and
+creates no money or status.
 Each family's availability distinguishes a successful quiet result from an
 unavailable evaluation; failure in one family does not erase a trustworthy
 result from the other.

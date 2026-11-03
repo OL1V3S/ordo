@@ -88,10 +88,32 @@ public sealed record HomeUpcomingSectionResponse(
     HomeUpcomingHorizonResponse Horizon,
     IReadOnlyList<HomeUpcomingItemResponse>? Items);
 
+public sealed record HomePaycheckAttentionItemResponse(
+    string Kind,
+    Guid PaycheckProfileId,
+    string DisplayName,
+    string Cadence,
+    DateOnly AnchorDate,
+    DateOnly EarliestExpectedDate,
+    DateOnly LatestExpectedDate,
+    HomeUpcomingAmountResponse Amount);
+
+public sealed record HomePaycheckAttentionSectionResponse(
+    HomeSectionAvailabilityResponse Availability,
+    DateOnly EvaluatedOn,
+    IReadOnlyList<HomePaycheckAttentionItemResponse>? Items)
+{
+    public static HomePaycheckAttentionSectionResponse Unavailable(DateOnly evaluatedOn) => new(
+        new HomeSectionAvailabilityResponse("unavailable", "source_unavailable"),
+        evaluatedOn,
+        null);
+}
+
 public sealed record HomeResponse(
     DateTimeOffset GeneratedAt,
     string CurrencyCode,
     HomeEvaluationsResponse Evaluations,
     HomeAttentionSectionResponse Attention,
     HomeRecentActivitySectionResponse RecentActivity,
-    HomeUpcomingSectionResponse Upcoming);
+    HomeUpcomingSectionResponse Upcoming,
+    HomePaycheckAttentionSectionResponse PaycheckAttention);

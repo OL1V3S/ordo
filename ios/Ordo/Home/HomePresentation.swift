@@ -3,9 +3,11 @@ import Foundation
 enum AttentionRow: Equatable, Sendable, Identifiable {
     case budget(BudgetAttentionItem)
     case commitment(CommitmentAttentionItem)
+    case paycheck(PaycheckAttentionItem)
 
     var id: String {
         switch self {
+        case .paycheck(let item): "paycheck-\(item.id)"
         case .budget(let item): "budget-\(item.id)"
         case .commitment(let item): "commitment-\(item.id)"
         }
@@ -71,15 +73,40 @@ struct HomePresenter: Sendable {
         return Array(rows.prefix(2))
     }
 
+    /// Paycheck rows first (cap 3), then the existing rows.
+    static func allRows(_ attention: SectionState<AttentionContent>, _ paycheck: PaycheckAttentionState) -> [AttentionRow] {
+        var rows: [AttentionRow] = []
+        if case .available(let items) = paycheck { rows += items.prefix(3).map(AttentionRow.paycheck) }
+        if case .available(let content) = attention { rows += attentionRows(content) }
+        return rows
+    }
+
+    /// Hidden only when every family is available and all are empty. Absent counts as empty.
+    static func showsAttention(_ attention: SectionState<AttentionContent>, _ paycheck: PaycheckAttentionState) -> Bool {
+        guard case .available(let content) = attention, !content.isPartial else { return true }
+        if case .unavailable = paycheck { return true }
+        return !allRows(attention, paycheck).isEmpty
+    }
+
     func title(for row: AttentionRow) -> String {
         switch row {
+        case .paycheck(let item): paycheckSentence(item)
         case .budget(let item): categoryLabel(item.category)
         case .commitment(let item): item.name
         }
     }
 
+    private func paycheckSentence(_ item: PaycheckAttentionItem) -> String {
+        let range = item.earliestExpectedDate == item.latestExpectedDate
+            ? date(item.anchorDate)
+            : "\(date(item.earliestExpectedDate))–\(date(item.latestExpectedDate))"
+        return l10n.string(item.kind == .expected ? .homeAttentionPaycheckExpected : .homeAttentionPaycheckUnrecorded,
+                           item.displayName, range)
+    }
+
     func detail(for row: AttentionRow) -> String {
         switch row {
+        case .paycheck(let item): return amountText(item.amount)
         case .budget(let item):
             let spent = money.string(item.spent), limit = money.string(item.limit)
             switch item.state {

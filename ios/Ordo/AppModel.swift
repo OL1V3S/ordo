@@ -176,6 +176,15 @@ final class AppModel {
         return true
     }
 
+    /// Opens Plan, Paychecks. Refused while a write is in flight, like the Plan switcher.
+    @discardableResult
+    func openPaychecks() -> Bool {
+        guard PlanSwitcherRules.isEnabled(writeInFlight: isWriteInFlight) else { return false }
+        planSection = .paychecks
+        selectedTab = .plan
+        return true
+    }
+
     /// Any sheet, full-screen cover or confirmation open outside Home's own capture flow. A widget
     /// link never navigates while one is open: switching tabs could discard what the user is doing.
     var isOtherModalPresented: Bool {

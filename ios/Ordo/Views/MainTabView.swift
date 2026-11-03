@@ -13,7 +13,8 @@ struct MainTabView: View {
         TabView(selection: Bindable(model).selectedTab) {
             Tab(l10n.string(.navigationDestinationsHome), systemImage: "house", value: AppTab.home) {
                 HomeView(model: model.homeModel, capture: model.captureModel, writeBlocked: model.isWriteInFlight, l10n: l10n,
-                         openReviews: { model.openRecurringReviews() })
+                         openReviews: { model.openRecurringReviews() },
+                         openPaychecks: { model.openPaychecks() })
             }
             Tab(l10n.string(.navigationDestinationsActivity), systemImage: "list.bullet.rectangle", value: AppTab.activity) {
                 TransactionsView(model: model.transactionsModel, mutation: model.mutationModel, importModel: model.importModel, l10n: l10n)

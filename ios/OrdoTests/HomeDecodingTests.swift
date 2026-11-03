@@ -99,3 +99,25 @@ import Testing
         #expect(CalendarDate("9999-12-31")?.adding(days: 1) == nil)
     }
 }
+
+@Suite struct HomePaycheckAttentionDecodingTests {
+    @Test func attentionItemsAreDecodedAndUnknownKindsSkipped() throws {
+        guard case .available(let items) = try Fixtures.snapshot("home-paycheck-attention").paycheckAttention else {
+            Issue.record("paycheck attention"); return
+        }
+        #expect(items.map(\.kind) == [.expected, .unrecorded])
+        #expect(items[1].displayName == "Side gig")
+    }
+
+    @Test func unavailableAndMalformedAreUnavailable() throws {
+        #expect(try Fixtures.snapshot("home-paycheck-attention-unavailable").paycheckAttention == .unavailable)
+        let malformed = try Fixtures.snapshot("home-paycheck-attention-malformed")
+        #expect(malformed.paycheckAttention == .unavailable)
+        #expect(malformed.attention != .malformed)
+    }
+
+    @Test func emptyAndOlderServerAreNotMalformed() throws {
+        #expect(try Fixtures.snapshot("home-paycheck-attention-empty").paycheckAttention == .available([]))
+        #expect(try Fixtures.snapshot("home-available-empty").paycheckAttention == .absent)
+    }
+}
