@@ -1,8 +1,8 @@
 # Auth and Session Invariants
 
 This document states how authentication and sessions behave **today** (verified
-against `main` at b05199a, which includes the access-token session check from
-#337 PR A / PR #351; updated for the web memory-only access token, #337 PR B).
+against `main` at bb1a9a8 plus PR #354, which moves the web access token to tab
+memory, #337 PR B; the access-token session check, #337 PR A, landed in PR #351).
 It describes current behavior; it does not approve changes. Any change to a rule below needs its own approved issue (see
 [`AGENTS.md`](../AGENTS.md)). Narrative design lives in
 [`ARCHITECTURE.md`](../ARCHITECTURE.md); this file is the rule list.

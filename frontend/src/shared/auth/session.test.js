@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { clearRequestReference, getRequestReference, reportServerError } from '../api/requestReference'
 import {
   adoptAccessToken,
   clearSession,
@@ -35,6 +36,7 @@ describe('shared authentication session', () => {
     localStorage.clear()
     sessionStorage.clear()
     getSessionSnapshot()
+    clearRequestReference()
   })
 
   afterEach(() => {
@@ -284,5 +286,72 @@ describe('shared authentication session', () => {
     expect(session.id).toMatch(/^[0-9a-f]{32}$/)
     expect(getAccessToken()).toBe('memory-token')
     expect(getSessionSnapshot()).toBe(session)
+  })
+
+  describe('support request reference (#340)', () => {
+    const raise = () => reportServerError({ status: 500, data: { requestId: 'req-1234abcd' } })
+
+    it('clears the reference when another tab signs in as a new session', () => {
+      establishSession('old-token', 'old@example.com')
+      const { listener } = subscribe()
+      raise()
+      expect(getRequestReference()).toBe('req-1234abcd')
+
+      localStorage.setItem('sessionId', 'other-tab-sign-in')
+      storageEvent('sessionId', localStorage, 'other-tab-sign-in')
+
+      expect(getRequestReference()).toBeNull()
+      expect(listener).toHaveBeenCalled()
+    })
+
+    it('clears the reference when another tab signs out', () => {
+      establishSession('old-token', 'old@example.com')
+      subscribe()
+      raise()
+
+      localStorage.removeItem('sessionId')
+      localStorage.removeItem('email')
+      storageEvent('sessionId')
+
+      expect(getRequestReference()).toBeNull()
+    })
+
+    it('does not clear the reference while reading a snapshot, only when the storage event arrives', () => {
+      establishSession('old-token', 'old@example.com')
+      subscribe()
+      raise()
+
+      // Another tab signed in; a render or request reads the snapshot first.
+      localStorage.setItem('sessionId', 'other-tab-sign-in')
+      expect(getSessionSnapshot()).toMatchObject({ signedIn: false })
+      expect(getRequestReference()).toBe('req-1234abcd')
+
+      storageEvent('sessionId', localStorage, 'other-tab-sign-in')
+      expect(getRequestReference()).toBeNull()
+    })
+
+    it('keeps the reference for an email-only change or unrelated storage events', () => {
+      establishSession('old-token', 'old@example.com')
+      subscribe()
+      raise()
+
+      localStorage.setItem('email', 'new@example.com')
+      storageEvent('email', localStorage, 'new@example.com')
+      storageEvent('budget-planner-theme')
+      replaceAccessToken('refreshed-token', 'new@example.com')
+
+      expect(getRequestReference()).toBe('req-1234abcd')
+    })
+
+    it('still clears on this tab signing in or out', () => {
+      establishSession('first', 'a@example.com')
+      raise()
+      establishSession('second', 'a@example.com')
+      expect(getRequestReference()).toBeNull()
+
+      raise()
+      clearSession()
+      expect(getRequestReference()).toBeNull()
+    })
   })
 })

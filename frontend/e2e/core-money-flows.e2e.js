@@ -42,7 +42,8 @@ const account = loadAccount()
 // A retry gets its own data, so a half-finished first attempt cannot cause duplicates.
 const unique = (name, testInfo) => `E2E ${name} ${account.runId}${testInfo.retry ? ` retry ${testInfo.retry}` : ''}`
 
-// Signs in through the real form and returns the access token of that session.
+// Signs in through the real form and returns the access token of that session
+// (read from the sign-in response: the web app keeps it in memory only).
 async function signIn(page) {
   await page.goto('/')
   await page.getByLabel(labels.email, { exact: true }).fill(account.email)
@@ -51,12 +52,24 @@ async function signIn(page) {
     (response) => response.url().endsWith('/api/auth/web-session') && response.request().method() === 'POST',
   )
   await page.getByRole('button', { name: labels.signIn, exact: true }).click()
-  expect((await signInResponse).status()).toBe(200)
+  const response = await signInResponse
+  expect(response.status()).toBe(200)
+  const { token } = await response.json()
+  expect(token).toBeTruthy()
   await expect(page).toHaveURL(/\/overview$/)
   await expect(page.getByLabel(labels.email, { exact: true })).toHaveCount(0)
-  const token = await page.evaluate(() => localStorage.getItem('token'))
-  expect(token).toBeTruthy()
+  await expectTokenNotInStorage(page, token)
   return token
+}
+
+// The access token is memory-only (#337): it must not be in either storage.
+async function expectTokenNotInStorage(page, token) {
+  const stored = await page.evaluate(() => JSON.stringify([
+    Object.entries(localStorage),
+    Object.entries(sessionStorage),
+  ]))
+  expect(stored).not.toContain(token)
+  expect(await page.evaluate(() => localStorage.getItem('token'))).toBeNull()
 }
 
 async function apiGet(request, token, path) {
