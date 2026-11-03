@@ -1,10 +1,15 @@
 import { randomBytes } from 'node:crypto'
 import { defineConfig, devices } from '@playwright/test'
-import { buildE2eEnvironment } from './e2e/safety.js'
+import { buildE2eEnvironment, pgVariableNames } from './e2e/safety.js'
 
 // Runs the safety guard before any server starts, so `npx playwright test`
 // alone is guarded too. Throws unless the target is local budget_planner_test_e2e.
 const { env: guardedEnv } = buildE2eEnvironment(process.env)
+
+// Playwright merges process.env under every webServer env, so leaving PG*
+// variables out of guardedEnv is not enough: delete them here so the API (Npgsql
+// reads PGOPTIONS, PGTZ, PGSSL*, ...) and Vite never inherit them.
+for (const name of pgVariableNames(process.env)) delete process.env[name]
 
 const apiUrl = 'http://localhost:5298'
 const webUrl = 'http://localhost:5173'

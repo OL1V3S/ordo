@@ -124,9 +124,10 @@ npm run test:e2e
   real EF migrations and seeds one synthetic confirmed user.
 - A guard (`frontend/e2e/safety.js`) refuses any host other than `localhost`,
   `127.0.0.1` or `::1` and any database other than `budget_planner_test_e2e`.
-  It also overwrites an inherited `BUDGETPLANNER_MIGRATION_CONNECTION`, so a
-  production value exported in your shell is never used. Its unit test runs in
-  Frontend CI.
+  It also overwrites an inherited `BUDGETPLANNER_MIGRATION_CONNECTION` and
+  removes inherited `PG*` variables (such as `PGHOSTADDR`, `PGSERVICE`,
+  `PGOPTIONS`) from every child process, so nothing exported in your shell can
+  redirect `psql`, `dotnet ef` or the API. Its unit test runs in Frontend CI.
 - The API runs in a dedicated `E2E` environment on port 5298 and Vite on 5173;
   both must be free. No email is sent and no real credentials are used.
 - CI job **Web end-to-end smoke tests** (`.github/workflows/e2e.yml`) is **not a

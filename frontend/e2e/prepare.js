@@ -6,7 +6,7 @@ import { pbkdf2Sync, randomBytes, randomUUID } from 'node:crypto'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { buildE2eEnvironment } from './safety.js'
+import { buildE2eEnvironment, buildPsqlInvocation } from './safety.js'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const repoRoot = path.resolve(here, '..', '..')
@@ -36,12 +36,10 @@ function run(command, args, options) {
 
 export function prepare() {
   const { env, settings } = buildE2eEnvironment(process.env)
-  const psqlEnv = { ...env, PGPASSWORD: settings.password }
-  const psql = (database, args, input) => run(
-    'psql',
-    ['-X', '-q', '-v', 'ON_ERROR_STOP=1', '-h', settings.host, '-p', settings.port, '-U', settings.user, '-d', database, ...args],
-    { env: psqlEnv, input },
-  )
+  const psql = (database, args, input) => {
+    const target = buildPsqlInvocation(env, settings, database)
+    run('psql', [...target.args, ...args], { env: target.env, input })
+  }
 
   console.log(`E2E: recreating ${settings.database} on ${settings.host}:${settings.port}`)
   psql('postgres', [

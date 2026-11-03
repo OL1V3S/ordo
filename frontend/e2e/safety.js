@@ -11,6 +11,7 @@ export const E2E_DATABASE = 'budget_planner_test_e2e'
 export const LOCAL_HOSTS = ['localhost', '127.0.0.1', '::1']
 export const MIGRATION_CONNECTION_VARIABLE = 'BUDGETPLANNER_MIGRATION_CONNECTION'
 export const API_CONNECTION_VARIABLE = 'ConnectionStrings__DefaultConnection'
+export const ADMIN_DATABASE = 'postgres'
 
 const NAME_PATTERN = /^[A-Za-z0-9_.-]+$/
 const PASSWORD_PATTERN = /^[^\s;,='"\\]+$/
@@ -72,9 +73,38 @@ export function buildConnectionString(settings) {
   )
 }
 
+// libpq (psql) and Npgsql read PG* variables: PGHOSTADDR overrides `-h`, PGSERVICE
+// and PGSERVICEFILE can supply a host, and PGOPTIONS/PGSSLMODE/PGPASSFILE change
+// the session. Every one is dropped, case-insensitively because Windows
+// environment names are, so nothing inherited can move a child process away from
+// the validated target.
+export function pgVariableNames(baseEnv = process.env) {
+  return Object.keys(baseEnv).filter((key) => /^PG/i.test(key))
+}
+
+export function removePgVariables(baseEnv = process.env) {
+  const dropped = new Set(pgVariableNames(baseEnv))
+  return Object.fromEntries(Object.entries(baseEnv).filter(([key]) => !dropped.has(key)))
+}
+
+// What psql receives: the validated host, port, user and database as explicit
+// arguments, the validated password as PGPASSWORD, and no other PG* variable.
+// `-X` skips any psqlrc. `database` is the admin database or the E2E database.
+export function buildPsqlInvocation(baseEnv, settings, database) {
+  assertSafeSettings(settings)
+  if (database !== ADMIN_DATABASE && database !== E2E_DATABASE) {
+    throw refuse(`psql database must be ${ADMIN_DATABASE} or ${E2E_DATABASE}`)
+  }
+  const { host, port, user, password } = settings
+  return {
+    args: ['-X', '-q', '-v', 'ON_ERROR_STOP=1', '-h', host, '-p', port, '-U', user, '-d', database],
+    env: { ...removePgVariables(baseEnv), PGPASSWORD: password },
+  }
+}
+
 // Returns a fresh environment for every child process. Both connection variables
 // are overwritten, so an inherited production value can never reach `dotnet ef`
-// or the API.
+// or the API, and inherited PG* variables are dropped.
 export function buildE2eEnvironment(baseEnv = process.env) {
   const settings = readSettings(baseEnv)
   const connectionString = buildConnectionString(settings)
@@ -82,7 +112,7 @@ export function buildE2eEnvironment(baseEnv = process.env) {
     settings,
     connectionString,
     env: {
-      ...baseEnv,
+      ...removePgVariables(baseEnv),
       [MIGRATION_CONNECTION_VARIABLE]: connectionString,
       [API_CONNECTION_VARIABLE]: connectionString,
     },
