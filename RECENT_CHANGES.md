@@ -26,7 +26,7 @@ the permanent, complete archive.
 
 ### 2026-11-03 — JWT signing-key rotation
 
-[Issue #338](https://github.com/OL1V3S/ordo/issues/338) · [PR #PR_NUMBER](https://github.com/OL1V3S/ordo/pull/PR_NUMBER)
+[Issue #338](https://github.com/OL1V3S/ordo/issues/338) · [PR #352](https://github.com/OL1V3S/ordo/pull/352)
 
 - New optional `Jwt:PreviousKey` validates access tokens signed with the old key; the current `Jwt:Key` still signs. Unset, nothing changes and no new production secret is needed to deploy.
 - Runbook gets a planned (three-deploy) and an emergency rotation procedure, plus an optional owner-run end-all-sessions step. No schema, endpoint or client change.
