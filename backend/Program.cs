@@ -3,6 +3,7 @@ using BudgetPlanner.Data;
 using BudgetPlanner.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -20,6 +21,8 @@ using BudgetPlanner.ActivityTimeline;
 using BudgetPlanner.Home;
 using BudgetPlanner.CreateRequests;
 using BudgetPlanner.Diagnostics;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -42,7 +45,12 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddControllers();
 builder.Services.AddExceptionHandler<UnhandledExceptionHandler>();
-builder.Services.AddHealthChecks();
+builder.Services.AddHealthChecks()
+    .AddCheck<DatabaseReadinessCheck>(
+        DatabaseReadinessCheck.Name,
+        failureStatus: HealthStatus.Unhealthy,
+        tags: [DatabaseReadinessCheck.ReadyTag],
+        timeout: DatabaseReadinessCheck.DefaultTimeout);
 builder.Services.AddSingleton(new PdfExtractionOptions());
 builder.Services.AddSingleton<IPdfTextExtractor, ContainedPdfTextExtractor>();
 builder.Services.AddSingleton<ISunflowerStatementParser, SunflowerStatementParser>();
@@ -173,6 +181,8 @@ builder.Services.AddOptions<ForgotPasswordLimiterOptions>();
 builder.Services.AddSingleton<IForgotPasswordLimiter, ForgotPasswordLimiter>();
 builder.Services.AddOptions<RegistrationLimiterOptions>();
 builder.Services.AddSingleton<IRegistrationLimiter, RegistrationLimiter>();
+builder.Services.AddOptions<ClientIpLimiterOptions>();
+builder.Services.AddSingleton<IClientIpLimiter, ClientIpLimiter>();
 builder.Services.AddSingleton(PasswordTimingEqualizer.Create);
 builder.Services.AddOptions<DeviceSessionOptions>();
 builder.Services.AddScoped<IDeviceSessionService, DeviceSessionService>();
@@ -185,6 +195,22 @@ app.Services.GetRequiredService<PasswordTimingEqualizer>();
 
 // The handler writes the response itself; the no-op satisfies the .NET 9 startup check.
 app.UseExceptionHandler(_ => { });
+
+// #332: behind Render's proxy, take the client IP from the rightmost
+// X-Forwarded-For entry (the one the edge appends). Left entries are
+// client-sent and ignored. The scheme is not forwarded, so HTTPS
+// redirection is unchanged. Not applied in Development (no proxy).
+if (!app.Environment.IsDevelopment())
+{
+    var forwardedHeaders = new ForwardedHeadersOptions
+    {
+        ForwardedHeaders = ForwardedHeaders.XForwardedFor,
+        ForwardLimit = 1
+    };
+    forwardedHeaders.KnownNetworks.Clear();
+    forwardedHeaders.KnownProxies.Clear();
+    app.UseForwardedHeaders(forwardedHeaders);
+}
 
 if (app.Environment.IsDevelopment())
 {
@@ -200,7 +226,21 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-app.MapHealthChecks("/health").AllowAnonymous();
+// Liveness: runs no checks, never touches the database.
+app.MapHealthChecks("/health", new HealthCheckOptions { Predicate = _ => false }).AllowAnonymous();
+// Readiness: database reachability. Fixed body, Degraded and Unhealthy both 503.
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains(DatabaseReadinessCheck.ReadyTag),
+    ResultStatusCodes =
+    {
+        [HealthStatus.Healthy] = StatusCodes.Status200OK,
+        [HealthStatus.Degraded] = StatusCodes.Status503ServiceUnavailable,
+        [HealthStatus.Unhealthy] = StatusCodes.Status503ServiceUnavailable,
+    },
+    AllowCachingResponses = false,
+    ResponseWriter = ReadinessResponseWriter.WriteAsync,
+}).AllowAnonymous();
 
 app.Run();
 

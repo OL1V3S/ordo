@@ -85,7 +85,7 @@ Uniform today (same client-visible response for every case: same status and body
 - **Sign-in** (all three endpoints): unknown email, wrong password, locked out, and unconfirmed (even with the right password, #318) all return `401`. The body is the plain text `Invalid email or password` on `/login` and `/web-session`, and `{"code":"invalid_credentials"}` on `/device-sessions`. No token, session, cookie or email is produced.
 - **Register** (#300): a taken email gets the same `200` (or the same `503 confirmation_email_delivery_failed`) as a new one. The stored owner gets a fixed existing-account email (sign-in and forgot-password links, no token); the account is unchanged. Password-rule `400` errors are unchanged and never contain duplicate-account errors.
 - **Registration limiter**: runs before the account check, so the same `429` applies to every email.
-- **Sign-in timing** (#319): unknown email and locked account (both lockout branches) each verify one dummy password hash through the request's hasher, so they cost about the same as a wrong password. `PasswordTimingEqualizer` builds the dummy hash once at startup from the registered hasher, so it has the configured cost. It reads no account data. The stored hash of a locked account is never checked, so the lockout cap is unchanged. Every sign-in request now costs one hash; the sign-in endpoints have no rate limiter.
+- **Sign-in timing** (#319): unknown email and locked account (both lockout branches) each verify one dummy password hash through the request's hasher, so they cost about the same as a wrong password. `PasswordTimingEqualizer` builds the dummy hash once at startup from the registered hasher, so it has the configured cost. It reads no account data. The stored hash of a locked account is never checked, so the lockout cap is unchanged. Every sign-in request now costs one hash; sign-in is limited per IP only (#332).
 - **Reset password** (#319): an unknown email gets `400` with the same `InvalidToken` error array as a known email with a bad or malformed token (same status, content type and body). A weak new password with a bad token also gets `InvalidToken`; policy errors only appear once the token is valid.
 - **Resend confirmation**: `202` with one message for unknown, confirmed, unconfirmed, delivery-failed and any other send error (apart from `429` and request validation `400`).
 - **Forgot password**: `200` with one message for unknown, delivery-failed and any other send error (apart from `429` and request validation `400`).
@@ -104,7 +104,7 @@ Remaining oracles and residuals (#319 is done: sign-in timing, reset-password, r
 - Residual sign-in timing: the relational path does 2 `ExecuteUpdate` round trips for a wrong password, 2 for a locked account, 3 for a success and 0 for an unknown email. That is a few ms against about 100 ms for the hash; accepted, no no-op updates added.
 - Residual reset-password timing: a known email with a decodable bad token runs a Data Protection unprotect (microseconds).
 - The sign-in failure-count side effect is not client-visible and is not considered an oracle: an unconfirmed account with the right password resets the count, a wrong password increments it (see the lockout section).
-- Out of scope for #319: `confirm-email` returns `400 "Invalid user"` for an unknown user id (the key is a GUID); there is no sign-in rate limiter; registration timing (#300, #317).
+- Out of scope for #319: `confirm-email` returns `400 "Invalid user"` for an unknown user id (the key is a GUID); registration timing (#300, #317).
 
 ## JWT parameters
 
@@ -133,14 +133,31 @@ All are in-memory fixed-window limiters with code defaults. State is per process
 | `forgot-password` | 60 | 3 |
 
 - Over limit returns `429` with no body detail.
-- There is no per-IP limit and no rate limit on sign-in beyond account lockout.
+- Sign-in endpoints have no per-account rate limit beyond account lockout; they do have the per-IP limit below.
+
+### Per-client-IP limits (#332)
+
+`ClientIpLimiter`: in-memory fixed window per `"{group}:{ip}"`, `QueueLimit = 0`, code defaults, no config keys.
+
+| Group | Endpoints | Per IP per minute |
+| --- | --- | --- |
+| `sign-in` | `login`, `device-sessions`, `web-session` | 20 |
+| `email` | `register`, `resend-confirmation`, `forgot-password` | 10 |
+
+- **Ordering**: checked first in the controller. Sign-in: before `CheckPasswordWithLockoutAsync`, so a rejected request costs no hash and does not count toward lockout. Email endpoints: per-IP, then global, then per-email; a per-IP rejection uses none of the others.
+- The same `429` applies whether or not the account exists.
+- **Trust model**: outside Development, `UseForwardedHeaders` (X-Forwarded-For only, `ForwardLimit = 1`, known proxies and networks cleared) runs right after `UseExceptionHandler`. It uses only the rightmost entry, which Render's edge appends; client-sent entries to the left are ignored. The scheme is not forwarded, so HTTPS redirection is unchanged. If the app were reached without a proxy, a client could choose its own IP; Render always sits in front.
+- A request with no known IP shares one `unknown` partition.
+- State is in memory and resets on restart (single instance). Idle partitions are not evicted. Clients behind one NAT share a limit. Rotating IPs is still limited only by the global limits and lockout.
+- **Post-deploy check**: confirm the Render logs or headers show one proxy hop. If not, all clients share one bucket.
+- **Timing (criterion 6, #332)**: `ClientIpThrottleTests.Measure_known_wrong_password_versus_unknown_email_timing` (opt in with `ORDO_MEASURE_TIMING=1`; 20 warm-up and 200 measured pairs, real `PasswordHasher`, in-memory provider, macOS arm64, 8 CPUs, .NET 9.0.1). Medians: known email with wrong password 48.35 ms, unknown email 47.46 ms, a 1.84% difference, under the 5% bar. Accepted; no further evening-out. The number is for the in-memory provider; PostgreSQL round trips are not measured.
 
 ## Security headers and CSP
 
 - Production headers come from `frontend/vercel.json` and apply to the web app: CSP, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy`.
 - CSP: `default-src 'self'`, one hash-pinned inline script, `connect-src` limited to self plus the Render API, `object-src 'none'`, `base-uri 'none'`, `frame-ancestors 'none'`. It restricts where a stolen `localStorage` token could be sent, but does not make `localStorage` safe against XSS.
 - The API itself sets no security headers; it relies on HTTPS redirection.
-- Server errors: unhandled exceptions return a safe `500` problem body with a code and trace id and one privacy-safe log line. `GET /health` is anonymous.
+- Server errors: unhandled exceptions return a safe `500` problem body with a code and trace id and one privacy-safe log line. `GET /health` and `GET /health/ready` are anonymous; readiness returns only a fixed up/down body.
 
 ## Intentionally not done
 
@@ -154,7 +171,7 @@ All are in-memory fixed-window limiters with code defaults. State is per process
 - **No MFA, passkeys or social sign-in endpoints** exist in `AuthController`.
 - **No endpoint to list sessions or sign out everywhere.** Sign-out ends only the named session; only a password reset revokes all.
 - **No iOS universal links.** No associated-domains configuration was found under `ios/`; confirm and reset links are web links.
-- **No distributed rate limiting** and no per-IP limits.
+- **No distributed rate limiting.** Per-IP limits exist (#332) but are per process.
 - **No password policy beyond ASP.NET Identity defaults** (`Program.cs` does not customize it).
 - **Web access token stays in `localStorage`** (readable by script); only the long-lived credential is HttpOnly.
 
@@ -168,6 +185,7 @@ All are in-memory fixed-window limiters with code defaults. State is per process
 | Uniform sign-in | `AuthController` login, device-session and web-session create | `SignInEnumerationTests.cs`, `DeviceSessionFlowTests.cs`, `WebSessionFlowTests.cs` |
 | Uniform register | `AuthController.Register`, `RegistrationLimiter.cs` | `RegisterEnumerationTests.cs` |
 | Background email (resend, forgot password) | `BackgroundEmailQueue.cs`, `BackgroundEmailWorker.cs`, `AuthController` | `BackgroundEmailTests.cs` |
+| Per-IP throttle | `ClientIpLimiter.cs`, `AuthController`, `Program.cs` (forwarded headers) | `ClientIpThrottleTests.cs` |
 | Resend and forgot password | `ConfirmationResendLimiter.cs`, `ForgotPasswordLimiter.cs`, `AuthController` | `AccountConfirmationFlowTests.cs`, `ForgotPasswordFlowTests.cs` |
 | JWT claims and parameters | `AccessTokenClaims.cs`, `AuthController.GenerateJwtToken`, `Program.cs` | `AccessTokenClaimsTests.cs` (issued claims and rejection matrix) |
 | Data Protection key persistence | `Program.cs` | `DataProtectionPersistenceTests.cs` |

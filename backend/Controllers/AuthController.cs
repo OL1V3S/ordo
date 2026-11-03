@@ -27,6 +27,7 @@ public class AuthController : ControllerBase
     private readonly IConfirmationResendLimiter _confirmationResendLimiter;
     private readonly IForgotPasswordLimiter _forgotPasswordLimiter;
     private readonly IRegistrationLimiter _registrationLimiter;
+    private readonly IClientIpLimiter _clientIpLimiter;
     private readonly IBackgroundEmailQueue _backgroundEmails;
     private readonly IDeviceSessionService _deviceSessions;
     private readonly PasswordTimingEqualizer _passwordTiming;
@@ -41,6 +42,7 @@ public class AuthController : ControllerBase
         IConfirmationResendLimiter confirmationResendLimiter,
         IForgotPasswordLimiter forgotPasswordLimiter,
         IRegistrationLimiter registrationLimiter,
+        IClientIpLimiter clientIpLimiter,
         IBackgroundEmailQueue backgroundEmails,
         IDeviceSessionService deviceSessions,
         PasswordTimingEqualizer passwordTiming,
@@ -54,6 +56,7 @@ public class AuthController : ControllerBase
         _confirmationResendLimiter = confirmationResendLimiter;
         _forgotPasswordLimiter = forgotPasswordLimiter;
         _registrationLimiter = registrationLimiter;
+        _clientIpLimiter = clientIpLimiter;
         _backgroundEmails = backgroundEmails;
         _deviceSessions = deviceSessions;
         _passwordTiming = passwordTiming;
@@ -66,6 +69,10 @@ public class AuthController : ControllerBase
         RegisterRequest request,
         CancellationToken cancellationToken)
     {
+        // #332: per-IP first, before any account lookup or other limiter.
+        if (!_clientIpLimiter.TryAcquire(ClientIpGroup.Email, HttpContext.Connection.RemoteIpAddress))
+            return StatusCode(StatusCodes.Status429TooManyRequests);
+
         // #300: one limiter for every registration, checked before the account
         // check, so the same 429 applies whether or not the email is taken.
         if (!_registrationLimiter.TryAcquireGlobal())
@@ -180,6 +187,10 @@ public class AuthController : ControllerBase
     [HttpPost("resend-confirmation")]
     public async Task<IActionResult> ResendConfirmation(ResendConfirmationRequest request)
     {
+        // #332: per-IP first, before any account lookup or other limiter.
+        if (!_clientIpLimiter.TryAcquire(ClientIpGroup.Email, HttpContext.Connection.RemoteIpAddress))
+            return StatusCode(StatusCodes.Status429TooManyRequests);
+
         if (!_confirmationResendLimiter.TryAcquireGlobal())
             return StatusCode(StatusCodes.Status429TooManyRequests);
 
@@ -207,6 +218,11 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> Login(LoginRequest request)
     {
+        // #332: per-IP first, so rejected requests cost no hash and do not
+        // count toward lockout.
+        if (!_clientIpLimiter.TryAcquire(ClientIpGroup.SignIn, HttpContext.Connection.RemoteIpAddress))
+            return StatusCode(StatusCodes.Status429TooManyRequests);
+
         // Shared sign-in checks (#299): unknown email, wrong password and locked
         // out all return the same response.
         var signIn = await CheckPasswordWithLockoutAsync(request.Email, request.Password);
@@ -238,6 +254,11 @@ public class AuthController : ControllerBase
         CreateDeviceSessionRequest request,
         CancellationToken cancellationToken)
     {
+        // #332: per-IP first, so rejected requests cost no hash and do not
+        // count toward lockout.
+        if (!_clientIpLimiter.TryAcquire(ClientIpGroup.SignIn, HttpContext.Connection.RemoteIpAddress))
+            return StatusCode(StatusCodes.Status429TooManyRequests);
+
         // Same shared sign-in checks as Login (#299).
         var signIn = await CheckPasswordWithLockoutAsync(request.Email!, request.Password!);
 
@@ -299,6 +320,11 @@ public class AuthController : ControllerBase
         LoginRequest request,
         CancellationToken cancellationToken)
     {
+        // #332: per-IP first, so rejected requests cost no hash and do not
+        // count toward lockout.
+        if (!_clientIpLimiter.TryAcquire(ClientIpGroup.SignIn, HttpContext.Connection.RemoteIpAddress))
+            return StatusCode(StatusCodes.Status429TooManyRequests);
+
         // Same shared sign-in checks and error bodies as Login (#299).
         var signIn = await CheckPasswordWithLockoutAsync(request.Email, request.Password);
 
@@ -386,6 +412,10 @@ public class AuthController : ControllerBase
     [HttpPost("forgot-password")]
     public async Task<IActionResult> ForgotPassword(ForgotPasswordRequest request)
     {
+        // #332: per-IP first, before any account lookup or other limiter.
+        if (!_clientIpLimiter.TryAcquire(ClientIpGroup.Email, HttpContext.Connection.RemoteIpAddress))
+            return StatusCode(StatusCodes.Status429TooManyRequests);
+
         if (!_forgotPasswordLimiter.TryAcquireGlobal())
             return StatusCode(StatusCodes.Status429TooManyRequests);
 

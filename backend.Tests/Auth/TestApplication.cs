@@ -192,6 +192,12 @@ internal sealed class TestApplication : WebApplicationFactory<Program>
             if (_configureDeviceSessions != null)
                 services.Configure(_configureDeviceSessions);
 
+            // Per-IP limiter (#332) is covered in ClientIpThrottleTests; other tests send many requests from one IP.
+            services.Configure<BudgetPlanner.Authentication.ClientIpLimiterOptions>(o =>
+            {
+                o.SignInPermitLimit = int.MaxValue;
+                o.EmailPermitLimit = int.MaxValue;
+            });
             _configureServices?.Invoke(services);
         });
 

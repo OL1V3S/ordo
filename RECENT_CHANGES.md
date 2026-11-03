@@ -31,6 +31,20 @@ the permanent, complete archive.
 - Budget categories are saved in canonical form (`Food` = `food`). Negative, over-precise and out-of-range limits are rejected; zero is allowed. Saving is an atomic upsert backed by a new unique index.
 - The migration deletes nothing and aborts if existing rows are duplicates or non-canonical, so the owner runs a pre-check first. Web and iOS show localized messages for the new rejections.
 
+### 2026-11-03 — Per-IP limits on sign-in and email endpoints
+
+[Issue #332](https://github.com/OL1V3S/ordo/issues/332)
+
+- Sign-in endpoints allow 20 requests a minute per client IP; register, resend and forgot-password allow 10. Over the limit returns the usual `429`, before any password hash or account lookup.
+- The client IP comes from the rightmost `X-Forwarded-For` entry (Render's edge). Limits are in memory and reset on restart. No config, schema, web or iOS change.
+
+### 2026-11-03 — Readiness check and deploy smoke script
+
+[Issue #335](https://github.com/OL1V3S/ordo/issues/335)
+
+- Added anonymous `/health/ready` (database reachability, fixed body, 503 when down); `/health` stays DB-free.
+- Added `scripts/smoke-deploy.sh` and runbook guidance for post-deploy smoke and uptime monitors.
+
 ### 2026-11-03 — Budget limit save binds a request DTO
 
 [PR #342](https://github.com/OL1V3S/ordo/pull/342) · [Issue #331](https://github.com/OL1V3S/ordo/issues/331)
@@ -152,18 +166,3 @@ the permanent, complete archive.
 
 - The iPhone app can create an account and send confirmation or reset emails, like the web. Email links open the web pages in Safari; the app never handles a token.
 - Settings (gear on Home) has Appearance, Language (English, Español) and Sign out. Only theme and language are stored on the device. Backend, API, schema and web app are unchanged.
-
-### 2026-10-20 — Statement import in the iOS app
-
-[Issue #281](https://github.com/OL1V3S/ordo/issues/281)
-
-- The iOS Transactions tab can import a Sunflower statement PDF: upload, review, edit, select and confirm.
-- The PDF is only held in memory; a confirm is retried only on tap and cannot create duplicates.
-
-### 2026-10-20 — One Refresh button on Transactions
-
-[Issue #279](https://github.com/OL1V3S/ordo/issues/279)
-
-- The web Transactions page has one Refresh button that reloads both the expense and deposit lists, replacing "Refresh expenses" and "Refresh deposits". Recovery messages now say "Select Refresh". English and Spanish.
-- Refresh is off while either list loads or a save is running. Each list's recovery checks and write blocks are unchanged. iPhone app, backend, API and schema are unchanged.
-

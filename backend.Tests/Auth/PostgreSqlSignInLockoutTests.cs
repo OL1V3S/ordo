@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using BudgetPlanner.Authentication;
 using BudgetPlanner.Models;
 using BudgetPlanner.Tests.Financial;
 using Microsoft.AspNetCore.Identity;
@@ -188,6 +189,9 @@ public sealed class PostgreSqlSignInLockoutTests
 
         protected override void ConfigureAdditionalServices(IServiceCollection services)
         {
+            // The per-IP limiter (#332) is covered in ClientIpThrottleTests; these
+            // tests send all requests from one IP and need the lockout budget to decide.
+            services.Configure<ClientIpLimiterOptions>(options => options.SignInPermitLimit = int.MaxValue);
             services.RemoveAll<IPasswordHasher<ApplicationUser>>();
             services.AddScoped<IPasswordHasher<ApplicationUser>>(provider => new CountingPasswordHasher(
                 new PasswordHasher<ApplicationUser>(provider.GetRequiredService<IOptions<PasswordHasherOptions>>()),
