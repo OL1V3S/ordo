@@ -1,7 +1,8 @@
 # Auth and Session Invariants
 
 This document states how authentication and sessions behave **today** (verified
-against `main` at f1f7e0c). It describes current behavior; it does not approve
+against `main` at f1f7e0c; the access-token session check, #337, was added on
+65a72d7). It describes current behavior; it does not approve
 changes. Any change to a rule below needs its own approved issue (see
 [`AGENTS.md`](../AGENTS.md)). Narrative design lives in
 [`ARCHITECTURE.md`](../ARCHITECTURE.md); this file is the rule list.
@@ -13,7 +14,7 @@ intentionally absent today.
 
 | Credential | Lifetime | Where it lives |
 | --- | --- | --- |
-| Access token (JWT) | 2 hours, fixed | Web: `localStorage`. iOS app: held in `SessionManager`; a copy goes to the shared Keychain item for the widget |
+| Access token (JWT) | 2 hours, fixed; ends earlier when its session ends (see below) | Web: `localStorage`. iOS app: held in `SessionManager`; a copy goes to the shared Keychain item for the widget |
 | Device session credential (native) | Idle 60 days, absolute 180 days | iOS Keychain (`AfterFirstUnlockThisDeviceOnly`, not synchronizable) |
 | Web session credential | Same as above (same table and service) | HttpOnly cookie only, never in a body |
 | Email confirmation / password reset token | ASP.NET Identity default token provider; no lifespan configured in this repo | Emailed link |
@@ -22,6 +23,7 @@ intentionally absent today.
 - Absolute lifetime counts from creation. Refresh never extends it.
 - Defaults are code defaults in `DeviceSessionOptions`; nothing overrides them in `Program.cs`.
 - The access token lifetime is hard-coded in `AuthController.GenerateJwtToken`.
+- Session and stamp binding of access tokens: see [Access-token session check (#337)](#access-token-session-check-337).
 - Unknown: the actual Identity default token lifespan is framework behavior and is not asserted by any repo test.
 
 ## Device sessions and web sessions
@@ -109,18 +111,37 @@ Remaining oracles and residuals (#319 is done: sign-in timing, reset-password, r
 ## JWT parameters
 
 - Algorithm HS256 (`SecurityAlgorithms.HmacSha256`), symmetric key from `Jwt:Key`. The app refuses to start if the key is missing.
-- Claims: `NameIdentifier` (user id), `Email`, `Name`, `iss`, `aud`, `exp`.
+- Claims: `NameIdentifier` (user id), `Email`, `Name`, `iss`, `aud`, `exp`, plus exactly one of `sid` (device and web session tokens) or `ordo_stamp` (`/login` tokens), see the session check section.
 - `iss` = `ordo-api`, `aud` = `ordo-clients`. Constants in `backend/Authentication/AccessTokenClaims.cs`, not configuration.
 - **Issuing** (#301 phase 1): all token paths issue them: login, device session create and refresh, web session create and refresh.
 - **Validation: on** (#301 phase 2). `ValidateIssuer` and `ValidateAudience` are `true` with `ValidIssuer = ordo-api` and `ValidAudience = ordo-clients`, alongside the signature (`ValidateIssuerSigningKey`) and default lifetime checks. An `aud` array is accepted if it contains `ordo-clients`.
 - A token with a missing or wrong `iss` or `aud` gets `401`. Older tokens issued before phase 1 carry neither claim and are rejected; clients recover by refreshing their session or signing in again.
+
+## Access-token session check (#337)
+
+- Every request that carries a bearer token is checked, after signature, `iss`/`aud` and lifetime, in `JwtBearerEvents.OnTokenValidated` (`AccessTokenSessionValidation`, `DeviceSessionService.IsAccessTokenCurrentAsync`). A failing token gets the normal bearer `401` (`error="invalid_token"`), the same as an expired token. It happens before any controller runs, so a `401` still means nothing ran. No `OnAuthenticationFailed` result is set; the failure text is fixed and no ids or tokens are logged.
+- **Device-session and web-session tokens** carry `sid`: the session id protected with ASP.NET Data Protection (purpose `BudgetPlanner.Authentication.AccessTokenSessionId.v1`). The raw session id is never in a JWT, because native sign-out and refresh act on a well-formed credential without checking its secret and an expired token still carries `sid`. Keys persist in the database; if they are ever lost, access tokens get `401` and clients refresh and recover.
+- **`/login` tokens** (no session; no shipped client calls `/login`) carry `ordo_stamp`: base64url SHA-256 of the security stamp.
+- The check passes only when the token has exactly one of the two claims:
+  - `sid`: it unprotects, the `DeviceSessions` row exists, `OwnerId` is the token's user, the session is not idle or absolutely expired (same rule as refresh), and the row's stamp hash equals the hash of the user's current stamp.
+  - `ordo_stamp`: equals the hash of the user's current stamp (a missing user fails).
+  - Neither claim (a token issued before #337), both, two of one, or a `sid` that does not unprotect: `401`.
+- Claims are read by literal name from the validated principal. A claim-mapping change fails closed (`401`); `AccessTokenSessionCheckTests` pins the names and the principal.
+- **Ends a token immediately**: sign-out of its session (native or web, including a web sign-in that replaces an old cookie); a completed password reset (sessions deleted and stamp changed, which also covers `/login` tokens); any other stamp change; reuse detection; eviction past the 20-session cap; session idle or absolute expiry; a deleted user.
+- **Does not end a token**: lockout (it never revokes, so wrong guesses cannot sign the owner out); refresh and rotation (same session id); forgot-password, resend and confirm; sign-out of a different session.
+- **Public endpoints**: the web client sends its bearer on the public auth calls too. A stale bearer there is not an error: authentication only sets the user, and only protected endpoints challenge. Sign-in and refresh keep working with a revoked token.
+- **Cost**: one indexed primary-key `SELECT` per request that carries a bearer (a join of `DeviceSessions` and `AspNetUsers` for `sid`, one user row for `ordo_stamp`), `AsNoTracking`, no transaction, no lock, no write, no cache, so no staleness window. Data Protection reads its key ring from the database only when it refreshes it, not per request. Round-trip time from Render to Neon is not measured here.
+- **Failure handling**: a database error is not turned into `401`. It reaches the safe `500` (fails closed), so an outage never signs clients out. A Data Protection failure that is not an invalid payload or unknown key (for example a database error while loading keys) is rethrown the same way. Logging: the bearer handler logs the exception once (type, message and stack; no token), then the exception handler writes its one privacy-safe line, so there is one line more than the single line described under Security headers and CSP.
+- **Rollout**: tokens issued before #337 carry neither claim, so each client gets one `401` and then refreshes and retries (web and iOS already do). The iOS widget shows its "needs update" state until the app runs.
+- Out of scope: sign-out-everywhere and a session list, a revocation table, caching, lockout changes, changing native sign-out or refresh secret checks.
+- **Pending (#337 PR B)**: the web client still keeps the access token in `localStorage`; moving it to memory is a separate change.
 
 ## Email confirmation and password reset
 
 - Both use ASP.NET Identity data-protection tokens, sent as Base64Url-encoded links built from `Frontend:BaseUrl`. Tokens are single purpose and not stored in Ordo tables.
 - `RequireConfirmedEmail` is on; sign-in checks confirmation after the password and lockout checks.
 - Data Protection keys persist in the database (`PersistKeysToDbContext`), so tokens survive restarts and redeploys. Restoring a database from before a key existed can invalidate outstanding tokens (see [`operations-runbook.md`](operations-runbook.md)).
-- Reset-password changes the security stamp (Identity) and revokes all sessions, but does not revoke an already issued access token.
+- Reset-password changes the security stamp (Identity) and revokes all sessions. Access tokens issued earlier get `401` on their next request (see the session check section).
 
 ## Rate limiters
 
@@ -157,12 +178,11 @@ All are in-memory fixed-window limiters with code defaults. State is per process
 - Production headers come from `frontend/vercel.json` and apply to the web app: CSP, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy`.
 - CSP: `default-src 'self'`, one hash-pinned inline script, `connect-src` limited to self plus the Render API, `object-src 'none'`, `base-uri 'none'`, `frame-ancestors 'none'`. It restricts where a stolen `localStorage` token could be sent, but does not make `localStorage` safe against XSS.
 - The API itself sets no security headers; it relies on HTTPS redirection.
-- Server errors: unhandled exceptions return a safe `500` problem body with a code and trace id and one privacy-safe log line. `GET /health` and `GET /health/ready` are anonymous; readiness returns only a fixed up/down body.
+- Server errors: unhandled exceptions return a safe `500` problem body with a code and trace id and one privacy-safe log line (one more line from the bearer handler when the failure happens in the session check, see above). `GET /health` and `GET /health/ready` are anonymous; readiness returns only a fixed up/down body.
 
 ## Intentionally not done
 
-- **No security-stamp check on access tokens.** Tokens carry no stamp claim. After a password reset or session revocation, an issued access token works until its 2 hour `exp`.
-- **No access-token revocation list** and no forced sign-out of existing access tokens.
+- **No access-token revocation list.** Revocation is the per-request session check (see above); there is no table of revoked tokens and no cache.
 - **No JWT key rotation.** One key in `Jwt:Key`; no `kid`, no overlap period.
 - **`ValidAlgorithms` is not pinned.** The handler default applies.
 - **No clock-skew override.** The default lifetime validation applies, so a token is accepted for a few minutes past `exp`.
@@ -188,6 +208,7 @@ All are in-memory fixed-window limiters with code defaults. State is per process
 | Per-IP throttle | `ClientIpLimiter.cs`, `AuthController`, `Program.cs` (forwarded headers) | `ClientIpThrottleTests.cs` |
 | Resend and forgot password | `ConfirmationResendLimiter.cs`, `ForgotPasswordLimiter.cs`, `AuthController` | `AccountConfirmationFlowTests.cs`, `ForgotPasswordFlowTests.cs` |
 | JWT claims and parameters | `AccessTokenClaims.cs`, `AuthController.GenerateJwtToken`, `Program.cs` | `AccessTokenClaimsTests.cs` (issued claims and rejection matrix) |
+| Access-token session check (#337) | `AccessTokenSessionValidation.cs`, `DeviceSessionService.IsAccessTokenCurrentAsync`, `AuthController`, `Program.cs` (`OnTokenValidated`) | `AccessTokenSessionCheckTests.cs`, `PostgreSqlAccessTokenSessionTests.cs` |
 | Data Protection key persistence | `Program.cs` | `DataProtectionPersistenceTests.cs` |
 | Safe errors and health | `backend/Diagnostics/UnhandledExceptionHandler.cs`, `Program.cs` | `backend.Tests/Diagnostics/ExceptionHandlingAndHealthTests.cs` |
 | Security headers and CSP | `frontend/vercel.json` | `frontend/src/test/securityHeaders.test.js` |
