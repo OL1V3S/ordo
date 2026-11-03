@@ -140,7 +140,7 @@ All are in-memory fixed-window limiters with code defaults. State is per process
 - Production headers come from `frontend/vercel.json` and apply to the web app: CSP, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy`.
 - CSP: `default-src 'self'`, one hash-pinned inline script, `connect-src` limited to self plus the Render API, `object-src 'none'`, `base-uri 'none'`, `frame-ancestors 'none'`. It restricts where a stolen `localStorage` token could be sent, but does not make `localStorage` safe against XSS.
 - The API itself sets no security headers; it relies on HTTPS redirection.
-- Server errors: unhandled exceptions return a safe `500` problem body with a code and trace id and one privacy-safe log line. `GET /health` is anonymous.
+- Server errors: unhandled exceptions return a safe `500` problem body with a code and trace id and one privacy-safe log line. `GET /health` and `GET /health/ready` are anonymous; readiness returns only a fixed up/down body.
 
 ## Intentionally not done
 
