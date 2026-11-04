@@ -321,7 +321,7 @@ public sealed class RequestCorrelationTests
     }
 
     [Fact]
-    public async Task Log_entries_inside_the_request_carry_a_RequestId_scope()
+    public async Task Log_entries_inside_the_request_carry_an_OrdoRequestId_scope()
     {
         var logs = new CapturingLoggerProvider();
         await using var app = await TestApplication.StartAsync(loggerProvider: logs, configureServices: UseThrowingHome);

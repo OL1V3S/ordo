@@ -88,6 +88,16 @@ describe('E2E database safety guard', () => {
     expect(env.PATH).toBe('/usr/bin')
   })
 
+  it('drops an inherited API connection key that differs only in case', () => {
+    const { env, connectionString } = buildE2eEnvironment({
+      connectionstrings__defaultconnection: 'Host=ep-prod.neon.tech;Database=neondb',
+    })
+    expect(Object.keys(env).filter((key) => key.toLowerCase() === API_CONNECTION_VARIABLE.toLowerCase())).toEqual([
+      API_CONNECTION_VARIABLE,
+    ])
+    expect(env[API_CONNECTION_VARIABLE]).toBe(connectionString)
+  })
+
   it('refuses when the operator points the E2E settings at a remote host', () => {
     expect(() => buildE2eEnvironment({ BUDGETPLANNER_E2E_PG_HOST: 'ep-prod.neon.tech' })).toThrow(/safety guard/)
     expect(() => buildE2eEnvironment({ BUDGETPLANNER_E2E_PG_DATABASE: 'neondb' })).toThrow(/safety guard/)

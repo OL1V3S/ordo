@@ -108,11 +108,18 @@ export function buildPsqlInvocation(baseEnv, settings, database) {
 export function buildE2eEnvironment(baseEnv = process.env) {
   const settings = readSettings(baseEnv)
   const connectionString = buildConnectionString(settings)
+  // ASP.NET reads configuration keys case-insensitively, so drop inherited
+  // differently-cased copies of the API variable before setting the real one.
+  const inherited = Object.fromEntries(
+    Object.entries(removePgVariables(baseEnv)).filter(
+      ([key]) => key.toLowerCase() !== API_CONNECTION_VARIABLE.toLowerCase(),
+    ),
+  )
   return {
     settings,
     connectionString,
     env: {
-      ...removePgVariables(baseEnv),
+      ...inherited,
       [MIGRATION_CONNECTION_VARIABLE]: connectionString,
       [API_CONNECTION_VARIABLE]: connectionString,
     },
