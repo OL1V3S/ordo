@@ -2,11 +2,13 @@ import { useId } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocale } from "../../../shared/localization/useLocale";
 import { Bar } from "react-chartjs-2";
-import { Chart as ChartJS, BarElement, CategoryScale, LinearScale, Tooltip, Legend } from "chart.js";
+import { Chart as ChartJS, BarElement, CategoryScale, LinearScale, LineController, LineElement, PointElement, Tooltip, Legend } from "chart.js";
 import { useCashFlowColors } from "../hooks/useCashFlowColors";
-import { cashMonthLabel, cashMonthTickParts, formatCash, periodNotes } from "../utils/cashFlowPresentation";
+import { cashMonthLabel, cashMonthTickParts, formatCash, netSeries, periodNotes } from "../utils/cashFlowPresentation";
 
-ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend);
+ChartJS.register(BarElement, CategoryScale, LinearScale, LineController, LineElement, PointElement, Tooltip, Legend);
+
+const NET_INDEX = 3;
 
 export default function CashFlowTrendChart({ data }) {
   const { t } = useTranslation("analytics");
@@ -27,7 +29,12 @@ export default function CashFlowTrendChart({ data }) {
       data: data.months.map((bucket) => Number(bucket[fields[index]]) / 100),
       borderColor: colors.text,
       borderSkipped: false,
-    })),
+    })).concat({
+      // Overlaid line on the same USD axis; its own stack keeps it out of the bars.
+      type: "line", label: t("chart.datasets.net"), stack: "net", order: -1,
+      data: netSeries(data.months), borderColor: colors.text, backgroundColor: colors.surface,
+      borderWidth: 2, borderDash: [6, 4], pointRadius: 4, pointBorderWidth: 2, fill: false, tension: 0,
+    }),
   };
   const options = {
     responsive: true,
@@ -35,7 +42,7 @@ export default function CashFlowTrendChart({ data }) {
     animation: false,
     scales: {
       x: { stacked: true, ticks: { color: colors.text, autoSkip: false, maxRotation: 0, minRotation: 0 }, grid: { display: false }, border: { color: colors.border } },
-      y: { stacked: true, beginAtZero: true, ticks: { color: colors.text }, grid: { color: colors.grid }, border: { color: colors.border }, title: { display: true, text: "USD", color: colors.text } },
+      y: { stacked: true, beginAtZero: true, ticks: { color: colors.text }, grid: { color: (context) => context.tick?.value === 0 ? colors.text : colors.grid, lineWidth: (context) => context.tick?.value === 0 ? 2 : 1 }, border: { color: colors.border }, title: { display: true, text: "USD", color: colors.text } },
     },
     plugins: {
       legend: { display: false },
@@ -44,8 +51,16 @@ export default function CashFlowTrendChart({ data }) {
         borderColor: colors.border, borderWidth: 1,
         callbacks: {
           title: (items) => items.length ? cashMonthLabel(data.months[items[0].dataIndex].month, { t }) : "",
-          label: (context) => t("chart.tooltipValue", { label: context.dataset.label, amount: formatCash(data.months[context.dataIndex][fields[context.datasetIndex]], { locale }) }),
-          footer: (items) => items.length ? t("chart.tooltipCashIn", { amount: formatCash(data.months[items[0].dataIndex].cashInMinor, { locale }) }) : "",
+          label: (context) => t("chart.tooltipValue", {
+            label: context.dataset.label,
+            amount: context.datasetIndex === NET_INDEX
+              ? formatCash(data.months[context.dataIndex].netMinor, { signed: true, locale })
+              : formatCash(data.months[context.dataIndex][fields[context.datasetIndex]], { locale }),
+          }),
+          footer: (items) => {
+            const bars = items.filter((item) => item.datasetIndex !== NET_INDEX);
+            return bars.length ? t("chart.tooltipCashIn", { amount: formatCash(data.months[bars[0].dataIndex].cashInMinor, { locale }) }) : "";
+          },
         },
       },
     },
@@ -59,6 +74,7 @@ export default function CashFlowTrendChart({ data }) {
         <li><span className="cash-flow-swatch cash-flow-bar__paychecks" aria-hidden="true" />{t("chart.datasets.paychecks")}</li>
         <li><span className="cash-flow-swatch cash-flow-bar__other" aria-hidden="true" />{t("chart.datasets.other")}</li>
         <li><span className="cash-flow-swatch cash-flow-bar__spent" aria-hidden="true" />{t("chart.datasets.spent")}</li>
+        <li><span className="cash-flow-swatch cash-flow-swatch--net" aria-hidden="true" />{t("chart.datasets.net")}</li>
       </ul>
       <div className="cash-flow-trend__canvas" aria-hidden="true"><Bar data={chartData} options={options} /></div>
       {data.months.some((bucket) => bucket.month === data.throughDate.slice(0, 7)) && <p className="muted cash-flow-trend__note">{t("chart.monthToDateNote")}</p>}

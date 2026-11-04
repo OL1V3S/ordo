@@ -103,6 +103,23 @@
         }
       }
     },
+    "analytics.categories.donut.other": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Other (%1$@)"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resto (%1$@)"
+          }
+        }
+      }
+    },
     "analytics.categories.empty": {
       "extractionState": "manual",
       "localizations": {
@@ -167,6 +184,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "No aplica"
+          }
+        }
+      }
+    },
+    "analytics.chart.datasets.net": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deposits minus spending"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Depósitos menos gastos"
           }
         }
       }

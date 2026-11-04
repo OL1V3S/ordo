@@ -92,7 +92,11 @@
     "kicker": "Ordenado por monto",
     "heading": "Dónde se gastó",
     "empty": "No hay gastos registrados",
-    "notApplicable": "No aplica"
+    "notApplicable": "No aplica",
+    "donut": {
+      "label": "Parte del gasto por categoría",
+      "other": "Resto ({{count}})"
+    }
   },
   "chart": {
     "kickerSixMonths": "Seis meses calendario",
@@ -107,7 +111,8 @@
     "datasets": {
       "paychecks": "Pagos de nómina confirmados",
       "other": "Otros depósitos",
-      "spent": "Gastado"
+      "spent": "Gastado",
+      "net": "Depósitos menos gastos"
     },
     "table": {
       "summary": "Ver datos del gráfico",

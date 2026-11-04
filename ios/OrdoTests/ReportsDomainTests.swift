@@ -51,7 +51,8 @@ import Testing
                 if try String(contentsOf: url, encoding: .utf8).contains("approximateDollars") { users.append(url.lastPathComponent) }
             }
         }
-        #expect(users.sorted() == ["CashAmount.swift", "CashFlowTrendSection.swift"])
+        // Chart geometry only: the two charts.
+        #expect(users.sorted() == ["CashAmount.swift", "CashFlowCategoriesSection.swift", "CashFlowTrendSection.swift"])
     }
 }
 
@@ -243,6 +244,41 @@ import Testing
                     CashFlowCategory(category: "b", amount: CashAmount("9007199254740993")!),
                     CashFlowCategory(category: "c", amount: CashAmount("99999999999999999999")!)]
         #expect(ReportsPresenter.ordered(list).map(\.category) == ["c", "b", "a"])
+    }
+
+    private func category(_ name: String, _ amount: String) -> CashFlowCategory {
+        CashFlowCategory(category: name, amount: CashAmount(amount)!)
+    }
+
+    @Test func sharesFollowTheListOrderAndSum() {
+        let list = [category("b", "500"), category("a", "500"), category("c", "900")]
+        let shares = ReportsPresenter.categoryShares(list, spent: CashAmount("1900")!)
+        #expect(shares.map(\.category) == ReportsPresenter.ordered(list).map(\.category))
+        #expect(shares.map(\.amount) == ReportsPresenter.ordered(list).map(\.amount))
+        #expect(shares.allSatisfy { !$0.isOther })
+    }
+
+    @Test func sharesAreEmptyWithoutSpendingOrCategories() {
+        #expect(ReportsPresenter.categoryShares([category("a", "5")], spent: CashAmount("0")!).isEmpty)
+        #expect(ReportsPresenter.categoryShares([], spent: CashAmount("100")!).isEmpty)
+        #expect(ReportsPresenter.categoryShares([category("a", "5")], spent: CashAmount("5")!).count == 1)
+    }
+
+    @Test func sevenCategoriesGroupTheTailIntoAnExactOther() {
+        let six = (1...6).map { category("c\($0)", String($0)) }
+        #expect(ReportsPresenter.categoryShares(six, spent: CashAmount("21")!).count == 6)
+        let seven = six + [category("c7", "99999999999999999999")]
+        let shares = ReportsPresenter.categoryShares(seven, spent: CashAmount("1000")!)
+        #expect(shares.count == 6)
+        #expect(shares[5].isOther && shares[5].count == 2 && shares[5].amount.canonical == "3")
+        #expect(shares[0].amount.canonical == "99999999999999999999")
+    }
+
+    @Test func donutAndNetKeysExistInBothLanguages() {
+        #expect(L10n(language: .en).string(.analyticsChartDatasetsNet) == "Deposits minus spending")
+        #expect(L10n(language: .es).string(.analyticsChartDatasetsNet) == "Depósitos menos gastos")
+        #expect(L10n(language: .en).string(.analyticsCategoriesDonutOther, "2") == "Other (2)")
+        #expect(L10n(language: .es).string(.analyticsCategoriesDonutOther, "2") == "Resto (2)")
     }
 
     @Test func monthOptionsListCurrentSelectedAndAvailableNewestFirst() {

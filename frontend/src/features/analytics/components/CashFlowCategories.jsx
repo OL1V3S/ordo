@@ -3,17 +3,16 @@ import { useTranslation } from "react-i18next";
 import { useLocale } from "../../../shared/localization/useLocale";
 import { displayText } from "../../../utils/text";
 import { categoryLabel } from "../../../shared/localization/categoryLabel";
+import CashFlowCategoryDonut from "./CashFlowCategoryDonut";
 import StatusMessage from "../../../shared/ui/StatusMessage";
-import { barWidth, cashPercentage, formatCash, minorUnits } from "../utils/cashFlowPresentation";
+import { barWidth, cashPercentage, categoryShares, formatCash, sortCategories } from "../utils/cashFlowPresentation";
 
 export default function CashFlowCategories({ data }) {
   const { t } = useTranslation("analytics");
   const { locale } = useLocale();
   const headingId = useId();
-  const categories = useMemo(() => [...(data.categories ?? [])].sort((left, right) => {
-    const difference = minorUnits(right.amountMinor) - minorUnits(left.amountMinor);
-    return difference > 0n ? 1 : difference < 0n ? -1 : left.category.localeCompare(right.category, "en");
-  }), [data]);
+  const categories = useMemo(() => sortCategories(data.categories), [data]);
+  const shares = useMemo(() => categoryShares(data.categories, data.selected.spentMinor), [data]);
 
   return (
     <section className="analytics-panel cash-flow-categories" aria-labelledby={headingId}>
@@ -26,6 +25,8 @@ export default function CashFlowCategories({ data }) {
       {categories.length === 0 ? (
         <StatusMessage>{t("categories.empty")}</StatusMessage>
       ) : (
+        <>
+        {shares.length > 0 && <CashFlowCategoryDonut shares={shares} spentMinor={data.selected.spentMinor} />}
         <ol className="analytics-list analytics-category-list">
           {categories.map((category) => (
             <li key={category.category} className="analytics-list__item">
@@ -39,6 +40,7 @@ export default function CashFlowCategories({ data }) {
             </li>
           ))}
         </ol>
+        </>
       )}
     </section>
   );
