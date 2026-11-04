@@ -26,7 +26,7 @@ the permanent, complete archive.
 
 ### 2026-11-04 — Reports: category share donut and six-month net line
 
-[Issue #357](https://github.com/OL1V3S/ordo/issues/357)
+[Issue #357](https://github.com/OL1V3S/ordo/issues/357) · [PR #358](https://github.com/OL1V3S/ordo/pull/358)
 
 - Reports on web and iPhone show a donut of the month's spending by category (top five plus "Other" above six) above the unchanged ranked list.
 - The six-month chart overlays a dashed net line with a highlighted zero line; the exact table already lists net. Charts only; no backend, API or schema change.
