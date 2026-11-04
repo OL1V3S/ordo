@@ -103,6 +103,40 @@
         }
       }
     },
+    "analytics.categories.donut.label": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Share of spending by category"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Parte del gasto por categoría"
+          }
+        }
+      }
+    },
+    "analytics.categories.donut.other": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Other (%1$@)"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Otras (%1$@)"
+          }
+        }
+      }
+    },
     "analytics.categories.empty": {
       "extractionState": "manual",
       "localizations": {
@@ -167,6 +201,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "No aplica"
+          }
+        }
+      }
+    },
+    "analytics.chart.datasets.net": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deposits minus spending"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Depósitos menos gastos"
           }
         }
       }

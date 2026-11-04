@@ -76,6 +76,31 @@ struct ReportsPresenter: Sendable {
         }
     }
 
+    /// One donut slice: a category, or the grouped remainder (`category` nil, `count` categories).
+    struct CategoryShare: Equatable, Sendable {
+        let category: String?
+        let amount: CashAmount
+        let count: Int
+        var isOther: Bool { category == nil }
+    }
+
+    /// The donut slices in list order. Above `cap` categories the top `cap - 1` stay and the rest are
+    /// summed exactly into one Other slice. Empty when nothing was spent.
+    static func categoryShares(_ categories: [CashFlowCategory], spent: CashAmount, cap: Int = 6) -> [CategoryShare] {
+        guard spent.isPositive else { return [] }
+        let sorted = ordered(categories)
+        let slices = { (list: ArraySlice<CashFlowCategory>) in list.map { CategoryShare(category: $0.category, amount: $0.amount, count: 1) } }
+        guard sorted.count > cap else { return slices(sorted[...]) }
+        let rest = sorted[(cap - 1)...]
+        let total = rest.reduce(Int128(0)) { $0 + $1.amount.value }
+        return slices(sorted[..<(cap - 1)]) + [CategoryShare(category: nil, amount: CashAmount(total), count: rest.count)]
+    }
+
+    /// Each month's net for plotting only; the exact text stays in the data list.
+    static func netSeries(_ months: [CashFlowMonth]) -> [Double] {
+        months.map { $0.net.approximateDollars }
+    }
+
     /// The months the picker lists: the current and selected months and every available month,
     /// without repeats, newest first.
     static func monthOptions(current: BudgetMonth, selected: BudgetMonth, available: [BudgetMonth]) -> [BudgetMonth] {

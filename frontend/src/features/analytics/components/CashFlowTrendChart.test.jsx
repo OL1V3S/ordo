@@ -20,11 +20,28 @@ describe("cash-flow monthly grouped stacks", () => {
       { label: "Confirmed paychecks", stack: "cash-in", data: [0, 0, 0, 0, 0, 120], borderWidth: 1 },
       { label: "Other deposits", stack: "cash-in", data: [0, 0, 0, 0, 0, 30], borderWidth: 3 },
       { label: "Spent", stack: "spent", data: [0, 0, 0, 0, 0, 100], borderWidth: 1 },
+      { type: "line", label: "Deposits minus spending", stack: "net", data: [0, 0, 0, 0, 0, 50], borderDash: [6, 4] },
     ]);
     expect(renderedChart.options.animation).toBe(false);
     expect(renderedChart.options.scales.y).toMatchObject({ stacked: true, beginAtZero: true });
     expect(renderedChart.options.scales.x.ticks.autoSkip).toBe(false);
     expect(screen.getByTestId("trend-canvas").parentElement).toHaveAttribute("aria-hidden", "true");
+  });
+  it("plots a negative net month below zero and emphasizes the zero gridline", () => {
+    render(<CashFlowTrendChart data={cashFlowFixture("2026-08", { spentMinor: "30000", netMinor: "-15000" })} />);
+    expect(renderedChart.data.datasets[3].data[5]).toBe(-150);
+    expect(renderedChart.options.scales.y.grid.color({ tick: { value: 0 } })).not.toBe(renderedChart.options.scales.y.grid.color({ tick: { value: 10 } }));
+    expect(screen.getByText("Deposits minus spending", { selector: "li" })).toBeInTheDocument();
+  });
+  it("handles the net dataset in the tooltip callbacks without indexing the bar fields", () => {
+    render(<CashFlowTrendChart data={cashFlowFixture("2026-08", { spentMinor: "30000", netMinor: "-15000" })} />);
+    const callbacks = renderedChart.options.plugins.tooltip.callbacks;
+    expect(callbacks.label({ dataset: { label: "Deposits minus spending" }, datasetIndex: 3, dataIndex: 5 }))
+      .toBe("Deposits minus spending: −$150.00");
+    expect(callbacks.label({ dataset: { label: "Deposits minus spending" }, datasetIndex: 3, dataIndex: 0 }))
+      .toBe("Deposits minus spending: $0.00");
+    expect(callbacks.footer([{ datasetIndex: 3, dataIndex: 5 }])).toBe("");
+    expect(callbacks.footer([{ datasetIndex: 3, dataIndex: 5 }, { datasetIndex: 0, dataIndex: 5 }])).toBe("Deposits: $150.00");
   });
   it("provides exact complete table data without hovering, including all empty buckets and period notes", () => {
     render(<CashFlowTrendChart data={cashFlowFixture()} />);

@@ -92,7 +92,11 @@
     "kicker": "Ranked by amount",
     "heading": "Where it went",
     "empty": "No spending recorded",
-    "notApplicable": "Not applicable"
+    "notApplicable": "Not applicable",
+    "donut": {
+      "label": "Share of spending by category",
+      "other": "Other ({{count}})"
+    }
   },
   "chart": {
     "kickerSixMonths": "Six calendar months",
@@ -107,7 +111,8 @@
     "datasets": {
       "paychecks": "Confirmed paychecks",
       "other": "Other deposits",
-      "spent": "Spent"
+      "spent": "Spent",
+      "net": "Deposits minus spending"
     },
     "table": {
       "summary": "View chart data",

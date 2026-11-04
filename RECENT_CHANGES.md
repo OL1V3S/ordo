@@ -24,6 +24,13 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-11-04 — Reports: category share donut and six-month net line
+
+[Issue #357](https://github.com/OL1V3S/ordo/issues/357)
+
+- Reports on web and iPhone show a donut of the month's spending by category (top five plus "Other" above six) above the unchanged ranked list.
+- The six-month chart overlays a dashed net line with a highlighted zero line; the exact table already lists net. Charts only; no backend, API or schema change.
+
 ### 2026-11-03 — Web: access token kept in memory only
 
 [Issue #337](https://github.com/OL1V3S/ordo/issues/337) · [PR #354](https://github.com/OL1V3S/ordo/pull/354)
@@ -156,10 +163,3 @@ the permanent, complete archive.
 
 - Login, device-session and web-session sign-in now lock an account for 10 minutes after 5 wrong passwords; a success resets the count.
 - Attempts are reserved atomically before hashing on PostgreSQL, so parallel guesses stay within the budget. Locked, wrong-password and unknown-email responses are identical; no API, schema or config change.
-
-### 2026-10-23 — iPhone widget: this month's spending
-
-[PR #297](https://github.com/OL1V3S/ordo/pull/297) · [Issue #291](https://github.com/OL1V3S/ordo/issues/291)
-
-- The Home Screen widget now shows this month's exact spending and a six-month graph from the existing cash-flow report, labelled "Updated …"; it asks you to open Ordo when its copy is old.
-- The app shares only the 2-hour access token with the widget through a shared Keychain item, removed at sign-out; the refresh credential never leaves the app. iPhone app only, so backend, API and schema are unchanged.

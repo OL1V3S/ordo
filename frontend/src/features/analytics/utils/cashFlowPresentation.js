@@ -67,3 +67,31 @@ export function periodNotes(bucket, throughDate, { t = englishT } = {}) {
   if (bucket.spentMinor === "0") notes.push(t("periodNotes.noSpending"));
   return notes.join(" · ") || "—";
 }
+
+// The list's order: amount descending, then the stored name (English collation).
+export function sortCategories(categories) {
+  return [...(categories ?? [])].sort((left, right) => {
+    const difference = minorUnits(right.amountMinor) - minorUnits(left.amountMinor);
+    return difference > 0n ? 1 : difference < 0n ? -1 : left.category.localeCompare(right.category, "en");
+  });
+}
+
+// Donut slices in list order. Above `cap` categories, the top cap - 1 stay and the rest are
+// summed exactly into one Other slice. Empty when nothing was spent. Amounts stay exact strings;
+// `Number` is for plot geometry only, where the chart is built.
+export function categoryShares(categories, spentMinor, { cap = 6 } = {}) {
+  if (minorUnits(spentMinor) <= 0n) return [];
+  const sorted = sortCategories(categories);
+  if (sorted.length <= cap) return sorted.map(({ category, amountMinor }) => ({ category, amountMinor, other: false, count: 1 }));
+  const rest = sorted.slice(cap - 1);
+  const total = rest.reduce((sum, { amountMinor }) => sum + minorUnits(amountMinor), 0n);
+  return [
+    ...sorted.slice(0, cap - 1).map(({ category, amountMinor }) => ({ category, amountMinor, other: false, count: 1 })),
+    { category: null, amountMinor: total.toString(), other: true, count: rest.length },
+  ];
+}
+
+// Net per month for plotting only; tooltips and the table keep exact strings.
+export function netSeries(months) {
+  return months.map((bucket) => Number(minorUnits(bucket.netMinor)) / 100);
+}

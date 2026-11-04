@@ -8,7 +8,7 @@ import { useCashFlow } from "../hooks/useCashFlow";
 import { cashFlowFixture } from "../testFixtures";
 
 vi.mock("../hooks/useCashFlow", () => ({ useCashFlow: vi.fn() }));
-vi.mock("react-chartjs-2", () => ({ Bar: () => <canvas data-testid="cash-flow-chart" /> }));
+vi.mock("react-chartjs-2", () => ({ Bar: () => <canvas data-testid="cash-flow-chart" />, Doughnut: () => <canvas data-testid="cash-flow-donut" /> }));
 vi.mock("../../expenses/hooks/useExpenses", () => ({ useExpenses: vi.fn() }));
 vi.mock("../../budgetLimits/hooks/useBudgetLimits", () => ({ useBudgetLimits: vi.fn() }));
 

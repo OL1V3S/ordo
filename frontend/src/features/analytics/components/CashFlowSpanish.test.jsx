@@ -7,8 +7,10 @@ import i18n from "../../../shared/localization/i18n";
 import { cashFlowFixture } from "../testFixtures";
 
 let renderedChart;
+let renderedDonut;
 vi.mock("react-chartjs-2", () => ({
   Bar: (props) => { renderedChart = props; return <canvas data-testid="trend-canvas" />; },
+  Doughnut: (props) => { renderedDonut = props; return <canvas data-testid="donut-canvas" />; },
 }));
 
 describe("cash-flow components in Spanish", () => {
@@ -97,8 +99,8 @@ describe("cash-flow components in Spanish", () => {
       ["mar", "2026"], ["abr", "2026"], ["may", "2026"], ["jun", "2026"], ["jul", "2026"], ["ago", "2026", "A la fecha"],
     ]);
     expect(renderedChart.data.datasets.map(({ label }) => label))
-      .toEqual(["Pagos de nómina confirmados", "Otros depósitos", "Gastado"]);
-    expect(renderedChart.data.datasets.map(({ data }) => data[5])).toEqual([120, 30, 100]);
+      .toEqual(["Pagos de nómina confirmados", "Otros depósitos", "Gastado", "Depósitos menos gastos"]);
+    expect(renderedChart.data.datasets.map(({ data }) => data[5])).toEqual([120, 30, 100, 50]);
     expect(renderedChart.options.scales.y.title.text).toBe("USD");
     const callbacks = renderedChart.options.plugins.tooltip.callbacks;
     expect(callbacks.title([{ dataIndex: 4 }])).toBe("julio de 2026");
@@ -154,5 +156,15 @@ describe("cash-flow components in Spanish", () => {
     await act(async () => { await i18n.changeLanguage("en"); });
     expect(screen.getByText("2 calendar months from January 0001")).toBeInTheDocument();
     expect(renderedChart.data.labels).toEqual([["Jan", "0001"], ["Feb", "0001"]]);
+  });
+
+  it("localizes the donut and the net line, with Spanish percent format", () => {
+    const data = cashFlowFixture("2026-08", { spentMinor: "30000" });
+    data.categories = [{ category: "food", amountMinor: "10000" }, { category: "rent", amountMinor: "20000" }];
+    render(<><CashFlowCategories data={data} /><CashFlowTrendChart data={data} /></>);
+    expect(renderedDonut.options.plugins.title.text).toBe("Parte del gasto por categoría");
+    expect(renderedDonut.data.labels).toContain("Comida");
+    expect(renderedDonut.options.plugins.tooltip.callbacks.label({ dataIndex: 1 })).toMatch(/USD\s100\.00\s·\s33\.3\s?%/);
+    expect(renderedChart.data.datasets[3].label).toBe("Depósitos menos gastos");
   });
 });

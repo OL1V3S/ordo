@@ -19,6 +19,7 @@ struct CashFlowTrendSection: View {
         let paychecks: Double
         let other: Double
         let spent: Double
+        let net: Double
         let monthToDate: Bool
     }
 
@@ -27,7 +28,7 @@ struct CashFlowTrendSection: View {
             let parts = presenter.tickParts(bucket.month)
             return Point(id: bucket.month.key, tickMonth: parts.month, tickYear: parts.year,
                          paychecks: bucket.paycheckCashIn.approximateDollars, other: bucket.otherCashIn.approximateDollars,
-                         spent: bucket.spent.approximateDollars, monthToDate: bucket.month == throughMonth)
+                         spent: bucket.spent.approximateDollars, net: bucket.net.approximateDollars, monthToDate: bucket.month == throughMonth)
         }
     }
 
@@ -35,6 +36,7 @@ struct CashFlowTrendSection: View {
         let paychecksName = l10n.string(.analyticsChartDatasetsPaychecks)
         let otherName = l10n.string(.analyticsChartDatasetsOther)
         let spentName = l10n.string(.analyticsChartDatasetsSpent)
+        let netName = l10n.string(.analyticsChartDatasetsNet)
         let points = self.points
         Section {
             Chart {
@@ -48,7 +50,16 @@ struct CashFlowTrendSection: View {
                     BarMark(x: .value("Month", point.id), y: .value("USD", point.spent))
                         .foregroundStyle(by: .value("Series", spentName))
                         .position(by: .value("Group", "out"))
+                    LineMark(x: .value("Month", point.id), y: .value("Net", point.net), series: .value("Series", netName))
+                        .foregroundStyle(ThemeColor.text.color)
+                        .lineStyle(StrokeStyle(lineWidth: 2, dash: [6, 4]))
+                    PointMark(x: .value("Month", point.id), y: .value("Net", point.net))
+                        .foregroundStyle(ThemeColor.text.color)
+                        .symbolSize(40)
                 }
+                RuleMark(y: .value("Zero", 0))
+                    .foregroundStyle(ThemeColor.borderStrong.color)
+                    .lineStyle(StrokeStyle(lineWidth: 1))
             }
             .chartForegroundStyleScale([paychecksName: CashFlowSeries.paychecks.color, otherName: CashFlowSeries.other.color,
                                         spentName: CashFlowSeries.spent.color])
@@ -76,6 +87,7 @@ struct CashFlowTrendSection: View {
                 CashLegendItem(title: paychecksName, color: CashFlowSeries.paychecks)
                 CashLegendItem(title: otherName, color: CashFlowSeries.other, outlined: true)
                 CashLegendItem(title: spentName, color: CashFlowSeries.spent)
+                CashLegendItem(title: netName, color: .text)
             }
             .accessibilityElement(children: .contain)
             if report.months.contains(where: { $0.month == throughMonth }) {
