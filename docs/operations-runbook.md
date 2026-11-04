@@ -231,7 +231,8 @@ Record the UTC time at each step with `date -u +%FT%TZ`:
    Before confirming, check it is a new child with the drill name and not the
    primary branch.
 2. t2: wait until the console shows it ready.
-3. Get the branch's own **direct (unpooled)** connection string. Set the
+3. Get the branch's own **direct (unpooled)** connection string. Enter it as in
+   Before the drill step 4. Set the
    session options and run the gate:
 
    ```bash
@@ -253,7 +254,7 @@ the path of your clone and `<notes-dir>` with your private notes directory. The
 the branch need an explanation (schema is applied before code).
 
 ```bash
-cd <notes-dir>
+cd <notes-dir> || return   # do not continue if cd fails
 psql -X -At "$DRILL_DATABASE_URL" \
   -c 'SELECT "MigrationId" FROM "__EFMigrationsHistory"' \
   | LC_ALL=C sort > branch-migrations.txt
@@ -303,7 +304,8 @@ SELECT count(*) AS key_rows FROM public."DataProtectionKeys";
 Only if baseline is yes. Use production's **direct (unpooled)** connection
 string, entered as in Before the drill step 4. Set the same `PGOPTIONS` and run
 the read-only gate from Run step 3 first: **stop unless it prints `on`.** Then
-run the same (b) to (e) queries read-only against production. Enter the
+run the same (b) to (e) queries read-only against production. Then unset the
+production `DRILL_DATABASE_URL` and `PGPASSWORD` values. Enter the
 branch's values again before using the branch. Exact equality needs T to be the
 instant the baseline was taken: take the baseline first, then add its UTC time
 as T in a follow-up #339 comment before creating the branch. Otherwise expect

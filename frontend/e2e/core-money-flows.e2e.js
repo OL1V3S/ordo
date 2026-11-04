@@ -125,7 +125,7 @@ test('adds a cash-in deposit', async ({ page, request }, testInfo) => {
   expect(Number(saved[0].amount)).toBe(250)
 })
 
-test('sets a budget limit', async ({ page, request }) => {
+test('sets a budget limit', async ({ page, request }, testInfo) => {
   const token = await signIn(page)
 
   // The page picks the month; read it from its own request so the check cannot
@@ -135,14 +135,17 @@ test('sets a budget limit', async ({ page, request }) => {
   const monthYear = new URL((await limitsRequest).url()).searchParams.get('monthYear')
 
   await page.getByRole('button', { name: labels.addBudget, exact: true }).click()
-  await page.getByRole('combobox', { name: labels.category, exact: true }).selectOption({ label: labels.food })
+  // One limit per category and month: a retry picks the next default category, so a limit
+  // saved by the failed first attempt cannot make the retry fail.
+  const category = ['Food', 'Transport', 'Bills', 'Entertainment'][testInfo.retry] ?? labels.food
+  await page.getByRole('combobox', { name: labels.category, exact: true }).selectOption({ label: category })
   await page.getByLabel(labels.monthlyLimit, { exact: true }).fill('200.00')
   await page.getByRole('button', { name: labels.saveLimit, exact: true }).click()
 
   await expect(page.getByText(labels.budgetSaved)).toBeVisible()
 
   const limits = await apiGet(request, token, `/api/budgetlimits?monthYear=${monthYear}`)
-  const saved = limits.filter((limit) => limit.category.toLowerCase() === 'food')
+  const saved = limits.filter((limit) => limit.category.toLowerCase() === category.toLowerCase())
   expect(saved).toHaveLength(1)
   expect(Number(saved[0].limitAmount)).toBe(200)
 })
