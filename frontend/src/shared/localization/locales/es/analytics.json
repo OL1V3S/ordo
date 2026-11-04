@@ -95,7 +95,7 @@
     "notApplicable": "No aplica",
     "donut": {
       "label": "Parte del gasto por categoría",
-      "other": "Otras ({{count}})"
+      "other": "Resto ({{count}})"
     }
   },
   "chart": {

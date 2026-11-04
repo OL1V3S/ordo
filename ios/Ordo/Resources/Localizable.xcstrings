@@ -103,23 +103,6 @@
         }
       }
     },
-    "analytics.categories.donut.label": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Share of spending by category"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Parte del gasto por categoría"
-          }
-        }
-      }
-    },
     "analytics.categories.donut.other": {
       "extractionState": "manual",
       "localizations": {
@@ -132,7 +115,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Otras (%1$@)"
+            "value": "Resto (%1$@)"
           }
         }
       }

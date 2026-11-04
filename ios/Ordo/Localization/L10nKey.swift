@@ -6,7 +6,6 @@ enum L10nKey: String, CaseIterable, Sendable {
     case analyticsCashFlowLoading = "analytics.cashFlow.loading"
     case analyticsCashFlowRegionLabel = "analytics.cashFlow.regionLabel"
     case analyticsCashFlowRetry = "analytics.cashFlow.retry"
-    case analyticsCategoriesDonutLabel = "analytics.categories.donut.label"
     case analyticsCategoriesDonutOther = "analytics.categories.donut.other"
     case analyticsCategoriesEmpty = "analytics.categories.empty"
     case analyticsCategoriesHeading = "analytics.categories.heading"

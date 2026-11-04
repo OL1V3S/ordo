@@ -96,11 +96,6 @@ struct ReportsPresenter: Sendable {
         return slices(sorted[..<(cap - 1)]) + [CategoryShare(category: nil, amount: CashAmount(total), count: rest.count)]
     }
 
-    /// Each month's net for plotting only; the exact text stays in the data list.
-    static func netSeries(_ months: [CashFlowMonth]) -> [Double] {
-        months.map { $0.net.approximateDollars }
-    }
-
     /// The months the picker lists: the current and selected months and every available month,
     /// without repeats, newest first.
     static func monthOptions(current: BudgetMonth, selected: BudgetMonth, available: [BudgetMonth]) -> [BudgetMonth] {

@@ -14,7 +14,7 @@ export default function CashFlowCategoryDonut({ shares, spentMinor }) {
   const { t } = useTranslation("analytics");
   const { locale } = useLocale();
   const colors = useCashFlowColors();
-  const palette = [colors.paychecks, colors.other, colors.spent, colors.text, colors.border, colors.grid];
+  const palette = [colors.paychecks, colors.other, colors.spent, colors.text, colors.border, colors.limit];
   const labels = shares.map((share) => share.other
     ? t("categories.donut.other", { count: share.count })
     : categoryLabel(t, share.category, displayText));

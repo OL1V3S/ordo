@@ -51,9 +51,8 @@ import Testing
                 if try String(contentsOf: url, encoding: .utf8).contains("approximateDollars") { users.append(url.lastPathComponent) }
             }
         }
-        // Chart geometry only: the two charts and the pure series helpers that feed them.
-        #expect(users.sorted() == ["CashAmount.swift", "CashFlowCategoriesSection.swift", "CashFlowTrendSection.swift",
-                                   "ReportsPresentation.swift"])
+        // Chart geometry only: the two charts.
+        #expect(users.sorted() == ["CashAmount.swift", "CashFlowCategoriesSection.swift", "CashFlowTrendSection.swift"])
     }
 }
 
@@ -275,18 +274,11 @@ import Testing
         #expect(shares[0].amount.canonical == "99999999999999999999")
     }
 
-    @Test func netSeriesKeepsNegativeMonths() {
-        let months = ReportsFixtures.report().months
-        #expect(ReportsPresenter.netSeries(months) == months.map { $0.net.approximateDollars })
-        #expect(ReportsPresenter.netSeries([]).isEmpty)
-    }
-
     @Test func donutAndNetKeysExistInBothLanguages() {
         #expect(L10n(language: .en).string(.analyticsChartDatasetsNet) == "Deposits minus spending")
         #expect(L10n(language: .es).string(.analyticsChartDatasetsNet) == "Depósitos menos gastos")
         #expect(L10n(language: .en).string(.analyticsCategoriesDonutOther, "2") == "Other (2)")
-        #expect(L10n(language: .es).string(.analyticsCategoriesDonutOther, "2") == "Otras (2)")
-        #expect(L10n(language: .es).string(.analyticsCategoriesDonutLabel) == "Parte del gasto por categoría")
+        #expect(L10n(language: .es).string(.analyticsCategoriesDonutOther, "2") == "Resto (2)")
     }
 
     @Test func monthOptionsListCurrentSelectedAndAvailableNewestFirst() {

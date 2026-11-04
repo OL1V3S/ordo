@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 
 const fallbackColors = {
   paychecks: "#24776a", other: "#9b6525", spent: "#5458c9", text: "#181a20",
-  grid: "#e7e8ec", border: "#8b8d94", surface: "#ffffff",
+  limit: "#666873", grid: "#e7e8ec", border: "#8b8d94", surface: "#ffffff",
 };
 
 export function useCashFlowColors() {
