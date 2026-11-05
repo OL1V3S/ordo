@@ -62,6 +62,21 @@ describe("monthly spending insights page", () => {
     vi.clearAllMocks();
   });
 
+  it("shows both empty states when months lack days and categories (older backend)", () => {
+    useCashFlow.mockImplementation((month) => {
+      const loaded = loadedCashFlow(month);
+      loaded.data.months.forEach((entry) => { delete entry.days; delete entry.categories; });
+      delete loaded.data.selected.days;
+      delete loaded.data.selected.categories;
+      return loaded;
+    });
+    renderPage();
+
+    expect(screen.getByText("No daily spending to show")).toBeInTheDocument();
+    expect(screen.getByText("No spending recorded in these months")).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
   it("shows the selected total, ranked categories, budgets, comparison, and largest expenses", () => {
     renderPage();
 
@@ -171,7 +186,7 @@ describe("monthly spending insights page", () => {
     openDetail("Largest expenses");
     expect(screen.getAllByText("No spending recorded").length).toBeGreaterThan(0);
     expect(screen.getByText("No deposits recorded")).toBeInTheDocument();
-    expect(screen.getByText("No category changes to show between these months.")).toBeInTheDocument();
+    expect(screen.getByText("No spending recorded in these months")).toBeInTheDocument();
     expect(screen.getByText("No expenses to show for this month.")).toBeInTheDocument();
     expect(screen.getByText("Neither month has recorded spending.")).toBeInTheDocument();
   });

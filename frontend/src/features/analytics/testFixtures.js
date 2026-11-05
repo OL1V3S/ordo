@@ -36,9 +36,12 @@ export function cashFlowFixture(month = "2026-08", overrides = {}) {
       inflowCount: 0, paycheckInflowCount: 0, otherInflowCount: 0, expenseCount: 0, paycheckProfileCount: 0,
       days: daysFor(`${value}-01`, `${value}-${monthEnd(value)}`), categories: [],
     });
-  const categories = [{ category: "food", amountMinor: "9000" }, { category: "transport", amountMinor: "1000" }];
-  // Spending on two days that sums exactly to the effective Spent, set after the spread above.
+  // Spending on two days and two categories that sum exactly to the effective Spent.
   const spent = BigInt(bucket.spentMinor);
+  const categories = [
+    { category: "food", amountMinor: (spent - spent / 10n).toString() },
+    { category: "transport", amountMinor: (spent / 10n).toString() },
+  ];
   bucket.days = daysFor(bucket.from, bucket.to, spent === 0n ? {} : { 3: (spent / 10n).toString(), 10: (spent - spent / 10n).toString() });
   bucket.categories = categories;
   return {
