@@ -8,7 +8,7 @@ import { useCashFlow } from "../hooks/useCashFlow";
 import { cashFlowFixture } from "../testFixtures";
 
 vi.mock("../hooks/useCashFlow", () => ({ useCashFlow: vi.fn() }));
-vi.mock("react-chartjs-2", () => ({ Bar: () => <canvas data-testid="cash-flow-chart" />, Doughnut: () => <canvas data-testid="cash-flow-donut" /> }));
+vi.mock("react-chartjs-2", () => ({ Bar: () => <canvas data-testid="cash-flow-chart" />, Line: () => <canvas data-testid="cash-flow-line" />, Doughnut: () => <canvas data-testid="cash-flow-donut" /> }));
 vi.mock("../../expenses/hooks/useExpenses", () => ({ useExpenses: vi.fn() }));
 vi.mock("../../budgetLimits/hooks/useBudgetLimits", () => ({ useBudgetLimits: vi.fn() }));
 
@@ -60,6 +60,21 @@ describe("monthly spending insights page", () => {
   afterEach(() => {
     vi.useRealTimers();
     vi.clearAllMocks();
+  });
+
+  it("shows both empty states when months lack days and categories (older backend)", () => {
+    useCashFlow.mockImplementation((month) => {
+      const loaded = loadedCashFlow(month);
+      loaded.data.months.forEach((entry) => { delete entry.days; delete entry.categories; });
+      delete loaded.data.selected.days;
+      delete loaded.data.selected.categories;
+      return loaded;
+    });
+    renderPage();
+
+    expect(screen.getByText("No daily spending to show")).toBeInTheDocument();
+    expect(screen.getByText("No spending recorded in these months")).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
   it("shows the selected total, ranked categories, budgets, comparison, and largest expenses", () => {
@@ -171,7 +186,7 @@ describe("monthly spending insights page", () => {
     openDetail("Largest expenses");
     expect(screen.getAllByText("No spending recorded").length).toBeGreaterThan(0);
     expect(screen.getByText("No deposits recorded")).toBeInTheDocument();
-    expect(screen.getByText("No category changes to show between these months.")).toBeInTheDocument();
+    expect(screen.getByText("No spending recorded in these months")).toBeInTheDocument();
     expect(screen.getByText("No expenses to show for this month.")).toBeInTheDocument();
     expect(screen.getByText("Neither month has recorded spending.")).toBeInTheDocument();
   });

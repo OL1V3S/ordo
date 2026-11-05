@@ -12,10 +12,22 @@ enum ReportsFixtures {
 
     static func monthJSON(_ month: String = "2026-10", to: String = "2026-10-31", cashIn: String = "15000",
                           paycheck: String = "12000", other: String = "3000", spent: String = "10000",
-                          net: String = "5000", counts: String = #""inflowCount":3,"paycheckInflowCount":2,"otherInflowCount":1,"expenseCount":2,"paycheckProfileCount":1,"editedPaycheckInflowCount":0"#) -> String {
+                          net: String = "5000", counts: String = #""inflowCount":3,"paycheckInflowCount":2,"otherInflowCount":1,"expenseCount":2,"paycheckProfileCount":1,"editedPaycheckInflowCount":0"#,
+                          days: String? = nil, categories: String? = nil) -> String {
+        let extra = (days.map { #","days":\#($0)"# } ?? "") + (categories.map { #","categories":\#($0)"# } ?? "")
+        return """
+        {"month":"\(month)","from":"\(month)-01","to":"\(to)","cashInMinor":"\(cashIn)","paycheckCashInMinor":"\(paycheck)","otherCashInMinor":"\(other)","spentMinor":"\(spent)","netMinor":"\(net)",\(counts)\(extra)}
         """
-        {"month":"\(month)","from":"\(month)-01","to":"\(to)","cashInMinor":"\(cashIn)","paycheckCashInMinor":"\(paycheck)","otherCashInMinor":"\(other)","spentMinor":"\(spent)","netMinor":"\(net)",\(counts)}
-        """
+    }
+
+    /// A month with valid days (`amounts` by day number, zero elsewhere, through `to`) and categories.
+    static func fullMonthJSON(_ month: String = "2026-10", lastDay: Int = 31, spent: String = "10000",
+                              dayAmounts: [Int: String] = [3: "1000", 10: "9000"],
+                              categories: String = #"[{"category":"food","amountMinor":"9000"},{"category":"transport","amountMinor":"1000"}]"#) -> String {
+        let days = (1...lastDay).map { day in
+            #"{"date":"\#(month)-\#(String(format: "%02d", day))","spentMinor":"\#(dayAmounts[day] ?? "0")"}"#
+        }.joined(separator: ",")
+        return monthJSON(month, to: "\(month)-\(String(format: "%02d", lastDay))", spent: spent, days: "[\(days)]", categories: categories)
     }
 
     static func json(month: String = "2026-10", through: String = "2026-10-20", available: [String] = ["2026-10", "2026-09"],

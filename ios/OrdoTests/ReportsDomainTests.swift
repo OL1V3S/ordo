@@ -51,8 +51,9 @@ import Testing
                 if try String(contentsOf: url, encoding: .utf8).contains("approximateDollars") { users.append(url.lastPathComponent) }
             }
         }
-        // Chart geometry only: the two charts.
-        #expect(users.sorted() == ["CashAmount.swift", "CashFlowCategoriesSection.swift", "CashFlowTrendSection.swift"])
+        // Chart geometry only: the four charts.
+        #expect(users.sorted() == ["CashAmount.swift", "CashFlowCategoriesSection.swift", "CashFlowCategoryTrendSection.swift",
+                                    "CashFlowPaceSection.swift", "CashFlowTrendSection.swift"])
     }
 }
 
@@ -114,6 +115,56 @@ import Testing
         for (index, text) in cases.enumerated() {
             #expect(throws: CashFlowValidationError.malformed, "case \(index)") { try parse(text) }
         }
+    }
+
+    @Test func validDaysAndCategoriesDecodeExactly() throws {
+        let report = try parse(ReportsFixtures.json(selected: ReportsFixtures.fullMonthJSON()))
+        #expect(report.selected.days.count == 31 && report.selected.days[9].spent.canonical == "9000")
+        #expect(report.selected.days[9].date.isoString == "2026-10-10")
+        #expect(report.selected.categories.map(\.category) == ["food", "transport"])
+        #expect("\(report.selected.days[0])".contains("redacted"))
+    }
+
+    @Test func absentDaysAndCategoriesAreEmpty() throws {
+        let report = try parse(ReportsFixtures.json())
+        #expect(report.selected.days.isEmpty && report.selected.categories.isEmpty)
+    }
+
+    @Test func malformedDaysAndCategoriesFailAsAWhole() {
+        func full(days: [Int: String] = [3: "1000", 10: "9000"], spent: String = "10000",
+                  categories: String = #"[{"category":"food","amountMinor":"9000"},{"category":"transport","amountMinor":"1000"}]"#) -> String {
+            ReportsFixtures.json(selected: ReportsFixtures.fullMonthJSON(spent: spent, dayAmounts: days, categories: categories))
+        }
+        let good = ReportsFixtures.fullMonthJSON()
+        let cases: [String] = [
+            ReportsFixtures.json(selected: good.replacingOccurrences(of: #"{"date":"2026-10-05","#, with: #"{"date":"2026-10-04","#)), // duplicate
+            ReportsFixtures.json(selected: good.replacingOccurrences(of: #"{"date":"2026-10-05","spentMinor":"0"},"#, with: "")), // gap
+            ReportsFixtures.json(selected: good.replacingOccurrences(of: #"{"date":"2026-10-31","spentMinor":"0"}"#, with: #"{"date":"2026-11-01","spentMinor":"0"}"#)), // out of range
+            ReportsFixtures.json(selected: good.replacingOccurrences(of: #",{"date":"2026-10-31","spentMinor":"0"}"#, with: "")), // stops short of `to`
+            full(days: [3: "-1000", 10: "11000"]), // negative day
+            full(days: [3: "1000.0", 10: "9000"]), // bad string
+            full(days: [3: "1000", 10: "8000"]), // days do not sum to Spent
+            full(categories: #"[{"category":"food","amountMinor":"9000"},{"category":"food","amountMinor":"1000"}]"#), // repeated
+            full(categories: #"[{"category":"food","amountMinor":"9000"},{"category":"x","amountMinor":"0"}]"#), // not positive
+            full(categories: #"[{"category":"food","amountMinor":"9000"},{"category":"x","amountMinor":"900"}]"#), // sum mismatch
+            ReportsFixtures.json(selected: ReportsFixtures.monthJSON(days: "[]")), // present but empty
+        ]
+        for (index, text) in cases.enumerated() {
+            #expect(throws: CashFlowValidationError.malformed, "case \(index)") { try parse(text) }
+        }
+    }
+
+    @Test func overflowingSumsAreMalformed() {
+        // Two categories that sum past Int128 while each parses.
+        let huge = "100000000000000000000000000000000000000"
+        let categories = #"[{"category":"a","amountMinor":"\#(huge)"},{"category":"b","amountMinor":"\#(huge)"}]"#
+        let categoryOverflow = ReportsFixtures.json(selected: ReportsFixtures.fullMonthJSON(spent: huge, dayAmounts: [1: huge], categories: categories))
+        #expect(throws: CashFlowValidationError.malformed) { try parse(categoryOverflow) }
+        // Two months whose Spent values overflow when added.
+        let a = ReportsFixtures.monthJSON("2026-09", spent: huge)
+        let b = ReportsFixtures.monthJSON("2026-10", spent: huge)
+        let monthsOverflow = ReportsFixtures.json(selected: b, months: [a, b, a, b])
+        #expect(throws: CashFlowValidationError.malformed) { try parse(monthsOverflow) }
     }
 
     @Test func aResponseForAnotherPeriodFails() {
@@ -302,5 +353,39 @@ import Testing
         #expect(L10n(language: .es).string(.analyticsSummaryNetHeading) == "Depósitos menos gastos")
         #expect(L10n(language: .es).string(.analyticsSummaryConfirmedPaychecks) == "Pagos de nómina confirmados")
         #expect(L10n(language: .en).string(.navigationDestinationsInsights) == "Reports")
+    }
+}
+
+@Suite struct ReportsTrendPresentationTests {
+    private func month(_ json: String) throws -> CashFlowMonth {
+        try CashFlowValidation.parse(ReportsFixtures.data(ReportsFixtures.json(selected: json)),
+                                     month: ReportsFixtures.october, throughDate: ReportsFixtures.through).selected
+    }
+
+    @Test func cumulativeDaysStayExactAboveInt64() throws {
+        let big = "9223372036854775808"
+        let bucket = try month(ReportsFixtures.fullMonthJSON(spent: "9223372036854775810", dayAmounts: [1: big, 2: "2"],
+                                                            categories: "[]"))
+        let points = ReportsPresenter.cumulativeDays(bucket)
+        #expect(points.count == 31 && points[0].cumulative.canonical == big)
+        #expect(points[1].cumulative.canonical == "9223372036854775810" && points[30].cumulative.canonical == "9223372036854775810")
+        #expect(points[1].day == 2)
+    }
+
+    @Test func previousMonthIsNilAtTheFloor() throws {
+        let bucket = try month(ReportsFixtures.fullMonthJSON())
+        #expect(ReportsPresenter.previousMonth([bucket]) == nil)
+        #expect(ReportsPresenter.previousMonth([bucket, bucket]) == bucket)
+    }
+
+    @Test func categoryTrendGroupsSevenCategoriesIntoFiveAndOther() throws {
+        let rows = (1...7).map { #"{"category":"c\#($0)","amountMinor":"\#((8 - $0) * 100)"}"# }.joined(separator: ",")
+        let bucket = try month(ReportsFixtures.fullMonthJSON(spent: "2800", dayAmounts: [1: "2800"], categories: "[\(rows)]"))
+        let series = ReportsPresenter.categoryTrend([bucket])
+        #expect(series.count == 6 && series[0].category == "c1" && series[0].amounts[0].canonical == "700")
+        #expect(series[5].isOther && series[5].count == 2 && series[5].amounts[0].canonical == "300")
+        #expect(ReportsPresenter.categoryTrend([]).isEmpty)
+        let empty = try month(ReportsFixtures.monthJSON())
+        #expect(ReportsPresenter.categoryTrend([empty]).isEmpty)
     }
 }

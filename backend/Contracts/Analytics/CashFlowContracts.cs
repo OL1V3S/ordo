@@ -5,7 +5,10 @@ public sealed record CashFlowMonthDto(
     string CashInMinor, string PaycheckCashInMinor, string OtherCashInMinor,
     string SpentMinor, string NetMinor,
     int InflowCount, int PaycheckInflowCount, int OtherInflowCount,
-    int ExpenseCount, int PaycheckProfileCount, int EditedPaycheckInflowCount);
+    int ExpenseCount, int PaycheckProfileCount, int EditedPaycheckInflowCount,
+    IReadOnlyList<CashFlowDayDto> Days, IReadOnlyList<CashFlowCategoryDto> Categories);
+
+public sealed record CashFlowDayDto(DateOnly Date, string SpentMinor);
 
 public sealed record CashFlowCategoryDto(string Category, string AmountMinor);
 

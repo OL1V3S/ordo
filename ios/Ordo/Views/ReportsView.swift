@@ -48,6 +48,8 @@ struct ReportsView: View {
                 CashFlowSummarySection(report: report, presenter: presenter)
                 CashFlowCategoriesSection(report: report, presenter: presenter)
                 CashFlowTrendSection(report: report, presenter: presenter)
+                CashFlowPaceSection(report: report, presenter: presenter)
+                CashFlowCategoryTrendSection(report: report, presenter: presenter)
             }
         }
         .themedList()

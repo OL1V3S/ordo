@@ -161,5 +161,29 @@
     "review": "View transactions",
     "unavailable": "The exact ranking of your largest expenses is unavailable because we couldn’t verify an amount.",
     "empty": "No expenses to show for this month."
+  },
+  "pace": {
+    "kicker": "By day of month",
+    "heading": "Spending pace",
+    "empty": "No daily spending to show",
+    "tooltip": "{{label}}: {{amount}} that day, {{total}} so far",
+    "table": {
+      "summary": "View chart data",
+      "caption": "Daily spending in US dollars",
+      "date": "Date",
+      "day": "Spent that day",
+      "total": "Spent so far"
+    }
+  },
+  "categoryTrend": {
+    "kicker": "Top categories by month",
+    "heading": "Categories over time",
+    "empty": "No spending recorded in these months",
+    "tooltipTotal": "Spent: {{amount}}",
+    "table": {
+      "caption": "Spending by category and month in US dollars",
+      "month": "Month",
+      "spent": "Spent"
+    }
   }
 }

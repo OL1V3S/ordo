@@ -96,6 +96,57 @@ struct ReportsPresenter: Sendable {
         return slices(sorted[..<(cap - 1)]) + [CategoryShare(category: nil, amount: CashAmount(total), count: rest.count)]
     }
 
+    /// One date of a month with its exact running total.
+    struct DayPoint: Equatable, Sendable {
+        let date: CalendarDate
+        let day: Int
+        let spent: CashAmount
+        let cumulative: CashAmount
+    }
+
+    /// A month's days with an exact running total. Bounded: validation checked every month's sum.
+    static func cumulativeDays(_ bucket: CashFlowMonth) -> [DayPoint] {
+        var running = Int128(0)
+        return bucket.days.map { entry in
+            running += entry.spent.value
+            return DayPoint(date: entry.date, day: entry.date.day, spent: entry.spent, cumulative: CashAmount(running))
+        }
+    }
+
+    /// The month before the selected (last) one, or nil at the representable-calendar floor.
+    static func previousMonth(_ months: [CashFlowMonth]) -> CashFlowMonth? {
+        months.count >= 2 ? months[months.count - 2] : nil
+    }
+
+    /// One stacked-bar series: a category, or the grouped remainder (`category` nil, `count` categories).
+    struct CategorySeries: Equatable, Sendable {
+        let category: String?
+        let count: Int
+        /// One exact amount per month, in month order.
+        let amounts: [CashAmount]
+        var isOther: Bool { category == nil }
+    }
+
+    /// Series ranked by window total. Above `cap` the top `cap - 1` stay and the rest are summed
+    /// exactly into Other. Empty when no month has category spending.
+    static func categoryTrend(_ months: [CashFlowMonth], cap: Int = 6) -> [CategorySeries] {
+        var totals: [String: Int128] = [:]
+        for bucket in months { for row in bucket.categories { totals[row.category, default: 0] += row.amount.value } }
+        let ranked = ordered(totals.map { CashFlowCategory(category: $0.key, amount: CashAmount($0.value)) })
+        guard ranked.contains(where: { $0.amount.isPositive }) else { return [] }
+        func series(_ category: String?, _ names: Set<String>, _ count: Int) -> CategorySeries {
+            let amounts = months.map { bucket in
+                CashAmount(bucket.categories.filter { names.contains($0.category) }.reduce(Int128(0)) { $0 + $1.amount.value })
+            }
+            return CategorySeries(category: category, count: count, amounts: amounts)
+        }
+        let kept = ranked.count <= cap ? ranked : Array(ranked.prefix(cap - 1))
+        let rest = ranked.dropFirst(kept.count)
+        var result = kept.map { series($0.category, [$0.category], 1) }
+        if !rest.isEmpty { result.append(series(nil, Set(rest.map(\.category)), rest.count)) }
+        return result
+    }
+
     /// The months the picker lists: the current and selected months and every available month,
     /// without repeats, newest first.
     static func monthOptions(current: BudgetMonth, selected: BudgetMonth, available: [BudgetMonth]) -> [BudgetMonth] {

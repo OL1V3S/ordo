@@ -67,6 +67,16 @@ public sealed class CashFlowApiTests
         Assert.Equal("0", selected.GetProperty("paycheckCashInMinor").GetString());
         Assert.Equal(6, body.GetProperty("months").GetArrayLength());
         Assert.Equal("1", body.GetProperty("categories")[0].GetProperty("amountMinor").GetString());
+        Assert.Equal(
+            ["cashInMinor", "categories", "days", "editedPaycheckInflowCount", "expenseCount", "from", "inflowCount",
+                "month", "netMinor", "otherCashInMinor", "otherInflowCount", "paycheckCashInMinor",
+                "paycheckInflowCount", "paycheckProfileCount", "spentMinor", "to"],
+            selected.EnumerateObject().Select(value => value.Name).Order(StringComparer.Ordinal));
+        var days = selected.GetProperty("days").EnumerateArray().ToArray();
+        Assert.Equal(10, days.Length);
+        Assert.Equal("""{"date":"2026-09-10","spentMinor":"1"}""", days[9].GetRawText());
+        Assert.All(days.Take(9), day => Assert.Equal("0", day.GetProperty("spentMinor").GetString()));
+        Assert.Equal("""{"category":"food","amountMinor":"1"}""", selected.GetProperty("categories")[0].GetRawText());
         Assert.DoesNotContain("PRIVATE", body.GetRawText());
         Assert.DoesNotContain(owner.Id, body.GetRawText());
         Assert.DoesNotContain("projection", body.GetRawText(), StringComparison.OrdinalIgnoreCase);
@@ -201,7 +211,7 @@ public sealed class CashFlowApiTests
         Assert.Equal("100000", before.Selected.OtherCashInMinor);
         using var dismissed = await owner.Client.PostAsJsonAsync("/api/paycheck-candidates/dismiss", decision);
         dismissed.EnsureSuccessStatusCode();
-        Assert.Equal(before.Selected, (await ReadAsync(owner.Client)).Selected);
+        SameMonth(before.Selected, (await ReadAsync(owner.Client)).Selected);
         using var reconsidered = await owner.Client.PostAsJsonAsync("/api/paycheck-candidates/reconsider", decision);
         reconsidered.EnsureSuccessStatusCode();
         using var confirmed = await owner.Client.PostAsJsonAsync("/api/paycheck-candidates/confirm", new
@@ -227,7 +237,7 @@ public sealed class CashFlowApiTests
         updated.EnsureSuccessStatusCode();
         using var ended = await owner.Client.PatchAsJsonAsync($"/api/paychecks/{profileId}/lifecycle", new { lifecycle = "ended" });
         ended.EnsureSuccessStatusCode();
-        Assert.Equal(after.Selected, (await ReadAsync(owner.Client)).Selected);
+        SameMonth(after.Selected, (await ReadAsync(owner.Client)).Selected);
         await app.SeedInflowAsync(owner.Id, "Monthly observed pay", 1000m, new(2026, 9, 10));
         var later = await ReadAsync(owner.Client);
         Assert.Equal("200000", later.Selected.CashInMinor);
@@ -272,7 +282,7 @@ public sealed class CashFlowApiTests
 
         using var removed = await owner.Client.DeleteAsync($"/api/paychecks/{profileId}/receipts/{existing.Id}");
         removed.EnsureSuccessStatusCode();
-        Assert.Equal(before.Selected, (await ReadAsync(owner.Client)).Selected);
+        SameMonth(before.Selected, (await ReadAsync(owner.Client)).Selected);
 
         using var recorded = await owner.Client.PostAsJsonAsync($"/api/paychecks/{profileId}/receipts", new
         {
@@ -344,6 +354,10 @@ public sealed class CashFlowApiTests
         Cadence = PaycheckCadence.Monthly, FirstMonthAnchor = 1, AmountMode = PaycheckAmountMode.Fixed,
         ExpectedAmount = 500m, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow
     };
+
+    // Month records hold lists, so compare their serialized form rather than list references.
+    private static void SameMonth(object expected, object actual) =>
+        Assert.Equal(JsonSerializer.Serialize(expected), JsonSerializer.Serialize(actual));
 
     private static PaycheckOccurrence Link(string ownerId, Guid profileId, AccountInflow inflow) => new()
     {

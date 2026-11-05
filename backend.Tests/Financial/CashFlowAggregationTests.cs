@@ -53,7 +53,13 @@ public sealed class CashFlowAggregationTests
             Assert.Equal("0", value.NetMinor);
             Assert.Equal(0, value.InflowCount);
             Assert.Equal(0, value.ExpenseCount);
+            Assert.Empty(value.Categories);
+            Assert.Equal(value.To.Day - value.From.Day + 1, value.Days.Count);
+            Assert.All(value.Days, day => Assert.Equal("0", day.SpentMinor));
+            Assert.Equal(value.From, value.Days[0].Date);
+            Assert.Equal(value.To, value.Days[^1].Date);
         });
+        Assert.Empty(response.Categories);
     }
 
     [Fact]
@@ -151,6 +157,55 @@ public sealed class CashFlowAggregationTests
         Assert.Equal(["2026-09", "2026-08", "2026-04", "2020-01"], response.AvailableMonths);
         Assert.Equal(["custom category", "apple", "zebra"], response.Categories.Select(value => value.Category));
         Assert.Equal("400", response.Selected.SpentMinor);
+        Assert.All(response.Months.Take(5), value => Assert.Empty(value.Categories));
+        Assert.All(response.Months, value => Assert.Equal(value.To.Day - value.From.Day + 1, value.Days.Count));
+    }
+
+    [Fact]
+    public void Days_and_month_categories_partition_spent_exactly()
+    {
+        var maximum = 9999999999999999.99m;
+        CashFlowExpenseRow[] expenses =
+        [
+            new(1, new(2026, 7, 1), 5m, "food"),
+            new(2, new(2026, 7, 31), 2m, "rent"),
+            new(3, new(2026, 8, 15), maximum, "food"),
+            new(4, new(2026, 8, 15), 0.01m, "food"),
+            new(5, new(2026, 9, 1), 1m, "zebra"),
+            new(6, new(2026, 9, 1), 1m, "apple"),
+            new(7, new(2026, 9, 4), 3m, "food"),
+            new(8, new(2026, 9, 10), 0.5m, "apple")
+        ];
+        var response = CashFlowAggregation.Aggregate(Period(), [], expenses, [], []);
+
+        foreach (var month in response.Months)
+        {
+            var spent = System.Numerics.BigInteger.Parse(month.SpentMinor);
+            Assert.Equal(spent, month.Days.Aggregate(System.Numerics.BigInteger.Zero, (sum, day) => sum + System.Numerics.BigInteger.Parse(day.SpentMinor)));
+            Assert.Equal(spent, month.Categories.Aggregate(System.Numerics.BigInteger.Zero, (sum, row) => sum + System.Numerics.BigInteger.Parse(row.AmountMinor)));
+        }
+        var august = response.Months.Single(value => value.Month == "2026-08");
+        Assert.Equal(31, august.Days.Count);
+        Assert.Equal("1000000000000000000", august.Days[14].SpentMinor);
+        Assert.Equal("0", august.Days[13].SpentMinor);
+        var selected = response.Selected;
+        Assert.Equal(10, selected.Days.Count);
+        Assert.Equal(["200", "0", "0", "300", "0", "0", "0", "0", "0", "50"], selected.Days.Select(value => value.SpentMinor));
+        Assert.Equal(["food", "apple", "zebra"], selected.Categories.Select(value => value.Category));
+        Assert.Equal(["300", "150", "100"], selected.Categories.Select(value => value.AmountMinor));
+        Assert.Equal(selected.Categories, response.Categories);
+    }
+
+    [Fact]
+    public void Month_to_date_excludes_expenses_after_the_cutoff_from_days_categories_and_spent()
+    {
+        var response = CashFlowAggregation.Aggregate(Period(), [],
+            [new(1, new(2026, 9, 10), 2m, "food"), new(2, new(2026, 9, 11), 9m, "future")], [], []);
+
+        Assert.Equal("200", response.Selected.SpentMinor);
+        Assert.Equal(10, response.Selected.Days.Count);
+        Assert.DoesNotContain(response.Selected.Days, day => day.Date > new DateOnly(2026, 9, 10));
+        Assert.Equal(["food"], response.Selected.Categories.Select(value => value.Category));
     }
 
     [Theory]

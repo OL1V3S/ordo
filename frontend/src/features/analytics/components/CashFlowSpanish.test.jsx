@@ -3,13 +3,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import CashFlowCategories from "./CashFlowCategories";
 import CashFlowSummary from "./CashFlowSummary";
 import CashFlowTrendChart from "./CashFlowTrendChart";
+import CashFlowPaceChart from "./CashFlowPaceChart";
+import CashFlowCategoryTrendChart from "./CashFlowCategoryTrendChart";
 import i18n from "../../../shared/localization/i18n";
 import { cashFlowFixture } from "../testFixtures";
 
 let renderedChart;
 let renderedDonut;
+let renderedLine;
+let renderedStack;
 vi.mock("react-chartjs-2", () => ({
-  Bar: (props) => { renderedChart = props; return <canvas data-testid="trend-canvas" />; },
+  Bar: (props) => { if (props.options.scales.x.stacked && props.data.datasets[0].stack === undefined) renderedStack = props; else renderedChart = props; return <canvas data-testid="trend-canvas" />; },
+  Line: (props) => { renderedLine = props; return <canvas data-testid="pace-canvas" />; },
   Doughnut: (props) => { renderedDonut = props; return <canvas data-testid="donut-canvas" />; },
 }));
 
@@ -166,5 +171,16 @@ describe("cash-flow components in Spanish", () => {
     expect(renderedDonut.data.labels).toContain("Comida");
     expect(renderedDonut.options.plugins.tooltip.callbacks.label({ dataIndex: 1 })).toMatch(/USD\s100\.00\s·\s33\.3\s?%/);
     expect(renderedChart.data.datasets[3].label).toBe("Depósitos menos gastos");
+  });
+  it("renders the pace and category trend sections in Spanish", () => {
+    const data = cashFlowFixture("2026-08", { spentMinor: "30000", netMinor: "-15000" });
+    render(<><CashFlowPaceChart data={data} /><CashFlowCategoryTrendChart data={data} /></>);
+    expect(screen.getByRole("heading", { name: "Ritmo de gasto" })).toBeInTheDocument();
+    expect(screen.getByText("Por día del mes")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Categorías a lo largo del tiempo" })).toBeInTheDocument();
+    expect(screen.getAllByText("Ver datos del gráfico")).toHaveLength(2);
+    const label = renderedLine.options.plugins.tooltip.callbacks.label({ datasetIndex: 0, dataIndex: 2 });
+    expect(label.replace(/\s/g, " ")).toBe("agosto de 2026: USD 30.00 ese día, USD 30.00 acumulado");
+    expect(renderedStack.options.plugins.tooltip.callbacks.footer([{ dataIndex: 5 }]).replace(/\s/g, " ")).toBe("Gastado: USD 300.00");
   });
 });

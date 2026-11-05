@@ -73,6 +73,12 @@ public sealed class PostgreSqlCashFlowTests
         var category = Assert.Single(body.GetProperty("categories").EnumerateArray());
         Assert.Equal("uncategorized", category.GetProperty("category").GetString());
         Assert.Equal("10", Money(category, "amountMinor"));
+        var days = selected.GetProperty("days").EnumerateArray().ToArray();
+        Assert.Equal(6, days.Length);
+        Assert.Equal("2026-09-02", days[1].GetProperty("date").GetString());
+        Assert.Equal("10", Money(days[1], "spentMinor"));
+        Assert.Equal(["0", "10", "0", "0", "0", "0"], days.Select(value => Money(value, "spentMinor")));
+        Assert.Equal(selected.GetProperty("categories").GetRawText(), body.GetProperty("categories").GetRawText());
         Assert.Equal(["2026-09", "2026-02"],
             body.GetProperty("availableMonths").EnumerateArray().Select(value => value.GetString()));
         Assert.Equal(6, body.GetProperty("months").GetArrayLength());

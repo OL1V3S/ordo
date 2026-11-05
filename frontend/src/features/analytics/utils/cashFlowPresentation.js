@@ -95,3 +95,41 @@ export function categoryShares(categories, spentMinor, { cap = 6 } = {}) {
 export function netSeries(months) {
   return months.map((bucket) => Number(minorUnits(bucket.netMinor)) / 100);
 }
+
+// A month's days with an exact running total. `plot` is a decorative Number for chart geometry only.
+export function cumulativeDays(bucket) {
+  let running = 0n;
+  return (bucket?.days ?? []).map(({ date, spentMinor }) => {
+    running += minorUnits(spentMinor);
+    return { date, day: Number(date.slice(8, 10)), spentMinor, cumulativeMinor: running.toString(), plot: Number(running) / 100 };
+  });
+}
+
+// The month before the selected (last) one, or null at the representable-calendar floor.
+export function previousMonth(months) {
+  return months.length >= 2 ? months[months.length - 2] : null;
+}
+
+// Stacked-bar series across the window, ranked by window total. Above `cap` series the top
+// cap - 1 stay and the rest are summed exactly into Other. Empty when nothing was spent.
+export function categoryTrend(months, { cap = 6 } = {}) {
+  const totals = new Map();
+  const amountFor = (bucket, name) => (bucket.categories ?? []).find((row) => row.category === name)?.amountMinor ?? "0";
+  for (const bucket of months) {
+    for (const { category, amountMinor } of bucket.categories ?? []) {
+      totals.set(category, (totals.get(category) ?? 0n) + minorUnits(amountMinor));
+    }
+  }
+  const ranked = sortCategories([...totals].map(([category, total]) => ({ category, amountMinor: total.toString() })));
+  if (ranked.length === 0 || ranked.every(({ amountMinor }) => minorUnits(amountMinor) === 0n)) return [];
+  const series = (category, names, other) => {
+    const amounts = months.map((bucket) => names.reduce((sum, name) => sum + minorUnits(amountFor(bucket, name)), 0n).toString());
+    return { category, other, count: names.length, amounts, plot: amounts.map((amount) => Number(amount) / 100) };
+  };
+  const kept = ranked.length <= cap ? ranked : ranked.slice(0, cap - 1);
+  const rest = ranked.slice(kept.length);
+  return [
+    ...kept.map(({ category }) => series(category, [category], false)),
+    ...(rest.length ? [series(null, rest.map(({ category }) => category), true)] : []),
+  ];
+}
