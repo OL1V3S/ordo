@@ -14,6 +14,13 @@ enum CashFlowValidation {
         let spentMinor: String, netMinor: String
         let inflowCount: Int, paycheckInflowCount: Int, otherInflowCount: Int, expenseCount: Int
         let paycheckProfileCount: Int, editedPaycheckInflowCount: Int
+        let days: [RawDay]?
+        let categories: [RawCategory]?
+    }
+
+    private struct RawDay: Decodable {
+        let date: String
+        let spentMinor: String
     }
 
     private struct RawCategory: Decodable {
@@ -46,6 +53,13 @@ enum CashFlowValidation {
             guard let value = convert(entry) else { throw CashFlowValidationError.malformed }
             months.append(value)
         }
+        // Every presenter sum over months is bounded by this one.
+        var total = Int128(0)
+        for value in months {
+            let (sum, overflow) = total.addingReportingOverflow(value.spent.value)
+            guard !overflow else { throw CashFlowValidationError.malformed }
+            total = sum
+        }
         var categories: [CashFlowCategory] = []
         for entry in raw.categories {
             guard let amount = CashAmount(entry.amountMinor) else { throw CashFlowValidationError.malformed }
@@ -55,17 +69,50 @@ enum CashFlowValidation {
                               selected: selected, months: months, categories: categories)
     }
 
+    private static func convertCategories(_ raw: [RawCategory]?, spent: CashAmount) -> [CashFlowCategory]? {
+        var result: [CashFlowCategory] = []
+        var names = Set<String>()
+        var sum = Int128(0)
+        for entry in raw ?? [] {
+            guard let amount = CashAmount(entry.amountMinor), amount.isPositive, names.insert(entry.category).inserted else { return nil }
+            let (next, overflow) = sum.addingReportingOverflow(amount.value)
+            guard !overflow else { return nil }
+            sum = next
+            result.append(CashFlowCategory(category: entry.category, amount: amount))
+        }
+        guard result.isEmpty || sum == spent.value else { return nil }
+        return result
+    }
+
+    private static func convertDays(_ raw: [RawDay]?, from: CalendarDate, to: CalendarDate, spent: CashAmount) -> [CashFlowDay]? {
+        guard let raw, !raw.isEmpty else { return raw == nil ? [] : nil }
+        var result: [CashFlowDay] = []
+        var sum = Int128(0)
+        for (index, entry) in raw.enumerated() {
+            guard let expected = from.adding(days: index), let date = CalendarDate(entry.date), date == expected,
+                  let amount = CashAmount(entry.spentMinor), !amount.isNegative else { return nil }
+            let (next, overflow) = sum.addingReportingOverflow(amount.value)
+            guard !overflow else { return nil }
+            sum = next
+            result.append(CashFlowDay(date: date, spent: amount))
+        }
+        guard result.last?.date == to, sum == spent.value else { return nil }
+        return result
+    }
+
     private static func convert(_ raw: RawMonth) -> CashFlowMonth? {
         guard let month = BudgetMonth(key: raw.month), let from = CalendarDate(raw.from), let to = CalendarDate(raw.to),
               let cashIn = CashAmount(raw.cashInMinor), let paycheck = CashAmount(raw.paycheckCashInMinor),
               let other = CashAmount(raw.otherCashInMinor), let spent = CashAmount(raw.spentMinor),
               let net = CashAmount(raw.netMinor),
               [raw.inflowCount, raw.paycheckInflowCount, raw.otherInflowCount, raw.expenseCount,
-               raw.paycheckProfileCount, raw.editedPaycheckInflowCount].allSatisfy({ $0 >= 0 }) else { return nil }
+               raw.paycheckProfileCount, raw.editedPaycheckInflowCount].allSatisfy({ $0 >= 0 }),
+              let days = convertDays(raw.days, from: from, to: to, spent: spent),
+              let categories = convertCategories(raw.categories, spent: spent) else { return nil }
         return CashFlowMonth(month: month, from: from, to: to, cashIn: cashIn, paycheckCashIn: paycheck,
                              otherCashIn: other, spent: spent, net: net, inflowCount: raw.inflowCount,
                              paycheckInflowCount: raw.paycheckInflowCount, otherInflowCount: raw.otherInflowCount,
                              expenseCount: raw.expenseCount, paycheckProfileCount: raw.paycheckProfileCount,
-                             editedPaycheckInflowCount: raw.editedPaycheckInflowCount)
+                             editedPaycheckInflowCount: raw.editedPaycheckInflowCount, days: days, categories: categories)
     }
 }

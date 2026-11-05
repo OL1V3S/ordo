@@ -161,5 +161,29 @@
     "review": "Ver movimientos",
     "unavailable": "El orden exacto de tus gastos más grandes no está disponible porque no pudimos verificar un monto.",
     "empty": "No hay gastos para mostrar este mes."
+  },
+  "pace": {
+    "kicker": "Por día del mes",
+    "heading": "Ritmo de gasto",
+    "empty": "No hay gastos diarios para mostrar",
+    "tooltip": "{{label}}: {{amount}} ese día, {{total}} acumulado",
+    "table": {
+      "summary": "Ver datos del gráfico",
+      "caption": "Gasto diario, en dólares estadounidenses",
+      "date": "Fecha",
+      "day": "Gastado ese día",
+      "total": "Gastado hasta ese día"
+    }
+  },
+  "categoryTrend": {
+    "kicker": "Categorías principales por mes",
+    "heading": "Categorías a lo largo del tiempo",
+    "empty": "No hay gastos registrados en estos meses",
+    "tooltipTotal": "Gastado: {{amount}}",
+    "table": {
+      "caption": "Gasto por categoría y mes, en dólares estadounidenses",
+      "month": "Mes",
+      "spent": "Gastado"
+    }
   }
 }

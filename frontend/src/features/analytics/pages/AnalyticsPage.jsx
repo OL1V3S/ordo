@@ -11,6 +11,8 @@ import { useCashFlow } from "../hooks/useCashFlow";
 import CashFlowSummary from "../components/CashFlowSummary";
 import CashFlowCategories from "../components/CashFlowCategories";
 import CashFlowTrendChart from "../components/CashFlowTrendChart";
+import CashFlowPaceChart from "../components/CashFlowPaceChart";
+import CashFlowCategoryTrendChart from "../components/CashFlowCategoryTrendChart";
 import { cashMonthLabel, localThroughDate } from "../utils/cashFlowPresentation";
 import { displayText } from "../../../utils/text";
 import { categoryLabel } from "../../../shared/localization/categoryLabel";
@@ -120,6 +122,8 @@ export default function AnalyticsPage() {
             <div className="cash-flow-visuals">
               <CashFlowCategories data={cashFlow.data} />
               <CashFlowTrendChart data={cashFlow.data} />
+              <CashFlowPaceChart data={cashFlow.data} />
+              <CashFlowCategoryTrendChart data={cashFlow.data} />
             </div>
           </>
         ) : null}

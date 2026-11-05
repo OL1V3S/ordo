@@ -24,6 +24,13 @@ the permanent, complete archive.
 
 ## History
 
+### 2026-11-04 — Reports: daily spending pace and category trend
+
+[Issue #359](https://github.com/OL1V3S/ordo/issues/359)
+
+- Reports on web and iPhone add a spending-pace line (running total by day, against last month) and a stacked category chart over six months, each with an exact data table.
+- The cash-flow response gains `days` and `categories` on every month; existing fields are unchanged. Until the backend is deployed, both charts show an empty state.
+
 ### 2026-11-04 — Reports: category share donut and six-month net line
 
 [Issue #357](https://github.com/OL1V3S/ordo/issues/357) · [PR #358](https://github.com/OL1V3S/ordo/pull/358)
@@ -156,10 +163,3 @@ the permanent, complete archive.
 
 - An unexpected server error now returns a fixed `500` (`code: internal_error`, plus a `traceId`) with no exception text. The server logs one line with the error type, method, route template and trace id, and never the message, stack, request data or amounts. EF Core's own error logs and responses that had already started can still log exception details (see `docs/debugging.md`).
 - New anonymous `GET /health` returns `200 Healthy` without touching the database. Existing error responses, the web app and iOS are unchanged; no new settings.
-
-### 2026-10-23 — Sign-in: account lockout enforced
-
-[Issue #299](https://github.com/OL1V3S/ordo/issues/299)
-
-- Login, device-session and web-session sign-in now lock an account for 10 minutes after 5 wrong passwords; a success resets the count.
-- Attempts are reserved atomically before hashing on PostgreSQL, so parallel guesses stay within the budget. Locked, wrong-password and unknown-email responses are identical; no API, schema or config change.

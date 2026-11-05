@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { categoryShares, netSeries, barWidth, cashDateLabel, cashMonthLabel, cashPercentage, formatCash, localThroughDate, minorUnits, periodNotes } from "./cashFlowPresentation";
+import { categoryTrend, cumulativeDays, previousMonth, categoryShares, netSeries, barWidth, cashDateLabel, cashMonthLabel, cashPercentage, formatCash, localThroughDate, minorUnits, periodNotes } from "./cashFlowPresentation";
 
 describe("exact cash-flow presentation", () => {
   it.each([
@@ -73,5 +73,30 @@ describe("category shares and net series", () => {
   });
   it("converts net to plot dollars, negative included", () => {
     expect(netSeries([{ netMinor: "15000" }, { netMinor: "-250" }, { netMinor: "0" }])).toEqual([150, -2.5, 0]);
+  });
+  it("accumulates days exactly above 2^53", () => {
+    const big = "9007199254740993";
+    const days = cumulativeDays({ days: [{ date: "2026-08-01", spentMinor: big }, { date: "2026-08-02", spentMinor: "2" }, { date: "2026-08-03", spentMinor: "0" }] });
+    expect(days.map((day) => day.cumulativeMinor)).toEqual([big, "9007199254740995", "9007199254740995"]);
+    expect(days[1].day).toBe(2);
+    expect(days[0].plot).toBeTypeOf("number");
+    expect(cumulativeDays({})).toEqual([]);
+  });
+  it("picks the previous month unless the window has one month", () => {
+    expect(previousMonth([{ month: "a" }, { month: "b" }])).toEqual({ month: "a" });
+    expect(previousMonth([{ month: "a" }])).toBeNull();
+  });
+  it("ranks category trend series and sums Other exactly", () => {
+    const rows = (amounts) => amounts.map((amountMinor, index) => cat(`c${index + 1}`, amountMinor));
+    const big = "999999999999999999";
+    const months = [{ categories: rows(["1", "2", "3", "4", "5", "6", big]) }, { categories: rows(["1", "1"]) }, {}];
+    const series = categoryTrend(months);
+    expect(series).toHaveLength(6);
+    expect(series[0]).toMatchObject({ category: "c7", other: false, amounts: [big, "0", "0"] });
+    expect(series[5]).toMatchObject({ category: null, other: true, count: 2 });
+    expect(series[5].amounts).toEqual(["4", "1", "0"]);
+    expect(series[5].plot).toEqual([0.04, 0.01, 0]);
+    expect(categoryTrend([{ categories: [] }, {}])).toEqual([]);
+    expect(categoryTrend([{ categories: [cat("a", "0")] }])).toEqual([]);
   });
 });

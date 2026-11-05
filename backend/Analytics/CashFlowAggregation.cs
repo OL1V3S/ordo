@@ -44,16 +44,12 @@ public static class CashFlowAggregation
                 bucket.EditedPaycheckInflowCount++;
         }
 
-        var categories = new Dictionary<string, BigInteger>(StringComparer.Ordinal);
         foreach (var expense in expenses)
         {
             if (expense.Date < period.TrendFrom || expense.Date > period.To) continue;
             var key = CashFlowPeriod.MonthKey(expense.Date);
             var amount = ToMinor(expense.Amount);
-            buckets[key].Spent += amount;
-            buckets[key].ExpenseCount++;
-            if (key == period.Month)
-                categories[expense.Category] = categories.GetValueOrDefault(expense.Category) + amount;
+            buckets[key].AddExpense(expense.Date, expense.Category, amount);
         }
 
         var months = buckets.Values.Select(value => value.ToDto()).ToArray();
@@ -62,8 +58,7 @@ public static class CashFlowAggregation
             .Distinct(StringComparer.Ordinal).OrderByDescending(value => value, StringComparer.Ordinal).ToArray();
         return new(period.Month, period.ThroughDate, period.MonthStart, period.To,
             availableMonths, months[^1], months,
-            categories.OrderByDescending(value => value.Value).ThenBy(value => value.Key, StringComparer.Ordinal)
-                .Select(value => new CashFlowCategoryDto(value.Key, Format(value.Value))).ToArray());
+            months[^1].Categories);
     }
 
     private static BigInteger ToMinor(decimal amount)
@@ -86,11 +81,24 @@ public static class CashFlowAggregation
         public int ExpenseCount;
         public int EditedPaycheckInflowCount;
         public HashSet<Guid> Profiles { get; } = [];
+        private readonly BigInteger[] _days = new BigInteger[to.Day - from.Day + 1];
+        private readonly Dictionary<string, BigInteger> _categories = new(StringComparer.Ordinal);
+
+        public void AddExpense(DateOnly date, string category, BigInteger amount)
+        {
+            Spent += amount;
+            ExpenseCount++;
+            _days[date.Day - from.Day] += amount;
+            _categories[category] = _categories.GetValueOrDefault(category) + amount;
+        }
 
         public CashFlowMonthDto ToDto() => new(
             CashFlowPeriod.MonthKey(from), from, to,
             Format(CashIn), Format(PaycheckCashIn), Format(CashIn - PaycheckCashIn),
             Format(Spent), Format(CashIn - Spent), InflowCount, PaycheckInflowCount,
-            InflowCount - PaycheckInflowCount, ExpenseCount, Profiles.Count, EditedPaycheckInflowCount);
+            InflowCount - PaycheckInflowCount, ExpenseCount, Profiles.Count, EditedPaycheckInflowCount,
+            _days.Select((value, index) => new CashFlowDayDto(from.AddDays(index), Format(value))).ToArray(),
+            _categories.OrderByDescending(value => value.Value).ThenBy(value => value.Key, StringComparer.Ordinal)
+                .Select(value => new CashFlowCategoryDto(value.Key, Format(value.Value))).ToArray());
     }
 }

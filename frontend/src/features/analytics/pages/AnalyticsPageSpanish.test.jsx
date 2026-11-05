@@ -9,7 +9,7 @@ import { useCashFlow } from "../hooks/useCashFlow";
 import { cashFlowFixture } from "../testFixtures";
 
 vi.mock("../hooks/useCashFlow", () => ({ useCashFlow: vi.fn() }));
-vi.mock("react-chartjs-2", () => ({ Bar: () => <canvas data-testid="cash-flow-chart" />, Doughnut: () => <canvas data-testid="cash-flow-donut" /> }));
+vi.mock("react-chartjs-2", () => ({ Bar: () => <canvas data-testid="cash-flow-chart" />, Line: () => <canvas data-testid="cash-flow-line" />, Doughnut: () => <canvas data-testid="cash-flow-donut" /> }));
 vi.mock("../../expenses/hooks/useExpenses", () => ({ useExpenses: vi.fn() }));
 vi.mock("../../budgetLimits/hooks/useBudgetLimits", () => ({ useBudgetLimits: vi.fn() }));
 
@@ -78,7 +78,7 @@ describe("Analytics page in Spanish", () => {
     expect(rows[0]).toHaveTextContent("Comida");
     expect(rows[0]).not.toHaveTextContent("Food");
     expect(rows[0]).toHaveTextContent("USD 90.00 · 90.0%");
-    expect(screen.getByTestId("cash-flow-chart")).toBeInTheDocument();
+    expect(screen.getAllByTestId("cash-flow-chart")[0]).toBeInTheDocument();
     expect(screen.queryByText("Reports")).not.toBeInTheDocument();
     expect(screen.queryByText("Refresh deposits and spending")).not.toBeInTheDocument();
   });

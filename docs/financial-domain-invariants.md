@@ -287,6 +287,11 @@ source and membership relationship. The response excludes raw descriptions,
 authoritative owner IDs, import provenance, and projections. Invalid calendar
 filters return privacy-safe `400` ProblemDetails.
 
+Each month also carries one `days` entry per calendar date from its `from` to
+its `to`, zero days included, and its Expense `categories` in the top-level
+order. A month's days and its categories each sum exactly to its Spent. The
+top-level `categories` equal the selected month's.
+
 The primary UI labels are Deposits, Spent, and Deposits minus spending (Spanish: Depósitos, Gastado, and Depósitos menos gastos), shown under a heading stating that these are the deposits and spending the user recorded; the cash-in breakdown is labeled Confirmed paychecks and Other deposits (Spanish: Pagos de nómina confirmados and Otros depósitos). These labels display the Recorded cash in, Spent, Net recorded cash flow, Confirmed paychecks, and Other cash in quantities defined above, whose names remain the domain terms.
 Coverage, record counts, and the precise paycheck-subset meaning belong in
 secondary disclosure. Zero recorded sums mean no cash in/spending recorded;
